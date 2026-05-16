@@ -506,10 +506,10 @@ export default function LandingPage() {
           <Text style={s.footCopy}>© {new Date().getFullYear()} AfuChat Limited. All rights reserved.</Text>
           <View style={{ flexDirection: "row", marginTop: isTablet ? 0 : 16 }}>
             {[
-              { icon: "logo-twitter",   url: "https://twitter.com/afuchat" },
-              { icon: "logo-instagram", url: "https://instagram.com/afuchat" },
-              { icon: "logo-facebook",  url: "https://facebook.com/afuchat" },
-              { icon: "logo-linkedin",  url: "https://linkedin.com/company/afuchat" },
+              { icon: "logo-twitter",  url: "https://twitter.com/afuchat" },
+              { icon: "paper-plane",   url: "https://t.me/afuchat" },
+              { icon: "logo-facebook", url: "https://facebook.com/afuchat" },
+              { icon: "logo-linkedin", url: "https://linkedin.com/company/afuchat" },
             ].map((soc) => (
               <TouchableOpacity key={soc.icon} onPress={() => Linking.openURL(soc.url)} style={{ marginLeft: 20 }}>
                 <Ionicons name={soc.icon as any} size={20} color="#4B5563" />
