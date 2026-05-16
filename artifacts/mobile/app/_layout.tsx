@@ -57,7 +57,10 @@ export default function RootLayout() {
     return () => sub.remove();
   }, []);
 
-  if (!fontsLoaded && !fontError) {
+  // On native, block until fonts are ready to avoid flash-of-unstyled-text.
+  // On web, render immediately with system fonts then swap in Inter once loaded
+  // — blocking here causes a blank white screen in the browser.
+  if (Platform.OS !== "web" && !fontsLoaded && !fontError) {
     return null;
   }
 
