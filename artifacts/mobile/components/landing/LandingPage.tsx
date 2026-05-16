@@ -14,7 +14,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
+
+const SUPABASE_URL      = process.env.EXPO_PUBLIC_SUPABASE_URL      ?? "";
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 // ─── Color System ──────────────────────────────────────────
 const T = {
@@ -332,14 +334,24 @@ export default function LandingPage() {
     setSubLoading(true);
     setSubMsg(null);
     try {
-      const { data, error } = await supabase.functions.invoke("newsletter-subscribe", {
-        body: { email, source: "landing_page" },
-      });
-      if (error) throw error;
-      setSubMsg({ text: data?.message ?? "Subscribed! Check your inbox.", ok: true });
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/newsletter-subscribe`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+            "apikey": SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ email, source: "landing_page" }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? "Server error");
+      setSubMsg({ text: json?.message ?? "Subscribed! Check your inbox.", ok: true });
       setSubEmail("");
-    } catch {
-      setSubMsg({ text: "Could not subscribe. Please try again.", ok: false });
+    } catch (err: any) {
+      setSubMsg({ text: err?.message ?? "Could not subscribe. Please try again.", ok: false });
     } finally {
       setSubLoading(false);
     }
