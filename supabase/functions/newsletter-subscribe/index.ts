@@ -1,17 +1,45 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const RESEND_API_KEY    = Deno.env.get("RESEND_API_KEY") ?? "";
-const SUPABASE_URL      = Deno.env.get("SUPABASE_URL") ?? "";
-const SUPABASE_SERVICE  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const RESEND_API_KEY   = Deno.env.get("RESEND_API_KEY") ?? "";
+const SUPABASE_URL     = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "apikey, content-type",
+  "Access-Control-Allow-Headers": "apikey, authorization, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+async function saveSubscriber(email: string, source: string): Promise<{ ok: boolean; duplicate: boolean }> {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE) return { ok: false, duplicate: false };
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/newsletter_subscribers`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_SERVICE,
+      "Authorization": `Bearer ${SUPABASE_SERVICE}`,
+      "Content-Type": "application/json",
+      "Prefer": "resolution=ignore-duplicates,return=representation",
+    },
+    body: JSON.stringify({
+      email,
+      subscribed_at: new Date().toISOString(),
+      active: true,
+      source,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    console.error("DB error:", res.status, body);
+    return { ok: false, duplicate: false };
+  }
+
+  const data = await res.json();
+  const duplicate = Array.isArray(data) && data.length === 0;
+  return { ok: true, duplicate };
 }
 
 async function sendWelcomeEmail(email: string): Promise<void> {
@@ -62,7 +90,7 @@ async function sendWelcomeEmail(email: string): Promise<void> {
 </body>
 </html>`;
 
-  await fetch("https://api.resend.com/emails", {
+  const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
@@ -75,6 +103,11 @@ async function sendWelcomeEmail(email: string): Promise<void> {
       html,
     }),
   });
+
+  if (!res.ok) {
+    const body = await res.text();
+    console.error("Resend error:", res.status, body);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -92,6 +125,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const email = (body.email ?? "").toString().trim().toLowerCase();
+    const source = (body.source ?? "landing_page").toString();
 
     if (!email || !isValidEmail(email)) {
       return new Response(JSON.stringify({ error: "Please enter a valid email address." }), {
@@ -100,31 +134,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE, {
-      auth: { persistSession: false },
-    });
+    const { ok, duplicate } = await saveSubscriber(email, source);
 
-    // Upsert — duplicate emails are silently ignored
-    const { error: dbError } = await admin
-      .from("newsletter_subscribers")
-      .upsert(
-        { email, subscribed_at: new Date().toISOString(), active: true },
-        { onConflict: "email", ignoreDuplicates: true },
-      );
-
-    if (dbError) {
-      console.error("DB error:", dbError);
+    if (!ok) {
       return new Response(JSON.stringify({ error: "Could not save subscription. Please try again." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fire-and-forget welcome email
-    sendWelcomeEmail(email).catch((e) => console.error("Welcome email failed:", e));
+    if (!duplicate) {
+      sendWelcomeEmail(email).catch((e) => console.error("Welcome email failed:", e));
+    }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Subscribed! Check your inbox for a welcome email." }),
+      JSON.stringify({
+        success: true,
+        message: duplicate
+          ? "You're already subscribed — we'll keep you posted!"
+          : "Subscribed! Check your inbox for a welcome email.",
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
