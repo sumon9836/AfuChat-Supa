@@ -1,234 +1,140 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
+  Linking,
   Platform,
-  Pressable,
-  Share,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { WebView, type WebViewNavigation } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 import { useAppAccent } from "@/context/AppAccentContext";
-import * as Linking from "expo-linking";
+
+function prettifyDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
 export default function InAppBrowser() {
-  const { url: initialUrl } = useLocalSearchParams<{ url: string }>();
+  const { url } = useLocalSearchParams<{ url: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { accent } = useAppAccent();
+  const [opened, setOpened] = useState(false);
+  const [error, setError] = useState(false);
 
-  const webRef = useRef<WebView>(null);
-  const [currentUrl, setCurrentUrl] = useState(initialUrl ?? "");
-  const [displayUrl, setDisplayUrl] = useState(initialUrl ?? "");
-  const [editingUrl, setEditingUrl] = useState(false);
-  const [draftUrl, setDraftUrl] = useState(initialUrl ?? "");
-  const [title, setTitle] = useState("");
-  const [canGoBack, setCanGoBack] = useState(false);
-  const [canGoForward, setCanGoForward] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const progress = useRef(new Animated.Value(0)).current;
+  const targetUrl = url ?? "";
+  const domain = prettifyDomain(targetUrl);
 
-  function normaliseUrl(raw: string): string {
-    const t = raw.trim();
-    if (!t) return t;
-    if (t.startsWith("http://") || t.startsWith("https://")) return t;
-    return "https://" + t;
-  }
-
-  function prettify(url: string): string {
+  async function openExternal() {
+    if (!targetUrl) { setError(true); return; }
     try {
-      const { hostname, pathname, search, hash } = new URL(url);
-      const rest = pathname === "/" ? "" : pathname + search + hash;
-      return hostname.replace(/^www\./, "") + rest;
+      const supported = await Linking.canOpenURL(targetUrl);
+      if (supported) {
+        await Linking.openURL(targetUrl);
+        setOpened(true);
+      } else {
+        setError(true);
+      }
     } catch {
-      return url;
+      setError(true);
     }
   }
 
-  function handleNavStateChange(nav: WebViewNavigation) {
-    setCanGoBack(nav.canGoBack);
-    setCanGoForward(nav.canGoForward);
-    if (nav.url) {
-      setCurrentUrl(nav.url);
-      setDisplayUrl(prettify(nav.url));
-      setDraftUrl(nav.url);
-    }
-    if (nav.title) setTitle(nav.title);
-  }
+  // Auto-open on mount
+  useEffect(() => {
+    openExternal();
+  }, []);
 
-  function handleLoadProgress({ nativeEvent }: { nativeEvent: { progress: number } }) {
-    Animated.timing(progress, {
-      toValue: nativeEvent.progress,
-      duration: 100,
-      useNativeDriver: false,
-    }).start();
-  }
-
-  function handleLoadStart() {
-    setLoading(true);
-    Animated.timing(progress, { toValue: 0.1, duration: 150, useNativeDriver: false }).start();
-  }
-
-  function handleLoadEnd() {
-    setLoading(false);
-    Animated.timing(progress, { toValue: 1, duration: 200, useNativeDriver: false }).start(() => {
-      setTimeout(() => {
-        Animated.timing(progress, { toValue: 0, duration: 300, useNativeDriver: false }).start();
-      }, 300);
-    });
-  }
-
-  function handleShouldStartLoad({ url }: { url: string }) {
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      Linking.openURL(url).catch(() => {});
-      return false;
-    }
-    return true;
-  }
-
-  const handleShare = useCallback(async () => {
-    try {
-      await Share.share({ url: currentUrl, message: currentUrl, title });
-    } catch {}
-  }, [currentUrl, title]);
-
-  function handleOpenExternal() {
-    Linking.openURL(currentUrl).catch(() => {});
-  }
-
-  function commitUrl() {
-    const normalised = normaliseUrl(draftUrl);
-    setCurrentUrl(normalised);
-    setDisplayUrl(prettify(normalised));
-    setDraftUrl(normalised);
-    setEditingUrl(false);
-    webRef.current?.stopLoading();
-  }
-
-  const progressColor = accent;
-  const barBg = colors.surface;
-  const borderC = colors.border;
-  const textC = colors.text;
-  const mutedC = colors.textMuted;
-  const iconC = colors.text;
-  const disabledC = colors.textMuted;
   const bg = isDark ? "#0F0F0F" : "#F2F2F7";
+  const cardBg = colors.surface;
 
   return (
     <View style={[st.root, { backgroundColor: bg, paddingTop: insets.top }]}>
-      <View style={[st.topBar, { backgroundColor: barBg, borderBottomColor: borderC }]}>
-        <TouchableOpacity onPress={() => router.back()} style={st.closeBtn} hitSlop={8}>
-          <Ionicons name="close" size={22} color={iconC} />
+      {/* Header */}
+      <View style={[st.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => router.back()} style={st.backBtn} hitSlop={12}>
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-
-        <Pressable
-          style={[st.urlBar, { backgroundColor: isDark ? "#2C2C2E" : "#EBEBF0" }]}
-          onPress={() => setEditingUrl(true)}
-        >
-          {editingUrl ? (
-            <TextInput
-              style={[st.urlInput, { color: textC }]}
-              value={draftUrl}
-              onChangeText={setDraftUrl}
-              onSubmitEditing={commitUrl}
-              onBlur={() => setEditingUrl(false)}
-              autoFocus
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              selectTextOnFocus
-              returnKeyType="go"
-            />
-          ) : (
-            <Text style={[st.urlText, { color: textC }]} numberOfLines={1}>
-              {displayUrl || currentUrl}
-            </Text>
-          )}
-          {loading && (
-            <ActivityIndicator size="small" color={accent} style={{ marginLeft: 6 }} />
-          )}
-        </Pressable>
-
-        <TouchableOpacity onPress={handleShare} style={st.shareBtn} hitSlop={8}>
-          <Ionicons name="share-outline" size={22} color={iconC} />
-        </TouchableOpacity>
+        <Text style={[st.headerTitle, { color: colors.text }]} numberOfLines={1}>
+          {domain || "External Link"}
+        </Text>
+        <View style={{ width: 44 }} />
       </View>
 
-      <Animated.View
-        style={[
-          st.progressBar,
-          {
-            backgroundColor: progressColor,
-            width: progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }),
-          },
-        ]}
-      />
-
-      <WebView
-        ref={webRef}
-        source={{ uri: currentUrl }}
-        style={st.webview}
-        onNavigationStateChange={handleNavStateChange}
-        onLoadProgress={handleLoadProgress}
-        onLoadStart={handleLoadStart}
-        onLoadEnd={handleLoadEnd}
-        onShouldStartLoadWithRequest={handleShouldStartLoad}
-        allowsBackForwardNavigationGestures
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        javaScriptEnabled
-        domStorageEnabled
-        startInLoadingState
-        renderLoading={() => (
-          <View style={[st.loadingOverlay, { backgroundColor: bg }]}>
-            <ActivityIndicator size="large" color={accent} />
+      {/* Card */}
+      <View style={st.body}>
+        <View style={[st.card, { backgroundColor: cardBg, shadowColor: isDark ? "#000" : "#00000018" }]}>
+          {/* Icon */}
+          <View style={[st.iconWrap, { backgroundColor: accent + "18" }]}>
+            <Ionicons name="globe-outline" size={40} color={accent} />
           </View>
-        )}
-      />
 
-      <View
-        style={[
-          st.bottomBar,
-          { backgroundColor: barBg, borderTopColor: borderC, paddingBottom: insets.bottom + 4 },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => webRef.current?.goBack()}
-          disabled={!canGoBack}
-          hitSlop={8}
-          style={st.navBtn}
-        >
-          <Ionicons name="chevron-back" size={24} color={canGoBack ? iconC : disabledC} />
-        </TouchableOpacity>
+          {/* Domain */}
+          <Text style={[st.domain, { color: colors.text }]} numberOfLines={1}>
+            {domain || "Website"}
+          </Text>
 
-        <TouchableOpacity
-          onPress={() => webRef.current?.goForward()}
-          disabled={!canGoForward}
-          hitSlop={8}
-          style={st.navBtn}
-        >
-          <Ionicons name="chevron-forward" size={24} color={canGoForward ? iconC : disabledC} />
-        </TouchableOpacity>
+          {/* Status message */}
+          {error ? (
+            <Text style={[st.statusText, { color: "#FF3B30" }]}>
+              Could not open this URL. Please check the link and try again.
+            </Text>
+          ) : opened ? (
+            <Text style={[st.statusText, { color: colors.textMuted }]}>
+              Opened in your default browser. Come back here when you're done.
+            </Text>
+          ) : (
+            <View style={st.loadingRow}>
+              <ActivityIndicator size="small" color={accent} />
+              <Text style={[st.statusText, { color: colors.textMuted, marginTop: 0 }]}>
+                Opening browser…
+              </Text>
+            </View>
+          )}
 
-        <TouchableOpacity
-          onPress={() => loading ? webRef.current?.stopLoading() : webRef.current?.reload()}
-          hitSlop={8}
-          style={st.navBtn}
-        >
-          <Ionicons name={loading ? "close" : "refresh"} size={22} color={iconC} />
-        </TouchableOpacity>
+          {/* URL pill */}
+          {!!targetUrl && (
+            <View style={[st.urlPill, { backgroundColor: isDark ? "#2C2C2E" : "#EBEBF0" }]}>
+              <Ionicons name="lock-closed" size={11} color="#34C759" />
+              <Text style={[st.urlText, { color: colors.textMuted }]} numberOfLines={1}>
+                {targetUrl}
+              </Text>
+            </View>
+          )}
 
-        <TouchableOpacity onPress={handleOpenExternal} hitSlop={8} style={st.navBtn}>
-          <Ionicons name="open-outline" size={22} color={iconC} />
-        </TouchableOpacity>
+          {/* Open / Retry button */}
+          <TouchableOpacity
+            style={[st.openBtn, { backgroundColor: accent }]}
+            onPress={openExternal}
+            activeOpacity={0.82}
+          >
+            <Ionicons name="open-outline" size={18} color="#fff" />
+            <Text style={st.openBtnText}>
+              {error ? "Retry" : opened ? "Open Again" : "Open in Browser"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Back link */}
+          <TouchableOpacity style={st.backLink} onPress={() => router.back()}>
+            <Text style={[st.backLinkText, { color: colors.textMuted }]}>← Go back to AfuChat</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Notice */}
+        <View style={st.noticeRow}>
+          <Ionicons name="shield-checkmark-outline" size={14} color={colors.textMuted} />
+          <Text style={[st.noticeText, { color: colors.textMuted }]}>
+            This link opens in your device's browser for your privacy and security.
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -236,55 +142,111 @@ export default function InAppBrowser() {
 
 const st = StyleSheet.create({
   root: { flex: 1 },
-  topBar: {
+
+  header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 8,
+    paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  closeBtn: { padding: 4 },
-  shareBtn: { padding: 4 },
-  urlBar: {
+  backBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+
+  body: {
     flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    gap: 20,
+  },
+
+  card: {
+    width: "100%",
+    borderRadius: 20,
+    padding: 28,
+    alignItems: "center",
+    gap: 12,
+    ...Platform.select({
+      android: { elevation: 6 },
+      ios: { shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.10, shadowRadius: 16 },
+      default: {},
+    }),
+  },
+
+  iconWrap: {
+    width: 76,
+    height: 76,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+
+  domain: {
+    fontSize: 20,
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+  },
+
+  loadingRow: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 10,
-    paddingHorizontal: 10,
+    gap: 8,
+  },
+
+  statusText: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 20,
+    marginTop: 2,
+  },
+
+  urlPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
     paddingVertical: 7,
-    minHeight: 36,
+    borderRadius: 20,
+    maxWidth: "100%",
   },
   urlText: {
-    flex: 1,
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
-  },
-  urlInput: {
     flex: 1,
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    padding: 0,
-    margin: 0,
   },
-  progressBar: {
-    height: 2,
-    position: "absolute",
-    top: 0,
-    left: 0,
-  },
-  webview: { flex: 1 },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  bottomBar: {
+
+  openBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    justifyContent: "center",
+    gap: 8,
+    width: "100%",
+    height: 50,
+    borderRadius: 14,
+    marginTop: 6,
   },
-  navBtn: { padding: 8, alignItems: "center", justifyContent: "center", flex: 1 },
+  openBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+  },
+
+  backLink: { paddingVertical: 6 },
+  backLinkText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+
+  noticeRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 7,
+    paddingHorizontal: 8,
+  },
+  noticeText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+    lineHeight: 17,
+  },
 });

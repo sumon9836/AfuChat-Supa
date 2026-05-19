@@ -412,7 +412,6 @@ export default function AdvancedFeaturesScreen() {
             <SectionLabel label="INTERFACE" />
             <FloatCard>
               <ToggleRow icon="flash-outline" iconBg="#FF9500" label="Quick Action Menu" desc="Long-press a message to access actions instantly" value={features.quick_action_menu} onValueChange={(v) => toggle("quick_action_menu", v)} />
-              <ToggleRow icon="open-outline" iconBg="#007AFF" label="In-App Browser" desc="Open links inside AfuChat without switching apps" value={features.in_app_browser} onValueChange={(v) => toggle("in_app_browser", v)} />
               <ToggleRow icon="link-outline" iconBg="#00BCD4" label="Interactive Link Previews" desc="Show rich previews for links shared in chats" value={features.interactive_link_preview} onValueChange={(v) => toggle("interactive_link_preview", v)} />
               <ToggleRow icon="images-outline" iconBg="#34C759" label="Auto Media Organisation" desc="Automatically group shared files, photos, and videos" value={features.auto_media_organization} onValueChange={(v) => toggle("auto_media_organization", v)} />
               <ToggleRow icon="cloud-upload-outline" iconBg="#5856D6" label="Drag & Drop Upload" desc="Drop files directly into a chat to send them (web)" value={features.drag_drop_upload} onValueChange={(v) => toggle("drag_drop_upload", v)} />

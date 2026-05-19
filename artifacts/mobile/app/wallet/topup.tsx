@@ -4,7 +4,7 @@
  * Hosted checkout flow (Pesapal):
  *  1. User picks a package (or enters custom amount)
  *  2. App calls Supabase Edge Function /functions/v1/pesapal-initiate → Pesapal returns redirect_url
- *  3. redirect_url opens full-screen in-app WebView (Pesapal's hosted checkout)
+ *  3. redirect_url opens in the device's system browser (Pesapal's hosted checkout)
  *  4. User completes payment on Pesapal's page (card, mobile money, etc.)
  *  5. App polls pesapal_orders until status = completed | failed
  */
@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -34,11 +35,6 @@ import { showAlert } from "@/lib/alert";
 
 const { width: SW } = Dimensions.get("window");
 const CALLBACK_URL = "https://afuchat.com/wallet/payment-complete";
-
-let WebView: any = null;
-if (Platform.OS !== "web") {
-  try { WebView = require("react-native-webview").WebView; } catch {}
-}
 
 // ─── Packages ──────────────────────────────────────────────────────────────────
 
@@ -192,92 +188,97 @@ function SelectScreen({ insets, colors, profile, selectedPack, setSelectedPack, 
   );
 }
 
-// ─── Screen 2: Hosted Checkout WebView ────────────────────────────────────────
+// ─── Screen 2: Hosted Checkout — opens in system browser ─────────────────────
 
-function CheckoutWebView({ insets, colors, url, title, onSuccess, onCancel, onError }: {
+function CheckoutWebView({ insets, colors, url, title, onSuccess, onCancel }: {
   insets: any; colors: any; url: string; title: string;
   onSuccess: () => void; onCancel: () => void; onError: (msg: string) => void;
 }) {
-  const [webLoading, setWebLoading] = useState(true);
+  const [opened, setOpened] = useState(false);
 
-  function handleNavChange(navUrl: string) {
-    if (navUrl.startsWith(CALLBACK_URL)) {
-      const params = new URLSearchParams(navUrl.split("?")[1] || "");
-      const status = params.get("OrderTrackingId") ? "success" : (params.get("status") || "");
-      if (status === "Failed" || status === "Invalid") onError("Payment was not completed.");
-      else onSuccess();
+  async function openBrowser() {
+    try {
+      await Linking.openURL(url);
+      setOpened(true);
+    } catch {
+      /* fallback: just mark opened so user can still confirm manually */
+      setOpened(true);
     }
   }
 
-  if (Platform.OS === "web" || !WebView) {
-    return (
-      <View style={[s.root, s.centered, { backgroundColor: colors.backgroundSecondary }]}>
-        <LinearGradient colors={["#0C2A2E", "#061518"]} style={[s.gradHeader, { paddingTop: insets.top + 14 }]}>
-          <TouchableOpacity onPress={onCancel} style={s.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
-          </TouchableOpacity>
-          <Text style={[s.gradHeaderTitle, { flex: 1 }]}>{title}</Text>
-        </LinearGradient>
-        <View style={[s.resultCard, { backgroundColor: colors.surface, margin: 24 }]}>
-          <View style={[s.resultIcon, { backgroundColor: Colors.brand + "18" }]}>
-            <Ionicons name="globe-outline" size={44} color={Colors.brand} />
-          </View>
-          <Text style={[s.resultTitle, { color: colors.text }]}>Open Checkout</Text>
-          <Text style={[s.resultSub, { color: colors.textMuted }]}>
-            Complete your payment on the secure Pesapal page.
-          </Text>
-          <TouchableOpacity style={[s.checkoutBtn, { backgroundColor: Colors.brand, marginTop: 20 }]}
-            onPress={() => { if (typeof window !== "undefined") window.open(url, "_blank"); }}>
-            <Ionicons name="open-outline" size={18} color="#fff" />
-            <Text style={s.checkoutBtnText}>Open Checkout</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={{ marginTop: 14 }} onPress={onSuccess}>
-            <Text style={{ color: Colors.brand, fontSize: 14, fontFamily: "Inter_600SemiBold" }}>I've completed payment</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={{ marginTop: 10 }} onPress={onCancel}>
-            <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: "Inter_400Regular" }}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+  // Auto-open as soon as the component mounts
+  useEffect(() => { openBrowser(); }, []);
+
+  function handleCancel() {
+    showAlert(
+      "Cancel Payment",
+      "Are you sure? No funds have been charged.",
+      [
+        { text: "Stay", style: "cancel" },
+        { text: "Cancel Payment", style: "destructive", onPress: onCancel },
+      ]
     );
   }
 
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
-      <LinearGradient colors={["#0C2A2E", "#061518"]} style={[s.webHeader, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity
-          style={s.backBtn}
-          onPress={() => showAlert("Cancel Payment", "Are you sure? No funds have been charged.",
-            [{ text: "Stay", style: "cancel" }, { text: "Cancel Payment", style: "destructive", onPress: onCancel }])}
-        >
+      {/* Header */}
+      <LinearGradient
+        colors={["#0C2A2E", "#061518"]}
+        style={[s.gradHeader, { paddingTop: insets.top + 14 }]}
+      >
+        <TouchableOpacity onPress={handleCancel} style={s.backBtn}>
           <Ionicons name="close" size={22} color="#fff" />
         </TouchableOpacity>
-        <View style={{ flex: 1, alignItems: "center" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-            <Ionicons name="lock-closed" size={12} color="#34C759" />
-            <Text style={s.webHeaderTitle}>{title}</Text>
-          </View>
-          <Text style={s.webHeaderSub}>pesapal.com · Secure</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 5, flex: 1, justifyContent: "center" }}>
+          <Ionicons name="lock-closed" size={12} color="#34C759" />
+          <Text style={s.gradHeaderTitle}>{title}</Text>
         </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
-      <WebView
-        style={{ flex: 1 }}
-        source={{ uri: url }}
-        onNavigationStateChange={(nav: any) => handleNavChange(nav.url || "")}
-        onShouldStartLoadWithRequest={(req: any) => { handleNavChange(req.url || ""); return true; }}
-        onLoad={() => setWebLoading(false)}
-        onError={() => onError("Could not load the payment page. Please try again.")}
-        javaScriptEnabled domStorageEnabled thirdPartyCookiesEnabled allowsInlineMediaPlayback
-        userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-      />
-      {webLoading && (
-        <View style={[s.webLoader, { backgroundColor: colors.background }]}>
-          <ActivityIndicator size="large" color={Colors.brand} />
-          <Text style={[s.webLoaderText, { color: colors.textMuted }]}>Loading secure checkout…</Text>
+
+      {/* Body card */}
+      <View style={[s.checkoutCard, { backgroundColor: colors.surface, margin: 20 }]}>
+        {/* Shield icon */}
+        <View style={[s.resultIcon, { backgroundColor: Colors.brand + "18" }]}>
+          <Ionicons name="shield-checkmark-outline" size={44} color={Colors.brand} />
         </View>
-      )}
-      <View style={{ height: insets.bottom, backgroundColor: colors.surface }} />
+
+        <Text style={[s.resultTitle, { color: colors.text }]}>Complete Payment</Text>
+        <Text style={[s.resultSub, { color: colors.textMuted }]}>
+          {opened
+            ? "Your browser opened to the secure Pesapal checkout page. Return here once your payment is done."
+            : "Opening secure checkout in your browser…"}
+        </Text>
+
+        {/* Pesapal domain badge */}
+        <View style={[s.domainBadge, { backgroundColor: colors.background }]}>
+          <Ionicons name="lock-closed" size={11} color="#34C759" />
+          <Text style={[s.domainText, { color: colors.textMuted }]}>pesapal.com · Encrypted</Text>
+        </View>
+
+        {/* Open / Re-open */}
+        <TouchableOpacity
+          style={[s.checkoutBtn, { backgroundColor: Colors.brand, marginTop: 10 }]}
+          onPress={openBrowser}
+          activeOpacity={0.82}
+        >
+          <Ionicons name="open-outline" size={18} color="#fff" />
+          <Text style={s.checkoutBtnText}>{opened ? "Re-open Browser" : "Open Checkout"}</Text>
+        </TouchableOpacity>
+
+        {/* Confirm done */}
+        <TouchableOpacity style={{ marginTop: 16 }} onPress={onSuccess}>
+          <Text style={{ color: Colors.brand, fontSize: 15, fontFamily: "Inter_600SemiBold" }}>
+            I've completed payment
+          </Text>
+        </TouchableOpacity>
+
+        {/* Cancel */}
+        <TouchableOpacity style={{ marginTop: 10 }} onPress={handleCancel}>
+          <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: "Inter_400Regular" }}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -526,11 +527,9 @@ const s = StyleSheet.create({
   methodPill: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, alignItems: "center", justifyContent: "center" },
   methodText: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.3 },
 
-  webHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 14, gap: 10 },
-  webHeaderTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
-  webHeaderSub: { fontSize: 11, color: "#34C759", fontFamily: "Inter_400Regular" },
-  webLoader: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-  webLoaderText: { marginTop: 12, fontSize: 14, fontFamily: "Inter_400Regular" },
+  checkoutCard: { borderRadius: 24, padding: 28, alignItems: "center", ...Platform.select({ web: { boxShadow: "0 4px 20px rgba(0,0,0,0.08)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 4 } }) },
+  domainBadge: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, marginVertical: 6 },
+  domainText: { fontSize: 12, fontFamily: "Inter_400Regular" },
 
   resultCard: { width: SW - 48, borderRadius: 24, padding: 28, alignItems: "center", ...Platform.select({ web: { boxShadow: "0 4px 20px rgba(0,0,0,0.08)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 4 } }) },
   resultIcon: { width: 88, height: 88, borderRadius: 28, alignItems: "center", justifyContent: "center", marginBottom: 20 },
