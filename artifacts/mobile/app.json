@@ -166,11 +166,9 @@
         }
       ]
     ],
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
     "updates": {
       "enabled": false,
+      "checkOnLaunch": "NEVER",
       "fallbackToCacheTimeout": 0
     },
     "experiments": {
