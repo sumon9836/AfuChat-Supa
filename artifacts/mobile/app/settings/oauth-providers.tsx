@@ -28,13 +28,14 @@ type Provider = {
   label: string;
   iconGradient: [string, string];
   renderLogo: (isDark: boolean) => React.ReactNode;
+  disabled?: boolean;
 };
 
 const PROVIDERS: Provider[] = [
   { id: "google",  label: "Google",      iconGradient: ["#EA4335", "#4285F4"], renderLogo: () => <GoogleLogo size={18} /> },
-  { id: "github",  label: "GitHub",      iconGradient: ["#24292E", "#404040"], renderLogo: () => <GitHubLogo size={18} color="#fff" /> },
-  { id: "twitter", label: "X (Twitter)", iconGradient: ["#1a1a1a", "#333333"], renderLogo: () => <XLogo size={18} color="#fff" /> },
-  { id: "gitlab",  label: "GitLab",      iconGradient: ["#FC6D26", "#E24329"], renderLogo: () => <GitLabLogo size={18} /> },
+  { id: "github",  label: "GitHub",      iconGradient: ["#24292E", "#404040"], renderLogo: () => <GitHubLogo size={18} color="#fff" />, disabled: true },
+  { id: "twitter", label: "X (Twitter)", iconGradient: ["#1a1a1a", "#333333"], renderLogo: () => <XLogo size={18} color="#fff" />,    disabled: true },
+  { id: "gitlab",  label: "GitLab",      iconGradient: ["#FC6D26", "#E24329"], renderLogo: () => <GitLabLogo size={18} />,           disabled: true },
 ];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -125,29 +126,42 @@ export default function OAuthProvidersScreen() {
               const isConnected = !!identity;
               const isBusy = actionLoading === provider.id;
               const isLast = index === PROVIDERS.length - 1;
+              const isDisabled = !!provider.disabled;
 
               return (
                 <View key={provider.id}>
-                  <View style={styles.row}>
+                  <View style={[styles.row, isDisabled && styles.rowDisabled]}>
                     {/* Icon */}
                     <LinearGradient
-                      colors={provider.iconGradient}
+                      colors={isDisabled
+                        ? [colors.border, colors.border]
+                        : provider.iconGradient}
                       start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }}
-                      style={styles.iconWrap}
+                      style={[styles.iconWrap, isDisabled && { opacity: 0.35 }]}
                     >
                       {provider.renderLogo(isDark)}
                     </LinearGradient>
 
                     {/* Label + status */}
                     <View style={styles.rowMeta}>
-                      <Text style={[styles.rowLabel, { color: colors.text }]}>{provider.label}</Text>
-                      <Text style={[styles.rowStatus, { color: isConnected ? "#30D158" : colors.textMuted }]}>
-                        {isConnected ? "● Connected" : "Not connected"}
+                      <Text style={[styles.rowLabel, { color: isDisabled ? colors.textMuted : colors.text }]}>
+                        {provider.label}
+                      </Text>
+                      <Text style={[styles.rowStatus, {
+                        color: isDisabled ? colors.textMuted
+                          : isConnected ? "#30D158"
+                          : colors.textMuted,
+                      }]}>
+                        {isDisabled ? "Coming soon" : isConnected ? "● Connected" : "Not connected"}
                       </Text>
                     </View>
 
                     {/* Action */}
-                    {isBusy ? (
+                    {isDisabled ? (
+                      <View style={[styles.comingSoonBadge, { backgroundColor: colors.border }]}>
+                        <Text style={[styles.comingSoonText, { color: colors.textMuted }]}>Soon</Text>
+                      </View>
+                    ) : isBusy ? (
                       <ActivityIndicator size="small" color={colors.accent} />
                     ) : isConnected ? (
                       <TouchableOpacity
@@ -207,11 +221,18 @@ const styles = StyleSheet.create({
   },
   connectText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
+  rowDisabled: { opacity: 0.55 },
+
   disconnectBtn: {
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10,
     borderWidth: 1, borderColor: "#FF3B30",
   },
   disconnectText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#FF3B30" },
+
+  comingSoonBadge: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+  },
+  comingSoonText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
 
   hint: { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18, paddingHorizontal: 8 },
 });
