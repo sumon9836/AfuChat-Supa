@@ -65,28 +65,6 @@ export default function DownloadPage() {
                   />
                 </a>
 
-                {/* App Store — coming soon */}
-                <div className="lp-r" style={{ position: "relative" as const, display: "inline-block", lineHeight: 0, opacity: 0.38, cursor: "not-allowed" }}>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    background: "#000", borderRadius: 8, padding: "12px 18px", height: 64, boxSizing: "border-box" as const,
-                  }}>
-                    <svg viewBox="0 0 814 1000" width="26" height="32" fill="white">
-                      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-47.4-148.2-112.7C172.8 795 128 688.4 128 550.8c0-216.6 141.4-330.9 291.9-330.9 73.6 0 134.8 48.5 179.6 48.5 43.9 0 112.9-51.4 194.8-51.4z"/>
-                      <path d="M450.7 44.8C478.6 13.5 534.1 0 580.8 0c6.4 47.4-14.2 94.8-43.4 128.9-29.2 34.1-80.9 59.8-128.9 56.2-7.6-46.1 14.8-93.3 42.2-140.3z"/>
-                    </svg>
-                    <div style={{ textAlign: "left" as const }}>
-                      <div style={{ color: "rgba(255,255,255,.7)", fontSize: 10, fontWeight: 500, lineHeight: 1 }}>Download on the</div>
-                      <div style={{ color: "#fff", fontSize: 18, fontWeight: 700, lineHeight: 1.3 }}>App Store</div>
-                    </div>
-                  </div>
-                  <div style={{
-                    position: "absolute" as const, top: -8, right: -8,
-                    background: "var(--cl)", color: "#000", fontSize: 8, fontWeight: 800,
-                    padding: "2px 7px", borderRadius: 20, textTransform: "uppercase" as const, letterSpacing: ".06em",
-                  }}>Coming Soon</div>
-                </div>
-
                 {/* Web App */}
                 <a href="/login" className="lp-r" style={{
                   display: "flex", alignItems: "center", gap: 10,

@@ -19,7 +19,7 @@ import { useAppAccent } from "@/context/AppAccentContext";
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
 const APP_VERSION = Constants.expoConfig?.version ?? "2.0.30";
-const BUILD = Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode?.toString() ?? "2030";
+const BUILD = Constants.expoConfig?.android?.versionCode?.toString() ?? "2030";
 
 const FEATURES = [
   { icon: "chatbubbles",      color: "#00BCD4", title: "Messaging",         desc: "End-to-end encrypted 1-on-1 and group chats, voice notes, stories, and broadcasts." },
@@ -81,7 +81,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What platforms is AfuChat available on?",
-    a: "AfuChat is available on iOS, Android, and web. Download from the App Store, Google Play, or access it via your browser.",
+    a: "AfuChat is available on Android and web. Download from Google Play, or access it via your browser.",
   },
 ];
 

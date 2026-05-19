@@ -68,11 +68,11 @@ const SECTIONS: Section[] = [
       },
       {
         heading: "2.3 Premium Subscription",
-        body: `AfuChat offers a paid "Premium" subscription that unlocks additional features including but not limited to: advanced AI access, exclusive stickers, profile badges, priority support, and expanded storage. Premium subscriptions are billed on a recurring monthly or annual basis.\n\n• Subscriptions auto-renew unless cancelled at least 24 hours before the renewal date\n• You may cancel your subscription at any time in Settings → Premium\n• Refunds are governed by the platform through which you purchased (Google Play, Apple App Store, or direct billing)\n• AfuChat does not offer pro-rated refunds for unused subscription periods except as required by law`,
+        body: `AfuChat offers a paid "Premium" subscription that unlocks additional features including but not limited to: advanced AI access, exclusive stickers, profile badges, priority support, and expanded storage. Premium subscriptions are billed on a recurring monthly or annual basis.\n\n• Subscriptions auto-renew unless cancelled at least 24 hours before the renewal date\n• You may cancel your subscription at any time in Settings → Premium\n• Refunds are governed by the platform through which you purchased (Google Play or direct billing)\n• AfuChat does not offer pro-rated refunds for unused subscription periods except as required by law`,
       },
       {
-        heading: "2.4 App Store Purchases",
-        body: `If you purchase a subscription or in-app item through the Apple App Store or Google Play Store, the purchase is subject to the respective store's terms and conditions. Billing, refund requests, and subscription management for store purchases must be handled directly with Apple or Google, not AfuChat.\n\n• Apple App Store: manage at Settings → Apple ID → Subscriptions\n• Google Play Store: manage at play.google.com/store/account/subscriptions`,
+        heading: "2.4 Google Play Purchases",
+        body: `If you purchase a subscription or in-app item through the Google Play Store, the purchase is subject to Google Play's terms and conditions. Billing, refund requests, and subscription management for store purchases must be handled directly with Google, not AfuChat.\n\n• Google Play Store: manage at play.google.com/store/account/subscriptions`,
       },
       {
         heading: "2.5 Taxes",
@@ -201,15 +201,11 @@ const SECTIONS: Section[] = [
         body: `AfuChat is distributed on the Google Play Store. Your use of AfuChat obtained from Google Play is also subject to Google Play's Terms of Service. In the event of a conflict between these Terms and Google Play's Terms, Google Play's Terms shall govern solely with respect to your relationship with Google. AfuChat is independently responsible for the App and its content.`,
       },
       {
-        heading: "8.2 Apple App Store",
-        body: `If AfuChat becomes available on the Apple App Store, your use of such version will also be subject to Apple's App Store Review Guidelines and Apple's Media Services Terms and Conditions. You acknowledge that Apple has no obligation to provide maintenance or support services for AfuChat. Apple is not responsible for AfuChat or its content. Apple is a third-party beneficiary of these Terms with respect to App Store-distributed versions of the App.`,
-      },
-      {
-        heading: "8.3 Huawei AppGallery & Other Stores",
+        heading: "8.2 Huawei AppGallery & Other Stores",
         body: `AfuChat may be distributed through additional stores including the Huawei AppGallery, Samsung Galaxy Store, and direct APK download. Users who install AfuChat via direct APK are responsible for ensuring they download from official AfuChat sources (afuchat.com). AfuChat is not responsible for modified or counterfeit versions of the App.`,
       },
       {
-        heading: "8.4 Platform Compliance",
+        heading: "8.3 Platform Compliance",
         body: `AfuChat complies with the content policies, data safety disclosures, and developer programme policies of all distribution platforms on which it is listed. Users who believe AfuChat is in violation of any platform's policies are encouraged to contact us at legal@afuchat.com.`,
       },
     ],
@@ -350,7 +346,7 @@ export default function TermsScreen() {
           <View style={[st.introBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="information-circle" size={18} color="#3B82F6" style={{ marginTop: 1 }} />
             <Text style={[st.introBannerText, { color: colors.textSecondary }]}>
-              These Terms govern your access to and use of AfuChat across all platforms, including Android, iOS, Web, and any other distribution channels. Please read them carefully before using the Platform.
+              These Terms govern your access to and use of AfuChat across all platforms, including Android, Web, and any other distribution channels. Please read them carefully before using the Platform.
             </Text>
           </View>
           <Text style={[st.introBody, { color: colors.textSecondary }]}>

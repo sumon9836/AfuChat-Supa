@@ -85,7 +85,7 @@ export default function TermsPage() {
                   All in-app purchase prices are displayed in the app before you complete a transaction. Prices may vary by region. Subscriptions auto-renew unless cancelled at least 24 hours before the renewal date. You can manage and cancel subscriptions in your device's app store account settings.
                 </p>
                 <p>
-                  <strong>Refunds:</strong> In-app purchase refunds are subject to the refund policy of the app store through which you made the purchase (Google Play or Apple App Store). AfuChat does not issue direct refunds for digital content that has been consumed or used.
+                  <strong>Refunds:</strong> In-app purchase refunds are subject to the refund policy of the app store through which you made the purchase (Google Play). AfuChat does not issue direct refunds for digital content that has been consumed or used.
                 </p>
                 <p>
                   <strong>Core features are always free.</strong> Messaging, calls, communities, and core social features will remain free for all users. Premium subscription is optional.
