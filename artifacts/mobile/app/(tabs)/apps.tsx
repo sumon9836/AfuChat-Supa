@@ -208,6 +208,7 @@ const CATEGORIES: Category[] = [
         gradient: ["#007AFF", "#5AC8FA"],
         route: "/username-market",
         featuredSub: "Buy and sell premium @handles.",
+        adminOnly: true,
       },
     ],
   },

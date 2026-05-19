@@ -74,7 +74,7 @@ export default function PayAndServicesScreen() {
   const insets = useSafeAreaInsets();
   const { profile } = useAuth();
 
-  if (Platform.OS === "web" && !profile?.is_admin) {
+  if (!profile?.is_admin) {
     return <ComingSoonView title="Mini Programs" description="AfuChat Mini Programs are coming to web soon. Access all your favourite services on the mobile app today." />;
   }
 

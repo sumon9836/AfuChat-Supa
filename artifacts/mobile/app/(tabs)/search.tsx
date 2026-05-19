@@ -1420,102 +1420,19 @@ export default function SearchScreen() {
   // ─── Discovery (idle) view ────────────────────────────────────────────────────
 
   function renderDiscovery() {
-    const tags = trendingHashtags.length > 0 ? trendingHashtags : FALLBACK_TAGS.map(t => ({ tag: t, count: 0 }));
-    const catGap = 10;
-    const catW = Math.floor((SW - 32 - catGap * 3) / 4);
-
     return (
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: scrollPB }}>
 
-        {/* Browse categories */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 14 }}>
-            <Ionicons name="compass" size={15} color={BRAND} />
-            <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.text }}>Explore AfuChat</Text>
-          </View>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: catGap }}>
-            {CATEGORIES.map((cat, i) => (
-              <Animated.View key={cat.id} entering={FadeInDown.delay(i * 28).duration(220)}>
-                <TouchableOpacity
-                  style={{ width: catW, alignItems: "center", gap: 8, paddingVertical: 14, paddingHorizontal: 4, backgroundColor: colors.surface, borderRadius: 16, elevation: 3, ...Platform.select({ web: { boxShadow: `0 2px 8px rgba(0,0,0,${isDark ? 0.22 : 0.06})` } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: isDark ? 0.22 : 0.06, shadowRadius: 8 } }) }}
-                  onPress={() => { onTabPress(cat.id as SearchTab); inputRef.current?.focus(); }}
-                  activeOpacity={0.78}
-                >
-                  <LinearGradient colors={cat.gradient} style={{ width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" }} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                    <Ionicons name={cat.icon as any} size={22} color="#fff" />
-                  </LinearGradient>
-                  <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.text, textAlign: "center" }}>{cat.label}</Text>
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-          </View>
-        </View>
-
-        {/* Trending People */}
-        {trendingPeople.length > 0 && (
-          <View style={{ paddingTop: 28 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, marginBottom: 14, gap: 7 }}>
-              <Ionicons name="trending-up" size={15} color={BRAND} />
-              <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.text, flex: 1 }}>Trending People</Text>
-              <TouchableOpacity onPress={() => { onTabPress("people"); inputRef.current?.focus(); }}>
-                <Text style={{ color: BRAND, fontSize: 12, fontFamily: "Inter_600SemiBold" }}>See all</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16, paddingBottom: 4 }}>
-              {trendingPeople.map((p, i) => (
-                <Animated.View key={p.id} entering={FadeInRight.delay(i * 28).duration(200)}>
-                  <TouchableOpacity style={{ alignItems: "center", width: 70, gap: 6 }} onPress={() => router.push({ pathname: "/contact/[id]", params: { id: p.id, init_name: p.display_name, init_handle: p.handle, init_avatar: p.avatar_url ?? "", init_verified: p.is_verified ? "1" : "0", init_org_verified: p.is_organization_verified ? "1" : "0" } } as any)} activeOpacity={0.78}>
-                    <View style={{ position: "relative" }}>
-                      {p.avatar_url
-                        ? <Image source={{ uri: p.avatar_url }} style={{ width: 56, height: 56, borderRadius: p.is_organization_verified ? 14 : 28, borderWidth: 2, borderColor: p.is_organization_verified ? GOLD : BRAND }} />
-                        : <LinearGradient colors={[BRAND, "#0097A7"]} style={{ width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" }}><Text style={{ color: "#fff", fontSize: 20, fontFamily: "Inter_700Bold" }}>{(p.display_name || "?")[0]}</Text></LinearGradient>}
-                      {p.is_verified && (
-                        <View style={{ position: "absolute", bottom: -2, right: -2 }}>
-                          <Ionicons name="checkmark-circle" size={16} color={p.is_organization_verified ? GOLD : BRAND} />
-                        </View>
-                      )}
-                    </View>
-                    <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.text, textAlign: "center" }} numberOfLines={1}>{p.display_name}</Text>
-                    <Text style={{ fontSize: 10, color: colors.textMuted, textAlign: "center" }} numberOfLines={1}>@{p.handle}</Text>
-                  </TouchableOpacity>
-                </Animated.View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Trending Videos */}
-        {trendingVideos.length > 0 && (
-          <View style={{ paddingTop: 28 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, marginBottom: 14, gap: 7 }}>
-              <Ionicons name="flame" size={15} color={RED} />
-              <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.text, flex: 1 }}>Hot Videos</Text>
-              <TouchableOpacity onPress={() => { setTab("videos"); performSearch("", "videos", false, "popular", "all"); }}>
-                <Text style={{ color: BRAND, fontSize: 12, fontFamily: "Inter_600SemiBold" }}>See all</Text>
-              </TouchableOpacity>
-            </View>
-            <VideoGrid videos={trendingVideos.slice(0, 6)} />
-          </View>
-        )}
-
-        {/* Trending Topics */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 28 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 13 }}>
-            <Ionicons name="pricetag" size={15} color={PURPLE} />
-            <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.text }}>Trending Topics</Text>
-          </View>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {tags.map(({ tag, count }, i) => (
-              <Animated.View key={tag} entering={FadeIn.delay(i * 15).duration(180)}>
-                <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: PURPLE + "10", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: PURPLE + "22" }} onPress={() => onTagPress(tag)} activeOpacity={0.75}>
-                  <Text style={{ color: PURPLE, fontSize: 13, fontFamily: "Inter_700Bold" }}>#</Text>
-                  <Text style={{ color: PURPLE, fontSize: 13, fontFamily: "Inter_500Medium" }}>{tag}</Text>
-                  {count > 1 && <View style={{ backgroundColor: PURPLE + "22", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 }}><Text style={{ color: PURPLE, fontSize: 10, fontFamily: "Inter_600SemiBold" }}>{count > 99 ? "99+" : count}</Text></View>}
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-          </View>
-        </View>
+        {/* Clean empty state */}
+        <Animated.View entering={FadeIn.duration(280)} style={{ alignItems: "center", paddingTop: history.length > 0 || saved.length > 0 ? 36 : 88, paddingHorizontal: 36, paddingBottom: 32, gap: 10 }}>
+          <LinearGradient colors={[BRAND + "20", BRAND + "06"]} style={{ width: 86, height: 86, borderRadius: 26, alignItems: "center", justifyContent: "center", marginBottom: 4 }}>
+            <Ionicons name="search" size={38} color={BRAND} />
+          </LinearGradient>
+          <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.text, textAlign: "center", letterSpacing: -0.3 }}>Search AfuChat</Text>
+          <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.textSecondary, textAlign: "center", lineHeight: 22 }}>
+            Find people, posts, videos, channels,{"\n"}events, gifts and more
+          </Text>
+        </Animated.View>
 
         {/* Recent searches */}
         {history.length > 0 && (
@@ -1609,7 +1526,8 @@ export default function SearchScreen() {
               : null}
         </View>
 
-        {/* Filter pills */}
+        {/* Filter pills — only shown when actively searching */}
+        {(query.length > 0 || hasSearched) && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 6 }}>
           <TouchableOpacity
             style={[ss.filterPill, verifiedOnly && { backgroundColor: BRAND, borderColor: BRAND }]}
@@ -1630,6 +1548,7 @@ export default function SearchScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        )}
 
       </View>
 

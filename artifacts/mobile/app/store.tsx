@@ -212,7 +212,7 @@ export default function MarketplaceScreen() {
 
   const headerTopPad = Platform.OS === "ios" ? insets.top : Math.max(insets.top, 12);
 
-  if (Platform.OS === "web" && !profile?.is_admin) {
+  if (!profile?.is_admin) {
     return <ComingSoonView title="Marketplace" description="The AfuChat Marketplace is coming to web soon. Shop from verified stores on the mobile app today." />;
   }
 
