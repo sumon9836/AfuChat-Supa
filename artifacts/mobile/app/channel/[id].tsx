@@ -390,7 +390,7 @@ export default function ChannelDetailScreen() {
   }
 
   // ─── Channel info banner (pinned above messages) ───────────────────────────
-  const ListFooter = () => (
+  const ListHeader = () => (
     <View style={[st.infoBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={st.infoBannerAvatar}>
         {channel.avatar_url ? (
@@ -498,15 +498,14 @@ export default function ChannelDetailScreen() {
         </View>
       </View>
 
-      {/* Message list (inverted so newest is at bottom) */}
+      {/* Message list — newest first (feed order, no inversion needed) */}
       <FlatList
         ref={flatListRef}
         data={posts}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <MessageBubble post={item} />}
-        inverted
         contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 12 }}
-        ListFooterComponent={<ListFooter />}
+        ListHeaderComponent={<ListHeader />}
         ListEmptyComponent={
           <View style={st.emptyWrap}>
             <Ionicons name="megaphone-outline" size={44} color={colors.textMuted} />
