@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   Image,
-  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -70,7 +69,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "How do I contact support?",
-    a: "Open the Me tab → Support Center, or email support@afuchat.com. We aim to respond within 24 hours on business days.",
+    a: "Open the Me tab → Support Center to submit a ticket. We aim to respond within 24 hours on business days.",
   },
   {
     q: "How do I delete my account?",
@@ -194,7 +193,7 @@ export default function AboutScreen() {
             { label: "Privacy Policy",     sub: "How we collect and use your data",      icon: "shield-checkmark-outline", iconBg: "#34C75918",   iconColor: "#34C759",  route: "/privacy" },
             { label: "License",            sub: "Open-source licenses and attributions", icon: "ribbon-outline",           iconBg: "#5856D618",   iconColor: "#5856D6",  route: null,       info: "MIT License · © " + new Date().getFullYear() + " AfuChat" },
             { label: "Support Center",     sub: "Submit a ticket or browse help articles",icon: "help-buoy-outline",       iconBg: "#FF950018",   iconColor: "#FF9500",  route: "/support" },
-            { label: "Email Support",      sub: "support@afuchat.com",                   icon: "mail-outline",             iconBg: "#00BCD418",   iconColor: "#00BCD4",  email: "support@afuchat.com" },
+            { label: "Contact Us",         sub: "Visit our contact page",               icon: "chatbubble-outline",       iconBg: "#00BCD418",   iconColor: "#00BCD4",  route: "/contact" },
           ].map((item, i, arr) => (
             <React.Fragment key={item.label}>
               {i > 0 && <View style={[st.divider, { backgroundColor: colors.border }]} />}
@@ -202,7 +201,6 @@ export default function AboutScreen() {
                 style={st.legalRow}
                 activeOpacity={item.info ? 1 : 0.7}
                 onPress={() => {
-                  if (item.email) { Linking.openURL(`mailto:${item.email}`); return; }
                   if (item.route) router.push(item.route as any);
                 }}
               >

@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -81,9 +80,8 @@ export default function CareersScreen() {
   const isDesktop = width >= 1024;
   const isTablet  = width >= 640;
 
-  const apply = (role?: string) => {
-    const subject = role ? `Application: ${role}` : "General Application";
-    Linking.openURL(`mailto:jobs@afuchat.com?subject=${encodeURIComponent(subject)}`);
+  const apply = (_role?: string) => {
+    router.push("/contact" as any);
   };
 
   return (
@@ -214,8 +212,7 @@ export default function CareersScreen() {
           <Ionicons name="mail" size={32} color={TEAL} style={{ marginBottom: 16 }} />
           <Text style={[st.ctaHeading, { fontSize: isDesktop ? 28 : 22 }]}>Don't see your role?</Text>
           <Text style={st.ctaSub}>
-            We're always looking for exceptional people. Send your CV and a short note to{" "}
-            <Text style={{ color: TEAL }}>jobs@afuchat.com</Text> and tell us how you'd contribute.
+            We're always looking for exceptional people. Visit our contact page to send a general application and tell us how you'd contribute.
           </Text>
           <TouchableOpacity onPress={() => apply()} style={st.ctaBtn}>
             <Text style={st.ctaBtnText}>Send Open Application</Text>
