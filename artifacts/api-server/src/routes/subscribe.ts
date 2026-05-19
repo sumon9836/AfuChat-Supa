@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from "../lib/constants";
 import { sendEmail } from "../lib/email";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -91,7 +92,7 @@ router.post("/subscribe", async (req, res) => {
 
       if (dbError) {
         // Table might not exist yet — log but continue so email still sends
-        console.error("[subscribe] DB error:", dbError.message);
+        logger.warn({ err: dbError.message }, "[subscribe] DB error, continuing without save");
       } else {
         // ignoreDuplicates returns no rows for existing emails
         alreadySubscribed = Array.isArray(data) && data.length === 0;
@@ -114,7 +115,7 @@ router.post("/subscribe", async (req, res) => {
         : "Subscribed! Check your inbox for a welcome email.",
     });
   } catch (err) {
-    console.error("[subscribe] Error:", err);
+    logger.error({ err }, "[subscribe] Unexpected error");
     return res.status(500).json({ error: "Could not save subscription. Please try again." });
   }
 });

@@ -56,12 +56,12 @@ export default function DataBundlesScreen() {
         bundle_id: bundle.id,
       });
       if (result.success) {
-        Haptics.notificationAsync("success");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showAlert("Success", `${bundle.data} data bundle activated for ${phone}`, [
           { text: "OK", onPress: () => router.back() },
         ]);
       } else {
-        Haptics.notificationAsync("error");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert("Failed", result.error || "Transaction failed");
       }
     } catch (_) {

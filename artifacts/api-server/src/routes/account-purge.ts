@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "../lib/constants";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -13,9 +14,9 @@ router.post("/account-purge", async (req, res) => {
     }
 
     const supabaseUrl = SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
     if (!supabaseUrl || !supabaseKey) {
-      return res.status(503).json({ error: "Supabase not configured" });
+      return res.status(503).json({ error: "Supabase service key not configured — purge requires admin access" });
     }
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { secret } = req.body;
@@ -79,7 +80,7 @@ router.post("/account-purge", async (req, res) => {
       }
 
       if (errors.length > 0) {
-        console.error(`Partial deletion failures for ${uid}:`, errors);
+        logger.warn({ uid, errors }, "Partial deletion failures during account purge");
       }
 
       await supabase.from("profiles").update({
@@ -106,7 +107,7 @@ router.post("/account-purge", async (req, res) => {
       try {
         await supabase.auth.admin.deleteUser(uid);
       } catch (authErr) {
-        console.error(`Failed to delete auth user ${uid}:`, authErr);
+        logger.error({ uid, err: authErr }, "Failed to delete auth user during purge");
       }
 
       purgedIds.push(uid);

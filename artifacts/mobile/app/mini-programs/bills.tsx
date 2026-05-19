@@ -49,12 +49,12 @@ export default function BillsScreen() {
         bill_amount: numAmount,
       });
       if (result.success) {
-        Haptics.notificationAsync("success");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showAlert("Success", `${selectedBill?.name} bill of ${numAmount} ACoins paid successfully`, [
           { text: "OK", onPress: () => router.back() },
         ]);
       } else {
-        Haptics.notificationAsync("error");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert("Failed", result.error || "Payment failed");
       }
     } catch (_) {

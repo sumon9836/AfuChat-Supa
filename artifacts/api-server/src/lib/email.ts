@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const FROM = "AfuChat Notifications <notifications@afuchat.com>";
 const SUPPORT_EMAIL = "support@afuchat.com";
@@ -18,7 +20,7 @@ interface SendEmailOptions {
 
 export async function sendEmail(opts: SendEmailOptions): Promise<boolean> {
   if (!RESEND_API_KEY) {
-    console.warn("[email] RESEND_API_KEY not set, skipping email");
+    logger.warn("[email] RESEND_API_KEY not set, skipping email");
     return false;
   }
   try {
@@ -41,12 +43,12 @@ export async function sendEmail(opts: SendEmailOptions): Promise<boolean> {
     });
     if (!res.ok) {
       const err = await res.text();
-      console.error("[email] Resend error:", res.status, err);
+      logger.error({ status: res.status, body: err }, "[email] Resend API error");
       return false;
     }
     return true;
   } catch (err) {
-    console.error("[email] Failed to send:", err);
+    logger.error({ err }, "[email] Failed to send email");
     return false;
   }
 }

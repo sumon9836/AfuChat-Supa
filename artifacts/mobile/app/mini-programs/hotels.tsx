@@ -60,12 +60,12 @@ export default function HotelsScreen() {
         check_in: new Date().toISOString().split("T")[0],
       });
       if (result.success) {
-        Haptics.notificationAsync("success");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showAlert("Booked!", `${hotel.name} - ${room.name} room for ${numNights} night(s)`, [
           { text: "OK", onPress: () => router.back() },
         ]);
       } else {
-        Haptics.notificationAsync("error");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert("Failed", result.error || "Booking failed");
       }
     } catch (_) {

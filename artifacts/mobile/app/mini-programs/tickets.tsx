@@ -56,12 +56,12 @@ export default function TicketsScreen() {
         quantity,
       });
       if (result.success) {
-        Haptics.notificationAsync("success");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showAlert("Ticket Purchased!", `${quantity}× ${ticket.name} for ${event.name}`, [
           { text: "OK", onPress: () => router.back() },
         ]);
       } else {
-        Haptics.notificationAsync("error");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert("Failed", result.error || "Purchase failed");
       }
     } catch (_) {
