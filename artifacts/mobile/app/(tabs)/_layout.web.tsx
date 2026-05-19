@@ -319,6 +319,15 @@ export default function DesktopTabLayout() {
   useEffect(() => {
     if (loading) return;
     if (!session) {
+      // Before redirecting, check if there's a stored Supabase session in
+      // localStorage. If one exists the auth listener will restore it shortly —
+      // redirecting now would kick the user out on every hard-refresh.
+      if (typeof window !== "undefined") {
+        const hasStored = Object.keys(window.localStorage || {}).some(
+          (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
+        );
+        if (hasStored) return;
+      }
       router.replace("/(auth)/login");
       return;
     }

@@ -2023,10 +2023,6 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
  * just needs to occupy the slot and not render its own duplicate list.
  */
 export default function ChatsRoute() {
-  const { isDesktop } = useIsDesktop();
-  // On desktop the shell takes over rendering for the chats home; return
-  // an empty fragment to avoid mounting the chats screen twice.
-  if (isDesktop) return <View style={{ flex: 1 }} />;
   return <ChatsScreen />;
 }
 

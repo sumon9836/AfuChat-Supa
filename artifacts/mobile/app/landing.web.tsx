@@ -148,18 +148,16 @@ export default function LandingPage() {
             <div className="lp-ss-wrap">
               <div className="lp-ss-track">
                 {[
-                  { src: "/screenshots/chats.png",       label: "Chats"        },
-                  { src: "/screenshots/discover.png",    label: "Discover"     },
-                  { src: "/screenshots/pay.png",         label: "AfuPay"       },
-                  { src: "/screenshots/calls.png",       label: "Calls"        },
-                  { src: "/screenshots/stories.png",     label: "Stories"      },
-                  { src: "/screenshots/ai.png",          label: "AfuAI"        },
-                  { src: "/screenshots/communities.png", label: "Communities"  },
-                  { src: "/screenshots/profile.png",     label: "Profile"      },
-                  { src: "/screenshots/apps.png",        label: "Mini-Apps"    },
-                  { src: "/screenshots/posts.png",       label: "Posts"        },
-                  { src: "/screenshots/match.png",       label: "AfuMatch"     },
-                  { src: "/screenshots/search.png",      label: "Search"       },
+                  { src: "/screenshots/chats.png",        label: "Chats"         },
+                  { src: "/screenshots/discover.png",     label: "Discover"      },
+                  { src: "/screenshots/pay.png",          label: "AfuPay"        },
+                  { src: "/screenshots/calls.png",        label: "Calls"         },
+                  { src: "/screenshots/apps.png",         label: "Mini-Apps"     },
+                  { src: "/screenshots/afumatch.png",     label: "AfuMatch"      },
+                  { src: "/screenshots/profile-me.png",   label: "Profile"       },
+                  { src: "/screenshots/profile-public.png", label: "Public Profile" },
+                  { src: "/screenshots/search.png",       label: "Search"        },
+                  { src: "/screenshots/digital-id.png",   label: "Digital ID"    },
                 ].map(({ src, label }) => (
                   <div key={label} className="lp-ss-item">
                     <div className="lp-ss-frame">
