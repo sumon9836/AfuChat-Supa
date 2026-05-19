@@ -35,10 +35,6 @@ args = "Mockup Preview Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start Backend"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "API Server"
 
 [[workflows.workflow]]
@@ -67,18 +63,6 @@ args = "cd artifacts/mockup-sandbox && PORT=8000 BASE_PATH=/__mockup/ pnpm exec 
 waitForPort = 8000
 
 [[workflows.workflow]]
-name = "Start Backend"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/api-server && pnpm run build && pnpm run start"
-waitForPort = 3000
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
 name = "API Server"
 author = "agent"
 
@@ -93,6 +77,14 @@ outputType = "console"
 [[ports]]
 localPort = 3000
 externalPort = 3000
+
+[[ports]]
+localPort = 8000
+externalPort = 80
+
+[[ports]]
+localPort = 8001
+externalPort = 3001
 
 [deployment]
 deploymentTarget = "autoscale"
