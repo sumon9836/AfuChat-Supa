@@ -16,7 +16,7 @@
       "iosDisplayInForeground": true
     },
     "splash": {
-      "image": "./assets/images/afu-symbol.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#00BCD4"
     },
@@ -41,7 +41,7 @@
     "android": {
       "package": "com.afuchat.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo.png",
+        "foregroundImage": "./assets/images/afu-symbol.png",
         "backgroundColor": "#00BCD4"
       },
       "googleServicesFile": "./google-services.json",

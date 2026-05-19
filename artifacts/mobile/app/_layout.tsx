@@ -9,6 +9,7 @@ import { Linking, Platform, StyleSheet, Text, TextInput } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Font from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 import { handleIncomingUrl } from "@/lib/deepLinkHandler";
 import {
   Inter_400Regular,
@@ -29,6 +30,13 @@ import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
 import { initConnectivityToasts } from "@/lib/toast";
 
+// Keep the native splash visible until fonts are ready so we never flash
+// a blank screen between the system launch image and the app UI.
+// Must be called before any component renders.
+if (Platform.OS !== "web") {
+  SplashScreen.preventAutoHideAsync().catch(() => {});
+}
+
 // Lock out system-level font scaling so the app always renders at its
 // intended sizes regardless of the device's accessibility font-size setting.
 (Text as any).defaultProps = { ...((Text as any).defaultProps ?? {}), allowFontScaling: false };
@@ -41,6 +49,17 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
+
+  // Hide the splash screen as soon as fonts have resolved (loaded or errored).
+  // This replaces the previous pattern of returning null — the splash stays
+  // visible (via preventAutoHideAsync above) instead of showing a blank frame,
+  // eliminating the double-flash caused by the Android system splash → blank
+  // → Expo splash sequence.
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, fontError]);
 
   useEffect(() => {
     initConnectivityToasts();
