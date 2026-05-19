@@ -1420,60 +1420,200 @@ export default function SearchScreen() {
   // ─── Discovery (idle) view ────────────────────────────────────────────────────
 
   function renderDiscovery() {
+    const displayTags = trendingHashtags.length > 0
+      ? trendingHashtags.slice(0, 18)
+      : FALLBACK_TAGS.slice(0, 18).map(t => ({ tag: t, count: 0 }));
+
     return (
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: scrollPB }}>
 
-        {/* Clean empty state */}
-        <Animated.View entering={FadeIn.duration(280)} style={{ alignItems: "center", paddingTop: history.length > 0 || saved.length > 0 ? 36 : 88, paddingHorizontal: 36, paddingBottom: 32, gap: 10 }}>
-          <LinearGradient colors={[BRAND + "20", BRAND + "06"]} style={{ width: 86, height: 86, borderRadius: 26, alignItems: "center", justifyContent: "center", marginBottom: 4 }}>
-            <Ionicons name="search" size={38} color={BRAND} />
-          </LinearGradient>
-          <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.text, textAlign: "center", letterSpacing: -0.3 }}>Search AfuChat</Text>
-          <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.textSecondary, textAlign: "center", lineHeight: 22 }}>
-            Find people, posts, videos, channels,{"\n"}events, gifts and more
-          </Text>
-        </Animated.View>
-
         {/* Recent searches */}
         {history.length > 0 && (
-          <View style={{ paddingHorizontal: 16, paddingTop: 28 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 10 }}>
+          <Animated.View entering={FadeIn.duration(220)} style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 8 }}>
               <Ionicons name="time-outline" size={15} color={colors.textMuted} />
-              <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.text, flex: 1 }}>Recent</Text>
+              <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: colors.text, flex: 1 }}>Recent</Text>
               <TouchableOpacity onPress={() => clearHistory().then(() => setHistory([]))}>
                 <Text style={{ color: colors.textMuted, fontSize: 12 }}>Clear all</Text>
               </TouchableOpacity>
             </View>
-            {history.slice(0, 6).map((term, i) => (
-              <TouchableOpacity key={`h-${i}`} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }} onPress={() => onHistoryPress(term)} activeOpacity={0.7}>
-                <Ionicons name="time-outline" size={14} color={colors.textMuted} />
-                <Text style={{ flex: 1, fontSize: 14, color: colors.text }}>{term}</Text>
-                <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => removeFromHistory(term).then(setHistory)}>
-                  <Ionicons name="close" size={14} color={colors.textMuted} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7 }}>
+              {history.slice(0, 8).map((term, i) => (
+                <TouchableOpacity
+                  key={`h-${i}`}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}
+                  onPress={() => onHistoryPress(term)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="time-outline" size={12} color={colors.textMuted} />
+                  <Text style={{ fontSize: 13, color: colors.text, fontFamily: "Inter_500Medium" }}>{term}</Text>
+                  <TouchableOpacity hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} onPress={() => removeFromHistory(term).then(setHistory)}>
+                    <Ionicons name="close" size={12} color={colors.textMuted} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
-          </View>
+              ))}
+            </ScrollView>
+          </Animated.View>
         )}
 
         {/* Saved searches */}
         {saved.length > 0 && (
-          <View style={{ paddingHorizontal: 16, paddingTop: 22 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 10 }}>
+          <Animated.View entering={FadeIn.duration(240)} style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 8 }}>
               <Ionicons name="bookmark" size={15} color={GOLD} />
-              <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.text }}>Saved Searches</Text>
+              <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: colors.text }}>Saved</Text>
             </View>
-            {saved.slice(0, 5).map((s) => (
-              <TouchableOpacity key={s.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }} onPress={() => onHistoryPress(s.query)} activeOpacity={0.7}>
-                <Ionicons name="bookmark" size={14} color={GOLD} />
-                <Text style={{ flex: 1, fontSize: 14, color: colors.text }}>{s.query}</Text>
-                <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => removeSavedSearch(s.id).then(setSaved)}>
-                  <Ionicons name="close" size={14} color={colors.textMuted} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7 }}>
+              {saved.slice(0, 6).map((s) => (
+                <TouchableOpacity
+                  key={s.id}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: GOLD + "14", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: GOLD + "30" }}
+                  onPress={() => onHistoryPress(s.query)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="bookmark" size={12} color={GOLD} />
+                  <Text style={{ fontSize: 13, color: colors.text, fontFamily: "Inter_500Medium" }}>{s.query}</Text>
                 </TouchableOpacity>
-              </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
+
+        {/* Browse by category */}
+        <Animated.View entering={FadeInDown.delay(60).duration(280)} style={{ paddingTop: 20, paddingHorizontal: 16 }}>
+          <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.text, marginBottom: 12 }}>Browse</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+            {CATEGORIES.map((cat, i) => (
+              <Animated.View key={cat.id} entering={FadeInDown.delay(i * 30).duration(240)} style={{ width: (SW - 42) / 4 }}>
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={() => {
+                    const t = cat.id as SearchTab;
+                    onTabPress(t);
+                    // Videos & jobs browse without a query; all others need one —
+                    // open the keyboard so the user can type in the selected category.
+                    if (t !== "videos" && t !== "jobs") {
+                      setTimeout(() => inputRef.current?.focus(), 100);
+                    }
+                  }}
+                  style={{ alignItems: "center", gap: 6 }}
+                >
+                  <LinearGradient
+                    colors={cat.gradient}
+                    style={{ width: (SW - 42) / 4, height: (SW - 42) / 4, borderRadius: 18, alignItems: "center", justifyContent: "center" }}
+                  >
+                    <Ionicons name={cat.icon as any} size={26} color="#fff" />
+                  </LinearGradient>
+                  <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.textSecondary, textAlign: "center" }}>{cat.label}</Text>
+                </TouchableOpacity>
+              </Animated.View>
             ))}
           </View>
+        </Animated.View>
+
+        {/* Trending hashtags */}
+        {displayTags.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(140).duration(280)} style={{ paddingTop: 24 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 16, marginBottom: 12 }}>
+              <Ionicons name="flame" size={15} color={RED} />
+              <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.text, flex: 1 }}>Trending</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+              {displayTags.map(({ tag, count }) => (
+                <TouchableOpacity
+                  key={tag}
+                  style={{ backgroundColor: isDark ? colors.surface : colors.backgroundSecondary, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: colors.border, gap: 3, alignItems: "center" }}
+                  onPress={() => onTagPress(tag)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ color: BRAND, fontSize: 13, fontFamily: "Inter_700Bold" }}>#{tag}</Text>
+                  {count > 0 && <Text style={{ color: colors.textMuted, fontSize: 10 }}>{fmtNum(count)} posts</Text>}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
         )}
+
+        {/* Trending people */}
+        {trendingPeople.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(200).duration(280)} style={{ paddingTop: 24 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 16, marginBottom: 12 }}>
+              <Ionicons name="people" size={15} color={BRAND} />
+              <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.text, flex: 1 }}>People to follow</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
+              {trendingPeople.slice(0, 10).map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={{ width: 110, backgroundColor: colors.surface, borderRadius: 16, padding: 12, alignItems: "center", gap: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}
+                  onPress={() => router.push(`/profile/${p.handle}` as any)}
+                  activeOpacity={0.75}
+                >
+                  {p.avatar_url
+                    ? <Image source={{ uri: p.avatar_url }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+                    : <AvatarPlaceholder name={p.display_name || p.handle} size={52} color={BRAND} />
+                  }
+                  <View style={{ alignItems: "center", gap: 1 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                      <Text style={{ fontSize: 12, fontFamily: "Inter_700Bold", color: colors.text, textAlign: "center" }} numberOfLines={1}>{p.display_name || p.handle}</Text>
+                      {(p.is_verified || p.is_organization_verified) && (
+                        <Ionicons name="checkmark-circle" size={11} color={p.is_organization_verified ? GOLD : BRAND} />
+                      )}
+                    </View>
+                    <Text style={{ fontSize: 10, color: colors.textMuted }} numberOfLines={1}>@{p.handle}</Text>
+                  </View>
+                  {p.xp != null && (
+                    <View style={{ backgroundColor: BRAND + "15", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_600SemiBold" }}>✦ {fmtNum(p.xp)} XP</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
+
+        {/* Trending videos */}
+        {trendingVideos.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(260).duration(280)} style={{ paddingTop: 24 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 16, marginBottom: 12 }}>
+              <Ionicons name="play-circle" size={15} color={RED} />
+              <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.text, flex: 1 }}>Trending videos</Text>
+            </View>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16, gap: 8 }}>
+              {trendingVideos.slice(0, 6).map((v) => {
+                const vw = (SW - 40) / 2;
+                return (
+                  <TouchableOpacity
+                    key={v.id}
+                    style={{ width: vw, borderRadius: 14, overflow: "hidden", backgroundColor: colors.surface }}
+                    onPress={() => router.push(`/post/${v.id}` as any)}
+                    activeOpacity={0.82}
+                  >
+                    <View style={{ width: vw, height: vw * 0.62, backgroundColor: colors.inputBg, alignItems: "center", justifyContent: "center" }}>
+                      <VideoThumbnailImage videoUrl={v.video_url} imageUrl={v.image_url} style={{ width: vw, height: vw * 0.62 }} />
+                      <View style={{ position: "absolute", bottom: 6, right: 6, backgroundColor: "#000000BB", borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2, flexDirection: "row", alignItems: "center", gap: 3 }}>
+                        <Ionicons name="eye-outline" size={10} color="#fff" />
+                        <Text style={{ color: "#fff", fontSize: 10, fontFamily: "Inter_600SemiBold" }}>{fmtNum(v.view_count)}</Text>
+                      </View>
+                      <View style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center" }}>
+                        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#000000AA", alignItems: "center", justifyContent: "center" }}>
+                          <Ionicons name="play" size={14} color="#fff" style={{ marginLeft: 2 }} />
+                        </View>
+                      </View>
+                    </View>
+                    <View style={{ padding: 8 }}>
+                      <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.text }} numberOfLines={2}>{v.content || "Video"}</Text>
+                      <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 3 }} numberOfLines={1}>@{v.author_handle}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Animated.View>
+        )}
+
+        <View style={{ height: 16 }} />
       </ScrollView>
     );
   }

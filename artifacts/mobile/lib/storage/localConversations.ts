@@ -192,6 +192,23 @@ export async function deleteLocalConversation(id: string): Promise<void> {
 }
 
 /**
+ * Remove any locally-stored conversations whose IDs are not in `keepIds`.
+ * Call this after a successful Supabase sync so the local cache stays in
+ * lockstep with the server — deleted/left chats don't linger on device.
+ */
+export async function pruneConversations(keepIds: string[]): Promise<void> {
+  if (keepIds.length === 0) return;
+  try {
+    const db = await getDB();
+    const placeholders = keepIds.map(() => "?").join(",");
+    await db.runAsync(
+      `DELETE FROM conversations WHERE id NOT IN (${placeholders})`,
+      keepIds,
+    );
+  } catch {}
+}
+
+/**
  * Wipe all locally-stored conversations and messages.
  * Called during account switch / sign-out to prevent data leakage.
  */

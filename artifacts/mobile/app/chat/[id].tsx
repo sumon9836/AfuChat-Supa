@@ -1499,6 +1499,7 @@ function ChatScreen() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [floatingInputHeight, setFloatingInputHeight] = useState(80);
 
+
   useEffect(() => {
     if (Platform.OS === "web") return;
     // iOS: use Will events for zero-lag animation in sync with the keyboard.
@@ -1731,6 +1732,7 @@ function ChatScreen() {
     opacity: recBarOpacity.value,
   }));
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showAttachPanel, setShowAttachPanel] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [gifSearch, setGifSearch] = useState("");
   const [attachmentPreview, setAttachmentPreview] = useState<{ uri: string; type: string; name?: string; mimeType?: string } | null>(null);
@@ -4455,6 +4457,11 @@ STRICT RULES:
     );
   }, [messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup]);
 
+  // Single source of truth for the bottom offset: real keyboard → emoji panel → attach panel → safe area.
+  const effectiveBottom = keyboardHeight > 0 ? keyboardHeight
+    : (showEmojiStickerPicker || showAttachPanel) ? emojiKeyboardHeight
+    : insets.bottom;
+
   return (
     <View style={[st.root, { backgroundColor: colors.background }]}>
       {Platform.OS !== "web" && <OfflineBanner />}
@@ -4661,7 +4668,7 @@ STRICT RULES:
               extraData={[highlightedMsgId, lensCardMsg?.id]}
               renderItem={renderMessage}
               inverted
-              contentContainerStyle={[st.listContent, { paddingTop: floatingInputHeight + (keyboardHeight > 0 ? keyboardHeight : insets.bottom) + 16 }]}
+              contentContainerStyle={[st.listContent, { paddingTop: floatingInputHeight + effectiveBottom + 16 }]}
               showsVerticalScrollIndicator={false}
               onScroll={handleScroll}
               scrollEventThrottle={16}
@@ -4691,7 +4698,7 @@ STRICT RULES:
               }
             />
             <Animated.View
-              style={[st.scrollFab, { opacity: scrollBtnOpacity, backgroundColor: colors.surface, bottom: floatingInputHeight + (keyboardHeight > 0 ? keyboardHeight : insets.bottom) + 8, pointerEvents: showScrollBtn ? "auto" : "none" }]}
+              style={[st.scrollFab, { opacity: scrollBtnOpacity, backgroundColor: colors.surface, bottom: floatingInputHeight + effectiveBottom + 8, pointerEvents: showScrollBtn ? "auto" : "none" }]}
             >
               <TouchableOpacity onPress={scrollToBottom} style={st.scrollFabBtn} activeOpacity={0.7}>
                 <Ionicons name="chevron-down" size={22} color={colors.text} />
@@ -4708,7 +4715,7 @@ STRICT RULES:
 
       {/* ── Floating input container ── absolutely positioned, rises with keyboard ── */}
       <View
-        style={[st.floatingInputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom, pointerEvents: "box-none" }]}
+        style={[st.floatingInputContainer, { bottom: effectiveBottom, pointerEvents: "box-none" }]}
         onLayout={(e) => setFloatingInputHeight(e.nativeEvent.layout.height)}
       >
 
@@ -4858,6 +4865,7 @@ STRICT RULES:
                           } else {
                             chatInputRef.current?.blur();
                             Keyboard.dismiss();
+                            setShowAttachPanel(false);
                             setShowEmojiStickerPicker(true);
                           }
                         }}>
@@ -4870,7 +4878,7 @@ STRICT RULES:
                           placeholderTextColor={colors.textMuted}
                           value={input}
                           onChangeText={(t) => { setInput(t); handleTyping(); saveDraft(t); }}
-                          onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); }}
+                          onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
                           multiline
                           maxLength={4000}
                           returnKeyType={chatPrefs.enter_to_send ? "send" : "default"}
@@ -4890,8 +4898,12 @@ STRICT RULES:
                               </TouchableOpacity>
                             )}
                             {!isAfuAiDirectChat && (
-                              <TouchableOpacity onPress={() => setShowAttachMenu(true)} hitSlop={8} style={st.pillIcon}>
-                                <Ionicons name="attach" size={21} color={colors.textMuted} style={{ transform: [{ rotate: "-45deg" }] }} />
+                              <TouchableOpacity onPress={() => {
+                                Keyboard.dismiss();
+                                setShowEmojiStickerPicker(false);
+                                setShowAttachPanel((v) => !v);
+                              }} hitSlop={8} style={st.pillIcon}>
+                                <Ionicons name={showAttachPanel ? "close" : "attach"} size={21} color={showAttachPanel ? colors.accent : colors.textMuted} style={showAttachPanel ? undefined : { transform: [{ rotate: "-45deg" }] }} />
                               </TouchableOpacity>
                             )}
                           </>
@@ -4967,6 +4979,7 @@ STRICT RULES:
                           } else {
                             chatInputRef.current?.blur();
                             Keyboard.dismiss();
+                            setShowAttachPanel(false);
                             setShowEmojiStickerPicker(true);
                           }
                         }}>
@@ -4979,7 +4992,7 @@ STRICT RULES:
                           placeholderTextColor={colors.textMuted}
                           value={input}
                           onChangeText={(t) => { setInput(t); handleTyping(); saveDraft(t); }}
-                          onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); }}
+                          onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
                           multiline
                           maxLength={4000}
                           returnKeyType={chatPrefs.enter_to_send ? "send" : "default"}
@@ -4999,8 +5012,12 @@ STRICT RULES:
                               </TouchableOpacity>
                             )}
                             {!isAfuAiDirectChat && (
-                              <TouchableOpacity onPress={() => setShowAttachMenu(true)} hitSlop={8} style={st.pillIcon}>
-                                <Ionicons name="attach" size={21} color={colors.textMuted} style={{ transform: [{ rotate: "-45deg" }] }} />
+                              <TouchableOpacity onPress={() => {
+                                Keyboard.dismiss();
+                                setShowEmojiStickerPicker(false);
+                                setShowAttachPanel((v) => !v);
+                              }} hitSlop={8} style={st.pillIcon}>
+                                <Ionicons name={showAttachPanel ? "close" : "attach"} size={21} color={showAttachPanel ? colors.accent : colors.textMuted} style={showAttachPanel ? undefined : { transform: [{ rotate: "-45deg" }] }} />
                               </TouchableOpacity>
                             )}
                           </>
@@ -5057,6 +5074,93 @@ STRICT RULES:
             onClose={() => setShowEmojiStickerPicker(false)}
           />
         )}
+
+        {/* ── Custom inline attachment panel ─────────────────────────────────────
+            Rendered in the normal flex flow (like the emoji picker) so it pushes
+            the messages list up exactly as the real keyboard does.            ── */}
+        {showAttachPanel && (() => {
+          const ATTACH_ITEMS: {
+            icon: string; label: string; color: string; emoji?: string;
+            onPress: () => void;
+          }[] = [
+            ...(Platform.OS !== "web" ? [{
+              icon: "camera", label: "Camera", color: "#FF6B35",
+              onPress: () => { setShowAttachPanel(false); pickFromCamera(); },
+            }] : []),
+            {
+              icon: "images", label: "Gallery", color: "#8B5CF6",
+              onPress: () => { setShowAttachPanel(false); pickFromGallery(); },
+            },
+            {
+              icon: "document-text", label: "File", color: "#3B82F6",
+              onPress: () => { setShowAttachPanel(false); pickDocument(); },
+            },
+            {
+              icon: "", label: "GIF", color: BRAND, emoji: "GIF",
+              onPress: () => { setShowAttachPanel(false); Keyboard.dismiss(); setShowGifPicker(true); },
+            },
+            {
+              icon: "musical-notes", label: "Audio", color: "#10B981",
+              onPress: async () => {
+                setShowAttachPanel(false);
+                try {
+                  const result = await DocumentPicker.getDocumentAsync({ type: "audio/*", copyToCacheDirectory: true });
+                  if (!result.canceled && result.assets?.[0]) {
+                    const doc = result.assets[0];
+                    setAttachmentPreview({ uri: doc.uri, type: "file", name: doc.name });
+                  }
+                } catch { /* ignore */ }
+              },
+            },
+            {
+              icon: "videocam", label: "Video", color: "#F59E0B",
+              onPress: async () => {
+                setShowAttachPanel(false);
+                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (status !== "granted") { showAlert("Permission needed", "Gallery access is required."); return; }
+                const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], quality: 0.8 });
+                if (!result.canceled && result.assets[0]) {
+                  const asset = result.assets[0];
+                  setAttachmentPreview({ uri: asset.uri, type: "video", mimeType: asset.mimeType || "video/mp4" });
+                }
+              },
+            },
+          ];
+          const COLS = 4;
+          const itemW = (Dimensions.get("window").width - 32) / COLS;
+          return (
+            <View style={{ height: emojiKeyboardHeight, backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+              {/* drag handle */}
+              <View style={{ alignItems: "center", paddingVertical: 8 }}>
+                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+              </View>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16 }}>
+                {ATTACH_ITEMS.map((item) => (
+                  <TouchableOpacity
+                    key={item.label}
+                    onPress={item.onPress}
+                    activeOpacity={0.7}
+                    style={{ width: itemW, alignItems: "center", paddingVertical: 10, gap: 6 }}
+                  >
+                    <View style={{
+                      width: 56, height: 56, borderRadius: 18, backgroundColor: item.color,
+                      alignItems: "center", justifyContent: "center",
+                      shadowColor: item.color, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
+                      elevation: 4,
+                    }}>
+                      {item.emoji ? (
+                        <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 0.5 }}>{item.emoji}</Text>
+                      ) : (
+                        <Ionicons name={item.icon as any} size={26} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={{ fontSize: 12, fontFamily: "Inter_500Medium", color: colors.textSecondary }}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          );
+        })()}
       </View>
 
       <MiniProfilePopup
@@ -5389,37 +5493,8 @@ STRICT RULES:
         recipientName={chatInfo?.other_name}
       />
 
-      <BottomSheet visible={showAttachMenu} onClose={() => setShowAttachMenu(false)}>
-        <Text style={[st.sheetTitle, { color: colors.text }]}>Share</Text>
-        <View style={st.attachGrid}>
-          {Platform.OS !== "web" && (
-            <TouchableOpacity style={[st.attachOption, { backgroundColor: colors.inputBg }]} onPress={pickFromCamera}>
-              <View style={[st.attachIconBg, { backgroundColor: "#FF6B35" }]}>
-                <Ionicons name="camera" size={24} color="#fff" />
-              </View>
-              <Text style={[st.attachLabel, { color: colors.text }]}>Camera</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={[st.attachOption, { backgroundColor: colors.inputBg }]} onPress={pickFromGallery}>
-            <View style={[st.attachIconBg, { backgroundColor: "#8B5CF6" }]}>
-              <Ionicons name="images" size={24} color="#fff" />
-            </View>
-            <Text style={[st.attachLabel, { color: colors.text }]}>Gallery</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[st.attachOption, { backgroundColor: colors.inputBg }]} onPress={pickDocument}>
-            <View style={[st.attachIconBg, { backgroundColor: "#3B82F6" }]}>
-              <Ionicons name="document" size={24} color="#fff" />
-            </View>
-            <Text style={[st.attachLabel, { color: colors.text }]}>File</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[st.attachOption, { backgroundColor: colors.inputBg }]} onPress={() => { setShowAttachMenu(false); setShowGifPicker(true); }}>
-            <View style={[st.attachIconBg, { backgroundColor: BRAND }]}>
-              <Text style={{ fontSize: 18, fontFamily: "Inter_700Bold", color: "#fff" }}>GIF</Text>
-            </View>
-            <Text style={[st.attachLabel, { color: colors.text }]}>GIF</Text>
-          </TouchableOpacity>
-        </View>
-      </BottomSheet>
+      {/* legacy showAttachMenu kept so TypeScript is happy; panel is now inline */}
+      {showAttachMenu && null}
 
       <BottomSheet visible={showGifPicker} onClose={() => { setShowGifPicker(false); setGifSearch(""); }}>
         <Text style={[st.sheetTitle, { color: colors.text }]}>Send GIF</Text>

@@ -43,7 +43,7 @@ import OfflineBanner from "@/components/ui/OfflineBanner";
 import { HomeBanner } from "@/components/ui/HomeBanner";
 import { SuggestedUsers } from "@/components/ui/SuggestedUsers";
 import { isOnline } from "@/lib/offlineStore";
-import { getLocalConversations, saveConversations, hasLocalConversations } from "@/lib/storage/localConversations";
+import { getLocalConversations, saveConversations, hasLocalConversations, deleteLocalConversation, pruneConversations } from "@/lib/storage/localConversations";
 import { addOnlineListener, preloadConversationMessages } from "@/lib/offlineSync";
 import { wasChatRecentlyVisited, clearChatVisited, getActiveChatId } from "@/lib/chatVisited";
 import { showAlert, confirmAlert } from "@/lib/alert";
@@ -1088,7 +1088,12 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
 
     setChats(finalItems);
     // Only persist real chat/group items locally (not synthetic notes or channel items)
+    const regularIds = regularItems.map((c) => c.id);
     saveConversations(regularItems).catch(() => {});
+    // Remove any locally-cached conversations that are no longer returned by
+    // Supabase (e.g. deleted chats, chats the user left on another device).
+    // This is the primary guard against stale deleted chats reappearing.
+    pruneConversations(regularIds).catch(() => {});
     // Proactively pre-cache messages for all visible chats so they open offline
     // even if the user has never tapped into that conversation before.
     // Fire-and-forget — skips any chat that already has local messages.
@@ -1174,6 +1179,9 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
         );
         if (!ok) return;
         setChats((prev) => prev.filter((c) => c.id !== item.id));
+        // Remove from local cache immediately so it cannot reappear on next
+        // cold-start or when a new message from the same contact arrives.
+        deleteLocalConversation(item.id).catch(() => {});
         const { error } = await supabase
           .from("chats")
           .delete()
@@ -1226,7 +1234,11 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
     const ids = Array.from(selectedIds);
     setChats((prev) => prev.filter((c) => !ids.includes(c.id)));
     exitSelectMode();
-    await Promise.all(ids.map((id) => supabase.from("chats").delete().eq("id", id)));
+    // Clear from local cache immediately alongside the Supabase deletes.
+    await Promise.all([
+      ...ids.map((id) => supabase.from("chats").delete().eq("id", id)),
+      ...ids.map((id) => deleteLocalConversation(id)),
+    ]);
   }, [selectedIds, exitSelectMode]);
 
   useEffect(() => {

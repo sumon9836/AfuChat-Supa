@@ -108,9 +108,7 @@ function CompactTabBar({
   const isIOS           = Platform.OS === "ios";
   const isAndroid       = Platform.OS === "android";
 
-  // Use the theme's elevated card color so the bar always matches the app palette.
-  const barBg     = isDark ? colors.backgroundSecondary : "#FFFFFF";
-  const barBorder = isDark ? colors.border              : "rgba(0,0,0,0.08)";
+  const barBg = isDark ? "rgba(18,22,28,0.96)" : "rgba(255,255,255,0.96)";
 
   // Use boxShadow on web (shadow* props are deprecated there); native shadow on iOS/Android.
   const shadow = Platform.select({
@@ -158,7 +156,7 @@ function CompactTabBar({
     <View
       style={[bar.container, { bottom: bottomPos, pointerEvents: "box-none" }]}
     >
-      <View style={[bar.pill, shadow, { backgroundColor: barBg, borderWidth: StyleSheet.hairlineWidth, borderColor: barBorder }]}>
+      <View style={[bar.pill, shadow, { backgroundColor: barBg }]}>
         {TABS.map((tab) => {
           const focused   = active === tab.route;
           const iconColor = focused
@@ -186,10 +184,6 @@ function CompactTabBar({
                   android_ripple={ripple}
                   style={({ pressed }) => [
                     bar.pressable,
-                    focused
-                      ? { paddingHorizontal: 12, paddingVertical: 6 }
-                      : { paddingHorizontal: 8, paddingVertical: 6 },
-                    // iOS uses opacity press; Android uses the ripple overlay.
                     !isAndroid && pressed ? { opacity: 0.72 } : null,
                   ]}
                   onPress={() => handleTabPress(tab.route)}
@@ -217,7 +211,7 @@ function CompactTabBar({
                     ) : isChats ? (
                       <Image
                         source={afuSymbol}
-                        style={{ width: 22, height: 22 }}
+                        style={{ width: 23, height: 23 }}
                         resizeMode="contain"
                         tintColor={iconColor}
                       />
@@ -225,23 +219,16 @@ function CompactTabBar({
                       <SymbolView
                         name={focused ? tab.sfOn : tab.sfOff}
                         tintColor={iconColor}
-                        size={22}
+                        size={23}
                       />
                     ) : (
                       <Ionicons
                         name={(focused ? tab.mdOn : tab.mdOff) as any}
-                        size={22}
+                        size={23}
                         color={iconColor}
                       />
                     )}
                   </View>
-
-                  <Text
-                    style={[bar.label, { color: iconColor }]}
-                    numberOfLines={1}
-                  >
-                    {tab.label}
-                  </Text>
                 </Pressable>
               </View>
 
@@ -276,65 +263,54 @@ const bar = StyleSheet.create({
   },
   pill: {
     flexDirection: "row",
-    borderRadius: 36,
-    paddingVertical: 7,
+    borderRadius: 999,
+    paddingVertical: 8,
     paddingHorizontal: 8,
     overflow: "visible",
-    width: "92%",
+    alignSelf: "center",
   },
   item: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  // Must have overflow:"hidden" to clip the Android ripple to the pill shape.
   pillClip: {
     borderRadius: 999,
     overflow: "hidden",
   },
-  // Inner Pressable — padding here drives the visible pill size.
   pressable: {
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 999,
-    gap: 2,
   },
   iconWrap: {
-    width: 28,
-    height: 28,
+    width: 46,
+    height: 42,
     alignItems: "center",
     justifyContent: "center",
   },
   avatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
   },
   badge: {
     position: "absolute",
-    top: 1,
-    right: 6,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    top: 2,
+    right: 2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: 3,
     borderWidth: 2,
     zIndex: 10,
   },
   badgeText: {
     color: "#fff",
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: "Inter_700Bold",
-    lineHeight: 13,
-  },
-  label: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    fontWeight: "700",
-    letterSpacing: 0.1,
-    textAlign: "center",
+    lineHeight: 12,
   },
 });
 
