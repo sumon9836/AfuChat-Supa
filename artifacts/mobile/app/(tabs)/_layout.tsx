@@ -98,29 +98,31 @@ function CompactTabBar({
   const isIOS           = Platform.OS === "ios";
   const isAndroid       = Platform.OS === "android";
 
-  const barBg = isDark ? "rgba(28,28,30,0.97)" : "rgba(255,255,255,0.97)";
+  // Use the theme's elevated card color so the bar always matches the app palette.
+  const barBg     = isDark ? colors.backgroundSecondary : "#FFFFFF";
+  const barBorder = isDark ? colors.border              : "rgba(0,0,0,0.08)";
 
   // Use boxShadow on web (shadow* props are deprecated there); native shadow on iOS/Android.
   const shadow = Platform.select({
     web: {
       boxShadow: isDark
-        ? "0 8px 24px rgba(0,0,0,0.50)"
-        : "0 4px 18px rgba(0,0,0,0.14)",
+        ? "0 12px 36px rgba(0,0,0,0.60), 0 4px 12px rgba(0,0,0,0.32)"
+        : "0 6px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.07)",
     },
     default: isDark
       ? {
           shadowColor: "#000",
-          shadowOpacity: 0.50,
-          shadowRadius: 24,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 20,
+          shadowOpacity: 0.55,
+          shadowRadius: 28,
+          shadowOffset: { width: 0, height: 10 },
+          elevation: 24,
         }
       : {
           shadowColor: "#000",
-          shadowOpacity: 0.14,
-          shadowRadius: 18,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 14,
+          shadowOpacity: 0.12,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 5 },
+          elevation: 16,
         },
   });
 
@@ -146,7 +148,7 @@ function CompactTabBar({
     <View
       style={[bar.container, { bottom: bottomPos, pointerEvents: "box-none" }]}
     >
-      <View style={[bar.pill, shadow, { backgroundColor: barBg }]}>
+      <View style={[bar.pill, shadow, { backgroundColor: barBg, borderWidth: StyleSheet.hairlineWidth, borderColor: barBorder }]}>
         {TABS.map((tab) => {
           const focused   = active === tab.route;
           const iconColor = focused

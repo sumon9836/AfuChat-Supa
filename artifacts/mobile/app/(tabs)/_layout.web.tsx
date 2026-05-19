@@ -181,7 +181,7 @@ const DT_CSS = `
 /* ── Responsive: collapse sidebar on narrow viewports ── */
 @media(max-width:820px){.dt-sidebar{display:none}}
 
-/* ── Mobile bottom nav — oval pill ── */
+/* ── Mobile bottom nav — floating pill, follows theme ── */
 .dt-bnav{
   display:none;
   position:fixed;
@@ -189,28 +189,26 @@ const DT_CSS = `
   left:12px;right:12px;
   z-index:200;
   border-radius:44px;
-  /* Dark mode: near-solid dark pill matching the app's dark theme */
-  background:#1C1C1F;
-  border:1px solid rgba(255,255,255,0.07);
-  box-shadow:
-    0 22px 56px rgba(0,0,0,0.60),
-    0 8px 22px rgba(0,0,0,0.38),
-    0 2px 6px rgba(0,0,0,0.24),
-    inset 0 1px 0 rgba(255,255,255,0.06);
-  backdrop-filter:blur(40px) saturate(2.4);
-  -webkit-backdrop-filter:blur(40px) saturate(2.4);
+  background:var(--dt-sb);
+  border:1px solid var(--dt-bdr);
+  backdrop-filter:blur(40px) saturate(2.2);
+  -webkit-backdrop-filter:blur(40px) saturate(2.2);
 }
-/* Light mode: crisp white oval pill */
-.dt-lt .dt-bnav{
-  background:rgba(255,255,255,0.99);
-  border:1px solid rgba(0,0,0,0.06);
+/* Dark theme shadow — deeper lift */
+.dt-dk .dt-bnav{
   box-shadow:
-    0 14px 44px rgba(0,0,0,0.13),
-    0 5px 14px rgba(0,0,0,0.07),
+    0 20px 52px rgba(0,0,0,0.65),
+    0 8px 20px rgba(0,0,0,0.40),
+    0 2px 6px rgba(0,0,0,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+/* Light theme shadow — soft lift */
+.dt-lt .dt-bnav{
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.11),
+    0 4px 12px rgba(0,0,0,0.06),
     0 1px 3px rgba(0,0,0,0.04),
-    inset 0 1px 0 #ffffff;
-  backdrop-filter:blur(28px);
-  -webkit-backdrop-filter:blur(28px);
+    inset 0 1px 0 rgba(255,255,255,0.80);
 }
 @media(max-width:820px){.dt-bnav{display:flex}}
 
@@ -256,10 +254,9 @@ const DT_CSS = `
   font-size:8px;font-weight:800;min-width:14px;height:14px;
   border-radius:7px;display:flex;align-items:center;
   justify-content:center;padding:0 3px;line-height:1;
-  border:2px solid #1C1C1F;
+  border:2px solid var(--dt-sb);
   pointer-events:none;
 }
-.dt-lt .dt-bnav-badge{border-color:rgba(255,255,255,0.99)}
 
 /* ── Item label ── */
 .dt-bnav-label{font-size:10px;letter-spacing:.06px;line-height:1}
