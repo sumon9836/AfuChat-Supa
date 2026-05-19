@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import {
   MessageCircle, CreditCard, Bot, ShieldCheck, Globe, Zap,
   Users, Lock, Crown, Heart, Play, ChevronRight, ArrowRight,
-  Layers, Gift,
+  Layers, Gift, LogIn,
 } from "lucide-react";
 import {
   LANDING_CSS, TEAL, GOLD, LandingNav, LandingFooter, LandingBottomNav, useLandingSetup,
@@ -108,16 +108,13 @@ export default function LandingPage() {
                     <Play size={15} color="#000" strokeWidth={2} />
                     Download Free
                   </a>
-                  <a href="/features" className="lp-btn-s">
-                    Explore Features
-                    <ChevronRight size={15} strokeWidth={2} />
+                  <a href="/login" className="lp-btn-login">
+                    <LogIn size={15} strokeWidth={2} />
+                    Log In
                   </a>
-                </div>
-                <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 13, color: "var(--txt3)" }}>Already have an account?</span>
-                  <a href="/login" style={{ fontSize: 13, fontWeight: 700, color: "var(--cl)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
-                    Log in to Web App
-                    <ArrowRight size={13} strokeWidth={2.2} />
+                  <a href="/features" className="lp-btn-s">
+                    Explore
+                    <ChevronRight size={15} strokeWidth={2} />
                   </a>
                 </div>
                 <div className="lp-stats">
@@ -136,6 +133,44 @@ export default function LandingPage() {
               </div>
             </div>
           </section>
+
+          {/* ── SCREENSHOT STRIP ── */}
+          <div className="lp-ss-section">
+            <div className="lp-ss-header">
+              <div>
+                <span className="lp-sec-label">See it in action</span>
+                <div className="lp-ss-title">Every screen,<br /><em>beautifully crafted</em></div>
+              </div>
+              <a href="/features" className="lp-btn-s" style={{ flexShrink: 0 }}>
+                All features <ArrowRight size={14} strokeWidth={2} />
+              </a>
+            </div>
+            <div className="lp-ss-wrap">
+              <div className="lp-ss-track">
+                {[
+                  { src: "/screenshots/chats.png",       label: "Chats"        },
+                  { src: "/screenshots/discover.png",    label: "Discover"     },
+                  { src: "/screenshots/pay.png",         label: "AfuPay"       },
+                  { src: "/screenshots/calls.png",       label: "Calls"        },
+                  { src: "/screenshots/stories.png",     label: "Stories"      },
+                  { src: "/screenshots/ai.png",          label: "AfuAI"        },
+                  { src: "/screenshots/communities.png", label: "Communities"  },
+                  { src: "/screenshots/profile.png",     label: "Profile"      },
+                  { src: "/screenshots/apps.png",        label: "Mini-Apps"    },
+                  { src: "/screenshots/posts.png",       label: "Posts"        },
+                  { src: "/screenshots/match.png",       label: "AfuMatch"     },
+                  { src: "/screenshots/search.png",      label: "Search"       },
+                ].map(({ src, label }) => (
+                  <div key={label} className="lp-ss-item">
+                    <div className="lp-ss-frame">
+                      <img src={src} alt={`AfuChat ${label}`} loading="lazy" />
+                    </div>
+                    <span className="lp-ss-lbl">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
           {/* ── MARQUEE ── */}
           <div className="lp-mq-wrap" aria-hidden>
