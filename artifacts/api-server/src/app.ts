@@ -1,3 +1,4 @@
+import path from "path";
 import express, {
   type Express,
   type Request,
@@ -40,6 +41,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(express.static(path.join(__dirname, "../public")));
 app.use(seoRouter);
 app.use(companyPageRouter);
 app.use(publicPostRouter);
