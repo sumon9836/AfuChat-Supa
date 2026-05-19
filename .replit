@@ -59,8 +59,8 @@ isCanvasWorkflow = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd artifacts/mockup-sandbox && PORT=8000 BASE_PATH=/__mockup/ pnpm exec vite"
-waitForPort = 8000
+args = "cd artifacts/mockup-sandbox && PORT=8080 BASE_PATH=/__mockup/ pnpm exec vite"
+waitForPort = 8080
 
 [[workflows.workflow]]
 name = "API Server"
@@ -85,6 +85,10 @@ externalPort = 80
 [[ports]]
 localPort = 8001
 externalPort = 3001
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
 
 [deployment]
 deploymentTarget = "autoscale"
