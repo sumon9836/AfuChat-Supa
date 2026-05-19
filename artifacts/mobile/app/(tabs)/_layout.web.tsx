@@ -181,66 +181,114 @@ const DT_CSS = `
 /* ── Responsive: collapse sidebar on narrow viewports ── */
 @media(max-width:820px){.dt-sidebar{display:none}}
 
-/* ── Mobile bottom nav — floating pill ── */
+/* ── Mobile bottom nav — advanced floating pill ── */
 .dt-bnav{
   display:none;
   position:fixed;
-  bottom:calc(14px + env(safe-area-inset-bottom,0px));
-  left:18px;right:18px;
+  bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  left:14px;right:14px;
   z-index:200;
   border-radius:28px;
-  overflow:hidden;
-  /* dark base — overridden for light below */
-  background:rgba(22,22,24,0.82);
-  border:1px solid rgba(255,255,255,0.10);
-  box-shadow:0 16px 48px rgba(0,0,0,0.40),0 4px 12px rgba(0,0,0,0.22),0 1px 0 rgba(255,255,255,0.04) inset;
-  backdrop-filter:blur(28px) saturate(1.8);
-  -webkit-backdrop-filter:blur(28px) saturate(1.8);
+  /* Dark mode: deep glass */
+  background:rgba(16,16,18,0.94);
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 24px 64px rgba(0,0,0,0.50),
+    0 8px 24px rgba(0,0,0,0.30),
+    0 2px 6px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+  backdrop-filter:blur(36px) saturate(2.2);
+  -webkit-backdrop-filter:blur(36px) saturate(2.2);
 }
+/* Light mode: crisp white card */
 .dt-lt .dt-bnav{
-  background:rgba(252,250,246,0.86);
-  border:1px solid rgba(0,0,0,0.08);
-  box-shadow:0 10px 36px rgba(0,0,0,0.13),0 3px 8px rgba(0,0,0,0.07);
+  background:rgba(255,255,255,0.97);
+  border:1px solid rgba(0,0,0,0.07);
+  box-shadow:
+    0 16px 48px rgba(0,0,0,0.13),
+    0 6px 16px rgba(0,0,0,0.08),
+    0 1px 4px rgba(0,0,0,0.05),
+    inset 0 1px 0 rgba(255,255,255,1);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
 }
 @media(max-width:820px){.dt-bnav{display:flex}}
+
 .dt-bnav-inner{
   display:flex;width:100%;align-items:stretch;
-  padding:5px 8px;gap:2px;
+  padding:6px 4px 4px;
 }
+
+/* ── Nav item ── */
 .dt-bnav-item{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;padding:6px 0 7px;flex:1;
-  text-decoration:none;color:var(--dt-txt3);
-  font-size:9.5px;font-weight:600;letter-spacing:.18px;
-  transition:color .15s,transform .1s;cursor:pointer;
+  gap:0;padding:4px 0 2px;flex:1;
+  text-decoration:none;
+  color:rgba(140,135,128,1);
+  font-size:10px;font-weight:500;letter-spacing:.12px;
+  transition:color .18s;cursor:pointer;
   background:none;border:none;font-family:inherit;
-  border-radius:22px;
+  border-radius:20px;
   -webkit-tap-highlight-color:transparent;
+  user-select:none;
 }
-.dt-bnav-item:active{transform:scale(0.93)}
-.dt-bnav-item.act{color:var(--dt-cl)}
-/* Active pill glow behind icon */
-.dt-bnav-item.act .dt-bnav-pill{
-  background:rgba(0,188,212,0.15);
+.dt-dk .dt-bnav-item{color:rgba(105,105,115,1)}
+.dt-bnav-item:active{opacity:.65}
+
+/* Active state */
+.dt-bnav-item.act{
+  color:#00BCD4;
+  font-weight:700;
 }
-.dt-bnav-pill{
-  width:44px;height:28px;border-radius:14px;
-  display:flex;align-items:center;justify-content:center;
+
+/* ── Icon holder (pill bg on active) ── */
+.dt-bnav-icon{
   position:relative;
-  transition:background .15s;
+  width:48px;height:32px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .22s;
+  margin-bottom:3px;
 }
+.dt-bnav-item.act .dt-bnav-icon{
+  background:rgba(0,188,212,0.13);
+}
+.dt-lt .dt-bnav-item.act .dt-bnav-icon{
+  background:rgba(0,188,212,0.11);
+}
+
+/* ── Active dot indicator ── */
+.dt-bnav-dot{
+  width:4px;height:4px;border-radius:2px;
+  background:transparent;
+  transition:background .2s, width .25s cubic-bezier(.34,1.56,.64,1);
+  margin-top:2px;
+  flex-shrink:0;
+}
+.dt-bnav-item.act .dt-bnav-dot{
+  background:#00BCD4;
+  width:18px;
+}
+
+/* ── Badge ── */
 .dt-bnav-badge{
-  position:absolute;top:-4px;right:-4px;
-  background:var(--dt-cl);color:#000;
-  font-size:8px;font-weight:900;min-width:15px;height:15px;
-  border-radius:8px;display:flex;align-items:center;
-  justify-content:center;padding:0 3.5px;line-height:1;
-  border:2px solid transparent;
+  position:absolute;top:-3px;right:0px;
+  background:#FF3B30;color:#fff;
+  font-size:8px;font-weight:800;min-width:14px;height:14px;
+  border-radius:7px;display:flex;align-items:center;
+  justify-content:center;padding:0 3px;line-height:1;
+  border:2px solid rgba(16,16,18,0.94);
+  pointer-events:none;
 }
-.dt-dk .dt-bnav-badge{border-color:rgba(22,22,24,0.82)}
-.dt-lt .dt-bnav-badge{border-color:rgba(252,250,246,0.86)}
-/* Push content above the floating pill nav */
-@media(max-width:820px){.dt-content{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}}
+.dt-lt .dt-bnav-badge{border-color:rgba(255,255,255,0.97)}
+
+/* ── Item label ── */
+.dt-bnav-label{
+  font-size:10px;letter-spacing:.1px;
+  line-height:1;transition:font-weight .18s;
+}
+
+/* Push content above nav */
+@media(max-width:820px){.dt-content{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}}
 `;
 
 /* ─────────────────────────────────────────────────────────────
@@ -568,23 +616,33 @@ export default function DesktopTabLayout() {
                       href={item.route}
                       onClick={(e) => { e.preventDefault(); router.push(item.route as any); }}
                       aria-label={item.label}
+                      aria-current={active ? "page" : undefined}
                     >
-                      <div className="dt-bnav-pill">
+                      <div className="dt-bnav-icon">
                         {isProfile && avatarUrl ? (
                           <img
                             src={avatarUrl}
                             alt={displayName}
-                            style={{ width: 26, height: 26, borderRadius: 13, objectFit: "cover",
-                              border: active ? "2.5px solid var(--dt-cl)" : "2.5px solid rgba(128,128,128,0.3)" }}
+                            style={{
+                              width: 27, height: 27, borderRadius: "50%",
+                              objectFit: "cover",
+                              border: active ? "2px solid #00BCD4" : "2px solid rgba(128,128,128,0.25)",
+                              transition: "border-color .18s",
+                            }}
                           />
                         ) : (
-                          <item.Icon size={21} strokeWidth={active ? 2.3 : 1.6} />
+                          <item.Icon
+                            size={22}
+                            strokeWidth={active ? 2.4 : 1.6}
+                            color={active ? "#00BCD4" : undefined}
+                          />
                         )}
                         {isChats && unread > 0 && (
                           <span className="dt-bnav-badge">{unread > 99 ? "99+" : unread}</span>
                         )}
                       </div>
-                      {item.label}
+                      <span className="dt-bnav-label">{item.label}</span>
+                      <div className="dt-bnav-dot" />
                     </a>
                   );
                 })}
