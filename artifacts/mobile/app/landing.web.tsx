@@ -113,6 +113,13 @@ export default function LandingPage() {
                     <ChevronRight size={15} strokeWidth={2} />
                   </a>
                 </div>
+                <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 13, color: "var(--txt3)" }}>Already have an account?</span>
+                  <a href="/login" style={{ fontSize: 13, fontWeight: 700, color: "var(--cl)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+                    Log in to Web App
+                    <ArrowRight size={13} strokeWidth={2.2} />
+                  </a>
+                </div>
                 <div className="lp-stats">
                   {STATS.map(({ n, l }) => (
                     <div key={l}>

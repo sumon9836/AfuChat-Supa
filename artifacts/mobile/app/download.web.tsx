@@ -1,35 +1,8 @@
 import React, { useRef } from "react";
-import { Play, Globe, Smartphone, CheckCircle, Monitor, Zap, ShieldCheck, Clock } from "lucide-react";
+import { Globe, Play, Zap, ShieldCheck, Clock, CheckCircle } from "lucide-react";
 import {
   LANDING_CSS, TEAL, LandingNav, LandingFooter, useLandingSetup,
 } from "@/components/landing/index.web";
-
-const PLATFORMS = [
-  {
-    Icon: Play, color: "#34C759",
-    store: "Get it on",
-    name: "Google Play",
-    sub: "Android 8.0+",
-    href: "https://play.google.com/store/apps/details?id=com.afuchat.app",
-    available: true,
-  },
-  {
-    Icon: Smartphone, color: "#007AFF",
-    store: "Coming soon to",
-    name: "App Store",
-    sub: "iOS 15+",
-    href: "#",
-    available: false,
-  },
-  {
-    Icon: Monitor, color: TEAL,
-    store: "Use on",
-    name: "Web Browser",
-    sub: "Any modern browser",
-    href: "/login",
-    available: true,
-  },
-];
 
 const REASONS = [
   { Icon: Zap,         color: "#FF9500", title: "Lightning Fast",     desc: "Small app size, quick load times — even on slow connections." },
@@ -74,28 +47,58 @@ export default function DownloadPage() {
                 </p>
               </div>
 
-              <div className="lp-dl-btns" style={{ marginTop: 40 }}>
-                {PLATFORMS.map((p, i) => (
-                  <a
-                    key={i}
-                    href={p.available ? p.href : undefined}
-                    target={p.href.startsWith("http") ? "_blank" : undefined}
-                    rel="noopener noreferrer"
-                    className="lp-dl-btn lp-r"
-                    style={{
-                      opacity: p.available ? 1 : 0.5,
-                      cursor: p.available ? "pointer" : "default",
-                      pointerEvents: p.available ? undefined : "none",
-                    }}
-                  >
-                    <p.Icon size={28} color={p.available ? p.color : "var(--txt3)"} strokeWidth={1.5} />
-                    <div>
-                      <div className="lp-dl-store">{p.store}</div>
-                      <span className="lp-dl-name">{p.name}</span>
-                      <div style={{ fontSize: 11, color: "var(--txt3)", marginTop: 1 }}>{p.sub}</div>
+              {/* ── Store Badges ── */}
+              <div style={{ marginTop: 40, display: "flex", flexWrap: "wrap" as const, gap: 14, alignItems: "center", justifyContent: "center" }}>
+
+                {/* Google Play — official badge */}
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.afuchat.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="lp-r"
+                  style={{ display: "inline-block", lineHeight: 0 }}
+                >
+                  <img
+                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                    alt="Get it on Google Play"
+                    style={{ height: 64, display: "block", borderRadius: 8 }}
+                  />
+                </a>
+
+                {/* App Store — coming soon */}
+                <div className="lp-r" style={{ position: "relative" as const, display: "inline-block", lineHeight: 0, opacity: 0.38, cursor: "not-allowed" }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    background: "#000", borderRadius: 8, padding: "12px 18px", height: 64, boxSizing: "border-box" as const,
+                  }}>
+                    <svg viewBox="0 0 814 1000" width="26" height="32" fill="white">
+                      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-47.4-148.2-112.7C172.8 795 128 688.4 128 550.8c0-216.6 141.4-330.9 291.9-330.9 73.6 0 134.8 48.5 179.6 48.5 43.9 0 112.9-51.4 194.8-51.4z"/>
+                      <path d="M450.7 44.8C478.6 13.5 534.1 0 580.8 0c6.4 47.4-14.2 94.8-43.4 128.9-29.2 34.1-80.9 59.8-128.9 56.2-7.6-46.1 14.8-93.3 42.2-140.3z"/>
+                    </svg>
+                    <div style={{ textAlign: "left" as const }}>
+                      <div style={{ color: "rgba(255,255,255,.7)", fontSize: 10, fontWeight: 500, lineHeight: 1 }}>Download on the</div>
+                      <div style={{ color: "#fff", fontSize: 18, fontWeight: 700, lineHeight: 1.3 }}>App Store</div>
                     </div>
-                  </a>
-                ))}
+                  </div>
+                  <div style={{
+                    position: "absolute" as const, top: -8, right: -8,
+                    background: "var(--cl)", color: "#000", fontSize: 8, fontWeight: 800,
+                    padding: "2px 7px", borderRadius: 20, textTransform: "uppercase" as const, letterSpacing: ".06em",
+                  }}>Coming Soon</div>
+                </div>
+
+                {/* Web App */}
+                <a href="/login" className="lp-r" style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  border: "1.5px solid var(--bdr)", borderRadius: 8, padding: "12px 18px", height: 64, boxSizing: "border-box" as const,
+                  background: "var(--surf)", textDecoration: "none", color: "var(--txt)", transition: "border-color .15s",
+                }}>
+                  <Globe size={26} color={TEAL} strokeWidth={1.5} />
+                  <div style={{ textAlign: "left" as const }}>
+                    <div style={{ color: "var(--txt3)", fontSize: 10, fontWeight: 500, lineHeight: 1 }}>Use on</div>
+                    <div style={{ color: "var(--txt)", fontSize: 18, fontWeight: 700, lineHeight: 1.3 }}>Web Browser</div>
+                  </div>
+                </a>
               </div>
 
               <div className="lp-qr lp-r" style={{ marginTop: 40 }}>

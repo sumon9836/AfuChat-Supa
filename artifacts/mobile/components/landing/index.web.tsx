@@ -62,6 +62,8 @@ export const LANDING_CSS = `
 .lp-nav-links a.act{color:var(--cl)}
 .lp-nav-cta{background:var(--cl)!important;color:#000!important;font-weight:700!important;padding:8px 18px!important;border-radius:6px!important}
 .lp-nav-cta:hover{opacity:.88;background:var(--cl)!important}
+.lp-nav-login{border:1.5px solid var(--bdr)!important;color:var(--txt)!important;font-weight:600!important;padding:7px 15px!important;border-radius:6px!important;background:transparent!important}
+.lp-nav-login:hover{border-color:var(--cl)!important;color:var(--cl)!important;background:transparent!important}
 .lp-hamburger{display:none;align-items:center;justify-content:center;cursor:pointer;background:none;border:1px solid var(--bdr);border-radius:6px;padding:6px 8px;color:var(--txt2)}
 .lp-hamburger:hover{border-color:var(--txt3)}
 .lp-mob{display:none;position:fixed;top:64px;left:0;right:0;background:var(--bg);border-bottom:1px solid var(--bdr);padding:10px 6% 18px;z-index:49;flex-direction:column;gap:2px}
@@ -317,6 +319,9 @@ export function LandingNav({ active }: { active?: string }) {
           <li><a href="/about" className={active === "about" ? "act" : ""}>About</a></li>
           <li><a href="/careers" className={active === "careers" ? "act" : ""}>Careers</a></li>
           <li>
+            <a href="/login" className="lp-nav-login">Log In</a>
+          </li>
+          <li>
             <a
               href="https://play.google.com/store/apps/details?id=com.afuchat.app"
               target="_blank"
@@ -338,6 +343,7 @@ export function LandingNav({ active }: { active?: string }) {
         <a href="/about" onClick={() => setMenu(false)}>About</a>
         <a href="/careers" onClick={() => setMenu(false)}>Careers</a>
         <a href="/contact" onClick={() => setMenu(false)}>Contact</a>
+        <a href="/login" onClick={() => setMenu(false)} style={{ fontWeight: 600 }}>Log In →</a>
         <a
           href="https://play.google.com/store/apps/details?id=com.afuchat.app"
           target="_blank"
