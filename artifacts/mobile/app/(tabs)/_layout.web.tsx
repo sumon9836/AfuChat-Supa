@@ -180,6 +180,37 @@ const DT_CSS = `
 
 /* ── Responsive: collapse sidebar on narrow viewports ── */
 @media(max-width:820px){.dt-sidebar{display:none}}
+
+/* ── Mobile bottom nav (shows when sidebar is hidden) ── */
+.dt-bnav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  z-index:200;
+  background:var(--dt-sb);
+  border-top:1px solid var(--dt-bdr);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media(max-width:820px){.dt-bnav{display:flex}}
+.dt-bnav-inner{display:flex;width:100%;align-items:stretch}
+.dt-bnav-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:10px 4px 9px;flex:1;
+  text-decoration:none;color:var(--dt-txt3);
+  font-size:9.5px;font-weight:700;letter-spacing:.2px;
+  transition:color .13s;cursor:pointer;
+  background:none;border:none;font-family:inherit;
+}
+.dt-bnav-item:hover,.dt-bnav-item.act{color:var(--dt-cl)}
+.dt-bnav-badge{
+  position:absolute;top:6px;right:calc(50% - 18px);
+  background:var(--dt-cl);color:#000;
+  font-size:9px;font-weight:800;min-width:16px;height:16px;
+  border-radius:8px;display:flex;align-items:center;
+  justify-content:center;padding:0 4px;line-height:1;
+}
+.dt-bnav-icon-wrap{position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+/* Push content above the mobile bottom nav */
+@media(max-width:820px){.dt-content{padding-bottom:60px}}
 `;
 
 /* ─────────────────────────────────────────────────────────────
@@ -483,6 +514,55 @@ export default function DesktopTabLayout() {
           </main>
 
         </div>
+
+        {/* ══ MOBILE BOTTOM NAV (visible only when sidebar is hidden) ══ */}
+        {(() => {
+          const BNAV = [
+            { label: "Chats",    Icon: MessageCircle, route: "/(tabs)"           as const, matchPaths: ["/", "/(tabs)", "/index", "/chat"] },
+            { label: "Discover", Icon: Compass,       route: "/(tabs)/discover"  as const, matchPaths: ["/discover", "/(tabs)/discover"] },
+            { label: "Search",   Icon: Search,        route: "/(tabs)/search"    as const, matchPaths: ["/search", "/(tabs)/search"] },
+            { label: "Apps",     Icon: Grid3X3,       route: "/(tabs)/apps"      as const, matchPaths: ["/apps", "/(tabs)/apps"] },
+            { label: "Profile",  Icon: User,          route: "/(tabs)/me"        as const, matchPaths: ["/me", "/(tabs)/me"] },
+          ] as const;
+          return (
+            <nav className="dt-bnav" aria-label="Mobile navigation">
+              <div className="dt-bnav-inner">
+                {BNAV.map((item) => {
+                  const active = isActiveRoute(pathname, item.matchPaths as unknown as string[]);
+                  const isChats = item.label === "Chats";
+                  const isProfile = item.label === "Profile";
+                  return (
+                    <a
+                      key={item.route}
+                      className={`dt-bnav-item${active ? " act" : ""}`}
+                      href={item.route}
+                      onClick={(e) => { e.preventDefault(); router.push(item.route as any); }}
+                      aria-label={item.label}
+                    >
+                      <div className="dt-bnav-icon-wrap">
+                        {isProfile && avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt={displayName}
+                            style={{ width: 24, height: 24, borderRadius: 12, objectFit: "cover",
+                              border: active ? "2px solid var(--dt-cl)" : "2px solid transparent" }}
+                          />
+                        ) : (
+                          <item.Icon size={22} strokeWidth={active ? 2.2 : 1.7} />
+                        )}
+                        {isChats && unread > 0 && (
+                          <span className="dt-bnav-badge">{unread > 99 ? "99+" : unread}</span>
+                        )}
+                      </div>
+                      {item.label}
+                    </a>
+                  );
+                })}
+              </div>
+            </nav>
+          );
+        })()}
+
       </TabSwipeProvider>
     </>
   );
