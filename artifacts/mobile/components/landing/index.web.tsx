@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Twitter, Instagram, Youtube, Menu, X as XIcon, Home, Sparkles, Download, Info, LogIn } from "lucide-react";
+import {
+  Twitter, Instagram, Youtube, Menu, X as XIcon,
+  Home, Sparkles, Download, Info, LogIn,
+  Layers, Globe, Briefcase, Mail, ShieldCheck, FileText,
+} from "lucide-react";
 
 export const TEAL = "#00BCD4";
 export const GOLD = "#D4A853";
@@ -244,8 +248,10 @@ export const LANDING_CSS = `
 .lp-social:hover{color:var(--txt);border-color:var(--txt3)}
 .lp-fcol-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--txt3);margin-bottom:14px}
 .lp-flinks{list-style:none;display:flex;flex-direction:column;gap:9px}
-.lp-flinks a{color:var(--txt2);text-decoration:none;font-size:13px;transition:color .15s}
+.lp-flinks a{display:flex;align-items:center;gap:7px;color:var(--txt2);text-decoration:none;font-size:13px;transition:color .15s}
+.lp-flinks a svg{flex-shrink:0;opacity:.7}
 .lp-flinks a:hover{color:var(--txt)}
+.lp-flinks a:hover svg{opacity:1}
 .lp-footer-bottom{max-width:1100px;margin:0 auto;padding:16px 0 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .lp-footer-copy{font-size:12px;color:var(--txt3)}
 .lp-footer-reg{font-size:11px;color:var(--txt3);margin-top:2px;opacity:.7}
@@ -405,7 +411,7 @@ export function LandingFooter() {
             <a href="https://t.me/afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="Telegram">{TG_SVG}</a>
             <a href="https://whatsapp.com/channel/0029Vb7Rbpz0Vyc9y3S8H422" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="WhatsApp">{WA_SVG}</a>
             <a href="https://twitter.com/afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="X / Twitter"><Twitter size={14} strokeWidth={1.8} /></a>
-            <a href="https://instagram.com/afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="Instagram"><Instagram size={14} strokeWidth={1.8} /></a>
+            <a href="https://instagram.com/afu.chat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="Instagram"><Instagram size={14} strokeWidth={1.8} /></a>
             <a href="https://youtube.com/@afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="YouTube"><Youtube size={14} strokeWidth={1.8} /></a>
             <a href="https://tiktok.com/@afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="TikTok">{TK_SVG}</a>
           </div>
@@ -413,24 +419,24 @@ export function LandingFooter() {
         <div>
           <h4 className="lp-fcol-title">Product</h4>
           <ul className="lp-flinks">
-            <li><a href="/features">Features</a></li>
-            <li><a href="/download">Download</a></li>
-            <li><a href="/login">Web App</a></li>
+            <li><a href="/features"><Layers size={13} strokeWidth={1.8} />Features</a></li>
+            <li><a href="/download"><Download size={13} strokeWidth={1.8} />Download</a></li>
+            <li><a href="/login"><Globe size={13} strokeWidth={1.8} />Web App</a></li>
           </ul>
         </div>
         <div>
           <h4 className="lp-fcol-title">Company</h4>
           <ul className="lp-flinks">
-            <li><a href="/about">About Us</a></li>
-            <li><a href="/careers">Careers</a></li>
-            <li><a href="/contact">Contact</a></li>
+            <li><a href="/about"><Info size={13} strokeWidth={1.8} />About Us</a></li>
+            <li><a href="/careers"><Briefcase size={13} strokeWidth={1.8} />Careers</a></li>
+            <li><a href="/contact"><Mail size={13} strokeWidth={1.8} />Contact</a></li>
           </ul>
         </div>
         <div>
           <h4 className="lp-fcol-title">Legal</h4>
           <ul className="lp-flinks">
-            <li><a href="/privacy">Privacy Policy</a></li>
-            <li><a href="/terms">Terms of Service</a></li>
+            <li><a href="/privacy"><ShieldCheck size={13} strokeWidth={1.8} />Privacy Policy</a></li>
+            <li><a href="/terms"><FileText size={13} strokeWidth={1.8} />Terms of Service</a></li>
           </ul>
         </div>
       </div>
