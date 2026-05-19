@@ -4499,7 +4499,7 @@ STRICT RULES:
           </View>
         </TouchableOpacity>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-          {chatInfo && !chatInfo.is_group && !chatInfo.is_channel && chatInfo.other_id && chatInfo.other_id !== AFUAI_BOT_ID && (
+          {chatInfo && !chatInfo.is_group && !chatInfo.is_channel && chatInfo.other_id && chatInfo.other_id !== AFUAI_BOT_ID && !isSelfChat && (
             <>
               <TouchableOpacity
                 style={st.headerAction}

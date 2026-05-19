@@ -2,10 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   RefreshControl,
   Share,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -14,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "@/lib/haptics";
 
 import { useAuth } from "@/context/AuthContext";
@@ -22,41 +26,9 @@ import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/Avatar";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { showAlert } from "@/lib/alert";
-import GiftPickerSheet, { DbGift } from "@/components/gifts/GiftPickerSheet";
+import { uploadChatMedia } from "@/lib/mediaUpload";
 
 const PURPLE = "#5856D6";
-
-type Channel = {
-  id: string;
-  name: string;
-  description: string | null;
-  avatar_url: string | null;
-  subscriber_count: number;
-  is_verified: boolean;
-  is_public: boolean;
-  created_at: string;
-  owner_id: string | null;
-  owner: {
-    id: string;
-    display_name: string;
-    handle: string;
-    avatar_url: string | null;
-    is_verified: boolean;
-    acoin: number;
-  } | null;
-};
-
-type Post = {
-  id: string;
-  content: string | null;
-  image_url: string | null;
-  video_url: string | null;
-  created_at: string;
-  like_count: number;
-  view_count: number;
-  myLike?: boolean;
-  reply_count?: number;
-};
 
 function fmtNum(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -76,36 +48,71 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+type Channel = {
+  id: string;
+  name: string;
+  description: string | null;
+  avatar_url: string | null;
+  subscriber_count: number;
+  is_verified: boolean;
+  is_public: boolean;
+  created_at: string;
+  owner_id: string | null;
+  owner: {
+    id: string;
+    display_name: string;
+    handle: string;
+    avatar_url: string | null;
+    is_verified: boolean;
+  } | null;
+};
+
+type Post = {
+  id: string;
+  content: string | null;
+  image_url: string | null;
+  video_url: string | null;
+  created_at: string;
+  like_count: number;
+  myLike?: boolean;
+};
+
 export default function ChannelDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const flatListRef = useRef<FlatList>(null);
 
   const [channel, setChannel] = useState<Channel | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [postsLoading, setPostsLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subLoading, setSubLoading] = useState(false);
-  const [giftVisible, setGiftVisible] = useState(false);
-  const [giftSending, setGiftSending] = useState(false);
-  const [ownerAcoin, setOwnerAcoin] = useState(0);
-  const [myAcoin, setMyAcoin] = useState(0);
+
+  // Composer state (owner only)
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [attachImage, setAttachImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const realtimeRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
   const isOwner = !!(user && channel?.owner_id === user.id);
 
+  // ─── Load channel info ─────────────────────────────────────────────────────
   const loadChannel = useCallback(async () => {
     if (!id) { setNotFound(true); setLoading(false); return; }
 
     const { data, error } = await supabase
       .from("channels")
       .select(
-        "id, name, description, avatar_url, subscriber_count, is_verified, is_public, created_at, owner_id, profiles!channels_owner_id_fkey(id, display_name, handle, avatar_url, is_verified, acoin)"
+        "id, name, description, avatar_url, subscriber_count, is_verified, is_public, created_at, owner_id, profiles!channels_owner_id_fkey(id, display_name, handle, avatar_url, is_verified)"
       )
       .eq("id", id)
       .maybeSingle();
@@ -124,66 +131,38 @@ export default function ChannelDetailScreen() {
       created_at: data.created_at,
       owner_id: data.owner_id,
       owner: owner
-        ? {
-            id: owner.id,
-            display_name: owner.display_name,
-            handle: owner.handle,
-            avatar_url: owner.avatar_url,
-            is_verified: !!owner.is_verified,
-            acoin: owner.acoin ?? 0,
-          }
+        ? { id: owner.id, display_name: owner.display_name, handle: owner.handle, avatar_url: owner.avatar_url, is_verified: !!owner.is_verified }
         : null,
     });
-    if (owner) setOwnerAcoin(owner.acoin ?? 0);
     setLoading(false);
   }, [id]);
 
+  // ─── Load posts as messages ────────────────────────────────────────────────
   const loadPosts = useCallback(async () => {
     if (!id) return;
-    setPostsLoading(true);
-    try {
-      const { data: postsData } = await supabase
-        .from("posts")
-        .select("id, content, image_url, video_url, created_at, like_count, view_count")
-        .eq("channel_id", id)
-        .order("created_at", { ascending: false })
-        .limit(40);
+    const { data } = await supabase
+      .from("posts")
+      .select("id, content, image_url, video_url, created_at, like_count")
+      .eq("channel_id", id)
+      .order("created_at", { ascending: false })
+      .limit(60);
 
-      if (!postsData) { setPostsLoading(false); return; }
+    if (!data) return;
 
-      let likedSet = new Set<string>();
-      if (user) {
-        const { data: likesData } = await supabase
-          .from("post_likes")
-          .select("post_id")
-          .eq("user_id", user.id)
-          .in("post_id", postsData.map((p) => p.id));
-        if (likesData) likedSet = new Set(likesData.map((l) => l.post_id));
-      }
-
-      const { data: replyCounts } = await supabase
-        .from("post_replies")
+    let likedSet = new Set<string>();
+    if (user) {
+      const { data: likesData } = await supabase
+        .from("post_likes")
         .select("post_id")
-        .in("post_id", postsData.map((p) => p.id));
+        .eq("user_id", user.id)
+        .in("post_id", data.map((p) => p.id));
+      if (likesData) likedSet = new Set(likesData.map((l) => l.post_id));
+    }
 
-      const replyMap: Record<string, number> = {};
-      if (replyCounts) {
-        for (const r of replyCounts) {
-          replyMap[r.post_id] = (replyMap[r.post_id] ?? 0) + 1;
-        }
-      }
-
-      setPosts(
-        postsData.map((p) => ({
-          ...p,
-          myLike: likedSet.has(p.id),
-          reply_count: replyMap[p.id] ?? 0,
-        }))
-      );
-    } catch (_) {}
-    setPostsLoading(false);
+    setPosts(data.map((p) => ({ ...p, myLike: likedSet.has(p.id) })));
   }, [id, user]);
 
+  // ─── Check subscription ────────────────────────────────────────────────────
   const checkSubscription = useCallback(async () => {
     if (!user || !id) return;
     const { data } = await supabase
@@ -195,33 +174,24 @@ export default function ChannelDetailScreen() {
     setIsSubscribed(!!data);
   }, [user, id]);
 
-  const loadMyAcoin = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from("profiles")
-      .select("acoin")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (data) setMyAcoin(data.acoin ?? 0);
-  }, [user]);
-
   const loadAll = useCallback(async () => {
-    await Promise.all([loadChannel(), loadPosts(), checkSubscription(), loadMyAcoin()]);
+    await Promise.all([loadChannel(), loadPosts(), checkSubscription()]);
     setRefreshing(false);
-  }, [loadChannel, loadPosts, checkSubscription, loadMyAcoin]);
+  }, [loadChannel, loadPosts, checkSubscription]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  // ─── Realtime new posts ────────────────────────────────────────────────────
   useEffect(() => {
     if (!id) return;
     const ch = supabase
-      .channel(`channel_posts_${id}`)
+      .channel(`ch_posts_${id}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "posts", filter: `channel_id=eq.${id}` },
         (payload) => {
-          const newPost = payload.new as Post;
-          setPosts((prev) => [{ ...newPost, myLike: false, reply_count: 0 }, ...prev]);
+          const p = payload.new as Post;
+          setPosts((prev) => [{ ...p, myLike: false }, ...prev]);
         }
       )
       .subscribe();
@@ -229,6 +199,7 @@ export default function ChannelDetailScreen() {
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
+  // ─── Subscribe / unsubscribe ───────────────────────────────────────────────
   async function toggleSubscribe() {
     if (!user) { router.push("/(auth)/login" as any); return; }
     if (!channel) return;
@@ -236,29 +207,24 @@ export default function ChannelDetailScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       if (isSubscribed) {
-        await supabase
-          .from("channel_subscriptions")
-          .delete()
-          .eq("channel_id", channel.id)
-          .eq("user_id", user.id);
+        await supabase.from("channel_subscriptions").delete().eq("channel_id", channel.id).eq("user_id", user.id);
         await supabase.rpc("decrement_channel_subscriber", { p_channel_id: channel.id });
         setChannel((c) => c ? { ...c, subscriber_count: Math.max(0, c.subscriber_count - 1) } : c);
         setIsSubscribed(false);
       } else {
-        await supabase
-          .from("channel_subscriptions")
-          .upsert({ channel_id: channel.id, user_id: user.id }, { onConflict: "channel_id,user_id" });
+        await supabase.from("channel_subscriptions").upsert({ channel_id: channel.id, user_id: user.id }, { onConflict: "channel_id,user_id" });
         await supabase.rpc("increment_channel_subscriber", { p_channel_id: channel.id });
         setChannel((c) => c ? { ...c, subscriber_count: c.subscriber_count + 1 } : c);
         setIsSubscribed(true);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch {
-      showAlert("Error", "Could not update subscription. Please try again.");
+      showAlert("Error", "Could not update subscription.");
     }
     setSubLoading(false);
   }
 
+  // ─── Like / unlike ────────────────────────────────────────────────────────
   async function toggleLike(postId: string) {
     if (!user) { router.push("/(auth)/login" as any); return; }
     const post = posts.find((p) => p.id === postId);
@@ -281,36 +247,45 @@ export default function ChannelDetailScreen() {
     }
   }
 
-  async function sendGift(gift: DbGift, message: string, price: number) {
-    if (!user || !channel?.owner) return;
-    if (myAcoin < price) {
-      showAlert("Insufficient ACoins", `You need ${price} AC but only have ${myAcoin} AC.`);
-      return;
-    }
-    setGiftSending(true);
+  // ─── Pick image to attach ──────────────────────────────────────────────────
+  async function pickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    setUploadingImage(true);
     try {
-      const { error } = await supabase.from("gift_transactions").insert({
-        gift_id: gift.id,
-        sender_id: user.id,
-        receiver_id: channel.owner.id,
+      const url = await uploadChatMedia(asset.uri, "image");
+      setAttachImage(url);
+    } catch {
+      showAlert("Error", "Could not attach image.");
+    }
+    setUploadingImage(false);
+  }
+
+  // ─── Send broadcast message ────────────────────────────────────────────────
+  async function sendMessage() {
+    if (!user || !channel || (!text.trim() && !attachImage)) return;
+    setSending(true);
+    try {
+      const { error } = await supabase.from("posts").insert({
+        user_id: user.id,
         channel_id: channel.id,
-        xp_cost: price,
-        message: message || null,
-        is_anonymous: false,
+        content: text.trim() || null,
+        image_url: attachImage || null,
+        like_count: 0,
+        view_count: 0,
       });
       if (error) throw error;
-      await supabase
-        .from("profiles")
-        .update({ acoin: myAcoin - price })
-        .eq("id", user.id);
-      setMyAcoin((prev) => Math.max(0, prev - price));
-      setGiftVisible(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showAlert("Gift Sent!", `You sent ${gift.emoji} ${gift.name} to ${channel.name}!`);
+      setText("");
+      setAttachImage(null);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {
-      showAlert("Error", "Could not send gift. Please try again.");
+      showAlert("Error", "Could not send message.");
     }
-    setGiftSending(false);
+    setSending(false);
   }
 
   async function shareChannel() {
@@ -321,7 +296,16 @@ export default function ChannelDetailScreen() {
     });
   }
 
-  if (!loading && notFound) {
+  // ─── Loading / not found ───────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <View style={[st.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <View style={st.center}><ActivityIndicator color={PURPLE} size="large" /></View>
+      </View>
+    );
+  }
+
+  if (notFound || !channel) {
     return (
       <View style={[st.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
         <TouchableOpacity style={[st.topBarBtn, { margin: 8 }]} onPress={() => router.back()} hitSlop={12}>
@@ -329,266 +313,213 @@ export default function ChannelDetailScreen() {
         </TouchableOpacity>
         <View style={st.center}>
           <Ionicons name="megaphone-outline" size={64} color={colors.textMuted} />
-          <Text style={[st.nfTitle, { color: colors.text }]}>Channel Not Found</Text>
-          <Text style={[st.nfSub, { color: colors.textMuted }]}>
+          <Text style={[st.notFoundTitle, { color: colors.text }]}>Channel Not Found</Text>
+          <Text style={[st.notFoundSub, { color: colors.textMuted }]}>
             This channel may have been deleted or is no longer available.
           </Text>
-          <TouchableOpacity style={[st.nfBtn, { backgroundColor: PURPLE }]} onPress={() => router.back()}>
-            <Text style={st.nfBtnText}>Go Back</Text>
+          <TouchableOpacity style={[st.subBtn, { backgroundColor: PURPLE }]} onPress={() => router.back()}>
+            <Text style={st.subBtnText}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 
-  if (loading) {
+  // ─── Message bubble ────────────────────────────────────────────────────────
+  function MessageBubble({ post }: { post: Post }) {
+    const fromMe = isOwner;
     return (
-      <View style={[st.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-        <View style={st.center}>
-          <ActivityIndicator color={PURPLE} size="large" />
-        </View>
-      </View>
-    );
-  }
+      <View style={[st.row, fromMe ? st.rowRight : st.rowLeft]}>
+        {!fromMe && (
+          <View style={st.avatarCol}>
+            {channel?.avatar_url ? (
+              <Image source={{ uri: channel.avatar_url }} style={st.bubbleAvatar} />
+            ) : (
+              <LinearGradient colors={[PURPLE, "#A855F7"]} style={st.bubbleAvatarGrad}>
+                <Ionicons name="megaphone" size={12} color="#fff" />
+              </LinearGradient>
+            )}
+          </View>
+        )}
 
-  if (!channel) return null;
+        <View style={{ maxWidth: "78%", gap: 2 }}>
+          {!fromMe && (
+            <Text style={[st.senderName, { color: PURPLE }]} numberOfLines={1}>
+              {channel.name}
+            </Text>
+          )}
 
-  function PostCard({ post }: { post: Post }) {
-    return (
-      <View style={[st.postCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        {post.image_url ? (
-          <Image source={{ uri: post.image_url }} style={st.postImage} contentFit="cover" />
-        ) : null}
-        {post.content ? (
-          <Text style={[st.postContent, { color: colors.text }]}>{post.content}</Text>
-        ) : null}
-        <View style={[st.postActions, { borderTopColor: colors.border }]}>
-          <Text style={[st.postTime, { color: colors.textMuted }]}>{timeAgo(post.created_at)}</Text>
-          <View style={{ flexDirection: "row", gap: 16, marginLeft: "auto" }}>
-            <TouchableOpacity
-              style={st.postAction}
-              onPress={() => router.push({ pathname: "/post/[id]", params: { id: post.id } })}
-              hitSlop={8}
-            >
-              <Ionicons name="chatbubble-outline" size={16} color={colors.textMuted} />
-              {(post.reply_count ?? 0) > 0 && (
-                <Text style={[st.postActionCount, { color: colors.textMuted }]}>
-                  {fmtNum(post.reply_count!)}
-                </Text>
-              )}
-            </TouchableOpacity>
+          <View style={[
+            st.bubble,
+            fromMe
+              ? { backgroundColor: PURPLE, borderBottomRightRadius: 4 }
+              : { backgroundColor: colors.surface, borderBottomLeftRadius: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+          ]}>
+            {post.image_url && (
+              <Image
+                source={{ uri: post.image_url }}
+                style={st.bubbleImage}
+                contentFit="cover"
+              />
+            )}
+            {post.content ? (
+              <Text style={[st.bubbleText, { color: fromMe ? "#fff" : colors.text }]}>
+                {post.content}
+              </Text>
+            ) : null}
+          </View>
 
-            <TouchableOpacity
-              style={st.postAction}
-              onPress={() => toggleLike(post.id)}
-              hitSlop={8}
-            >
+          <View style={[st.bubbleMeta, fromMe ? { alignSelf: "flex-end" } : { alignSelf: "flex-start" }]}>
+            <Text style={[st.bubbleTime, { color: colors.textMuted }]}>{fmtTime(post.created_at)}</Text>
+            <TouchableOpacity onPress={() => toggleLike(post.id)} hitSlop={8} style={st.likeBtn}>
               <Ionicons
                 name={post.myLike ? "heart" : "heart-outline"}
-                size={16}
+                size={13}
                 color={post.myLike ? "#FF2D55" : colors.textMuted}
               />
               {post.like_count > 0 && (
-                <Text style={[st.postActionCount, { color: post.myLike ? "#FF2D55" : colors.textMuted }]}>
+                <Text style={[st.likeCount, { color: post.myLike ? "#FF2D55" : colors.textMuted }]}>
                   {fmtNum(post.like_count)}
                 </Text>
               )}
             </TouchableOpacity>
-
-            {post.view_count > 0 && (
-              <View style={st.postAction}>
-                <Ionicons name="eye-outline" size={16} color={colors.textMuted} />
-                <Text style={[st.postActionCount, { color: colors.textMuted }]}>
-                  {fmtNum(post.view_count)}
-                </Text>
-              </View>
-            )}
           </View>
         </View>
       </View>
     );
   }
 
-  const ListHeader = () => (
-    <View>
-      <View style={[st.hero, { backgroundColor: colors.surface }]}>
-        <View style={st.heroAvatar}>
-          {channel.avatar_url ? (
-            <Image source={{ uri: channel.avatar_url }} style={st.avatar} />
-          ) : (
-            <LinearGradient colors={[PURPLE, "#A855F7"]} style={st.avatarGradient}>
-              <Ionicons name="megaphone" size={36} color="#fff" />
-            </LinearGradient>
-          )}
-          {channel.is_verified && (
-            <View style={st.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={20} color={PURPLE} />
-            </View>
-          )}
-        </View>
-
-        <Text style={[st.channelName, { color: colors.text }]}>{channel.name}</Text>
-
-        {channel.description ? (
-          <Text style={[st.channelDesc, { color: colors.textMuted }]}>{channel.description}</Text>
-        ) : null}
-
-        <View style={st.statsRow}>
-          <View style={st.statItem}>
-            <Text style={[st.statValue, { color: colors.text }]}>{fmtNum(channel.subscriber_count)}</Text>
-            <Text style={[st.statLabel, { color: colors.textMuted }]}>Subscribers</Text>
-          </View>
-          <View style={[st.statDivider, { backgroundColor: colors.border }]} />
-          <View style={st.statItem}>
-            <Text style={[st.statValue, { color: colors.text }]}>{posts.length}</Text>
-            <Text style={[st.statLabel, { color: colors.textMuted }]}>Posts</Text>
-          </View>
-          <View style={[st.statDivider, { backgroundColor: colors.border }]} />
-          <View style={st.statItem}>
-            <Text style={[st.statValue, { color: colors.text }]}>
-              {new Date(channel.created_at).getFullYear()}
-            </Text>
-            <Text style={[st.statLabel, { color: colors.textMuted }]}>Since</Text>
-          </View>
-        </View>
-
-        <View style={st.heroActions}>
-          {isOwner ? (
-            <TouchableOpacity
-              style={[st.actionBtn, { backgroundColor: PURPLE }]}
-              onPress={() => router.push({ pathname: "/channel/broadcast", params: { channelId: channel.id } } as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="megaphone" size={16} color="#fff" />
-              <Text style={[st.actionBtnText, { color: "#fff" }]}>Broadcast</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[
-                st.actionBtn,
-                isSubscribed
-                  ? { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border }
-                  : { backgroundColor: PURPLE },
-              ]}
-              onPress={toggleSubscribe}
-              disabled={subLoading}
-              activeOpacity={0.8}
-            >
-              {subLoading ? (
-                <ActivityIndicator color={isSubscribed ? colors.textMuted : "#fff"} size="small" />
-              ) : (
-                <>
-                  <Ionicons
-                    name={isSubscribed ? "notifications" : "notifications-outline"}
-                    size={16}
-                    color={isSubscribed ? colors.textMuted : "#fff"}
-                  />
-                  <Text style={[st.actionBtnText, { color: isSubscribed ? colors.textMuted : "#fff" }]}>
-                    {isSubscribed ? "Subscribed" : "Subscribe"}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {!isOwner && (
-            <TouchableOpacity
-              style={[st.giftBtn, { backgroundColor: "#FF2D5518", borderColor: "#FF2D5540" }]}
-              onPress={() => { loadMyAcoin(); setGiftVisible(true); }}
-              activeOpacity={0.8}
-            >
-              <Text style={st.giftEmoji}>🎁</Text>
-              <Text style={[st.giftBtnText, { color: "#FF2D55" }]}>Gift</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[st.iconBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
-            onPress={shareChannel}
-            hitSlop={8}
-          >
-            <Ionicons name="share-outline" size={18} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {channel.owner && (
-        <TouchableOpacity
-          style={[st.ownerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={() => router.push({ pathname: "/contact/[id]", params: { id: channel.owner!.id } })}
-          activeOpacity={0.75}
-        >
-          <Ionicons name="person-circle-outline" size={15} color={colors.textMuted} />
-          <Text style={[st.ownerLabel, { color: colors.textMuted }]}>Channel by</Text>
-          <Avatar uri={channel.owner.avatar_url} name={channel.owner.display_name} size={24} />
-          <Text style={[st.ownerName, { color: colors.text }]}>{channel.owner.display_name}</Text>
-          <VerifiedBadge isVerified={channel.owner.is_verified} size={14} />
-          <Text style={[st.ownerHandle, { color: colors.textMuted }]}>@{channel.owner.handle}</Text>
-          <Ionicons name="chevron-forward" size={14} color={colors.textMuted} style={{ marginLeft: "auto" }} />
-        </TouchableOpacity>
-      )}
-
-      <View style={[st.postsHeader, { borderBottomColor: colors.border }]}>
-        <Ionicons name="megaphone-outline" size={15} color={PURPLE} />
-        <Text style={[st.postsHeaderText, { color: colors.text }]}>Channel Posts</Text>
-        {isOwner && (
-          <TouchableOpacity
-            style={[st.newPostBtn, { backgroundColor: PURPLE + "22" }]}
-            onPress={() => router.push({ pathname: "/channel/broadcast", params: { channelId: channel.id } } as any)}
-          >
-            <Ionicons name="add" size={14} color={PURPLE} />
-            <Text style={[st.newPostBtnText, { color: PURPLE }]}>New Post</Text>
-          </TouchableOpacity>
+  // ─── Channel info banner (pinned above messages) ───────────────────────────
+  const ListFooter = () => (
+    <View style={[st.infoBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={st.infoBannerAvatar}>
+        {channel.avatar_url ? (
+          <Image source={{ uri: channel.avatar_url }} style={st.infoBannerAvatarImg} />
+        ) : (
+          <LinearGradient colors={[PURPLE, "#A855F7"]} style={st.infoBannerAvatarGrad}>
+            <Ionicons name="megaphone" size={22} color="#fff" />
+          </LinearGradient>
         )}
       </View>
-
-      {postsLoading && (
-        <View style={{ padding: 32, alignItems: "center" }}>
-          <ActivityIndicator color={PURPLE} />
-        </View>
+      <Text style={[st.infoBannerName, { color: colors.text }]}>{channel.name}</Text>
+      {channel.description ? (
+        <Text style={[st.infoBannerDesc, { color: colors.textMuted }]}>{channel.description}</Text>
+      ) : null}
+      <View style={st.infoBannerStats}>
+        <Ionicons name="people-outline" size={14} color={colors.textMuted} />
+        <Text style={[st.infoBannerStatText, { color: colors.textMuted }]}>
+          {fmtNum(channel.subscriber_count)} subscribers
+        </Text>
+        {channel.owner && (
+          <>
+            <Text style={[{ color: colors.border }]}>·</Text>
+            <Text style={[st.infoBannerStatText, { color: colors.textMuted }]}>
+              by @{channel.owner.handle}
+            </Text>
+          </>
+        )}
+      </View>
+      {!isOwner && (
+        <TouchableOpacity
+          style={[
+            st.subBtn,
+            isSubscribed
+              ? { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border }
+              : { backgroundColor: PURPLE },
+          ]}
+          onPress={toggleSubscribe}
+          disabled={subLoading}
+          activeOpacity={0.8}
+        >
+          {subLoading ? (
+            <ActivityIndicator color={isSubscribed ? colors.textMuted : "#fff"} size="small" />
+          ) : (
+            <>
+              <Ionicons
+                name={isSubscribed ? "notifications" : "notifications-outline"}
+                size={15}
+                color={isSubscribed ? colors.textMuted : "#fff"}
+              />
+              <Text style={[st.subBtnText, { color: isSubscribed ? colors.textMuted : "#fff" }]}>
+                {isSubscribed ? "Subscribed" : "Subscribe"}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
       )}
+      <Text style={[st.infoBannerCreated, { color: colors.textMuted }]}>
+        Channel created {new Date(channel.created_at).toLocaleDateString([], { year: "numeric", month: "long" })}
+      </Text>
     </View>
   );
 
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <View style={[st.root, { backgroundColor: colors.backgroundSecondary ?? colors.background }]}>
-      <View style={[st.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border, paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      style={[st.root, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={0}
+    >
+      {/* Header */}
+      <View style={[st.header, { backgroundColor: colors.surface, borderBottomColor: colors.border, paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={st.topBarBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[st.topBarTitle, { color: colors.text }]} numberOfLines={1}>{channel.name}</Text>
-        <TouchableOpacity onPress={shareChannel} hitSlop={12} style={st.topBarBtn}>
-          <Ionicons name="share-outline" size={22} color={colors.text} />
+
+        <TouchableOpacity
+          style={st.headerCenter}
+          onPress={() => {}}
+          activeOpacity={0.7}
+        >
+          {channel.avatar_url ? (
+            <Image source={{ uri: channel.avatar_url }} style={st.headerAvatar} />
+          ) : (
+            <LinearGradient colors={[PURPLE, "#A855F7"]} style={st.headerAvatarGrad}>
+              <Ionicons name="megaphone" size={14} color="#fff" />
+            </LinearGradient>
+          )}
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Text style={[st.headerName, { color: colors.text }]} numberOfLines={1}>
+                {channel.name}
+              </Text>
+              {channel.is_verified && <VerifiedBadge isVerified size={14} />}
+            </View>
+            <Text style={[st.headerSub, { color: colors.textMuted }]}>
+              {fmtNum(channel.subscriber_count)} subscribers
+            </Text>
+          </View>
         </TouchableOpacity>
+
+        <View style={{ flexDirection: "row", gap: 2, alignItems: "center" }}>
+          <TouchableOpacity onPress={shareChannel} hitSlop={12} style={st.topBarBtn}>
+            <Ionicons name="share-outline" size={22} color={colors.text} />
+          </TouchableOpacity>
+        </View>
       </View>
 
+      {/* Message list (inverted so newest is at bottom) */}
       <FlatList
+        ref={flatListRef}
         data={posts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <PostCard post={item} />}
-        ListHeaderComponent={ListHeader}
+        renderItem={({ item }) => <MessageBubble post={item} />}
+        inverted
+        contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 12 }}
+        ListFooterComponent={<ListFooter />}
         ListEmptyComponent={
-          !postsLoading ? (
-            <View style={st.emptyPosts}>
-              <Ionicons name="document-text-outline" size={44} color={colors.textMuted} />
-              <Text style={[st.emptyPostsTitle, { color: colors.text }]}>No posts yet</Text>
-              <Text style={[st.emptyPostsSub, { color: colors.textMuted }]}>
-                {isOwner
-                  ? "Tap Broadcast to post your first update to subscribers."
-                  : "Subscribe to get notified when this channel publishes."}
-              </Text>
-              {isOwner && (
-                <TouchableOpacity
-                  style={[st.nfBtn, { backgroundColor: PURPLE }]}
-                  onPress={() => router.push({ pathname: "/channel/broadcast", params: { channelId: channel.id } } as any)}
-                >
-                  <Text style={st.nfBtnText}>Broadcast Now</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : null
+          <View style={st.emptyWrap}>
+            <Ionicons name="megaphone-outline" size={44} color={colors.textMuted} />
+            <Text style={[st.emptyTitle, { color: colors.text }]}>
+              {isOwner ? "Start broadcasting" : "No messages yet"}
+            </Text>
+            <Text style={[st.emptySub, { color: colors.textMuted }]}>
+              {isOwner
+                ? "Type a message below to broadcast to your subscribers."
+                : "Subscribe to get notified when this channel posts."}
+            </Text>
+          </View>
         }
-        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -599,17 +530,75 @@ export default function ChannelDetailScreen() {
         }
       />
 
-      {!isOwner && channel.owner && (
-        <GiftPickerSheet
-          visible={giftVisible}
-          onClose={() => setGiftVisible(false)}
-          onSend={sendGift}
-          sending={giftSending}
-          acoinBalance={myAcoin}
-          recipientName={channel.name}
-        />
+      {/* Composer (owner) or read-only notice (subscriber) */}
+      {isOwner ? (
+        <View style={[st.composer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: insets.bottom || 12 }]}>
+          {attachImage && (
+            <View style={st.attachPreviewWrap}>
+              <Image source={{ uri: attachImage }} style={st.attachPreview} contentFit="cover" />
+              <TouchableOpacity style={st.attachRemove} onPress={() => setAttachImage(null)}>
+                <Ionicons name="close-circle" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
+          <View style={st.composerRow}>
+            <TouchableOpacity
+              style={[st.composerIcon, { backgroundColor: colors.background }]}
+              onPress={pickImage}
+              disabled={uploadingImage || sending}
+            >
+              {uploadingImage
+                ? <ActivityIndicator size="small" color={PURPLE} />
+                : <Ionicons name="image-outline" size={22} color={PURPLE} />
+              }
+            </TouchableOpacity>
+
+            <TextInput
+              style={[st.composerInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              placeholder="Broadcast a message…"
+              placeholderTextColor={colors.textMuted}
+              value={text}
+              onChangeText={setText}
+              multiline
+              maxLength={2000}
+            />
+
+            <TouchableOpacity
+              style={[st.sendBtn, { backgroundColor: (text.trim() || attachImage) && !sending ? PURPLE : colors.border }]}
+              onPress={sendMessage}
+              disabled={sending || (!text.trim() && !attachImage)}
+              activeOpacity={0.8}
+            >
+              {sending
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="send" size={18} color="#fff" />
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <View style={[st.readOnlyBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: insets.bottom || 10 }]}>
+          <Ionicons name="megaphone-outline" size={15} color={colors.textMuted} />
+          <Text style={[st.readOnlyText, { color: colors.textMuted }]}>
+            {isSubscribed
+              ? "You're subscribed — only the owner can broadcast."
+              : "Subscribe to follow this channel's updates."}
+          </Text>
+          {!isSubscribed && (
+            <TouchableOpacity
+              style={[st.readOnlySubBtn, { backgroundColor: PURPLE }]}
+              onPress={toggleSubscribe}
+              disabled={subLoading}
+            >
+              {subLoading
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={st.readOnlySubBtnText}>Subscribe</Text>
+              }
+            </TouchableOpacity>
+          )}
+        </View>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -617,115 +606,164 @@ const st = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 40 },
 
-  topBar: {
+  // Header
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 4,
-    paddingBottom: 8,
+    paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 4,
   },
   topBarBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  topBarTitle: { flex: 1, fontSize: 17, fontFamily: "Inter_700Bold", textAlign: "center" },
+  headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 },
+  headerAvatar: { width: 38, height: 38, borderRadius: 19 },
+  headerAvatarGrad: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  headerName: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  headerSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
 
-  hero: {
-    alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 24,
-    gap: 8,
-    marginBottom: 8,
+  // Message rows
+  row: { marginBottom: 10, flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  rowLeft: { justifyContent: "flex-start" },
+  rowRight: { justifyContent: "flex-end" },
+  avatarCol: { width: 28, alignItems: "center", marginBottom: 2 },
+  bubbleAvatar: { width: 28, height: 28, borderRadius: 14 },
+  bubbleAvatarGrad: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  senderName: { fontSize: 11, fontFamily: "Inter_600SemiBold", marginLeft: 2, marginBottom: 1 },
+
+  bubble: {
+    borderRadius: 16,
+    overflow: "hidden",
+    maxWidth: "100%",
   },
-  heroAvatar: { position: "relative", marginBottom: 4 },
-  avatar: { width: 88, height: 88, borderRadius: 44 },
-  avatarGradient: { width: 88, height: 88, borderRadius: 44, alignItems: "center", justifyContent: "center" },
-  verifiedBadge: { position: "absolute", bottom: 0, right: 0, backgroundColor: "#fff", borderRadius: 10, padding: 1 },
-
-  channelName: { fontSize: 22, fontFamily: "Inter_700Bold", textAlign: "center" },
-  channelDesc: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20, paddingHorizontal: 8 },
-
-  statsRow: { flexDirection: "row", alignItems: "center", gap: 16, marginVertical: 4 },
-  statItem: { alignItems: "center", gap: 2 },
-  statValue: { fontSize: 18, fontFamily: "Inter_700Bold" },
-  statLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  statDivider: { width: 1, height: 28, borderRadius: 1 },
-
-  heroActions: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 },
-  actionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    borderRadius: 22,
+  bubbleText: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  actionBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  giftBtn: {
+  bubbleImage: {
+    width: 220,
+    height: 160,
+    borderRadius: 0,
+  },
+  bubbleMeta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 16,
+    marginTop: 2,
+    paddingHorizontal: 2,
+  },
+  bubbleTime: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  likeBtn: { flexDirection: "row", alignItems: "center", gap: 3 },
+  likeCount: { fontSize: 11, fontFamily: "Inter_500Medium" },
+
+  // Info banner (pinned at top = FlatList footer when inverted)
+  infoBanner: {
+    alignItems: "center",
+    padding: 24,
+    marginHorizontal: 8,
+    marginVertical: 12,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 6,
+  },
+  infoBannerAvatar: { marginBottom: 4 },
+  infoBannerAvatarImg: { width: 72, height: 72, borderRadius: 36 },
+  infoBannerAvatarGrad: { width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center" },
+  infoBannerName: { fontSize: 20, fontFamily: "Inter_700Bold", textAlign: "center" },
+  infoBannerDesc: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18, paddingHorizontal: 8, marginBottom: 2 },
+  infoBannerStats: { flexDirection: "row", alignItems: "center", gap: 6 },
+  infoBannerStatText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  infoBannerCreated: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 4 },
+
+  // Subscribe button
+  subBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 22,
-    borderWidth: 1,
+    marginTop: 4,
   },
-  giftEmoji: { fontSize: 15 },
-  giftBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  subBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
 
-  ownerCard: {
-    flexDirection: "row",
+  // Empty
+  emptyWrap: { alignItems: "center", gap: 10, paddingVertical: 48, paddingHorizontal: 40 },
+  emptyTitle: { fontSize: 17, fontFamily: "Inter_700Bold", textAlign: "center" },
+  emptySub: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
+
+  // Not found
+  notFoundTitle: { fontSize: 20, fontFamily: "Inter_700Bold", textAlign: "center" },
+  notFoundSub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
+
+  // Composer
+  composer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 8,
+    paddingHorizontal: 10,
+    gap: 6,
+  },
+  composerRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  composerIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    marginHorizontal: 12,
-    marginBottom: 8,
-    borderRadius: 14,
+    justifyContent: "center",
+  },
+  composerInput: {
+    flex: 1,
+    minHeight: 38,
+    maxHeight: 120,
+    borderRadius: 19,
     borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
   },
-  ownerLabel: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  ownerName: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  ownerHandle: { fontSize: 12, fontFamily: "Inter_400Regular" },
-
-  postsHeader: {
-    flexDirection: "row",
+  sendBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    justifyContent: "center",
+  },
+  attachPreviewWrap: {
+    position: "relative",
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    overflow: "hidden",
     marginBottom: 4,
   },
-  postsHeaderText: { fontSize: 15, fontFamily: "Inter_700Bold", flex: 1 },
-  newPostBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
-  newPostBtnText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
-
-  postCard: {
-    marginHorizontal: 12,
-    marginBottom: 8,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
+  attachPreview: { width: "100%", height: "100%" },
+  attachRemove: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 10,
   },
-  postImage: { width: "100%", height: 200 },
-  postContent: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22, padding: 14 },
-  postActions: {
+
+  // Read-only bar
+  readOnlyBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
+    flexWrap: "wrap",
   },
-  postAction: { flexDirection: "row", alignItems: "center", gap: 4 },
-  postActionCount: { fontSize: 12, fontFamily: "Inter_500Medium" },
-  postTime: { fontSize: 11, fontFamily: "Inter_400Regular" },
-
-  emptyPosts: { alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 48, paddingHorizontal: 40 },
-  emptyPostsTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
-  emptyPostsSub: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
-
-  nfTitle: { fontSize: 20, fontFamily: "Inter_700Bold", textAlign: "center" },
-  nfSub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
-  nfBtn: { paddingHorizontal: 28, paddingVertical: 12, borderRadius: 24, marginTop: 4 },
-  nfBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  readOnlyText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
+  readOnlySubBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+  },
+  readOnlySubBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });
