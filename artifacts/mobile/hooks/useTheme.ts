@@ -13,6 +13,7 @@ export function useTheme() {
     tabIconSelected: accent,
     online: accent,
     unread: accent,
+    bubble: accent,
   };
   return { colors, isDark, themeMode, setThemeMode, accent };
 }
