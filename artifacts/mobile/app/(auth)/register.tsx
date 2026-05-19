@@ -30,7 +30,6 @@ import { useAppAccent } from "@/context/AppAccentContext";
 import { showAlert } from "@/lib/alert";
 import { GoogleLogo } from "@/components/ui/OAuthLogos";
 import { googleSignIn } from "@/lib/googleAuth";
-import SupportReportModal from "@/components/ui/SupportReportModal";
 
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
@@ -196,7 +195,6 @@ export default function RegisterScreen() {
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const oauthHandledRef = useRef(false);
   const [verifyVisible, setVerifyVisible] = useState(false);
-  const [supportModalVisible, setSupportModalVisible] = useState(false);
   const [signupEmail, setSignupEmail] = useState("");
   const [signupUserId, setSignupUserId] = useState<string | null>(null);
   const pwdRef = useRef<TextInput>(null);
@@ -303,28 +301,24 @@ export default function RegisterScreen() {
         {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={formSt.primaryBtnText}>Create account</Text>}
       </TouchableOpacity>
       <OrDivider colors={colors} />
-      {/* OAuth icon row — bottom */}
-      <View style={{ flexDirection: "row", gap: 12, justifyContent: "center", marginTop: 4 }}>
-        <OAuthBtn label="Google" logo={<GoogleLogo size={22} />} onPress={() => signInWithProvider("google")} loading={oauthLoading === "google"} colors={colors} isDark={isDark} />
-      </View>
+      {/* Google sign-up bar */}
+      <TouchableOpacity
+        style={[formSt.googleBar, { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF", borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)" }]}
+        onPress={() => signInWithProvider("google")}
+        disabled={oauthLoading === "google"}
+        activeOpacity={0.75}
+      >
+        {oauthLoading === "google"
+          ? <ActivityIndicator size="small" color={isDark ? "#fff" : "#333"} />
+          : <><GoogleLogo size={20} /><Text style={[formSt.googleBarText, { color: isDark ? "#F1F1F1" : "#1A1208" }]}>Continue with Google</Text></>
+        }
+      </TouchableOpacity>
       <View style={formSt.switchRow}>
         <Text style={[{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.textSecondary }]}>Already have an account?</Text>
         <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
           <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: accent }}>{" "}Sign in</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Support link */}
-      <TouchableOpacity
-        onPress={() => setSupportModalVisible(true)}
-        style={formSt.supportLink}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="help-buoy-outline" size={14} color={colors.textMuted} />
-        <Text style={[formSt.supportLinkText, { color: colors.textMuted }]}>
-          Need help creating your account? Contact support
-        </Text>
-      </TouchableOpacity>
     </>
   );
 
@@ -348,11 +342,6 @@ export default function RegisterScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
       <VerifyEmailModal visible={verifyVisible} onClose={() => setVerifyVisible(false)} email={signupEmail} onVerified={onVerified} colors={colors} isDark={isDark} />
-      <SupportReportModal
-        visible={supportModalVisible}
-        onClose={() => setSupportModalVisible(false)}
-        context="Register Page"
-      />
     </View>
   );
 }
@@ -362,8 +351,13 @@ const formSt = StyleSheet.create({
   primaryBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold", letterSpacing: 0.1 },
   switchRow: { flexDirection: "row", justifyContent: "center", flexWrap: "wrap" },
   switchText: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  supportLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 4 },
-  supportLinkText: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  googleBar: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 10, height: 50, borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    ...Platform.select({ web: { boxShadow: "0 1px 4px rgba(0,0,0,0.08)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4, elevation: 2 } }),
+  },
+  googleBarText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
 
 const mobBackSt = StyleSheet.create({

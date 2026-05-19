@@ -66,19 +66,20 @@ html,body{margin:0;padding:0;height:100%}
 .dl-form-sub.dl-lt-sub{color:#8C7F6A}
 .dl-form-sub.dl-dk-sub{color:#717171}
 
-/* ── Google button ── */
+/* ── Google button — full-width bar ── */
 .dl-google-btn{
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  width:100%;padding:12px 20px;border-radius:10px;
-  font-size:15px;font-weight:600;cursor:pointer;
-  transition:background .13s,box-shadow .13s;
+  display:flex;align-items:center;justify-content:center;gap:11px;
+  width:100%;padding:14px 20px;border-radius:12px;
+  font-size:15px;font-weight:600;cursor:pointer;letter-spacing:.01em;
+  transition:background .14s,box-shadow .14s,transform .08s;
   text-decoration:none;border:none;
 }
-.dl-google-btn.dl-lt{background:#fff;color:#1A1208;border:1.5px solid #DDD7C9;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
-.dl-google-btn.dl-lt:hover{background:#F5F0E8;box-shadow:0 2px 8px rgba(0,0,0,0.12)}
-.dl-google-btn.dl-dk{background:#272727;color:#F1F1F1;border:1.5px solid #3A3A3A;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
-.dl-google-btn.dl-dk:hover{background:#333;box-shadow:0 2px 8px rgba(0,0,0,0.35)}
-.dl-google-btn:disabled{opacity:.55;cursor:not-allowed}
+.dl-google-btn:active{transform:scale(0.985)}
+.dl-google-btn.dl-lt{background:#FFFFFF;color:#1A1208;border:1.5px solid #DDD7C9;box-shadow:0 2px 8px rgba(0,0,0,0.09),0 1px 2px rgba(0,0,0,0.06)}
+.dl-google-btn.dl-lt:hover{background:#F5F0E8;box-shadow:0 4px 14px rgba(0,0,0,0.12)}
+.dl-google-btn.dl-dk{background:#232323;color:#F1F1F1;border:1.5px solid #383838;box-shadow:0 2px 8px rgba(0,0,0,0.28)}
+.dl-google-btn.dl-dk:hover{background:#2C2C2C;box-shadow:0 4px 16px rgba(0,0,0,0.40)}
+.dl-google-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
 /* ── Divider ── */
 .dl-divider{

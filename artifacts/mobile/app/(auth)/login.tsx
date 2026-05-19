@@ -4,6 +4,7 @@ import {
   Animated,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -29,7 +30,6 @@ import { useAppAccent } from "@/context/AppAccentContext";
 import { showAlert } from "@/lib/alert";
 import { GoogleLogo } from "@/components/ui/OAuthLogos";
 import { googleSignIn } from "@/lib/googleAuth";
-import SupportReportModal from "@/components/ui/SupportReportModal";
 
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
@@ -354,7 +354,6 @@ export default function LoginScreen() {
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const [forgotVisible, setForgotVisible] = useState(false);
   const [verifyVisible, setVerifyVisible] = useState(false);
-  const [supportModalVisible, setSupportModalVisible] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState("");
   const oauthHandledRef = useRef(false);
   const pwdRef = useRef<TextInput>(null);
@@ -577,10 +576,18 @@ export default function LoginScreen() {
               {/* Or divider */}
               <OrDivider isDark={isDark} />
 
-              {/* OAuth buttons */}
-              <View style={styles.oauthRow}>
-                <OAuthBtn label="Google" logo={<GoogleLogo size={22} />} onPress={() => signInWithProvider("google")} loading={oauthLoading === "google"} isDark={isDark} />
-              </View>
+              {/* Google sign-in bar */}
+              <TouchableOpacity
+                style={[styles.googleBar, { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF", borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)" }]}
+                onPress={() => signInWithProvider("google")}
+                disabled={oauthLoading === "google"}
+                activeOpacity={0.75}
+              >
+                {oauthLoading === "google"
+                  ? <ActivityIndicator size="small" color={isDark ? "#fff" : "#333"} />
+                  : <><GoogleLogo size={20} /><Text style={[styles.googleBarText, { color: isDark ? "#F1F1F1" : "#1A1208" }]}>Continue with Google</Text></>
+                }
+              </TouchableOpacity>
 
               {/* Switch to register */}
               <View style={styles.switchRow}>
@@ -592,17 +599,13 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Support link */}
-              <TouchableOpacity
-                onPress={() => setSupportModalVisible(true)}
-                style={styles.supportLink}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="help-buoy-outline" size={14} color={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)"} />
-                <Text style={[styles.supportLinkText, { color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }]}>
-                  Having trouble signing in? Contact support
-                </Text>
-              </TouchableOpacity>
+              {/* Terms & Privacy */}
+              <View style={styles.termsRow}>
+                <Text style={[styles.termsText, { color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }]}>By signing in you agree to our </Text>
+                <TouchableOpacity onPress={() => Linking.openURL("https://afuchat.com/terms")}><Text style={[styles.termsLink, { color: accent }]}>Terms</Text></TouchableOpacity>
+                <Text style={[styles.termsText, { color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }]}> and </Text>
+                <TouchableOpacity onPress={() => Linking.openURL("https://afuchat.com/privacy")}><Text style={[styles.termsLink, { color: accent }]}>Privacy Policy</Text></TouchableOpacity>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -611,11 +614,6 @@ export default function LoginScreen() {
       {/* Modals */}
       <ForgotPasswordModal visible={forgotVisible} onClose={() => setForgotVisible(false)} isDark={isDark} />
       <EmailVerifyModal visible={verifyVisible} email={verifyEmail} onClose={() => setVerifyVisible(false)} onVerified={() => { setVerifyVisible(false); router.replace("/(tabs)"); }} isDark={isDark} />
-      <SupportReportModal
-        visible={supportModalVisible}
-        onClose={() => setSupportModalVisible(false)}
-        context="Login Page"
-      />
     </View>
   );
 }
@@ -645,15 +643,22 @@ const styles = StyleSheet.create({
   signInGrad: { height: 52, alignItems: "center", justifyContent: "center" },
   signInText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold", letterSpacing: 0.2 },
 
-  // OAuth row
-  oauthRow: { flexDirection: "row", justifyContent: "center", gap: 12, flexWrap: "wrap" },
+  // Google bar
+  googleBar: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 10, height: 50, borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    ...Platform.select({ web: { boxShadow: "0 1px 4px rgba(0,0,0,0.08)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4, elevation: 2 } }),
+  },
+  googleBarText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 
   // switch link
   switchRow: { flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" },
   switchText: { fontSize: 14, fontFamily: "Inter_400Regular" },
   switchLink: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
 
-  // support link
-  supportLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 4 },
-  supportLinkText: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  // terms row
+  termsRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 0 },
+  termsText: { fontSize: 11.5, fontFamily: "Inter_400Regular" },
+  termsLink: { fontSize: 11.5, fontFamily: "Inter_600SemiBold" },
 });
