@@ -1,6 +1,4 @@
 import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
-import { SymbolView } from "expo-symbols";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -26,6 +24,21 @@ import { supabase } from "@/lib/supabase";
 let isLiquidGlassAvailable: () => boolean = () => false;
 try {
   isLiquidGlassAvailable = require("expo-glass-effect").isLiquidGlassAvailable;
+} catch (_) {}
+
+let NativeTabs: any = null;
+let NativeTabsIcon: any = null;
+let NativeTabsLabel: any = null;
+try {
+  const nt = require("expo-router/unstable-native-tabs");
+  NativeTabs = nt.NativeTabs;
+  NativeTabsIcon = nt.Icon;
+  NativeTabsLabel = nt.Label;
+} catch (_) {}
+
+let SymbolView: React.ComponentType<{ name: string; tintColor?: string; size?: number }> | null = null;
+try {
+  SymbolView = require("expo-symbols").SymbolView;
 } catch (_) {}
 
 const afuSymbol = require("@/assets/images/afu-symbol.png");
@@ -196,7 +209,7 @@ function CompactTabBar({
                         resizeMode="contain"
                         tintColor={iconColor}
                       />
-                    ) : isIOS ? (
+                    ) : isIOS && SymbolView ? (
                       <SymbolView
                         name={focused ? tab.sfOn : tab.sfOff}
                         tintColor={iconColor}
@@ -314,13 +327,14 @@ const bar = StyleSheet.create({
 });
 
 function NativeTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
+  if (!NativeTabs) return null;
   return (
     <NativeTabs>
-      {isLoggedIn && (<NativeTabs.Trigger name="index"><Icon sf={{ default: "message.fill", selected: "message.fill" }} /><Label>Chats</Label></NativeTabs.Trigger>)}
-      {isLoggedIn && (<NativeTabs.Trigger name="discover"><Icon sf={{ default: "safari", selected: "safari.fill" }} /><Label>Discover</Label></NativeTabs.Trigger>)}
-      {isLoggedIn && (<NativeTabs.Trigger name="search"><Icon sf={{ default: "magnifyingglass.circle", selected: "magnifyingglass.circle.fill" }} /><Label>Search</Label></NativeTabs.Trigger>)}
-      {isLoggedIn && (<NativeTabs.Trigger name="apps"><Icon sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }} /><Label>Apps</Label></NativeTabs.Trigger>)}
-      {isLoggedIn && (<NativeTabs.Trigger name="me"><Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} /><Label>Profile</Label></NativeTabs.Trigger>)}
+      {isLoggedIn && (<NativeTabs.Trigger name="index"><NativeTabsIcon sf={{ default: "message.fill", selected: "message.fill" }} /><NativeTabsLabel>Chats</NativeTabsLabel></NativeTabs.Trigger>)}
+      {isLoggedIn && (<NativeTabs.Trigger name="discover"><NativeTabsIcon sf={{ default: "safari", selected: "safari.fill" }} /><NativeTabsLabel>Discover</NativeTabsLabel></NativeTabs.Trigger>)}
+      {isLoggedIn && (<NativeTabs.Trigger name="search"><NativeTabsIcon sf={{ default: "magnifyingglass.circle", selected: "magnifyingglass.circle.fill" }} /><NativeTabsLabel>Search</NativeTabsLabel></NativeTabs.Trigger>)}
+      {isLoggedIn && (<NativeTabs.Trigger name="apps"><NativeTabsIcon sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }} /><NativeTabsLabel>Apps</NativeTabsLabel></NativeTabs.Trigger>)}
+      {isLoggedIn && (<NativeTabs.Trigger name="me"><NativeTabsIcon sf={{ default: "person.circle", selected: "person.circle.fill" }} /><NativeTabsLabel>Profile</NativeTabsLabel></NativeTabs.Trigger>)}
     </NativeTabs>
   );
 }
