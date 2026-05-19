@@ -181,111 +181,88 @@ const DT_CSS = `
 /* ── Responsive: collapse sidebar on narrow viewports ── */
 @media(max-width:820px){.dt-sidebar{display:none}}
 
-/* ── Mobile bottom nav — advanced floating pill ── */
+/* ── Mobile bottom nav — oval pill ── */
 .dt-bnav{
   display:none;
   position:fixed;
-  bottom:calc(16px + env(safe-area-inset-bottom,0px));
-  left:14px;right:14px;
+  bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  left:12px;right:12px;
   z-index:200;
-  border-radius:28px;
-  /* Dark mode: deep glass */
-  background:rgba(16,16,18,0.94);
-  border:1px solid rgba(255,255,255,0.08);
+  border-radius:44px;
+  /* Dark mode: near-solid dark pill matching the app's dark theme */
+  background:#1C1C1F;
+  border:1px solid rgba(255,255,255,0.07);
   box-shadow:
-    0 24px 64px rgba(0,0,0,0.50),
-    0 8px 24px rgba(0,0,0,0.30),
-    0 2px 6px rgba(0,0,0,0.18),
-    inset 0 1px 0 rgba(255,255,255,0.07);
-  backdrop-filter:blur(36px) saturate(2.2);
-  -webkit-backdrop-filter:blur(36px) saturate(2.2);
+    0 22px 56px rgba(0,0,0,0.60),
+    0 8px 22px rgba(0,0,0,0.38),
+    0 2px 6px rgba(0,0,0,0.24),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter:blur(40px) saturate(2.4);
+  -webkit-backdrop-filter:blur(40px) saturate(2.4);
 }
-/* Light mode: crisp white card */
+/* Light mode: crisp white oval pill */
 .dt-lt .dt-bnav{
-  background:rgba(255,255,255,0.97);
-  border:1px solid rgba(0,0,0,0.07);
+  background:rgba(255,255,255,0.99);
+  border:1px solid rgba(0,0,0,0.06);
   box-shadow:
-    0 16px 48px rgba(0,0,0,0.13),
-    0 6px 16px rgba(0,0,0,0.08),
-    0 1px 4px rgba(0,0,0,0.05),
-    inset 0 1px 0 rgba(255,255,255,1);
-  backdrop-filter:blur(24px);
-  -webkit-backdrop-filter:blur(24px);
+    0 14px 44px rgba(0,0,0,0.13),
+    0 5px 14px rgba(0,0,0,0.07),
+    0 1px 3px rgba(0,0,0,0.04),
+    inset 0 1px 0 #ffffff;
+  backdrop-filter:blur(28px);
+  -webkit-backdrop-filter:blur(28px);
 }
 @media(max-width:820px){.dt-bnav{display:flex}}
 
 .dt-bnav-inner{
-  display:flex;width:100%;align-items:stretch;
-  padding:6px 4px 4px;
+  display:flex;width:100%;align-items:center;
+  padding:8px 6px 8px;
+  gap:0;
 }
 
 /* ── Nav item ── */
 .dt-bnav-item{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:0;padding:4px 0 2px;flex:1;
+  gap:4px;flex:1;padding:4px 2px;
   text-decoration:none;
-  color:rgba(140,135,128,1);
-  font-size:10px;font-weight:500;letter-spacing:.12px;
-  transition:color .18s;cursor:pointer;
+  color:rgba(110,108,118,1);
+  font-size:10px;font-weight:500;letter-spacing:.08px;
+  transition:color .16s;cursor:pointer;
   background:none;border:none;font-family:inherit;
-  border-radius:20px;
+  border-radius:32px;
   -webkit-tap-highlight-color:transparent;
-  user-select:none;
+  user-select:none;min-width:0;
 }
-.dt-dk .dt-bnav-item{color:rgba(105,105,115,1)}
-.dt-bnav-item:active{opacity:.65}
+.dt-dk .dt-bnav-item{color:rgba(95,93,105,1)}
+.dt-bnav-item:active{opacity:.68}
 
-/* Active state */
-.dt-bnav-item.act{
-  color:#00BCD4;
-  font-weight:700;
-}
+/* Active item */
+.dt-bnav-item.act{color:#00BCD4;font-weight:700}
 
-/* ── Icon holder (pill bg on active) ── */
+/* ── Icon chip (lights up on active) ── */
 .dt-bnav-icon{
   position:relative;
-  width:48px;height:32px;border-radius:16px;
+  width:54px;height:34px;border-radius:17px;
   display:flex;align-items:center;justify-content:center;
-  transition:background .22s;
-  margin-bottom:3px;
+  transition:background .2s;
 }
-.dt-bnav-item.act .dt-bnav-icon{
-  background:rgba(0,188,212,0.13);
-}
-.dt-lt .dt-bnav-item.act .dt-bnav-icon{
-  background:rgba(0,188,212,0.11);
-}
-
-/* ── Active dot indicator ── */
-.dt-bnav-dot{
-  width:4px;height:4px;border-radius:2px;
-  background:transparent;
-  transition:background .2s, width .25s cubic-bezier(.34,1.56,.64,1);
-  margin-top:2px;
-  flex-shrink:0;
-}
-.dt-bnav-item.act .dt-bnav-dot{
-  background:#00BCD4;
-  width:18px;
-}
+.dt-bnav-item.act .dt-bnav-icon{background:rgba(0,188,212,0.16)}
+.dt-lt .dt-bnav-item.act .dt-bnav-icon{background:rgba(0,188,212,0.12)}
 
 /* ── Badge ── */
 .dt-bnav-badge{
-  position:absolute;top:-3px;right:0px;
+  position:absolute;top:-3px;right:-1px;
   background:#FF3B30;color:#fff;
   font-size:8px;font-weight:800;min-width:14px;height:14px;
   border-radius:7px;display:flex;align-items:center;
   justify-content:center;padding:0 3px;line-height:1;
-  border:2px solid rgba(16,16,18,0.94);
+  border:2px solid #1C1C1F;
   pointer-events:none;
 }
-.dt-lt .dt-bnav-badge{border-color:rgba(255,255,255,0.97)}
+.dt-lt .dt-bnav-badge{border-color:rgba(255,255,255,0.99)}
 
 /* ── Item label ── */
-.dt-bnav-label{
-  font-size:10px;letter-spacing:.1px;
-  line-height:1;transition:font-weight .18s;
-}
+.dt-bnav-label{font-size:10px;letter-spacing:.06px;line-height:1}
 
 /* Push content above nav */
 @media(max-width:820px){.dt-content{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}}
@@ -598,7 +575,6 @@ export default function DesktopTabLayout() {
           const BNAV = [
             { label: "Chats",    Icon: MessageCircle, route: "/(tabs)"           as const, matchPaths: ["/", "/(tabs)", "/index", "/chat"] },
             { label: "Discover", Icon: Compass,       route: "/(tabs)/discover"  as const, matchPaths: ["/discover", "/(tabs)/discover"] },
-            { label: "Search",   Icon: Search,        route: "/(tabs)/search"    as const, matchPaths: ["/search", "/(tabs)/search"] },
             { label: "Apps",     Icon: Grid3X3,       route: "/(tabs)/apps"      as const, matchPaths: ["/apps", "/(tabs)/apps"] },
             { label: "Profile",  Icon: User,          route: "/(tabs)/me"        as const, matchPaths: ["/me", "/(tabs)/me"] },
           ] as const;
@@ -624,10 +600,10 @@ export default function DesktopTabLayout() {
                             src={avatarUrl}
                             alt={displayName}
                             style={{
-                              width: 27, height: 27, borderRadius: "50%",
+                              width: 28, height: 28, borderRadius: "50%",
                               objectFit: "cover",
-                              border: active ? "2px solid #00BCD4" : "2px solid rgba(128,128,128,0.25)",
-                              transition: "border-color .18s",
+                              border: active ? "2.5px solid #00BCD4" : "2px solid rgba(128,128,128,0.22)",
+                              transition: "border-color .16s",
                             }}
                           />
                         ) : (
@@ -642,7 +618,6 @@ export default function DesktopTabLayout() {
                         )}
                       </div>
                       <span className="dt-bnav-label">{item.label}</span>
-                      <div className="dt-bnav-dot" />
                     </a>
                   );
                 })}
