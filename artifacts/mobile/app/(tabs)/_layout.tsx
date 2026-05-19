@@ -26,20 +26,30 @@ try {
   isLiquidGlassAvailable = require("expo-glass-effect").isLiquidGlassAvailable;
 } catch (_) {}
 
+// expo-router/unstable-native-tabs requires a native module (NativeTabsView)
+// that is NOT bundled in Expo Go — loading it causes an immediate native crash.
+// We only need it on iOS 26+ Liquid Glass builds (custom EAS build, not Expo Go).
+// Guard it behind a Platform check + try-catch so the native module is never
+// initialised on devices that don't have it.
 let NativeTabs: any = null;
 let NativeTabsIcon: any = null;
 let NativeTabsLabel: any = null;
-try {
-  const nt = require("expo-router/unstable-native-tabs");
-  NativeTabs = nt.NativeTabs;
-  NativeTabsIcon = nt.Icon;
-  NativeTabsLabel = nt.Label;
-} catch (_) {}
+if (Platform.OS === "ios") {
+  try {
+    const nt = require("expo-router/unstable-native-tabs");
+    NativeTabs = nt.NativeTabs;
+    NativeTabsIcon = nt.Icon;
+    NativeTabsLabel = nt.Label;
+  } catch (_) {}
+}
 
+// expo-symbols is also iOS-only (SF Symbols). Guard the same way.
 let SymbolView: React.ComponentType<{ name: string; tintColor?: string; size?: number }> | null = null;
-try {
-  SymbolView = require("expo-symbols").SymbolView;
-} catch (_) {}
+if (Platform.OS === "ios") {
+  try {
+    SymbolView = require("expo-symbols").SymbolView;
+  } catch (_) {}
+}
 
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
