@@ -9,6 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useColorScheme,
   useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,28 +19,35 @@ import { useAuth } from "@/context/AuthContext";
 const SUPABASE_URL      = process.env.EXPO_PUBLIC_SUPABASE_URL      ?? "";
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-const C = {
-  teal:   "#00BCD4",
-  dark:   "#0A0D14",
-  dark2:  "#111827",
-  white:  "#FFFFFF",
-  off:    "#F8FAFC",
-  border: "#E2E8F0",
-  muted:  "#94A3B8",
-  text:   "#1E293B",
-  sub:    "#475569",
-  tealBg: "#E0F7FA",
-};
-
 const SHOTS = {
+  chats:    require("@/assets/screenshots/chats.png"),
   search:   require("@/assets/screenshots/search.jpg"),
   discover: require("@/assets/screenshots/discover.jpg"),
   me:       require("@/assets/screenshots/me.jpg"),
   apps:     require("@/assets/screenshots/apps.jpg"),
+  pay:      require("@/assets/screenshots/pay.png"),
 };
 
-// ── Phone frame (no hooks) ──────────────────────────────────
-function PhoneFrame({ source, fw, tilt = 0 }: { source: any; fw: number; tilt?: number }) {
+const LOGO = require("@/assets/images/logo.png");
+
+function makeColors(dark: boolean) {
+  return {
+    teal:    "#00BCD4",
+    bg:      dark ? "#0A0D14" : "#FFFFFF",
+    bg2:     dark ? "#111827" : "#F8FAFC",
+    surface: dark ? "#1F2937" : "#FFFFFF",
+    border:  dark ? "#1F2937" : "#E2E8F0",
+    text:    dark ? "#F9FAFB" : "#1E293B",
+    sub:     dark ? "#9CA3AF" : "#475569",
+    muted:   dark ? "#6B7280" : "#94A3B8",
+    tealBg:  dark ? "rgba(0,188,212,0.15)" : "#E0F7FA",
+    dark:    "#0A0D14",
+    dark2:   "#111827",
+    white:   "#FFFFFF",
+  };
+}
+
+function PhoneFrame({ source, fw, tilt = 0, dark }: { source: any; fw: number; tilt?: number; dark: boolean }) {
   const fh = Math.round(fw * 2.12);
   const br = Math.round(fw * 0.17);
   const bw = Math.max(8, Math.round(fw * 0.038));
@@ -47,21 +55,22 @@ function PhoneFrame({ source, fw, tilt = 0 }: { source: any; fw: number; tilt?: 
   if (tilt) outer.transform = [{ rotate: `${tilt}deg` }];
   return (
     <View style={outer}>
-      <View style={{ flex: 1, borderRadius: br, borderWidth: bw, borderColor: C.dark, backgroundColor: C.dark, overflow: "hidden" }}>
+      <View style={{ flex: 1, borderRadius: br, borderWidth: bw, borderColor: "#0A0D14", backgroundColor: "#0A0D14", overflow: "hidden" }}>
         <Image source={source} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-        {/* notch */}
-        <View style={{ position: "absolute", top: 10, alignSelf: "center", width: fw * 0.38, height: fw * 0.093, borderRadius: fw * 0.05, backgroundColor: C.dark }} />
-        {/* home bar */}
+        <View style={{ position: "absolute", top: 10, alignSelf: "center", width: fw * 0.38, height: fw * 0.093, borderRadius: fw * 0.05, backgroundColor: "#0A0D14" }} />
         <View style={{ position: "absolute", bottom: 7, alignSelf: "center", width: fw * 0.34, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.38)" }} />
       </View>
     </View>
   );
 }
 
-// ── Main component ──────────────────────────────────────────
 export default function LandingPage() {
   const { user } = useAuth();
   const { width } = useWindowDimensions();
+  const scheme = useColorScheme();
+  const isDark = scheme === "dark";
+  const C = makeColors(isDark);
+
   const [subEmail, setSubEmail]     = useState("");
   const [subLoading, setSubLoading] = useState(false);
   const [subMsg, setSubMsg]         = useState<{ text: string; ok: boolean } | null>(null);
@@ -102,12 +111,12 @@ export default function LandingPage() {
   }
 
   const features = [
-    { icon: "chatbubbles-outline",  color: C.teal,    title: "Encrypted Messaging", desc: "End-to-end encrypted 1-on-1 chats, group rooms, voice notes, and broadcasts." },
-    { icon: "sparkles-outline",     color: "#8B5CF6", title: "AfuAI Assistant",      desc: "Your personal AI — ask questions, generate content, and get smart replies." },
-    { icon: "wallet-outline",       color: "#F59E0B", title: "ACoin Wallet",         desc: "Send money, pay for services, earn rewards, and manage your digital wallet." },
-    { icon: "storefront-outline",   color: "#10B981", title: "Marketplace",          desc: "Shop verified stores, discover exclusive products, and track your orders." },
-    { icon: "briefcase-outline",    color: "#3B82F6", title: "Freelance Hub",        desc: "Post jobs or offer skills — AfuChat's built-in talent marketplace." },
-    { icon: "gift-outline",         color: "#EC4899", title: "Gifts & Stickers",     desc: "Send digital gifts, animated stickers, and red envelopes to friends." },
+    { icon: "chatbubbles-outline",  color: C.teal,    title: "Encrypted Messaging",  desc: "End-to-end encrypted 1-on-1 chats, group rooms, voice notes, and broadcasts." },
+    { icon: "sparkles-outline",     color: "#8B5CF6", title: "AfuAI Assistant",       desc: "Your personal AI — ask questions, generate content, and get smart replies." },
+    { icon: "wallet-outline",       color: "#F59E0B", title: "ACoin Wallet",          desc: "Send money, pay for services, earn rewards, and manage your digital wallet." },
+    { icon: "storefront-outline",   color: "#10B981", title: "Marketplace",           desc: "Shop verified stores, discover exclusive products, and track your orders." },
+    { icon: "briefcase-outline",    color: "#3B82F6", title: "Freelance Hub",         desc: "Post jobs or offer skills — AfuChat's built-in talent marketplace." },
+    { icon: "gift-outline",         color: "#EC4899", title: "Gifts & Stickers",      desc: "Send digital gifts, animated stickers, and red envelopes to friends." },
   ];
 
   const stats = [
@@ -121,40 +130,36 @@ export default function LandingPage() {
     { heading: "Product", links: [
       { label: "Features",  fn: () => {} },
       { label: "Premium",   fn: () => router.push("/premium") },
-      { label: "Blog",      fn: () => Linking.openURL("https://blog.afuchat.com") },
       { label: "Download",  fn: () => Linking.openURL("https://play.google.com/store/apps/details?id=com.afuchat.app") },
     ]},
     { heading: "Company", links: [
       { label: "About",   fn: () => router.push("/about") },
-      { label: "Careers", fn: () => router.push("/careers" as any) },
       { label: "Contact", fn: () => Linking.openURL("mailto:support@afuchat.com") },
       { label: "Press",   fn: () => Linking.openURL("mailto:press@afuchat.com") },
     ]},
     { heading: "Legal", links: [
       { label: "Terms of Service", fn: () => router.push("/terms") },
       { label: "Privacy Policy",   fn: () => router.push("/privacy") },
-      { label: "Cookie Policy",    fn: () => router.push("/privacy") },
     ]},
     { heading: "Support", links: [
       { label: "Help Center",  fn: () => router.push("/help") },
-      { label: "Safety",       fn: () => router.push("/help") },
       { label: "Report a Bug", fn: () => Linking.openURL("mailto:support@afuchat.com") },
     ]},
   ];
 
   return (
     <ScrollView
-      style={s.root}
+      style={[s.root, { backgroundColor: C.bg }]}
       contentContainerStyle={{ paddingBottom: 0 }}
       showsVerticalScrollIndicator={false}
       stickyHeaderIndices={[0]}
     >
 
       {/* ── NAV ─────────────────────────────────────────── */}
-      <View style={[s.nav, { paddingHorizontal: pH }]}>
+      <View style={[s.nav, { paddingHorizontal: pH, backgroundColor: C.bg, borderBottomColor: C.border }]}>
         <TouchableOpacity onPress={() => router.replace("/")} style={s.brand}>
-          <View style={s.logoMark}><Ionicons name="chatbubble-ellipses" size={16} color={C.white} /></View>
-          <Text style={s.brandText}>AfuChat</Text>
+          <Image source={LOGO} style={s.logoImg} resizeMode="contain" />
+          <Text style={[s.brandText, { color: C.text }]}>AfuChat</Text>
         </TouchableOpacity>
 
         {isDesktop && (
@@ -162,11 +167,9 @@ export default function LandingPage() {
             {[
               { label: "Features", fn: () => {} },
               { label: "Download", fn: () => Linking.openURL("https://play.google.com/store/apps/details?id=com.afuchat.app") },
-              { label: "Blog",     fn: () => Linking.openURL("https://blog.afuchat.com") },
-              { label: "Careers",  fn: () => router.push("/careers" as any) },
             ].map((l) => (
               <TouchableOpacity key={l.label} onPress={l.fn} style={s.navLink}>
-                <Text style={s.navLinkTxt}>{l.label}</Text>
+                <Text style={[s.navLinkTxt, { color: C.sub }]}>{l.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -174,15 +177,20 @@ export default function LandingPage() {
 
         <View style={s.navRight}>
           {isDesktop && (
-            <TouchableOpacity onPress={() => user ? router.replace("/(tabs)") : router.push("/login")} style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-              <Text style={{ fontSize: 15, fontFamily: "Inter_500Medium", color: C.text }}>{user ? "Open App" : "Sign in"}</Text>
+            <TouchableOpacity
+              onPress={() => user ? router.replace("/(tabs)") : router.push("/login")}
+              style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+            >
+              <Text style={{ fontSize: 15, fontFamily: "Inter_500Medium", color: C.text }}>
+                {user ? "Open App" : "Sign in"}
+              </Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
             onPress={() => Linking.openURL("https://play.google.com/store/apps/details?id=com.afuchat.app")}
             style={s.navCta}
           >
-            <Ionicons name="logo-google-playstore" size={14} color={C.white} />
+            <Ionicons name="logo-google-playstore" size={14} color="#FFFFFF" />
             <Text style={s.navCtaTxt}>Get App</Text>
           </TouchableOpacity>
         </View>
@@ -194,24 +202,23 @@ export default function LandingPage() {
 
           {/* Copy */}
           <View style={{ flex: isDesktop ? 1 : 0, alignItems: isDesktop ? "flex-start" : "center" }}>
-            {/* Badges */}
             <View style={[s.badgeRow, { justifyContent: isDesktop ? "flex-start" : "center" }]}>
               <View style={s.pill}>
                 <Ionicons name="checkmark-circle" size={12} color={C.teal} />
-                <Text style={s.pillTxt}>Android & Web</Text>
+                <Text style={[s.pillTxt, { color: C.teal }]}>Android & Web</Text>
               </View>
               <View style={s.pill}>
                 <Ionicons name="lock-closed" size={12} color={C.teal} />
-                <Text style={s.pillTxt}>End-to-end Encrypted</Text>
+                <Text style={[s.pillTxt, { color: C.teal }]}>End-to-end Encrypted</Text>
               </View>
             </View>
 
             <Text style={[s.h1, { fontSize: isDesktop ? 54 : isTablet ? 42 : 36, textAlign: isDesktop ? "left" : "center" }]}>
-              {"Chat. Create.\n"}<Text style={{ color: C.teal }}>Connect.</Text>
+              {"Chat. Share.\n"}<Text style={{ color: C.teal }}>Connect.</Text>
             </Text>
 
             <Text style={[s.heroSub, { textAlign: isDesktop ? "left" : "center" }]}>
-              AfuChat is the all-in-one super app built for Africa and the world — messaging, AI, payments, marketplace, videos, and communities in one place.
+              AfuChat is the all-in-one super app — messaging, AI, payments, marketplace, videos, and communities in one place.
             </Text>
 
             <View style={[s.ctaRow, { flexDirection: isTablet ? "row" : "column", alignItems: isDesktop ? "flex-start" : "center" }]}>
@@ -219,19 +226,19 @@ export default function LandingPage() {
                 onPress={() => Linking.openURL("https://play.google.com/store/apps/details?id=com.afuchat.app")}
                 style={s.ctaPrimary}
               >
-                <Ionicons name="logo-google-playstore" size={18} color={C.white} />
+                <Ionicons name="logo-google-playstore" size={18} color="#FFFFFF" />
                 <Text style={s.ctaPrimaryTxt}>Get on Android</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => user ? router.replace("/(tabs)") : router.push("/login")}
-                style={s.ctaSecondary}
+                style={[s.ctaSecondary, { backgroundColor: isDark ? "#1F2937" : "#FFFFFF" }]}
               >
-                <Text style={s.ctaSecondaryTxt}>Open Web App</Text>
+                <Text style={[s.ctaSecondaryTxt, { color: C.text }]}>Open Web App</Text>
                 <Ionicons name="arrow-forward" size={16} color={C.text} />
               </TouchableOpacity>
             </View>
 
-            <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: "#4B5563" }}>
+            <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: C.muted }}>
               Free to download · No credit card required
             </Text>
           </View>
@@ -240,17 +247,17 @@ export default function LandingPage() {
           <View style={[s.heroPhones, { marginTop: isDesktop ? 0 : 52 }]}>
             {isTablet && (
               <View style={{ marginRight: -20, marginTop: 44, opacity: 0.78 }}>
-                <PhoneFrame source={SHOTS.apps} fw={phoneW - 40} tilt={-5} />
+                <PhoneFrame source={SHOTS.apps} fw={phoneW - 40} tilt={-5} dark={isDark} />
               </View>
             )}
-            <PhoneFrame source={SHOTS.search} fw={phoneW} tilt={isTablet ? 5 : 0} />
+            <PhoneFrame source={SHOTS.chats} fw={phoneW} tilt={isTablet ? 5 : 0} dark={isDark} />
           </View>
         </View>
       </View>
 
       {/* ── TRUST BAR ──────────────────────────────────── */}
-      <View style={[s.trustBar, { paddingHorizontal: pH }]}>
-        <Text style={s.eyebrowCenter}>AVAILABLE ON</Text>
+      <View style={[s.trustBar, { paddingHorizontal: pH, backgroundColor: C.bg2, borderBottomColor: C.border }]}>
+        <Text style={[s.eyebrowCenter, { color: C.teal }]}>AVAILABLE ON</Text>
         <View style={s.trustRow}>
           {[
             { icon: "logo-google-playstore", label: "Google Play" },
@@ -259,33 +266,35 @@ export default function LandingPage() {
           ].map((p) => (
             <View key={p.label} style={s.trustItem}>
               <Ionicons name={p.icon as any} size={18} color={C.teal} />
-              <Text style={s.trustTxt}>{p.label}</Text>
+              <Text style={[s.trustTxt, { color: C.text }]}>{p.label}</Text>
             </View>
           ))}
-          <Text style={{ color: C.muted, fontSize: 14, fontFamily: "Inter_400Regular", marginLeft: 12 }}>
-            iOS — <Text style={{ color: C.teal }}>Coming Soon</Text>
-          </Text>
         </View>
       </View>
 
       {/* ── FEATURES ──────────────────────────────────── */}
-      <View style={[s.section, { backgroundColor: C.off, paddingHorizontal: pH }]}>
-        <Text style={s.eyebrowCenter}>EVERYTHING IN ONE APP</Text>
-        <Text style={[s.h2, { textAlign: "center", fontSize: isDesktop ? 38 : 28 }]}>One app. Infinite possibilities.</Text>
-        <Text style={[s.bodyCtr, { marginBottom: 48 }]}>
+      <View style={[s.section, { backgroundColor: C.bg2, paddingHorizontal: pH }]}>
+        <Text style={[s.eyebrowCenter, { color: C.teal }]}>EVERYTHING IN ONE APP</Text>
+        <Text style={[s.h2, { textAlign: "center", fontSize: isDesktop ? 38 : 28, color: C.text }]}>One app. Infinite possibilities.</Text>
+        <Text style={[s.bodyCtr, { marginBottom: 48, color: C.sub }]}>
           AfuChat combines the best features of messaging, social, and finance apps into one seamless experience.
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
           {features.map((f) => (
             <View
               key={f.title}
-              style={[s.featureCard, { width: isDesktop ? "31%" : isTablet ? "47%" : "100%", marginRight: 16, marginBottom: 16 }]}
+              style={[s.featureCard, {
+                width: isDesktop ? "31%" : isTablet ? "47%" : "100%",
+                marginRight: 16, marginBottom: 16,
+                backgroundColor: C.surface,
+                borderColor: C.border,
+              }]}
             >
               <View style={[s.fIcon, { backgroundColor: f.color + "18" }]}>
                 <Ionicons name={f.icon as any} size={22} color={f.color} />
               </View>
-              <Text style={s.fTitle}>{f.title}</Text>
-              <Text style={s.fDesc}>{f.desc}</Text>
+              <Text style={[s.fTitle, { color: C.text }]}>{f.title}</Text>
+              <Text style={[s.fDesc, { color: C.sub }]}>{f.desc}</Text>
             </View>
           ))}
         </View>
@@ -294,19 +303,19 @@ export default function LandingPage() {
       {/* ── SHOWCASE ──────────────────────────────────── */}
       <View style={[s.section, { backgroundColor: C.dark, paddingHorizontal: pH }]}>
         <Text style={[s.eyebrowCenter, { color: C.teal }]}>BUILT FOR MOBILE</Text>
-        <Text style={[s.h2, { textAlign: "center", color: C.white, fontSize: isDesktop ? 38 : 28 }]}>Every screen, perfectly designed.</Text>
+        <Text style={[s.h2, { textAlign: "center", color: "#F9FAFB", fontSize: isDesktop ? 38 : 28 }]}>Every screen, perfectly designed.</Text>
         <Text style={[s.bodyCtr, { color: "#94A3B8", marginBottom: 48 }]}>
           Crafted for speed and simplicity — no clutter, just what you need.
         </Text>
         <View style={[s.showcaseRow, { flexDirection: isTablet ? "row" : "column" }]}>
           {[
-            { src: SHOTS.search,   cap: "Discover & Search",  sub: "Find people, posts, jobs and more" },
-            { src: SHOTS.apps,     cap: "Mini Programs",       sub: "Airtime, bills, transfers & more",   offset: -32 },
-            { src: SHOTS.me,       cap: "Your Profile",        sub: "Posts, wallet, followers, digital ID", tabletOnly: true },
+            { src: SHOTS.chats,   cap: "Messaging",          sub: "Chats, groups & broadcasts" },
+            { src: SHOTS.apps,    cap: "Mini Programs",       sub: "Airtime, bills, transfers & more", offset: -32 },
+            { src: SHOTS.me,      cap: "Your Profile",        sub: "Posts, wallet & digital ID", tabletOnly: true },
           ].map((item) =>
             (item.tabletOnly && !isTablet) ? null : (
               <View key={item.cap} style={[s.showcaseItem, { marginTop: isTablet && item.offset ? item.offset : 0 }]}>
-                <PhoneFrame source={item.src} fw={isDesktop ? 190 : isTablet ? 165 : 200} />
+                <PhoneFrame source={item.src} fw={isDesktop ? 190 : isTablet ? 165 : 200} dark={true} />
                 <Text style={s.showCap}>{item.cap}</Text>
                 <Text style={s.showSub}>{item.sub}</Text>
               </View>
@@ -316,23 +325,25 @@ export default function LandingPage() {
       </View>
 
       {/* ── DETAIL 1 — Messaging ──────────────────────── */}
-      <View style={[s.section, { paddingHorizontal: pH }]}>
+      <View style={[s.section, { backgroundColor: C.bg, paddingHorizontal: pH }]}>
         <View style={[s.detailRow, { flexDirection: isDesktop ? "row" : "column" }]}>
           <View style={{ flex: isDesktop ? 1 : 0, alignItems: "center", marginBottom: isDesktop ? 0 : 40 }}>
-            <PhoneFrame source={SHOTS.search} fw={isDesktop ? 240 : isTablet ? 220 : 200} />
+            <PhoneFrame source={SHOTS.chats} fw={isDesktop ? 240 : isTablet ? 220 : 200} dark={isDark} />
           </View>
           <View style={{ flex: isDesktop ? 1 : 0, paddingLeft: isDesktop ? 52 : 0, alignItems: isDesktop ? "flex-start" : "center" }}>
-            <Text style={s.eyebrow}>MESSAGING & SOCIAL</Text>
-            <Text style={[s.h2, { textAlign: isDesktop ? "left" : "center", fontSize: isDesktop ? 34 : 26, marginBottom: 12 }]}>
+            <Text style={[s.eyebrow, { color: C.teal }]}>MESSAGING & SOCIAL</Text>
+            <Text style={[s.h2, { textAlign: isDesktop ? "left" : "center", fontSize: isDesktop ? 34 : 26, marginBottom: 12, color: C.text }]}>
               {"Real conversations,\nreal connections."}
             </Text>
-            <Text style={[s.body, { textAlign: isDesktop ? "left" : "center", marginBottom: 20 }]}>
+            <Text style={[s.body, { textAlign: isDesktop ? "left" : "center", marginBottom: 20, color: C.sub }]}>
               Send messages that no one else can read. Full end-to-end encryption — your private chats stay private, always.
             </Text>
             {["End-to-end encrypted 1-on-1 chats", "Group rooms with up to 1,000 members", "Voice notes, media, and document sharing", "Stories, broadcasts, and channels", "Disappearing messages"].map((item) => (
               <View key={item} style={s.checkRow}>
-                <View style={s.checkMark}><Ionicons name="checkmark" size={13} color={C.teal} /></View>
-                <Text style={s.checkTxt}>{item}</Text>
+                <View style={[s.checkMark, { backgroundColor: C.tealBg }]}>
+                  <Ionicons name="checkmark" size={13} color={C.teal} />
+                </View>
+                <Text style={[s.checkTxt, { color: C.sub }]}>{item}</Text>
               </View>
             ))}
           </View>
@@ -340,23 +351,25 @@ export default function LandingPage() {
       </View>
 
       {/* ── DETAIL 2 — Payments ───────────────────────── */}
-      <View style={[s.section, { backgroundColor: C.off, paddingHorizontal: pH }]}>
+      <View style={[s.section, { backgroundColor: C.bg2, paddingHorizontal: pH }]}>
         <View style={[s.detailRow, { flexDirection: isDesktop ? "row-reverse" : "column" }]}>
           <View style={{ flex: isDesktop ? 1 : 0, alignItems: "center", marginBottom: isDesktop ? 0 : 40 }}>
-            <PhoneFrame source={SHOTS.apps} fw={isDesktop ? 240 : isTablet ? 220 : 200} />
+            <PhoneFrame source={SHOTS.pay} fw={isDesktop ? 240 : isTablet ? 220 : 200} dark={isDark} />
           </View>
           <View style={{ flex: isDesktop ? 1 : 0, paddingRight: isDesktop ? 52 : 0, alignItems: isDesktop ? "flex-start" : "center" }}>
-            <Text style={s.eyebrow}>MINI PROGRAMS & PAYMENTS</Text>
-            <Text style={[s.h2, { textAlign: isDesktop ? "left" : "center", fontSize: isDesktop ? 34 : 26, marginBottom: 12 }]}>
+            <Text style={[s.eyebrow, { color: "#F59E0B" }]}>PAYMENTS & WALLET</Text>
+            <Text style={[s.h2, { textAlign: isDesktop ? "left" : "center", fontSize: isDesktop ? 34 : 26, marginBottom: 12, color: C.text }]}>
               {"Your life,\nhandled in-app."}
             </Text>
-            <Text style={[s.body, { textAlign: isDesktop ? "left" : "center", marginBottom: 20 }]}>
-              Buy airtime, pay bills, book hotels, send money, and shop — all without leaving AfuChat.
+            <Text style={[s.body, { textAlign: isDesktop ? "left" : "center", marginBottom: 20, color: C.sub }]}>
+              Buy airtime, pay bills, send money, and shop — all without leaving AfuChat.
             </Text>
             {["Send & receive ACoins instantly", "Pay utility bills and buy airtime", "Mobile data bundle purchases", "Hotel and event ticket booking", "Peer-to-peer money transfers"].map((item) => (
               <View key={item} style={s.checkRow}>
-                <View style={[s.checkMark, { backgroundColor: "#FFF8E1" }]}><Ionicons name="checkmark" size={13} color="#F59E0B" /></View>
-                <Text style={s.checkTxt}>{item}</Text>
+                <View style={[s.checkMark, { backgroundColor: isDark ? "rgba(245,158,11,0.15)" : "#FFF8E1" }]}>
+                  <Ionicons name="checkmark" size={13} color="#F59E0B" />
+                </View>
+                <Text style={[s.checkTxt, { color: C.sub }]}>{item}</Text>
               </View>
             ))}
           </View>
@@ -365,15 +378,17 @@ export default function LandingPage() {
 
       {/* ── AI ────────────────────────────────────────── */}
       <View style={[s.section, { backgroundColor: "#0F0A1E", paddingHorizontal: pH, alignItems: "center" }]}>
-        <View style={s.aiIcon}><Ionicons name="sparkles" size={28} color="#8B5CF6" /></View>
+        <View style={s.aiIcon}>
+          <Ionicons name="sparkles" size={28} color="#8B5CF6" />
+        </View>
         <Text style={[s.eyebrowCenter, { color: "#C084FC" }]}>AFUAI ASSISTANT</Text>
-        <Text style={[s.h2, { color: C.white, textAlign: "center", fontSize: isDesktop ? 40 : 28, maxWidth: 640 }]}>
+        <Text style={[s.h2, { color: "#F9FAFB", textAlign: "center", fontSize: isDesktop ? 40 : 28, maxWidth: 640 }]}>
           {"Your AI co-pilot,\nalways available."}
         </Text>
         <Text style={[s.bodyCtr, { color: "#94A3B8", maxWidth: 560, marginBottom: 28 }]}>
           AfuAI helps you write messages, generate images, discover content, answer questions, and navigate the app — all in natural conversation.
         </Text>
-        <View style={[{ flexDirection: isTablet ? "row" : "column", flexWrap: "wrap", justifyContent: "center" }]}>
+        <View style={{ flexDirection: isTablet ? "row" : "column", flexWrap: "wrap", justifyContent: "center" }}>
           {["Smart Replies", "AI Image Gen", "Voice Transcription", "Content Discovery"].map((f) => (
             <View key={f} style={s.aiChip}>
               <Ionicons name="sparkles-outline" size={14} color="#C084FC" />
@@ -398,7 +413,7 @@ export default function LandingPage() {
       {/* ── DOWNLOAD ──────────────────────────────────── */}
       <View style={[s.section, { backgroundColor: C.dark2, paddingHorizontal: pH, alignItems: "center" }]}>
         <Text style={[s.eyebrowCenter, { color: C.teal }]}>DOWNLOAD NOW</Text>
-        <Text style={[s.h2, { color: C.white, textAlign: "center", fontSize: isDesktop ? 44 : 30, marginBottom: 12 }]}>
+        <Text style={[s.h2, { color: "#F9FAFB", textAlign: "center", fontSize: isDesktop ? 44 : 30, marginBottom: 12 }]}>
           Start connecting today.
         </Text>
         <Text style={[s.bodyCtr, { color: "#94A3B8", maxWidth: 480, marginBottom: 32 }]}>
@@ -409,40 +424,37 @@ export default function LandingPage() {
             onPress={() => Linking.openURL("https://play.google.com/store/apps/details?id=com.afuchat.app")}
             style={[s.dlBtn, { backgroundColor: C.teal }]}
           >
-            <Ionicons name="logo-google-playstore" size={22} color={C.white} />
+            <Ionicons name="logo-google-playstore" size={22} color="#FFFFFF" />
             <View style={{ marginLeft: 14 }}>
               <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontFamily: "Inter_400Regular" }}>Download on</Text>
-              <Text style={{ color: C.white, fontSize: 16, fontFamily: "Inter_700Bold" }}>Google Play</Text>
+              <Text style={{ color: "#FFFFFF", fontSize: 16, fontFamily: "Inter_700Bold" }}>Google Play</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => user ? router.replace("/(tabs)") : router.push("/login")}
             style={[s.dlBtn, { backgroundColor: "transparent", borderWidth: 1, borderColor: "#374151" }]}
           >
-            <Ionicons name="globe-outline" size={22} color={C.white} />
+            <Ionicons name="globe-outline" size={22} color="#FFFFFF" />
             <View style={{ marginLeft: 14 }}>
               <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontFamily: "Inter_400Regular" }}>Open in</Text>
-              <Text style={{ color: C.white, fontSize: 16, fontFamily: "Inter_700Bold" }}>Web Browser</Text>
+              <Text style={{ color: "#FFFFFF", fontSize: 16, fontFamily: "Inter_700Bold" }}>Web Browser</Text>
             </View>
           </TouchableOpacity>
         </View>
-        <Text style={{ color: "#6B7280", fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 12 }}>
-          iOS App Store — coming soon
-        </Text>
       </View>
 
       {/* ── NEWSLETTER ────────────────────────────────── */}
-      <View style={[s.section, { backgroundColor: C.off, paddingHorizontal: pH }]}>
+      <View style={[s.section, { backgroundColor: C.bg2, paddingHorizontal: pH }]}>
         <View style={{ flexDirection: isDesktop ? "row" : "column" }}>
           <View style={{ flex: isDesktop ? 1 : 0, marginBottom: isDesktop ? 0 : 24 }}>
-            <Text style={s.eyebrow}>STAY IN THE LOOP</Text>
-            <Text style={[s.h2, { fontSize: isDesktop ? 32 : 24, marginBottom: 8 }]}>Product updates & news.</Text>
-            <Text style={s.body}>Get the latest from AfuChat — new features, platform news, and insider updates.</Text>
+            <Text style={[s.eyebrow, { color: C.teal }]}>STAY IN THE LOOP</Text>
+            <Text style={[s.h2, { fontSize: isDesktop ? 32 : 24, marginBottom: 8, color: C.text }]}>Product updates & news.</Text>
+            <Text style={[s.body, { color: C.sub }]}>Get the latest from AfuChat — new features, platform news, and insider updates.</Text>
           </View>
           <View style={{ flex: isDesktop ? 1 : 0, paddingLeft: isDesktop ? 48 : 0 }}>
             <View style={s.nlRow}>
               <TextInput
-                style={s.nlInput}
+                style={[s.nlInput, { backgroundColor: C.surface, borderColor: C.border, color: C.text }]}
                 placeholder="your@email.com"
                 placeholderTextColor={C.muted}
                 value={subEmail}
@@ -453,7 +465,7 @@ export default function LandingPage() {
               />
               <TouchableOpacity onPress={handleSubscribe} style={s.nlBtn} disabled={subLoading}>
                 {subLoading
-                  ? <ActivityIndicator size="small" color={C.white} />
+                  ? <ActivityIndicator size="small" color="#FFFFFF" />
                   : <Text style={s.nlBtnTxt}>Subscribe</Text>}
               </TouchableOpacity>
             </View>
@@ -473,11 +485,10 @@ export default function LandingPage() {
       {/* ── FOOTER ────────────────────────────────────── */}
       <View style={[s.footer, { paddingHorizontal: pH }]}>
         <View style={{ flexDirection: isDesktop ? "row" : "column" }}>
-          {/* Brand */}
           <View style={{ flex: isDesktop ? 1.4 : 0, marginBottom: isDesktop ? 0 : 36 }}>
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-              <View style={s.logoMark}><Ionicons name="chatbubble-ellipses" size={14} color={C.white} /></View>
-              <Text style={{ color: C.white, fontSize: 18, fontFamily: "Inter_700Bold", marginLeft: 10 }}>AfuChat</Text>
+              <Image source={LOGO} style={{ width: 32, height: 32, borderRadius: 8 }} resizeMode="contain" />
+              <Text style={{ color: "#FFFFFF", fontSize: 18, fontFamily: "Inter_700Bold", marginLeft: 10 }}>AfuChat</Text>
             </View>
             <Text style={{ color: "#6B7280", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, maxWidth: 300, marginBottom: 8 }}>
               The all-in-one super app — messaging, AI, payments, marketplace, and communities. Built for Africa, made for everyone.
@@ -485,7 +496,6 @@ export default function LandingPage() {
             <Text style={{ color: "#4B5563", fontSize: 13, fontFamily: "Inter_400Regular" }}>Kampala, Uganda</Text>
           </View>
 
-          {/* Cols */}
           <View style={{ flex: isDesktop ? 2 : 0, flexDirection: "row", flexWrap: "wrap" }}>
             {footerCols.map((col) => (
               <View key={col.heading} style={{ minWidth: 120, marginRight: 24, marginBottom: 24 }}>
@@ -503,7 +513,7 @@ export default function LandingPage() {
         <View style={s.footDivider} />
 
         <View style={{ flexDirection: isTablet ? "row" : "column", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={s.footCopy}>© {new Date().getFullYear()} AfuChat Limited. All rights reserved.</Text>
+          <Text style={s.footCopy}>© {new Date().getFullYear()} AfuChat Technologies Limited. All rights reserved.</Text>
           <View style={{ flexDirection: "row", marginTop: isTablet ? 0 : 16 }}>
             {[
               { icon: "logo-twitter",  url: "https://twitter.com/afuchat" },
@@ -523,94 +533,81 @@ export default function LandingPage() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.white },
+  root: { flex: 1 },
 
-  // Nav
-  nav:        { height: 64, flexDirection: "row", alignItems: "center", backgroundColor: C.white, borderBottomWidth: 1, borderBottomColor: C.border, zIndex: 100 },
+  nav:        { height: 64, flexDirection: "row", alignItems: "center", borderBottomWidth: 1, zIndex: 100 },
   brand:      { flexDirection: "row", alignItems: "center" },
-  logoMark:   { width: 32, height: 32, borderRadius: 10, backgroundColor: C.teal, alignItems: "center", justifyContent: "center" },
-  brandText:  { fontSize: 18, fontFamily: "Inter_700Bold", color: C.text, marginLeft: 10 },
+  logoImg:    { width: 32, height: 32, borderRadius: 8 },
+  brandText:  { fontSize: 18, fontFamily: "Inter_700Bold", marginLeft: 10 },
   navLinks:   { flex: 1, flexDirection: "row", alignItems: "center", marginLeft: 24 },
   navLink:    { paddingHorizontal: 14, paddingVertical: 8 },
-  navLinkTxt: { fontSize: 15, fontFamily: "Inter_500Medium", color: C.sub },
+  navLinkTxt: { fontSize: 15, fontFamily: "Inter_500Medium" },
   navRight:   { flexDirection: "row", alignItems: "center", marginLeft: "auto" },
-  navCta:     { flexDirection: "row", alignItems: "center", backgroundColor: C.teal, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10, marginLeft: 8 },
-  navCtaTxt:  { fontSize: 14, fontFamily: "Inter_600SemiBold", color: C.white, marginLeft: 6 },
+  navCta:     { flexDirection: "row", alignItems: "center", backgroundColor: "#00BCD4", paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10, marginLeft: 8 },
+  navCtaTxt:  { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#FFFFFF", marginLeft: 6 },
 
-  // Hero
-  hero:         { backgroundColor: C.dark },
+  hero:         { backgroundColor: "#0A0D14" },
   heroRow:      { alignItems: "center" },
   badgeRow:     { flexDirection: "row", flexWrap: "wrap", marginBottom: 20 },
   pill:         { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(0,188,212,0.12)", borderWidth: 1, borderColor: "rgba(0,188,212,0.25)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, marginRight: 8, marginBottom: 8 },
-  pillTxt:      { fontSize: 12, fontFamily: "Inter_500Medium", color: C.teal, marginLeft: 5 },
-  h1:           { fontFamily: "Inter_700Bold", color: C.white, lineHeight: 60, marginBottom: 20 },
+  pillTxt:      { fontSize: 12, fontFamily: "Inter_500Medium", marginLeft: 5 },
+  h1:           { fontFamily: "Inter_700Bold", color: "#F9FAFB", lineHeight: 60, marginBottom: 20 },
   heroSub:      { fontSize: 18, fontFamily: "Inter_400Regular", color: "#94A3B8", lineHeight: 28, marginBottom: 32, maxWidth: 520 },
   ctaRow:       { marginBottom: 20 },
-  ctaPrimary:   { flexDirection: "row", alignItems: "center", backgroundColor: C.teal, paddingHorizontal: 28, paddingVertical: 15, borderRadius: 12, marginRight: 12, marginBottom: 12 },
-  ctaPrimaryTxt:{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: C.white, marginLeft: 8 },
-  ctaSecondary: { flexDirection: "row", alignItems: "center", backgroundColor: C.white, paddingHorizontal: 24, paddingVertical: 15, borderRadius: 12, marginBottom: 12 },
-  ctaSecondaryTxt: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: C.text, marginRight: 6 },
+  ctaPrimary:   { flexDirection: "row", alignItems: "center", backgroundColor: "#00BCD4", paddingHorizontal: 28, paddingVertical: 15, borderRadius: 12, marginRight: 12, marginBottom: 12 },
+  ctaPrimaryTxt:{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#FFFFFF", marginLeft: 8 },
+  ctaSecondary: { flexDirection: "row", alignItems: "center", paddingHorizontal: 24, paddingVertical: 15, borderRadius: 12, marginBottom: 12 },
+  ctaSecondaryTxt: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginRight: 6 },
   heroPhones:   { flexDirection: "row", alignItems: "flex-end", justifyContent: "center" },
 
-  // Trust bar
-  trustBar:   { backgroundColor: C.off, paddingVertical: 24, borderBottomWidth: 1, borderBottomColor: C.border },
+  trustBar:   { paddingVertical: 24, borderBottomWidth: 1 },
   trustRow:   { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center" },
   trustItem:  { flexDirection: "row", alignItems: "center", marginHorizontal: 12, marginBottom: 8 },
-  trustTxt:   { fontSize: 14, fontFamily: "Inter_500Medium", color: C.text, marginLeft: 8 },
+  trustTxt:   { fontSize: 14, fontFamily: "Inter_500Medium", marginLeft: 8 },
 
-  // Section
   section:       { paddingVertical: 80 },
-  eyebrow:       { fontSize: 11, fontFamily: "Inter_600SemiBold", color: C.teal, letterSpacing: 1.5, marginBottom: 12 },
-  eyebrowCenter: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: C.teal, letterSpacing: 1.5, marginBottom: 12, textAlign: "center" },
-  h2:            { fontFamily: "Inter_700Bold", color: C.text, lineHeight: 44, marginBottom: 12 },
-  body:          { fontSize: 17, fontFamily: "Inter_400Regular", color: C.sub, lineHeight: 26 },
-  bodyCtr:       { fontSize: 17, fontFamily: "Inter_400Regular", color: C.sub, lineHeight: 26, textAlign: "center" },
+  eyebrow:       { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, marginBottom: 12 },
+  eyebrowCenter: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, marginBottom: 12, textAlign: "center" },
+  h2:            { fontFamily: "Inter_700Bold", lineHeight: 44, marginBottom: 12 },
+  body:          { fontSize: 17, fontFamily: "Inter_400Regular", lineHeight: 26 },
+  bodyCtr:       { fontSize: 17, fontFamily: "Inter_400Regular", lineHeight: 26, textAlign: "center" },
 
-  // Features
-  featureCard: { backgroundColor: C.white, borderRadius: 16, padding: 24, borderWidth: 1, borderColor: C.border },
+  featureCard: { borderRadius: 16, padding: 24, borderWidth: 1 },
   fIcon:       { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  fTitle:      { fontSize: 16, fontFamily: "Inter_600SemiBold", color: C.text, marginBottom: 6 },
-  fDesc:       { fontSize: 14, fontFamily: "Inter_400Regular", color: C.sub, lineHeight: 21 },
+  fTitle:      { fontSize: 16, fontFamily: "Inter_600SemiBold", marginBottom: 6 },
+  fDesc:       { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21 },
 
-  // Showcase
   showcaseRow:  { alignItems: "flex-end", justifyContent: "center" },
   showcaseItem: { alignItems: "center", marginHorizontal: 12, marginBottom: 24 },
-  showCap:      { fontSize: 16, fontFamily: "Inter_600SemiBold", color: C.white, textAlign: "center", marginTop: 16 },
+  showCap:      { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#F9FAFB", textAlign: "center", marginTop: 16 },
   showSub:      { fontSize: 13, fontFamily: "Inter_400Regular", color: "#6B7280", textAlign: "center", maxWidth: 180, marginTop: 4 },
 
-  // Detail rows
   detailRow:  { alignItems: "center" },
   checkRow:   { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  checkMark:  { width: 22, height: 22, borderRadius: 11, backgroundColor: C.tealBg, alignItems: "center", justifyContent: "center", marginRight: 10 },
-  checkTxt:   { fontSize: 15, fontFamily: "Inter_400Regular", color: C.sub },
+  checkMark:  { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", marginRight: 10 },
+  checkTxt:   { fontSize: 15, fontFamily: "Inter_400Regular" },
 
-  // AI
   aiIcon:    { width: 60, height: 60, borderRadius: 18, backgroundColor: "rgba(139,92,246,0.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(139,92,246,0.3)", marginBottom: 16 },
   aiChip:    { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(139,92,246,0.1)", borderWidth: 1, borderColor: "rgba(139,92,246,0.2)", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100, margin: 6 },
   aiChipTxt: { fontSize: 14, fontFamily: "Inter_500Medium", color: "#C084FC", marginLeft: 8 },
 
-  // Stats
-  statsSection: { backgroundColor: C.teal, paddingVertical: 48 },
+  statsSection: { backgroundColor: "#00BCD4", paddingVertical: 48 },
   statItem:     { alignItems: "center", paddingVertical: 16 },
-  statValue:    { fontSize: 36, fontFamily: "Inter_700Bold", color: C.white },
+  statValue:    { fontSize: 36, fontFamily: "Inter_700Bold", color: "#FFFFFF" },
   statLabel:    { fontSize: 14, fontFamily: "Inter_500Medium", color: "rgba(255,255,255,0.75)", marginTop: 4 },
 
-  // Download
   dlBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: 28, paddingVertical: 18, borderRadius: 14, margin: 8 },
 
-  // Newsletter
   nlRow:   { flexDirection: "row", marginBottom: 10 },
-  nlInput: { flex: 1, height: 50, backgroundColor: C.white, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 16, fontSize: 15, fontFamily: "Inter_400Regular", color: C.text },
-  nlBtn:   { backgroundColor: C.teal, paddingHorizontal: 22, borderRadius: 10, alignItems: "center", justifyContent: "center", height: 50, marginLeft: 10 },
-  nlBtnTxt:{ fontSize: 15, fontFamily: "Inter_600SemiBold", color: C.white },
+  nlInput: { flex: 1, height: 50, borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, fontSize: 15, fontFamily: "Inter_400Regular" },
+  nlBtn:   { backgroundColor: "#00BCD4", paddingHorizontal: 22, borderRadius: 10, alignItems: "center", justifyContent: "center", height: 50, marginLeft: 10 },
+  nlBtnTxt:{ fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#FFFFFF" },
   nlMsg:   { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 8, marginTop: 4 },
   nlMsgTxt:{ fontSize: 13, fontFamily: "Inter_400Regular", flex: 1, marginLeft: 8 },
 
-  // Footer
-  footer:     { backgroundColor: C.dark2, paddingTop: 64, paddingBottom: 40 },
-  footColHead:{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: C.white, marginBottom: 4 },
+  footer:     { backgroundColor: "#111827", paddingTop: 64, paddingBottom: 40 },
+  footColHead:{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#FFFFFF", marginBottom: 4 },
   footLink:   { fontSize: 14, fontFamily: "Inter_400Regular", color: "#6B7280" },
   footDivider:{ height: 1, backgroundColor: "#1F2937", marginVertical: 36 },
   footCopy:   { fontSize: 13, fontFamily: "Inter_400Regular", color: "#4B5563" },
