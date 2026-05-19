@@ -5,7 +5,7 @@ import {
   Layers, Gift,
 } from "lucide-react";
 import {
-  LANDING_CSS, TEAL, GOLD, LandingNav, LandingFooter, useLandingSetup,
+  LANDING_CSS, TEAL, GOLD, LandingNav, LandingFooter, LandingBottomNav, useLandingSetup,
 } from "@/components/landing/index.web";
 
 const MARQUEE = [
@@ -205,21 +205,6 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* ── COMPLIANCE NOTE ── */}
-          <div style={{ borderBottom: "1px solid var(--bdr)" }}>
-            <div className="lp-sec" style={{ paddingTop: 40, paddingBottom: 40 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <span className="lp-age-badge" style={{ fontSize: 13, padding: "4px 10px" }}>13+</span>
-                <p style={{ fontSize: 13, color: "var(--txt3)", lineHeight: 1.6, flex: 1, minWidth: 200 }}>
-                  AfuChat is rated for users aged 13 and above. The app contains optional in-app purchases (AfuChat Premium subscription and ACoin top-ups). Core features — messaging, calls, and communities — are always free.{" "}
-                  <a href="/privacy" style={{ color: "var(--cl)" }}>Privacy Policy</a>
-                  {" "}·{" "}
-                  <a href="/terms" style={{ color: "var(--cl)" }}>Terms of Service</a>
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* ── CTA STRIP ── */}
           <div className="lp-cta-strip">
             <h2 className="lp-cta-strip-h">Start for free today</h2>
@@ -247,6 +232,7 @@ export default function LandingPage() {
           <LandingFooter />
         </div>
       </div>
+      <LandingBottomNav active="home" />
     </>
   );
 }

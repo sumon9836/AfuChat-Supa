@@ -4,7 +4,7 @@ import {
   Sparkles, ArrowRight, Play,
 } from "lucide-react";
 import {
-  LANDING_CSS, TEAL, LandingNav, LandingFooter, useLandingSetup,
+  LANDING_CSS, TEAL, LandingNav, LandingFooter, LandingBottomNav, useLandingSetup,
 } from "@/components/landing/index.web";
 
 const BLOCKS = [
@@ -162,6 +162,7 @@ export default function AboutPage() {
           <LandingFooter />
         </div>
       </div>
+      <LandingBottomNav active="about" />
     </>
   );
 }

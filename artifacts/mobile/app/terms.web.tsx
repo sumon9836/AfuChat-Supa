@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { FileText, ArrowRight } from "lucide-react";
 import {
-  LANDING_CSS, TEAL, LandingNav, LandingFooter, useLandingSetup,
+  LANDING_CSS, TEAL, LandingNav, LandingFooter, LandingBottomNav, useLandingSetup,
 } from "@/components/landing/index.web";
 
 const LAST_UPDATED = "1 June 2025";
@@ -32,8 +32,6 @@ export default function TermsPage() {
                 <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" as const }}>
                   <span className="lp-legal-chip"><FileText size={11} color={TEAL} /> AfuChat Technologies Limited</span>
                   <span className="lp-legal-chip">Effective: {LAST_UPDATED}</span>
-                  <span className="lp-legal-chip">Ages 13+</span>
-                  <span className="lp-legal-chip">Contains In-App Purchases</span>
                 </div>
               </div>
             </div>
@@ -210,6 +208,7 @@ export default function TermsPage() {
           <LandingFooter />
         </div>
       </div>
+      <LandingBottomNav active="about" />
     </>
   );
 }

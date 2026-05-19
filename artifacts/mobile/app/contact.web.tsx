@@ -3,7 +3,7 @@ import {
   MessageCircle, HelpCircle, Briefcase, Globe, Users, ArrowRight, Play,
 } from "lucide-react";
 import {
-  LANDING_CSS, TEAL, LandingNav, LandingFooter, useLandingSetup,
+  LANDING_CSS, TEAL, LandingNav, LandingFooter, LandingBottomNav, useLandingSetup,
 } from "@/components/landing/index.web";
 
 const TG_SVG = (
@@ -213,6 +213,7 @@ export default function ContactPage() {
           <LandingFooter />
         </div>
       </div>
+      <LandingBottomNav />
     </>
   );
 }

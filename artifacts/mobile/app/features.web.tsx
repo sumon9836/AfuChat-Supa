@@ -5,7 +5,7 @@ import {
   Zap, ImageIcon, Users, Bot, Gift, Clock, Lock, Crown, ArrowRight, Play,
 } from "lucide-react";
 import {
-  LANDING_CSS, TEAL, GOLD, LandingNav, LandingFooter, useLandingSetup,
+  LANDING_CSS, TEAL, GOLD, LandingNav, LandingFooter, LandingBottomNav, useLandingSetup,
 } from "@/components/landing/index.web";
 
 const FEATURES = [
@@ -220,6 +220,7 @@ export default function FeaturesPage() {
           <LandingFooter />
         </div>
       </div>
+      <LandingBottomNav active="features" />
     </>
   );
 }

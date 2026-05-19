@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Twitter, Instagram, Youtube, Menu, X as XIcon } from "lucide-react";
+import { Twitter, Instagram, Youtube, Menu, X as XIcon, Home, Sparkles, Download, Info, LogIn } from "lucide-react";
 
 export const TEAL = "#00BCD4";
 export const GOLD = "#D4A853";
@@ -14,6 +14,12 @@ const WA_SVG = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
     <path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.49-.9-.8-1.5-1.78-1.68-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51-.17 0-.37-.02-.57-.02-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.47 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.27.49 1.7.63.72.23 1.37.2 1.88.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35z"/>
     <path d="M12 0C5.37 0 0 5.37 0 12c0 2.12.56 4.1 1.53 5.82L0 24l6.35-1.66A11.94 11.94 0 0 0 12 24c6.63 0 12-5.37 12-12S18.63 0 12 0zm0 21.8a9.76 9.76 0 0 1-4.97-1.35l-.36-.21-3.71.97.99-3.62-.23-.37A9.78 9.78 0 0 1 2.2 12c0-5.4 4.4-9.8 9.8-9.8 5.4 0 9.8 4.4 9.8 9.8 0 5.4-4.4 9.8-9.8 9.8z"/>
+  </svg>
+);
+
+const TK_SVG = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.28 6.28 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34l-.01-8.83a8.18 8.18 0 0 0 4.78 1.52V4.56a4.85 4.85 0 0 1-1.01-.13z"/>
   </svg>
 );
 
@@ -32,9 +38,9 @@ export const LANDING_CSS = `
 }
 @media(prefers-color-scheme:dark){
   .lp{
-    --bg:#000; --bg2:#0C0C0C; --bg3:#141414;
-    --surf:#0C0C0C; --bdr:#1E1E1E;
-    --txt:#FFF; --txt2:#666; --txt3:#333;
+    --bg:#000; --bg2:#0C0C0C; --bg3:#1A1A1A;
+    --surf:#111; --bdr:#242424;
+    --txt:#F5F5F5; --txt2:#A0A0A0; --txt3:#686868;
   }
 }
 
@@ -225,9 +231,6 @@ export const LANDING_CSS = `
 .lp-legal-body a{color:var(--cl);text-decoration:none}
 .lp-legal-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;padding:5px 11px;font-size:12px;color:var(--txt3);font-weight:600;margin:0 4px 4px 0}
 
-/* Age rating */
-.lp-age-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid var(--bdr);border-radius:5px;padding:2px 7px;font-size:11px;font-weight:800;color:var(--txt3)}
-
 /* Footer */
 .lp-footer{background:var(--bg);border-top:1px solid var(--bdr);padding:52px 6% 0}
 .lp-footer-main{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;padding-bottom:40px;border-bottom:1px solid var(--bdr)}
@@ -236,8 +239,8 @@ export const LANDING_CSS = `
 .lp-footer-logo-name{font-size:16px;font-weight:800;color:var(--txt)}
 .lp-footer-logo-name em{color:var(--cl);font-style:normal}
 .lp-footer-tag{color:var(--txt3);font-size:13px;line-height:1.65;margin-bottom:14px;max-width:240px}
-.lp-socials{display:flex;gap:6px}
-.lp-social{width:30px;height:30px;border-radius:6px;background:var(--bg2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;text-decoration:none;color:var(--txt3);cursor:pointer}
+.lp-socials{display:flex;gap:6px;flex-wrap:wrap}
+.lp-social{width:30px;height:30px;border-radius:6px;background:var(--bg2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;text-decoration:none;color:var(--txt2);cursor:pointer;transition:color .15s,border-color .15s}
 .lp-social:hover{color:var(--txt);border-color:var(--txt3)}
 .lp-fcol-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--txt3);margin-bottom:14px}
 .lp-flinks{list-style:none;display:flex;flex-direction:column;gap:9px}
@@ -249,7 +252,13 @@ export const LANDING_CSS = `
 .lp-footer-legal{display:flex;gap:14px}
 .lp-footer-legal a{font-size:12px;color:var(--txt3);text-decoration:none;transition:color .15s}
 .lp-footer-legal a:hover{color:var(--txt2)}
-.lp-footer-age-note{font-size:11px;color:var(--txt3);display:flex;align-items:center;gap:6px}
+
+/* Mobile bottom nav */
+.lp-bnav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surf);border-top:1px solid var(--bdr);padding-bottom:env(safe-area-inset-bottom,0px)}
+.lp-bnav-inner{display:flex;width:100%;align-items:stretch}
+.lp-bnav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px 8px;flex:1;text-decoration:none;color:var(--txt3);font-size:9.5px;font-weight:600;letter-spacing:.2px;transition:color .15s;cursor:pointer;background:none;border:none}
+.lp-bnav-item:hover,.lp-bnav-item.act{color:var(--cl)}
+.lp-bnav-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center}
 
 /* Responsive */
 @media(max-width:900px){
@@ -273,6 +282,9 @@ export const LANDING_CSS = `
   .lp-hero{padding:56px 6% 48px;min-height:auto}
   .lp-sec{padding:56px 6%}
   .lp-page-hero{padding:56px 6% 44px}
+  .lp-bnav{display:block}
+  .lp-footer{padding-bottom:80px}
+  .lp-cta-strip{padding-bottom:96px}
 }
 `;
 
@@ -374,6 +386,7 @@ export function LandingFooter() {
             <a href="https://twitter.com/afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="X / Twitter"><Twitter size={14} strokeWidth={1.8} /></a>
             <a href="https://instagram.com/afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="Instagram"><Instagram size={14} strokeWidth={1.8} /></a>
             <a href="https://youtube.com/@afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="YouTube"><Youtube size={14} strokeWidth={1.8} /></a>
+            <a href="https://tiktok.com/@afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="TikTok">{TK_SVG}</a>
           </div>
         </div>
         <div>
@@ -382,7 +395,6 @@ export function LandingFooter() {
             <li><a href="/features">Features</a></li>
             <li><a href="/download">Download</a></li>
             <li><a href="/login">Web App</a></li>
-            <li><a href="/login">Premium</a></li>
           </ul>
         </div>
         <div>
@@ -411,11 +423,36 @@ export function LandingFooter() {
           <a href="/terms">Terms</a>
           <a href="/contact">Contact</a>
         </div>
-        <div className="lp-footer-age-note">
-          <span className="lp-age-badge">13+</span>
-          Rated for ages 13 and up · Contains in-app purchases
-        </div>
       </div>
     </footer>
+  );
+}
+
+const BNAV_ITEMS = [
+  { href: "/landing",   Icon: Home,      label: "Home"     },
+  { href: "/features",  Icon: Sparkles,  label: "Features" },
+  { href: "/download",  Icon: Download,  label: "Download" },
+  { href: "/about",     Icon: Info,      label: "About"    },
+  { href: "/login",     Icon: LogIn,     label: "Log In"   },
+] as const;
+
+export function LandingBottomNav({ active }: { active?: string }) {
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
+  return (
+    <nav className="lp-bnav" aria-label="Mobile navigation">
+      <div className="lp-bnav-inner">
+        {BNAV_ITEMS.map(({ href, Icon, label }) => {
+          const isActive = active ? active === label.toLowerCase() : path === href || (href === "/landing" && path === "/");
+          return (
+            <a key={href} href={href} className={`lp-bnav-item${isActive ? " act" : ""}`} aria-label={label}>
+              <span className="lp-bnav-icon">
+                <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
+              </span>
+              {label}
+            </a>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

@@ -5,7 +5,7 @@ import {
   MapPin, Briefcase, ArrowRight, Play,
 } from "lucide-react";
 import {
-  LANDING_CSS, TEAL, LandingNav, LandingFooter, useLandingSetup,
+  LANDING_CSS, TEAL, LandingNav, LandingFooter, LandingBottomNav, useLandingSetup,
 } from "@/components/landing/index.web";
 
 const ROLES = [
@@ -210,6 +210,7 @@ export default function CareersPage() {
           <LandingFooter />
         </div>
       </div>
+      <LandingBottomNav />
     </>
   );
 }
