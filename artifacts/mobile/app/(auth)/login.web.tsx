@@ -362,7 +362,7 @@ export default function DesktopLoginPage() {
                 <button
                   type="button"
                   className="dl-forgot"
-                  onClick={() => alert("Password reset: check the mobile app or email yourself a reset link via Supabase.")}
+                  onClick={() => alert("To reset your password, open the AfuChat mobile app and use 'Forgot password?' — or contact support at support@afuchat.com.")}
                 >
                   Forgot password?
                 </button>
