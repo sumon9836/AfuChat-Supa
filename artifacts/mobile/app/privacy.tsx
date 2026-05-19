@@ -151,7 +151,7 @@ export default function PrivacyScreen() {
             Effective: {EFFECTIVE_DATE} · Last updated: {LAST_UPDATED}
           </Text>
 
-          <View style={[styles.highlightBox, { backgroundColor: colors.surface ?? colors.card, borderColor: colors.border }]}>
+          <View style={[styles.highlightBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={[styles.highlightRow, { borderBottomColor: colors.border }]}>
               <Ionicons name="lock-closed" size={16} color={TEAL} />
               <Text style={[styles.highlightText, { color: colors.text }]}>

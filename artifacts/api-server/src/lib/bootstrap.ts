@@ -75,7 +75,7 @@ export async function loadAppSettings(): Promise<BootstrapResult> {
         error: `${r.status}: ${text.slice(0, 120)}`,
       };
     }
-    rows = await r.json();
+    rows = (await r.json()) as { key: string; value: string }[];
   } catch (e: any) {
     logger.warn(
       { err: e?.message || String(e) },

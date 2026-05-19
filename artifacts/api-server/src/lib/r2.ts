@@ -6,6 +6,7 @@ import {
   DeleteObjectCommand,
   ListObjectsV2Command,
   PutBucketLifecycleConfigurationCommand,
+  type ListObjectsV2CommandOutput,
   type LifecycleRule,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -240,7 +241,7 @@ export async function sumPrefix(
   let count = 0;
   let token: string | undefined = undefined;
   do {
-    const out = await s3.send(
+    const out: ListObjectsV2CommandOutput = await s3.send(
       new ListObjectsV2Command({
         Bucket: getR2Bucket(),
         Prefix: prefix,

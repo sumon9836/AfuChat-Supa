@@ -347,7 +347,7 @@ export default function TermsScreen() {
           <Text style={[st.introMeta, { color: colors.textMuted }]}>
             Effective: {EFFECTIVE_DATE} · Last updated: {LAST_UPDATED}
           </Text>
-          <View style={[st.introBanner, { backgroundColor: colors.surface ?? colors.card, borderColor: colors.border }]}>
+          <View style={[st.introBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="information-circle" size={18} color="#3B82F6" style={{ marginTop: 1 }} />
             <Text style={[st.introBannerText, { color: colors.textSecondary }]}>
               These Terms govern your access to and use of AfuChat across all platforms, including Android, iOS, Web, and any other distribution channels. Please read them carefully before using the Platform.
@@ -365,7 +365,7 @@ export default function TermsScreen() {
           <Text style={[st.quickLinksTitle, { color: colors.textMuted }]}>QUICK LINKS</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {SECTIONS.map((s, i) => (
-              <View key={i} style={[st.quickChip, { backgroundColor: colors.surface ?? colors.card, borderColor: colors.border }]}>
+              <View key={i} style={[st.quickChip, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Text style={[st.quickChipText, { color: colors.textSecondary }]}>{s.title.split(".")[0] + ". " + s.title.split(". ")[1]}</Text>
               </View>
             ))}

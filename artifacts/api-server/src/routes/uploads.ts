@@ -112,9 +112,9 @@ router.get("/uploads/config", (_req, res) => {
  *   Returns the calling user's R2 storage footprint, broken down per
  *   logical bucket, plus their quota.
  */
-router.get("/uploads/usage", async (req, res) => {
+router.get("/uploads/usage", async (req, res): Promise<void> => {
   if (!isR2Configured()) {
-    return res.status(503).json({ error: "R2 storage not configured" });
+    res.status(503).json({ error: "R2 storage not configured" }); return;
   }
   const userId = await authedUserId(req, res);
   if (!userId) return;
@@ -154,16 +154,16 @@ router.get("/uploads/usage", async (req, res) => {
  * GET /api/uploads/list?bucket=<bucket>&token=<continuation>
  *   Lists the calling user's files inside a single bucket. Paginated.
  */
-router.get("/uploads/list", async (req, res) => {
+router.get("/uploads/list", async (req, res): Promise<void> => {
   if (!isR2Configured()) {
-    return res.status(503).json({ error: "R2 storage not configured" });
+    res.status(503).json({ error: "R2 storage not configured" }); return;
   }
   const userId = await authedUserId(req, res);
   if (!userId) return;
 
   const bucket = String(req.query.bucket || "");
   if (!bucket || !ALLOWED_BUCKETS.has(bucket)) {
-    return res.status(400).json({ error: "Invalid or missing bucket" });
+    res.status(400).json({ error: "Invalid or missing bucket" }); return;
   }
   const token = req.query.token ? String(req.query.token) : undefined;
 
@@ -195,28 +195,28 @@ router.get("/uploads/list", async (req, res) => {
  *   Deletes a single object the user owns. The key must start with
  *   `<bucket>/<userId>/` so users can't delete each other's files.
  */
-router.delete("/uploads/object", async (req, res) => {
+router.delete("/uploads/object", async (req, res): Promise<void> => {
   if (!isR2Configured()) {
-    return res.status(503).json({ error: "R2 storage not configured" });
+    res.status(503).json({ error: "R2 storage not configured" }); return;
   }
   const userId = await authedUserId(req, res);
   if (!userId) return;
 
   const key = String((req.body || {}).key || "").trim();
   if (!key || key.length > MAX_PATH_LEN) {
-    return res.status(400).json({ error: "Invalid or missing key" });
+    res.status(400).json({ error: "Invalid or missing key" }); return;
   }
   if (key.includes("..") || key.startsWith("/")) {
-    return res.status(400).json({ error: "Invalid key" });
+    res.status(400).json({ error: "Invalid key" }); return;
   }
   const slash = key.indexOf("/");
   const bucket = slash > 0 ? key.slice(0, slash) : "";
   if (!bucket || !ALLOWED_BUCKETS.has(bucket)) {
-    return res.status(400).json({ error: "Invalid bucket in key" });
+    res.status(400).json({ error: "Invalid bucket in key" }); return;
   }
   const expectedPrefix = `${bucket}/${userId}/`;
   if (!key.startsWith(expectedPrefix)) {
-    return res.status(403).json({ error: "Cannot delete other users' files" });
+    res.status(403).json({ error: "Cannot delete other users' files" }); return;
   }
 
   try {
@@ -277,9 +277,9 @@ router.delete("/uploads/object", async (req, res) => {
   }
 });
 
-router.post("/uploads/sign", async (req, res) => {
+router.post("/uploads/sign", async (req, res): Promise<void> => {
   if (!isR2Configured()) {
-    return res.status(503).json({ error: "R2 storage not configured" });
+    res.status(503).json({ error: "R2 storage not configured" }); return;
   }
 
   const userId = await authedUserId(req, res);
@@ -292,16 +292,16 @@ router.post("/uploads/sign", async (req, res) => {
   };
 
   if (!bucket || !ALLOWED_BUCKETS.has(bucket)) {
-    return res.status(400).json({ error: "Invalid or missing bucket" });
+    res.status(400).json({ error: "Invalid or missing bucket" }); return;
   }
   if (!path || typeof path !== "string" || path.length > MAX_PATH_LEN) {
-    return res.status(400).json({ error: "Invalid or missing path" });
+    res.status(400).json({ error: "Invalid or missing path" }); return;
   }
   if (path.includes("..") || path.startsWith("/")) {
-    return res.status(400).json({ error: "Invalid path" });
+    res.status(400).json({ error: "Invalid path" }); return;
   }
   if (!contentType || typeof contentType !== "string") {
-    return res.status(400).json({ error: "Invalid or missing contentType" });
+    res.status(400).json({ error: "Invalid or missing contentType" }); return;
   }
 
   // Per-bucket scoping rules: most buckets must have the path begin with
@@ -319,7 +319,7 @@ router.post("/uploads/sign", async (req, res) => {
     "group-avatars",
   ]);
   if (SCOPED.has(bucket) && !path.startsWith(`${userId}/`)) {
-    return res.status(403).json({ error: "Path must start with your user id" });
+    res.status(403).json({ error: "Path must start with your user id" }); return;
   }
 
   const key = `${bucket}/${path}`;
@@ -346,9 +346,9 @@ router.post("/uploads/sign", async (req, res) => {
 router.post(
   "/uploads/upload",
   raw({ type: () => true, limit: MAX_PROXY_UPLOAD_BYTES }),
-  async (req, res) => {
+  async (req, res): Promise<void> => {
     if (!isR2Configured()) {
-      return res.status(503).json({ error: "R2 storage not configured" });
+      res.status(503).json({ error: "R2 storage not configured" }); return;
     }
     const userId = await authedUserId(req, res);
     if (!userId) return;
@@ -360,13 +360,13 @@ router.post(
       "application/octet-stream";
 
     if (!bucket || !ALLOWED_BUCKETS.has(bucket)) {
-      return res.status(400).json({ error: "Invalid or missing bucket" });
+      res.status(400).json({ error: "Invalid or missing bucket" }); return;
     }
     if (!path || path.length > MAX_PATH_LEN) {
-      return res.status(400).json({ error: "Invalid or missing path" });
+      res.status(400).json({ error: "Invalid or missing path" }); return;
     }
     if (path.includes("..") || path.startsWith("/")) {
-      return res.status(400).json({ error: "Invalid path" });
+      res.status(400).json({ error: "Invalid path" }); return;
     }
 
     const SCOPED = new Set([
@@ -382,15 +382,15 @@ router.post(
       "group-avatars",
     ]);
     if (SCOPED.has(bucket) && !path.startsWith(`${userId}/`)) {
-      return res.status(403).json({ error: "Path must start with your user id" });
+      res.status(403).json({ error: "Path must start with your user id" }); return;
     }
 
     const body = req.body;
     if (!Buffer.isBuffer(body) || body.length === 0) {
-      return res.status(400).json({ error: "Empty or invalid body" });
+      res.status(400).json({ error: "Empty or invalid body" }); return;
     }
     if (body.length > MAX_PROXY_UPLOAD_BYTES) {
-      return res.status(413).json({ error: "File too large" });
+      res.status(413).json({ error: "File too large" }); return;
     }
 
     const key = `${bucket}/${path}`;

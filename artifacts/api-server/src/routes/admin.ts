@@ -53,7 +53,7 @@ router.post("/admin/broadcast-push", async (req, res) => {
     }
 
     // Fetch profiles with push tokens
-    let query = admin
+    let query: any = admin
       .from("profiles")
       .select("id, expo_push_token")
       .not("expo_push_token", "is", null)
@@ -136,8 +136,8 @@ router.post("/admin/broadcast-push", async (req, res) => {
           body: JSON.stringify(chunk),
         });
         if (pushRes.ok) {
-          const result = await pushRes.json();
-          (result.data || []).forEach((ticket: any, idx: number) => {
+          const result = (await pushRes.json()) as any;
+          ((result as any).data || []).forEach((ticket: any, idx: number) => {
             if (ticket.status === "ok") {
               sent++;
             } else if (ticket.details?.error === "DeviceNotRegistered") {

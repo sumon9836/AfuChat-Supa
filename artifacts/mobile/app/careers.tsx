@@ -126,7 +126,7 @@ export default function CareersScreen() {
           <Text style={[st.sectionHeading, { color: colors.text, fontSize: isDesktop ? 32 : 24 }]}>How we work</Text>
           <View style={[st.valuesGrid, { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 32 }]}>
             {VALUES.map((v) => (
-              <View key={v.label} style={[st.valueCard, { backgroundColor: colors.surface ?? colors.card, borderColor: colors.border, width: isDesktop ? "47%" : "100%" }]}>
+              <View key={v.label} style={[st.valueCard, { backgroundColor: colors.surface, borderColor: colors.border, width: isDesktop ? "47%" : "100%" }]}>
                 <Ionicons name={v.icon as any} size={22} color={TEAL} style={{ marginBottom: 10 }} />
                 <Text style={[st.valueTitle, { color: colors.text }]}>{v.label}</Text>
                 <Text style={[st.valueDesc, { color: colors.textSecondary }]}>{v.desc}</Text>
@@ -143,7 +143,7 @@ export default function CareersScreen() {
             {BENEFITS.map((b) => (
               <View
                 key={b.title}
-                style={[st.benefitCard, { backgroundColor: colors.surface ?? colors.card, borderColor: colors.border, width: isDesktop ? "23%" : isTablet ? "47%" : "100%" }]}
+                style={[st.benefitCard, { backgroundColor: colors.surface, borderColor: colors.border, width: isDesktop ? "23%" : isTablet ? "47%" : "100%" }]}
               >
                 <View style={[st.benefitIcon, { backgroundColor: b.color + "18" }]}>
                   <Ionicons name={b.icon as any} size={20} color={b.color} />
@@ -182,7 +182,7 @@ export default function CareersScreen() {
                     <TouchableOpacity
                       key={pos.title}
                       onPress={() => apply(pos.title)}
-                      style={[st.posCard, { backgroundColor: colors.surface ?? colors.card, borderColor: colors.border }]}
+                      style={[st.posCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                     >
                       <View style={{ flex: 1, gap: 4 }}>
                         <Text style={[st.posTitle, { color: colors.text }]}>{pos.title}</Text>

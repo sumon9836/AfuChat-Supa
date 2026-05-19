@@ -71,7 +71,7 @@ router.post("/payments/initiate", async (req: Request, res: Response) => {
       body: JSON.stringify(req.body),
     });
 
-    const data = await edgeRes.json();
+    const data = (await edgeRes.json()) as any;
 
     if (!edgeRes.ok) {
       logger.warn(
