@@ -9,17 +9,17 @@ import { router, Stack } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 
 export default function ShortsTab() {
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
     router.navigate("/shorts" as any);
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#000" }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar
-        barStyle="light-content"
+        barStyle={isDark ? "light-content" : "dark-content"}
         backgroundColor="transparent"
         translucent
       />
