@@ -5193,8 +5193,9 @@ STRICT RULES:
           const SH2 = Dimensions.get("window").height;
           const thumbSize = Math.floor(SW2 / THUMB_COLS) - 2;
           const SHEET_H = Math.round(SH2 * 0.55);
-          const TAB_BAR_H = 62;
-          const contentH = SHEET_H - TAB_BAR_H - 28; // 28 = handle area
+          const TAB_PILL_H = 58;
+          const TAB_PILL_MARGIN_BOTTOM = 10;
+          const contentH = SHEET_H - TAB_PILL_H - TAB_PILL_MARGIN_BOTTOM - 28; // 28 = handle area
 
           const TABS: { key: typeof attachTab; icon: string; label: string }[] = [
             { key: "Gallery",  icon: "images-outline",        label: "Gallery"  },
@@ -5207,85 +5208,115 @@ STRICT RULES:
 
           const renderContent = () => {
             if (attachTab === "Gallery") {
+              if (galleryLoading) {
+                return (
+                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                    <ActivityIndicator color={colors.accent} size="large" />
+                    <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 10, fontFamily: "Inter_400Regular" }}>Loading media…</Text>
+                  </View>
+                );
+              }
               const thumbData: Array<{ id: string; uri?: string; isCamera?: boolean; mediaType?: string }> = [
                 { id: "__camera__", isCamera: true },
                 ...galleryAssets.map((a) => ({ id: a.id, uri: a.uri, mediaType: a.mediaType })),
               ];
               return (
-                <FlatList
-                  data={thumbData}
-                  keyExtractor={(i) => i.id}
-                  numColumns={THUMB_COLS}
-                  style={{ flex: 1 }}
-                  contentContainerStyle={{ gap: 2 }}
-                  columnWrapperStyle={{ gap: 2 }}
-                  showsVerticalScrollIndicator={false}
-                  onEndReached={loadMoreGalleryAssets}
-                  onEndReachedThreshold={0.4}
-                  ListEmptyComponent={
-                    galleryLoading ? (
-                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 40 }}>
-                        <ActivityIndicator color={colors.accent} />
-                      </View>
-                    ) : (
-                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 40 }}>
+                <View style={{ flex: 1 }}>
+                  {/* Browse all button — works in Expo Go where media library is limited */}
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={async () => {
+                      setShowAttachPanel(false);
+                      try {
+                        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                        if (status !== "granted") { showAlert("Permission needed", "Please allow photo & video access in your device settings."); return; }
+                        const result = await ImagePicker.launchImageLibraryAsync({
+                          mediaTypes: ["images", "videos"],
+                          quality: pickerQuality,
+                          allowsEditing: false,
+                        });
+                        if (!result.canceled && result.assets?.[0]) {
+                          const asset = result.assets[0];
+                          setAttachmentPreview({ uri: asset.uri, type: asset.type === "video" ? "video" : "image" });
+                        }
+                      } catch { /* ignore */ }
+                    }}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 6, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.inputBg }}
+                  >
+                    <Ionicons name="albums-outline" size={18} color={colors.accent} />
+                    <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.accent }}>Browse all photos & videos</Text>
+                  </TouchableOpacity>
+                  <FlatList
+                    data={thumbData}
+                    keyExtractor={(i) => i.id}
+                    numColumns={THUMB_COLS}
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ gap: 2 }}
+                    columnWrapperStyle={{ gap: 2 }}
+                    showsVerticalScrollIndicator={false}
+                    onEndReached={loadMoreGalleryAssets}
+                    onEndReachedThreshold={0.4}
+                    ListEmptyComponent={
+                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 32 }}>
                         <Ionicons name="images-outline" size={36} color={colors.textMuted} />
                         <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8, fontFamily: "Inter_400Regular" }}>No media found</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 24 }}>
+                          Use "Browse all" above or check your device settings to allow media access.
+                        </Text>
                       </View>
-                    )
-                  }
-                  ListFooterComponent={
-                    galleryLoadingMore ? (
-                      <View style={{ paddingVertical: 12, alignItems: "center" }}>
-                        <ActivityIndicator size="small" color={colors.accent} />
-                      </View>
-                    ) : null
-                  }
-                  renderItem={({ item }) => {
-                    if (item.isCamera) {
+                    }
+                    ListFooterComponent={
+                      galleryLoadingMore ? (
+                        <View style={{ paddingVertical: 12, alignItems: "center" }}>
+                          <ActivityIndicator size="small" color={colors.accent} />
+                        </View>
+                      ) : null
+                    }
+                    renderItem={({ item }) => {
+                      if (item.isCamera) {
+                        return (
+                          <TouchableOpacity
+                            activeOpacity={0.9}
+                            onPress={() => { setShowAttachPanel(false); pickFromCamera(); }}
+                            style={{ width: thumbSize, height: thumbSize, overflow: "hidden", backgroundColor: "#000" }}
+                          >
+                            {cameraPermission?.granted ? (
+                              <CameraView
+                                style={{ width: thumbSize, height: thumbSize }}
+                                facing="back"
+                              />
+                            ) : (
+                              <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#111" }}>
+                                <Ionicons name="camera" size={26} color="#fff" />
+                              </View>
+                            )}
+                            <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, paddingVertical: 4, alignItems: "center", backgroundColor: "rgba(0,0,0,0.35)" }}>
+                              <Ionicons name="camera" size={14} color="#fff" />
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      }
+                      const isVideo = item.mediaType === "video";
                       return (
                         <TouchableOpacity
-                          activeOpacity={0.9}
-                          onPress={() => { setShowAttachPanel(false); pickFromCamera(); }}
-                          style={{ width: thumbSize, height: thumbSize, overflow: "hidden", backgroundColor: "#000" }}
+                          activeOpacity={0.85}
+                          onPress={() => {
+                            setShowAttachPanel(false);
+                            if (item.uri) setAttachmentPreview({ uri: item.uri, type: isVideo ? "video" : "image" });
+                          }}
+                          style={{ width: thumbSize, height: thumbSize }}
                         >
-                          {cameraPermission?.granted ? (
-                            <CameraView
-                              style={{ width: thumbSize, height: thumbSize }}
-                              facing="back"
-                            />
-                          ) : (
-                            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#111" }}>
-                              <Ionicons name="camera" size={26} color="#fff" />
+                          <Image source={{ uri: item.uri }} style={{ width: thumbSize, height: thumbSize }} resizeMode="cover" />
+                          {isVideo && (
+                            <View style={{ position: "absolute", bottom: 4, right: 4, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2 }}>
+                              <Ionicons name="play" size={10} color="#fff" />
                             </View>
                           )}
-                          {/* Camera label overlay */}
-                          <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, paddingVertical: 4, alignItems: "center", backgroundColor: "rgba(0,0,0,0.35)" }}>
-                            <Ionicons name="camera" size={14} color="#fff" />
-                          </View>
                         </TouchableOpacity>
                       );
-                    }
-                    const isVideo = item.mediaType === "video";
-                    return (
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={() => {
-                          setShowAttachPanel(false);
-                          if (item.uri) setAttachmentPreview({ uri: item.uri, type: isVideo ? "video" : "image" });
-                        }}
-                        style={{ width: thumbSize, height: thumbSize }}
-                      >
-                        <Image source={{ uri: item.uri }} style={{ width: thumbSize, height: thumbSize }} resizeMode="cover" />
-                        {isVideo && (
-                          <View style={{ position: "absolute", bottom: 4, right: 4, flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2 }}>
-                            <Ionicons name="play" size={10} color="#fff" />
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  }}
-                />
+                    }}
+                  />
+                </View>
               );
             }
 
@@ -5452,25 +5483,33 @@ STRICT RULES:
                 backgroundColor: colors.surface,
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
-                overflow: "hidden",
+                overflow: "visible",
               }}>
                 {/* Drag handle */}
                 <View style={{ alignItems: "center", paddingTop: 10, paddingBottom: 6 }}>
                   <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
                 </View>
 
-                {/* Content area */}
-                <View style={{ height: contentH }}>
+                {/* Content area — clipped so thumbnails don't overflow the sheet corners */}
+                <View style={{ height: contentH, overflow: "hidden", borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
                   {renderContent()}
                 </View>
 
-                {/* Tab bar */}
+                {/* Floating pill tab bar */}
                 <View style={{
-                  height: TAB_BAR_H,
+                  marginHorizontal: 16,
+                  marginTop: 8,
+                  marginBottom: TAB_PILL_MARGIN_BOTTOM,
+                  height: TAB_PILL_H,
                   flexDirection: "row",
-                  borderTopWidth: StyleSheet.hairlineWidth,
-                  borderTopColor: colors.border,
-                  backgroundColor: colors.surface,
+                  borderRadius: 20,
+                  backgroundColor: colors.inputBg,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: colors.border,
+                  ...Platform.select({
+                    web: { boxShadow: "0 4px 16px rgba(0,0,0,0.12)" } as any,
+                    default: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 10 },
+                  }),
                 }}>
                   {TABS.map((tab) => {
                     const active = attachTab === tab.key;
@@ -5479,15 +5518,23 @@ STRICT RULES:
                         key={tab.key}
                         activeOpacity={0.7}
                         onPress={() => setAttachTab(tab.key)}
-                        style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 3 }}
+                        style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: 20 }}
                       >
+                        {active && (
+                          <View style={{
+                            position: "absolute",
+                            top: 6, bottom: 6, left: 6, right: 6,
+                            borderRadius: 14,
+                            backgroundColor: colors.accent + "18",
+                          }} />
+                        )}
                         <Ionicons
                           name={active ? tab.icon.replace("-outline", "") as any : tab.icon as any}
-                          size={22}
+                          size={20}
                           color={active ? colors.accent : colors.textMuted}
                         />
                         <Text style={{
-                          fontSize: 10,
+                          fontSize: 9,
                           fontFamily: active ? "Inter_600SemiBold" : "Inter_400Regular",
                           color: active ? colors.accent : colors.textMuted,
                         }}>
