@@ -34,6 +34,9 @@ import * as Haptics from "@/lib/haptics";
 import { ImageViewer, useImageViewer } from "@/components/ImageViewer";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
+import * as MediaLibrary from "expo-media-library";
+import * as Location from "expo-location";
+import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
 import { Video, ResizeMode, Audio } from "expo-av";
 import * as Speech from "expo-speech";
@@ -1733,6 +1736,29 @@ function ChatScreen() {
   }));
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showAttachPanel, setShowAttachPanel] = useState(false);
+  const [attachTab, setAttachTab] = useState<"Gallery" | "Wallet" | "File" | "Location" | "Poll" | "Contact">("Gallery");
+  const [galleryAssets, setGalleryAssets] = useState<MediaLibrary.Asset[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+
+  useEffect(() => {
+    if (!showAttachPanel) return;
+    if (attachTab !== "Gallery" || Platform.OS === "web") return;
+    (async () => {
+      setGalleryLoading(true);
+      try {
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status === "granted") {
+          const { assets } = await MediaLibrary.getAssetsAsync({
+            mediaType: MediaLibrary.MediaType.photo,
+            first: 21,
+            sortBy: MediaLibrary.SortBy.creationTime,
+          });
+          setGalleryAssets(assets);
+        }
+      } catch { /* permission denied */ }
+      setGalleryLoading(false);
+    })();
+  }, [showAttachPanel, attachTab]);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [gifSearch, setGifSearch] = useState("");
   const [attachmentPreview, setAttachmentPreview] = useState<{ uri: string; type: string; name?: string; mimeType?: string } | null>(null);
@@ -5120,88 +5146,269 @@ STRICT RULES:
           />
         )}
 
-        {/* ── Custom inline attachment panel ─────────────────────────────────────
-            Rendered in the normal flex flow (like the emoji picker) so it pushes
-            the messages list up exactly as the real keyboard does.            ── */}
+        {/* ── Telegram-style attachment panel ──────────────────────────────────
+            Content area above + icon tab bar below, matching the image reference. ── */}
         {showAttachPanel && (() => {
-          const ATTACH_ITEMS: {
-            icon: string; label: string; color: string; emoji?: string;
-            onPress: () => void;
-          }[] = [
-            ...(Platform.OS !== "web" ? [{
-              icon: "camera", label: "Camera", color: "#FF6B35",
-              onPress: () => { setShowAttachPanel(false); pickFromCamera(); },
-            }] : []),
-            {
-              icon: "images", label: "Gallery", color: "#8B5CF6",
-              onPress: () => { setShowAttachPanel(false); pickFromGallery(); },
-            },
-            {
-              icon: "document-text", label: "File", color: "#3B82F6",
-              onPress: () => { setShowAttachPanel(false); pickDocument(); },
-            },
-            {
-              icon: "", label: "GIF", color: BRAND, emoji: "GIF",
-              onPress: () => { setShowAttachPanel(false); Keyboard.dismiss(); setShowGifPicker(true); },
-            },
-            {
-              icon: "musical-notes", label: "Audio", color: "#10B981",
-              onPress: async () => {
-                setShowAttachPanel(false);
-                try {
-                  const result = await DocumentPicker.getDocumentAsync({ type: "audio/*", copyToCacheDirectory: true });
-                  if (!result.canceled && result.assets?.[0]) {
-                    const doc = result.assets[0];
-                    setAttachmentPreview({ uri: doc.uri, type: "file", name: doc.name });
-                  }
-                } catch { /* ignore */ }
-              },
-            },
-            {
-              icon: "videocam", label: "Video", color: "#F59E0B",
-              onPress: async () => {
-                setShowAttachPanel(false);
-                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (status !== "granted") { showAlert("Permission needed", "Gallery access is required."); return; }
-                const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], quality: 0.8 });
-                if (!result.canceled && result.assets[0]) {
-                  const asset = result.assets[0];
-                  setAttachmentPreview({ uri: asset.uri, type: "video", mimeType: asset.mimeType || "video/mp4" });
-                }
-              },
-            },
+          const THUMB_COLS = 3;
+          const SW2 = Dimensions.get("window").width;
+          const thumbSize = Math.floor(SW2 / THUMB_COLS) - 2;
+          const TAB_BAR_H = 62;
+          const contentH = emojiKeyboardHeight - TAB_BAR_H;
+
+          const TABS: { key: typeof attachTab; icon: string; label: string }[] = [
+            { key: "Gallery",  icon: "images-outline",        label: "Gallery"  },
+            { key: "Wallet",   icon: "wallet-outline",         label: "Wallet"   },
+            { key: "File",     icon: "document-text-outline",  label: "File"     },
+            { key: "Location", icon: "location-outline",       label: "Location" },
+            { key: "Poll",     icon: "bar-chart-outline",      label: "Poll"     },
+            { key: "Contact",  icon: "person-circle-outline",  label: "Contact"  },
           ];
-          const COLS = 4;
-          const itemW = (Dimensions.get("window").width - 32) / COLS;
+
+          const renderContent = () => {
+            if (attachTab === "Gallery") {
+              const thumbData: Array<{ id: string; uri?: string; isCamera?: boolean }> = [
+                { id: "__camera__", isCamera: true },
+                ...galleryAssets.map((a) => ({ id: a.id, uri: a.uri })),
+              ];
+              return (
+                <FlatList
+                  data={thumbData}
+                  keyExtractor={(i) => i.id}
+                  numColumns={THUMB_COLS}
+                  style={{ flex: 1 }}
+                  contentContainerStyle={{ gap: 2 }}
+                  columnWrapperStyle={{ gap: 2 }}
+                  showsVerticalScrollIndicator={false}
+                  ListEmptyComponent={
+                    galleryLoading ? (
+                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 40 }}>
+                        <ActivityIndicator color={accent} />
+                      </View>
+                    ) : (
+                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 40 }}>
+                        <Ionicons name="images-outline" size={36} color={colors.textMuted} />
+                        <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8, fontFamily: "Inter_400Regular" }}>No photos found</Text>
+                      </View>
+                    )
+                  }
+                  renderItem={({ item }) => {
+                    if (item.isCamera) {
+                      return (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => { setShowAttachPanel(false); pickFromCamera(); }}
+                          style={{ width: thumbSize, height: thumbSize, backgroundColor: colors.inputBg, alignItems: "center", justifyContent: "center" }}
+                        >
+                          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.border, alignItems: "center", justifyContent: "center" }}>
+                            <Ionicons name="camera" size={22} color={colors.textMuted} />
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    }
+                    return (
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => {
+                          setShowAttachPanel(false);
+                          if (item.uri) setAttachmentPreview({ uri: item.uri, type: "image" });
+                        }}
+                        style={{ width: thumbSize, height: thumbSize }}
+                      >
+                        <Image source={{ uri: item.uri }} style={{ width: thumbSize, height: thumbSize }} resizeMode="cover" />
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
+              );
+            }
+
+            if (attachTab === "File") {
+              const FILE_TYPES = [
+                { icon: "document-text", label: "Document", color: "#3B82F6", mime: "*/*" },
+                { icon: "musical-notes", label: "Audio",    color: "#10B981", mime: "audio/*" },
+                { icon: "videocam",      label: "Video",    color: "#F59E0B", mime: "video/*" },
+                { icon: "archive",       label: "Archive",  color: "#8B5CF6", mime: "application/zip" },
+              ];
+              return (
+                <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 20, paddingTop: 16, gap: 12 }}>
+                  {FILE_TYPES.map((ft) => (
+                    <TouchableOpacity
+                      key={ft.label}
+                      activeOpacity={0.75}
+                      onPress={async () => {
+                        setShowAttachPanel(false);
+                        try {
+                          const result = await DocumentPicker.getDocumentAsync({ type: ft.mime, copyToCacheDirectory: true });
+                          if (!result.canceled && result.assets?.[0]) {
+                            const doc = result.assets[0];
+                            setAttachmentPreview({ uri: doc.uri, type: "file", name: doc.name });
+                          }
+                        } catch { /* ignore */ }
+                      }}
+                      style={{ width: (SW2 - 64) / 2, alignItems: "center", paddingVertical: 16, borderRadius: 16, backgroundColor: colors.inputBg, gap: 8 }}
+                    >
+                      <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: ft.color + "22", alignItems: "center", justifyContent: "center" }}>
+                        <Ionicons name={ft.icon as any} size={26} color={ft.color} />
+                      </View>
+                      <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.text }}>{ft.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              );
+            }
+
+            if (attachTab === "Location") {
+              return (
+                <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 32 }}>
+                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: accent + "20", alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="location" size={32} color={accent} />
+                  </View>
+                  <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text }}>Share Location</Text>
+                  <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.textMuted, textAlign: "center" }}>
+                    Your current location will be shared as a message.
+                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={async () => {
+                      setShowAttachPanel(false);
+                      try {
+                        const { status } = await Location.requestForegroundPermissionsAsync();
+                        if (status !== "granted") { showAlert("Permission needed", "Location access is required."); return; }
+                        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                        const mapsUrl = `https://maps.google.com/?q=${loc.coords.latitude},${loc.coords.longitude}`;
+                        const activeChatId = await getOrCreateChatId();
+                        if (!activeChatId || !user) return;
+                        await supabase.from("messages").insert({
+                          chat_id: activeChatId,
+                          sender_id: user.id,
+                          encrypted_content: `📍 Location\n${mapsUrl}`,
+                        });
+                      } catch { showAlert("Error", "Could not get location."); }
+                    }}
+                    style={{ backgroundColor: accent, paddingHorizontal: 32, paddingVertical: 13, borderRadius: 24 }}
+                  >
+                    <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 15 }}>Send Location</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+
+            if (attachTab === "Contact") {
+              return (
+                <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 32 }}>
+                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#007AFF20", alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="person-circle" size={32} color="#007AFF" />
+                  </View>
+                  <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text }}>Share a Contact</Text>
+                  <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.textMuted, textAlign: "center" }}>
+                    Pick a contact from your phonebook to share their details.
+                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={async () => {
+                      setShowAttachPanel(false);
+                      try {
+                        const { status } = await Contacts.requestPermissionsAsync();
+                        if (status !== "granted") { showAlert("Permission needed", "Contacts access is required."); return; }
+                        const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers], pageSize: 1 });
+                        if (data[0]) {
+                          const c = data[0];
+                          const phone = c.phoneNumbers?.[0]?.number ?? "";
+                          const activeChatId = await getOrCreateChatId();
+                          if (!activeChatId || !user) return;
+                          await supabase.from("messages").insert({
+                            chat_id: activeChatId,
+                            sender_id: user.id,
+                            encrypted_content: `👤 ${c.name}${phone ? `\n${phone}` : ""}`,
+                          });
+                        }
+                      } catch { showAlert("Error", "Could not access contacts."); }
+                    }}
+                    style={{ backgroundColor: "#007AFF", paddingHorizontal: 32, paddingVertical: 13, borderRadius: 24 }}
+                  >
+                    <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 15 }}>Choose Contact</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+
+            if (attachTab === "Poll") {
+              return (
+                <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 32 }}>
+                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#FF6B3520", alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="bar-chart" size={32} color="#FF6B35" />
+                  </View>
+                  <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text }}>Create a Poll</Text>
+                  <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.textMuted, textAlign: "center" }}>
+                    Coming soon — polls let everyone vote on a question.
+                  </Text>
+                </View>
+              );
+            }
+
+            if (attachTab === "Wallet") {
+              return (
+                <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 32 }}>
+                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#10B98120", alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="wallet" size={32} color="#10B981" />
+                  </View>
+                  <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text }}>Send Money</Text>
+                  <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.textMuted, textAlign: "center" }}>
+                    Send Nexa, ACoin, or make a payment directly in chat.
+                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => { setShowAttachPanel(false); router.push("/wallet" as any); }}
+                    style={{ backgroundColor: "#10B981", paddingHorizontal: 32, paddingVertical: 13, borderRadius: 24 }}
+                  >
+                    <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 15 }}>Open Wallet</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+
+            return null;
+          };
+
           return (
             <View style={{ height: emojiKeyboardHeight, backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
-              {/* drag handle */}
-              <View style={{ alignItems: "center", paddingVertical: 8 }}>
-                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+              {/* Content area */}
+              <View style={{ height: contentH }}>
+                {renderContent()}
               </View>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16 }}>
-                {ATTACH_ITEMS.map((item) => (
-                  <TouchableOpacity
-                    key={item.label}
-                    onPress={item.onPress}
-                    activeOpacity={0.7}
-                    style={{ width: itemW, alignItems: "center", paddingVertical: 10, gap: 6 }}
-                  >
-                    <View style={{
-                      width: 56, height: 56, borderRadius: 18, backgroundColor: item.color,
-                      alignItems: "center", justifyContent: "center",
-                      shadowColor: item.color, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
-                      elevation: 4,
-                    }}>
-                      {item.emoji ? (
-                        <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 0.5 }}>{item.emoji}</Text>
-                      ) : (
-                        <Ionicons name={item.icon as any} size={26} color="#fff" />
-                      )}
-                    </View>
-                    <Text style={{ fontSize: 12, fontFamily: "Inter_500Medium", color: colors.textSecondary }}>{item.label}</Text>
-                  </TouchableOpacity>
-                ))}
+
+              {/* Tab bar */}
+              <View style={{
+                height: TAB_BAR_H,
+                flexDirection: "row",
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.border,
+                backgroundColor: colors.surface,
+              }}>
+                {TABS.map((tab) => {
+                  const active = attachTab === tab.key;
+                  return (
+                    <TouchableOpacity
+                      key={tab.key}
+                      activeOpacity={0.7}
+                      onPress={() => setAttachTab(tab.key)}
+                      style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 3 }}
+                    >
+                      <Ionicons
+                        name={active ? tab.icon.replace("-outline", "") as any : tab.icon as any}
+                        size={22}
+                        color={active ? accent : colors.textMuted}
+                      />
+                      <Text style={{
+                        fontSize: 10,
+                        fontFamily: active ? "Inter_600SemiBold" : "Inter_400Regular",
+                        color: active ? accent : colors.textMuted,
+                      }}>
+                        {tab.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           );
