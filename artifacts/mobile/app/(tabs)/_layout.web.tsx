@@ -192,8 +192,16 @@ const DT_CSS = `
   max-width:calc(100vw - 24px);
   z-index:200;
   border-radius:999px;
-  background:none;
-  border:none;
+  background:var(--dt-sb);
+  border:1px solid var(--dt-bdr);
+  backdrop-filter:blur(40px) saturate(2);
+  -webkit-backdrop-filter:blur(40px) saturate(2);
+}
+.dt-dk .dt-bnav{
+  box-shadow:0 12px 40px rgba(0,0,0,0.55),0 4px 14px rgba(0,0,0,0.30);
+}
+.dt-lt .dt-bnav{
+  box-shadow:0 8px 32px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06);
 }
 @media(max-width:820px){.dt-bnav{display:flex}}
 
