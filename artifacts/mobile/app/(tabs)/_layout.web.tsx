@@ -192,26 +192,8 @@ const DT_CSS = `
   max-width:calc(100vw - 24px);
   z-index:200;
   border-radius:999px;
-  background:var(--dt-sb);
-  border:1px solid var(--dt-bdr);
-  backdrop-filter:blur(40px) saturate(2.2);
-  -webkit-backdrop-filter:blur(40px) saturate(2.2);
-}
-/* Dark theme shadow — deeper lift */
-.dt-dk .dt-bnav{
-  box-shadow:
-    0 20px 52px rgba(0,0,0,0.65),
-    0 8px 20px rgba(0,0,0,0.40),
-    0 2px 6px rgba(0,0,0,0.28),
-    inset 0 1px 0 rgba(255,255,255,0.05);
-}
-/* Light theme shadow — soft lift */
-.dt-lt .dt-bnav{
-  box-shadow:
-    0 12px 40px rgba(0,0,0,0.11),
-    0 4px 12px rgba(0,0,0,0.06),
-    0 1px 3px rgba(0,0,0,0.04),
-    inset 0 1px 0 rgba(255,255,255,0.80);
+  background:none;
+  border:none;
 }
 @media(max-width:820px){.dt-bnav{display:flex}}
 
@@ -259,7 +241,6 @@ const DT_CSS = `
   font-size:9px;font-weight:800;min-width:16px;height:16px;
   border-radius:8px;display:flex;align-items:center;
   justify-content:center;padding:0 4px;line-height:1;
-  border:2px solid var(--dt-sb);
   pointer-events:none;
 }
 
