@@ -1256,6 +1256,7 @@ const vStyles = StyleSheet.create({
 
 export default function VideoPlayerScreen() {
   const { accent } = useAppAccent();
+  const { colors, isDark } = useTheme();
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = rawId && !isUuid(rawId) ? decodeId(rawId) : rawId;
   const { user, profile } = useAuth();
@@ -1833,9 +1834,9 @@ export default function VideoPlayerScreen() {
 
   if (loading) {
     return (
-      <View style={mStyles.root}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        <ShortsFeedSkeleton dark />
+      <View style={[mStyles.root, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
+        <ShortsFeedSkeleton dark={isDark} />
         {/* Render the real header on top so navigation chrome is visible during load */}
         <View style={[mStyles.headerRow, { paddingTop: insets.top + 6 }]}>
           <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={mStyles.headerSide}>
@@ -1865,8 +1866,8 @@ export default function VideoPlayerScreen() {
   }
 
   return (
-    <View style={mStyles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <View style={[mStyles.root, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
 
       {/* Fixed header */}
       <View style={[mStyles.headerRow, { paddingTop: insets.top + 6 }]}>
@@ -1912,7 +1913,7 @@ export default function VideoPlayerScreen() {
           style={{
             height: SCREEN_H, width: SCREEN_W,
             overflowY: "scroll", scrollSnapType: "y mandatory",
-            scrollbarWidth: "none", backgroundColor: "#000",
+            scrollbarWidth: "none", backgroundColor: colors.background,
             touchAction: "pan-y",
           } as React.CSSProperties}
         >
@@ -1937,7 +1938,7 @@ export default function VideoPlayerScreen() {
             </div>
           ))}
           {loadingMore && (
-            <div style={{ height: SCREEN_H, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#000", scrollSnapAlign: "start" } as React.CSSProperties}>
+            <div style={{ height: SCREEN_H, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: colors.background, scrollSnapAlign: "start" } as React.CSSProperties}>
               <ActivityIndicator color="rgba(255,255,255,0.6)" size="small" />
             </div>
           )}
@@ -1976,9 +1977,9 @@ export default function VideoPlayerScreen() {
           onLayout={onListLayout}
           // Misc
           decelerationRate="fast"
-          style={{ flex: 1, backgroundColor: "#000" }}
+          style={{ flex: 1, backgroundColor: colors.background }}
           ListFooterComponent={loadingMore ? (
-            <View style={{ width: SCREEN_W, height: listHeight, alignItems: "center", justifyContent: "center", backgroundColor: "#000" }}>
+            <View style={{ width: SCREEN_W, height: listHeight, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
               <ActivityIndicator color="rgba(255,255,255,0.6)" size="small" />
             </View>
           ) : null}

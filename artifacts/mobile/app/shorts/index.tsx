@@ -6,12 +6,14 @@
  * instead of two competing scrolls.
  */
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, StatusBar } from "react-native";
 import { Stack, router } from "expo-router";
 import { ShortsFeedSkeleton } from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function ShortsRedirect() {
+  const { colors, isDark } = useTheme();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,14 +48,19 @@ export default function ShortsRedirect() {
   }, []);
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent
+      />
       <Stack.Screen options={{ headerShown: false }} />
       {error ? (
         <View style={styles.errorWrap}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.textSecondary }]}>{error}</Text>
         </View>
       ) : (
-        <ShortsFeedSkeleton dark />
+        <ShortsFeedSkeleton dark={isDark} />
       )}
     </View>
   );
@@ -62,7 +69,6 @@ export default function ShortsRedirect() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#000",
   },
   errorWrap: {
     flex: 1,
@@ -71,7 +77,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   errorText: {
-    color: "rgba(255,255,255,0.7)",
     fontSize: 15,
     fontFamily: "Inter_500Medium",
     textAlign: "center",
