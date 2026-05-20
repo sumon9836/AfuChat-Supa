@@ -293,17 +293,19 @@ const bar = StyleSheet.create({
     borderRadius: 999,
   },
   iconWrap: {
-    width: 52,
-    height: 52,
+    width: 56,
+    height: 58,
     alignItems: "center",
     justifyContent: "center",
-    gap: 2,
+    gap: 3,
+    paddingBottom: 2,
   },
   label: {
     fontSize: 10,
     fontFamily: "Inter_400Regular",
     letterSpacing: 0.1,
-    lineHeight: 13,
+    lineHeight: 14,
+    textAlign: "center",
   },
   avatar: {
     width: 22,
