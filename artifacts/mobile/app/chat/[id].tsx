@@ -35,6 +35,7 @@ import { ImageViewer, useImageViewer } from "@/components/ImageViewer";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as MediaLibrary from "expo-media-library";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Location from "expo-location";
 import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
@@ -1739,26 +1740,57 @@ function ChatScreen() {
   const [attachTab, setAttachTab] = useState<"Gallery" | "Wallet" | "File" | "Location" | "Poll" | "Contact">("Gallery");
   const [galleryAssets, setGalleryAssets] = useState<MediaLibrary.Asset[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryEndCursor, setGalleryEndCursor] = useState<string | undefined>(undefined);
+  const [galleryHasMore, setGalleryHasMore] = useState(true);
+  const [galleryLoadingMore, setGalleryLoadingMore] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+
+  const GALLERY_PAGE = 60;
 
   useEffect(() => {
     if (!showAttachPanel) return;
     if (attachTab !== "Gallery" || Platform.OS === "web") return;
+    // Reset and load fresh
+    setGalleryAssets([]);
+    setGalleryEndCursor(undefined);
+    setGalleryHasMore(true);
     (async () => {
       setGalleryLoading(true);
       try {
         const { status } = await MediaLibrary.requestPermissionsAsync();
         if (status === "granted") {
-          const { assets } = await MediaLibrary.getAssetsAsync({
-            mediaType: MediaLibrary.MediaType.photo,
-            first: 21,
+          const result = await MediaLibrary.getAssetsAsync({
+            mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
+            first: GALLERY_PAGE,
             sortBy: MediaLibrary.SortBy.creationTime,
           });
-          setGalleryAssets(assets);
+          setGalleryAssets(result.assets);
+          setGalleryEndCursor(result.endCursor);
+          setGalleryHasMore(result.hasNextPage);
         }
       } catch { /* permission denied */ }
       setGalleryLoading(false);
     })();
+    // Also request camera permission so the live preview is ready
+    if (!cameraPermission?.granted) requestCameraPermission();
   }, [showAttachPanel, attachTab]);
+
+  async function loadMoreGalleryAssets() {
+    if (galleryLoadingMore || !galleryHasMore || !galleryEndCursor) return;
+    setGalleryLoadingMore(true);
+    try {
+      const result = await MediaLibrary.getAssetsAsync({
+        mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
+        first: GALLERY_PAGE,
+        after: galleryEndCursor,
+        sortBy: MediaLibrary.SortBy.creationTime,
+      });
+      setGalleryAssets((prev) => [...prev, ...result.assets]);
+      setGalleryEndCursor(result.endCursor);
+      setGalleryHasMore(result.hasNextPage);
+    } catch { /* ignore */ }
+    setGalleryLoadingMore(false);
+  }
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [gifSearch, setGifSearch] = useState("");
   const [attachmentPreview, setAttachmentPreview] = useState<{ uri: string; type: string; name?: string; mimeType?: string } | null>(null);
@@ -5175,9 +5207,9 @@ STRICT RULES:
 
           const renderContent = () => {
             if (attachTab === "Gallery") {
-              const thumbData: Array<{ id: string; uri?: string; isCamera?: boolean }> = [
+              const thumbData: Array<{ id: string; uri?: string; isCamera?: boolean; mediaType?: string }> = [
                 { id: "__camera__", isCamera: true },
-                ...galleryAssets.map((a) => ({ id: a.id, uri: a.uri })),
+                ...galleryAssets.map((a) => ({ id: a.id, uri: a.uri, mediaType: a.mediaType })),
               ];
               return (
                 <FlatList
@@ -5188,6 +5220,8 @@ STRICT RULES:
                   contentContainerStyle={{ gap: 2 }}
                   columnWrapperStyle={{ gap: 2 }}
                   showsVerticalScrollIndicator={false}
+                  onEndReached={loadMoreGalleryAssets}
+                  onEndReachedThreshold={0.4}
                   ListEmptyComponent={
                     galleryLoading ? (
                       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 40 }}>
@@ -5196,34 +5230,58 @@ STRICT RULES:
                     ) : (
                       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 40 }}>
                         <Ionicons name="images-outline" size={36} color={colors.textMuted} />
-                        <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8, fontFamily: "Inter_400Regular" }}>No photos found</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8, fontFamily: "Inter_400Regular" }}>No media found</Text>
                       </View>
                     )
+                  }
+                  ListFooterComponent={
+                    galleryLoadingMore ? (
+                      <View style={{ paddingVertical: 12, alignItems: "center" }}>
+                        <ActivityIndicator size="small" color={colors.accent} />
+                      </View>
+                    ) : null
                   }
                   renderItem={({ item }) => {
                     if (item.isCamera) {
                       return (
                         <TouchableOpacity
-                          activeOpacity={0.8}
+                          activeOpacity={0.9}
                           onPress={() => { setShowAttachPanel(false); pickFromCamera(); }}
-                          style={{ width: thumbSize, height: thumbSize, backgroundColor: colors.inputBg, alignItems: "center", justifyContent: "center" }}
+                          style={{ width: thumbSize, height: thumbSize, overflow: "hidden", backgroundColor: "#000" }}
                         >
-                          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.border, alignItems: "center", justifyContent: "center" }}>
-                            <Ionicons name="camera" size={22} color={colors.textMuted} />
+                          {cameraPermission?.granted ? (
+                            <CameraView
+                              style={{ width: thumbSize, height: thumbSize }}
+                              facing="back"
+                            />
+                          ) : (
+                            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#111" }}>
+                              <Ionicons name="camera" size={26} color="#fff" />
+                            </View>
+                          )}
+                          {/* Camera label overlay */}
+                          <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, paddingVertical: 4, alignItems: "center", backgroundColor: "rgba(0,0,0,0.35)" }}>
+                            <Ionicons name="camera" size={14} color="#fff" />
                           </View>
                         </TouchableOpacity>
                       );
                     }
+                    const isVideo = item.mediaType === "video";
                     return (
                       <TouchableOpacity
                         activeOpacity={0.85}
                         onPress={() => {
                           setShowAttachPanel(false);
-                          if (item.uri) setAttachmentPreview({ uri: item.uri, type: "image" });
+                          if (item.uri) setAttachmentPreview({ uri: item.uri, type: isVideo ? "video" : "image" });
                         }}
                         style={{ width: thumbSize, height: thumbSize }}
                       >
                         <Image source={{ uri: item.uri }} style={{ width: thumbSize, height: thumbSize }} resizeMode="cover" />
+                        {isVideo && (
+                          <View style={{ position: "absolute", bottom: 4, right: 4, flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2 }}>
+                            <Ionicons name="play" size={10} color="#fff" />
+                          </View>
+                        )}
                       </TouchableOpacity>
                     );
                   }}
