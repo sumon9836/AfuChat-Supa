@@ -122,8 +122,13 @@ serve(async (req) => {
     }
 
     const notifType = data?.type || 'default';
-    const channelId = notifType === 'message' ? 'messages' : 
-                      ['like', 'follow', 'reply'].includes(notifType) ? 'social' : 'default';
+    const channelId =
+      notifType === 'message'      ? 'messages'
+      : notifType === 'call'       ? 'calls'
+      : notifType === 'missed_call'? 'calls'
+      : ['like', 'follow', 'reply', 'mention'].includes(notifType) ? 'social'
+      : ['order', 'escrow', 'payment'].includes(notifType) ? 'marketplace'
+      : 'default';
 
     // Build token → userId map so we can clean up invalid tokens later
     const tokenToUserId = new Map<string, string>();

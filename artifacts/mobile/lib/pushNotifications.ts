@@ -312,6 +312,15 @@ export async function registerForPushNotifications(userId: string): Promise<stri
     await setupNotificationChannels();
     await setupNotificationCategories();
 
+    // Register the CallService background task so FCM data messages can wake
+    // the app even when fully killed. Silently skips in Expo Go / web.
+    try {
+      const { CALL_SERVICE_TASK } = require("./callService");
+      await Notifications.registerTaskAsync(CALL_SERVICE_TASK);
+    } catch {
+      // expo-task-manager unavailable (Expo Go or web) — skip silently.
+    }
+
     const { status: existing } = await Notifications.getPermissionsAsync();
     let finalStatus = existing;
 
@@ -471,6 +480,10 @@ async function routeNotificationResponse(response: any) {
       break;
     case "gift":
       router.push("/(tabs)/me" as any);
+      break;
+    case "missed_call":
+      // Always routes to call history — only place missed calls are shown.
+      router.push("/call-history" as any);
       break;
     default:
       break;

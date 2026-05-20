@@ -1,4 +1,7 @@
 import "react-native-gesture-handler";
+// Register the FCM CallService background task at module scope — must be
+// imported before any React component renders (Expo TaskManager requirement).
+import "@/lib/callService";
 import { enableScreens } from "react-native-screens";
 
 enableScreens(true);

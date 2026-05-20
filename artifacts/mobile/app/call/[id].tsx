@@ -32,7 +32,7 @@ import { saveLocalCall } from "@/lib/storage/localCallHistory";
 import { WebVideoStream } from "@/components/call/WebVideoStream";
 import { CallChatPanel } from "@/components/call/CallChatPanel";
 import { CallQualityBadge } from "@/components/call/CallQualityBadge";
-import { notifyCallInitiated } from "@/lib/notifyUser";
+import { notifyCallInitiated, notifyMissedCall } from "@/lib/notifyUser";
 import {
   endCallkeepCall,
   isCallkeepAvailable,
@@ -81,6 +81,7 @@ export default function CallScreen() {
   const sessionRef = useRef<CallSession | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ringSound = useRef<Audio.Sound | null>(null);
+  const ringTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimeRef = useRef<number>(0);
   const callRecordRef = useRef<CallRecord | null>(null);
 
@@ -166,6 +167,11 @@ export default function CallScreen() {
 
       session.onLocalStream = (s) => setLocalStream(s);
       session.onRemoteStream = (s) => {
+        // Call answered — cancel the ring timeout so we don't fire missed_call
+        if (ringTimeoutRef.current) {
+          clearTimeout(ringTimeoutRef.current);
+          ringTimeoutRef.current = null;
+        }
         setRemoteStream(s);
         setCallState("active");
         // Register as active so CallManager won't mark it missed on background
@@ -200,6 +206,27 @@ export default function CallScreen() {
           callType: record.call_type as CallType,
           callerName: record.caller?.display_name || "Someone",
         });
+
+        // ── Ring timeout (30 s) ───────────────────────────────────────────
+        // If the callee doesn't answer, mark the call missed and send a
+        // "Missed Call" system-tray notification so they see it when they
+        // unlock their phone. The notification taps directly into call history.
+        const RING_TIMEOUT_MS = 30_000;
+        ringTimeoutRef.current = setTimeout(async () => {
+          // startTimeRef is set only when the remote stream arrives (answered).
+          // If it's still 0 the call was never picked up.
+          if (startTimeRef.current === 0) {
+            notifyMissedCall({
+              calleeId: record.callee_id,
+              callerId: record.caller_id,
+              callId: record.id,
+              callType: record.call_type as CallType,
+              callerName: record.caller?.display_name || "Someone",
+            }).catch(() => {});
+            endCall("missed");
+          }
+        }, RING_TIMEOUT_MS);
+
         if (Platform.OS === "android" && isCallkeepAvailable()) {
           startOutgoingCall(
             record.id,
@@ -223,6 +250,10 @@ export default function CallScreen() {
     return () => {
       cancelled = true;
       if (timerRef.current) clearInterval(timerRef.current);
+      if (ringTimeoutRef.current) {
+        clearTimeout(ringTimeoutRef.current);
+        ringTimeoutRef.current = null;
+      }
       stopRing();
     };
   }, [id, user]);

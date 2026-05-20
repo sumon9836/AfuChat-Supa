@@ -525,3 +525,36 @@ export async function notifyCallInitiated(params: {
     referenceType: "call",
   });
 }
+
+// ─── Missed Call Notification ─────────────────────────────────────────────────
+// Sent by the CALLER's device when the callee doesn't answer within the ring
+// timeout (30 s). The notification appears in the callee's system tray so
+// they can see who called. Tapping it navigates to the call history page.
+
+export async function notifyMissedCall(params: {
+  calleeId: string;
+  callerId: string;
+  callId: string;
+  callType: "voice" | "video";
+  callerName: string;
+}) {
+  const typeLabel = params.callType === "video" ? "Video" : "Voice";
+  callNotify({
+    userId: params.calleeId,
+    title: "Missed Call",
+    body: `You missed a ${typeLabel} call from ${params.callerName}`,
+    data: {
+      type: "missed_call",
+      callId: params.callId,
+      callType: params.callType,
+      actorId: params.callerId,
+      callerName: params.callerName,
+      notifType: "missed_call",
+      url: "/call-history",
+    },
+    notificationType: "missed_call",
+    actorId: params.callerId,
+    referenceId: params.callId,
+    referenceType: "call",
+  });
+}
