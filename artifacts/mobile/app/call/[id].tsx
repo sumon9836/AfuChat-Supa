@@ -33,6 +33,15 @@ import { WebVideoStream } from "@/components/call/WebVideoStream";
 import { CallChatPanel } from "@/components/call/CallChatPanel";
 import { CallQualityBadge } from "@/components/call/CallQualityBadge";
 import { notifyCallInitiated } from "@/lib/notifyUser";
+import {
+  endCallkeepCall,
+  isCallkeepAvailable,
+  reportCallConnected,
+  reportCallEnded,
+  setCallkeepMuted,
+  setCallkeepSpeaker,
+  startOutgoingCall,
+} from "@/lib/calling/callkeepBridge";
 
 type CallState = "connecting" | "ringing" | "active" | "ended";
 
@@ -93,6 +102,13 @@ export default function CallScreen() {
 
       // Unregister from CallManager so background misses work correctly
       setActiveCallId(null);
+
+      // Tell native Android phone system the call ended
+      if (id && Platform.OS === "android" && isCallkeepAvailable()) {
+        const reasonCode = reason === "declined" ? 5 : reason === "missed" ? 3 : 2;
+        reportCallEnded(id as string, reasonCode);
+        endCallkeepCall(id as string);
+      }
 
       const durationSecs =
         startTimeRef.current > 0
@@ -164,6 +180,9 @@ export default function CallScreen() {
       session.onCallConnected = () => {
         setCallState("active");
         setActiveCallId(record.id);
+        if (Platform.OS === "android" && isCallkeepAvailable()) {
+          reportCallConnected(record.id);
+        }
       };
       session.onCallEnded = () => {
         endCall("ended");
@@ -181,10 +200,20 @@ export default function CallScreen() {
           callType: record.call_type as CallType,
           callerName: record.caller?.display_name || "Someone",
         });
+        if (Platform.OS === "android" && isCallkeepAvailable()) {
+          startOutgoingCall(
+            record.id,
+            record.callee?.display_name || "Unknown",
+            record.call_type === "video"
+          );
+        }
       }
 
       try {
         await session.start(record.call_type as CallType);
+        // Attach network monitor AFTER WebRTC starts so it can trigger
+        // ICE restarts proactively when WiFi ↔ cellular handoff occurs.
+        session.attachNetworkMonitor();
       } catch (e: any) {
         if (!cancelled) setError("Could not access microphone or camera.");
       }
@@ -220,7 +249,11 @@ export default function CallScreen() {
 
   async function handleMute() {
     const muted = await sessionRef.current?.toggleMute();
-    setIsMuted(muted ?? !isMuted);
+    const nextMuted = muted ?? !isMuted;
+    setIsMuted(nextMuted);
+    if (call && Platform.OS === "android" && isCallkeepAvailable()) {
+      setCallkeepMuted(call.id, nextMuted);
+    }
   }
 
   async function handleCamera() {
@@ -233,13 +266,18 @@ export default function CallScreen() {
   }
 
   async function handleSpeaker() {
+    const nextSpeaker = !isSpeaker;
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        playThroughEarpieceAndroid: isSpeaker,
-      });
-      setIsSpeaker((s) => !s);
+      if (Platform.OS === "android" && isCallkeepAvailable()) {
+        setCallkeepSpeaker(call?.id ?? "", nextSpeaker);
+      } else {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          playThroughEarpieceAndroid: !nextSpeaker,
+        });
+      }
+      setIsSpeaker(nextSpeaker);
     } catch (_) {}
   }
 

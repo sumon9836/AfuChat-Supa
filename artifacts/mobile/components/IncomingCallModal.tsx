@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { CallRecord, updateCallStatus } from "@/lib/callSignaling";
+import { isCallkeepAvailable } from "@/lib/calling/callkeepBridge";
 
 interface Props {
   call: CallRecord | null;
@@ -170,7 +171,9 @@ export function IncomingCallModal({ call, onDismiss }: Props) {
     dismiss();
   }
 
-  if (!visible || !call) return null;
+  // On Android with callkeep, the native lock-screen UI handles the incoming
+  // call. The in-app modal is not needed (and call prop stays null there anyway).
+  if (!visible || !call || (Platform.OS === "android" && isCallkeepAvailable())) return null;
 
   const caller = call.caller;
   const isVideo = call.call_type === "video";

@@ -66,7 +66,12 @@
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
         "android.permission.ACCESS_MEDIA_LOCATION",
-        "android.permission.REQUEST_INSTALL_PACKAGES"
+        "android.permission.REQUEST_INSTALL_PACKAGES",
+        "android.permission.MANAGE_OWN_CALLS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_PHONE_CALL",
+        "android.permission.READ_PHONE_STATE",
+        "android.permission.READ_PHONE_NUMBERS"
       ],
       "intentFilters": [
         {
@@ -115,6 +120,7 @@
       "backgroundColor": "#00BCD4"
     },
     "plugins": [
+      "./plugins/withCallkeep",
       [
         "expo-router",
         {

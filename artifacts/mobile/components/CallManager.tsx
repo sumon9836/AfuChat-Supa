@@ -9,10 +9,15 @@ import {
   listenForIncomingCalls,
   updateCallStatus,
 } from "@/lib/callSignaling";
+import {
+  displayIncomingCall,
+  endCallkeepCall,
+  initCallkeep,
+  isCallkeepAvailable,
+  reportCallEnded,
+  setupCallkeepListeners,
+} from "@/lib/calling/callkeepBridge";
 
-// Track whether a call is currently active (answered) in this session.
-// Only mark as missed when the app backgrounds while the call is still ringing
-// (not yet answered). Active calls continue in background.
 let _activeCallId: string | null = null;
 
 export function setActiveCallId(id: string | null) {
@@ -24,23 +29,55 @@ export function CallManager() {
   const [incomingCall, setIncomingCall] = useState<CallRecord | null>(null);
   const pendingCallIdRef = useRef<string | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const ckInitRef = useRef(false);
+
+  useEffect(() => {
+    if (Platform.OS !== "android" || ckInitRef.current) return;
+    ckInitRef.current = true;
+
+    initCallkeep().then((ok) => {
+      if (!ok) return;
+
+      const cleanup = setupCallkeepListeners({
+        onAnswerCall: (callUUID) => {
+          const call = pendingCallIdRef.current;
+          if (call === callUUID) {
+            setIncomingCall(null);
+            router.push({ pathname: "/call/[id]", params: { id: callUUID } });
+          }
+        },
+        onEndCall: (callUUID) => {
+          if (pendingCallIdRef.current === callUUID) {
+            updateCallStatus(callUUID, "declined").catch(() => {});
+            setIncomingCall(null);
+            pendingCallIdRef.current = null;
+          }
+        },
+        onToggleMute: () => {},
+      });
+
+      return cleanup;
+    });
+  }, []);
 
   useEffect(() => {
     if (!user) return;
 
     const unsubscribe = listenForIncomingCalls(user.id, (call) => {
-      // Deduplicate — don't show if same call is already showing
       if (pendingCallIdRef.current === call.id) return;
-      // Don't show if user is already in an active call
       if (_activeCallId) return;
 
       pendingCallIdRef.current = call.id;
-      setIncomingCall(call);
+
+      if (Platform.OS === "android" && isCallkeepAvailable()) {
+        const callerName = call.caller?.display_name || "Unknown";
+        displayIncomingCall(call.id, callerName, call.call_type === "video");
+      } else {
+        setIncomingCall(call);
+      }
     });
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [user?.id]);
 
   useEffect(() => {
@@ -50,19 +87,18 @@ export function CallManager() {
       const prev = appStateRef.current;
       appStateRef.current = nextState;
 
-      // App is going to background
       if (nextState === "background" && prev === "active") {
         const call = incomingCall;
         if (!call) return;
 
-        // Only mark as missed if the call hasn't been answered yet
-        // (i.e. no active call running in the call screen)
         if (_activeCallId !== call.id) {
+          if (Platform.OS === "android" && isCallkeepAvailable()) {
+            reportCallEnded(call.id, 3);
+          }
           updateCallStatus(call.id, "missed").catch(() => {});
           setIncomingCall(null);
           pendingCallIdRef.current = null;
         }
-        // If _activeCallId === call.id, the call is active — let it continue
       }
     });
 
@@ -70,14 +106,13 @@ export function CallManager() {
   }, [incomingCall]);
 
   function handleDismiss() {
+    const id = incomingCall?.id;
+    if (id && Platform.OS === "android" && isCallkeepAvailable()) {
+      endCallkeepCall(id);
+    }
     pendingCallIdRef.current = null;
     setIncomingCall(null);
   }
 
-  return (
-    <IncomingCallModal
-      call={incomingCall}
-      onDismiss={handleDismiss}
-    />
-  );
+  return <IncomingCallModal call={incomingCall} onDismiss={handleDismiss} />;
 }

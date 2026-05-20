@@ -6,6 +6,7 @@ import {
   BandwidthTier,
   applyTierToPeerConnection,
 } from "./calling/adaptiveBitrate";
+import { watchNetworkChanges } from "./calling/networkMonitor";
 
 let RTCPeerConnection: any;
 let RTCSessionDescription: any;
@@ -245,9 +246,12 @@ export class CallSession {
 
   // ── ICE restart state ──────────────────────────────────────────────────────
   private iceRestartAttempts = 0;
-  private readonly maxIceRestarts = 3;
+  private readonly maxIceRestarts = 8;
   private iceDisconnectedTimer: ReturnType<typeof setTimeout> | null = null;
   private iceRestartInProgress = false;
+
+  // ── Network monitor ────────────────────────────────────────────────────────
+  private networkUnwatch: (() => void) | null = null;
 
   // ── Adaptive bitrate ───────────────────────────────────────────────────────
   private abrManager = new AdaptiveBitrateManager();
@@ -355,8 +359,8 @@ export class CallSession {
         this.clearIceDisconnectedTimer();
       } else if (ice === "disconnected") {
         next = "reconnecting";
-        // Wait 4s before triggering ICE restart — transient disconnects resolve on their own
-        this.scheduleIceRestart(4000);
+        // Wait 2s before triggering ICE restart — transient disconnects resolve on their own
+        this.scheduleIceRestart(2000);
       } else if (ice === "failed") {
         next = "disconnected";
         // Immediate ICE restart on hard failure
@@ -850,7 +854,32 @@ export class CallSession {
     this.broadcast("end-call", {}).catch(() => {});
   }
 
+  /**
+   * Attach a NetInfo network-change watcher to this session.
+   * Call this once after `start()` succeeds. When the device switches
+   * between WiFi and cellular, we trigger an ICE restart immediately
+   * rather than waiting for WebRTC's built-in 2-second disconnect timer.
+   */
+  attachNetworkMonitor() {
+    this.networkUnwatch?.();
+    this.networkUnwatch = watchNetworkChanges((newType, prevType) => {
+      if (!this.pc || !this.answered) return;
+      const state = this.pc.iceConnectionState as string;
+      if (state === "closed") return;
+      this.scheduleIceRestart(800);
+    });
+  }
+
+  setMuted(muted: boolean) {
+    if (!this.localStream) return;
+    this.localStream.getAudioTracks().forEach((t: any) => {
+      t.enabled = !muted;
+    });
+  }
+
   cleanup() {
+    this.networkUnwatch?.();
+    this.networkUnwatch = null;
     this.stopOfferRetransmit();
     this.stopStatsMonitor();
     this.clearIceDisconnectedTimer();
