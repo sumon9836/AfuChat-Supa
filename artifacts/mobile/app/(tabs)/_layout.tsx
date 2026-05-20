@@ -54,16 +54,18 @@ if (Platform.OS === "ios") {
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
 const TABS = [
-  { route: "/(tabs)",          label: "Chats",    sfOn: "message.fill",        sfOff: "message",         mdOn: "chatbubble",  mdOff: "chatbubble-outline" },
-  { route: "/(tabs)/discover", label: "Discover", sfOn: "safari.fill",          sfOff: "safari",          mdOn: "compass",     mdOff: "compass-outline"    },
-  { route: "/(tabs)/search",   label: "Search",   sfOn: "magnifyingglass.circle.fill", sfOff: "magnifyingglass.circle", mdOn: "search", mdOff: "search-outline" },
-  { route: "/(tabs)/apps",     label: "Apps",     sfOn: "square.grid.2x2.fill", sfOff: "square.grid.2x2", mdOn: "grid",        mdOff: "grid-outline"       },
-  { route: "/(tabs)/me",       label: "Profile",  sfOn: "person.circle.fill",   sfOff: "person.circle",   mdOn: "person",      mdOff: "person-outline"     },
+  { route: "/(tabs)",          label: "Chats",    sfOn: "message.fill",              sfOff: "message",                       mdOn: "chatbubble",     mdOff: "chatbubble-outline"  },
+  { route: "/(tabs)/discover", label: "Discover", sfOn: "safari.fill",               sfOff: "safari",                        mdOn: "compass",        mdOff: "compass-outline"     },
+  { route: "/(tabs)/shorts",   label: "Shorts",   sfOn: "play.rectangle.fill",       sfOff: "play.rectangle",                mdOn: "play-circle",    mdOff: "play-circle-outline" },
+  { route: "/(tabs)/search",   label: "Search",   sfOn: "magnifyingglass.circle.fill", sfOff: "magnifyingglass.circle",      mdOn: "search",         mdOff: "search-outline"      },
+  { route: "/(tabs)/apps",     label: "Apps",     sfOn: "square.grid.2x2.fill",      sfOff: "square.grid.2x2",               mdOn: "grid",           mdOff: "grid-outline"        },
+  { route: "/(tabs)/me",       label: "Profile",  sfOn: "person.circle.fill",        sfOff: "person.circle",                 mdOn: "person",         mdOff: "person-outline"      },
 ] as const;
 
 function normalizeTabPath(p: string): string {
   if (p === "/" || p === "/(tabs)" || p === "/(tabs)/index") return "/(tabs)";
   if (p === "/discover"  || p === "/(tabs)/discover")  return "/(tabs)/discover";
+  if (p === "/shorts"    || p === "/(tabs)/shorts")    return "/(tabs)/shorts";
   if (p === "/search"    || p === "/(tabs)/search")    return "/(tabs)/search";
   if (p === "/apps"      || p === "/(tabs)/apps")      return "/(tabs)/apps";
   if (p === "/me"        || p === "/(tabs)/me")        return "/(tabs)/me";
@@ -237,14 +239,14 @@ const bar = StyleSheet.create({
   item: {
     alignItems: "center",
     justifyContent: "center",
-    width: 62,
+    width: 54,
   },
   pressable: {
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 999,
     paddingVertical: 2,
-    width: 62,
+    width: 54,
   },
   iconChip: {
     width: 54,
@@ -291,6 +293,7 @@ function NativeTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
     <NativeTabs>
       {isLoggedIn && (<NativeTabs.Trigger name="index"><NativeTabsIcon sf={{ default: "message.fill", selected: "message.fill" }} /><NativeTabsLabel>Chats</NativeTabsLabel></NativeTabs.Trigger>)}
       {isLoggedIn && (<NativeTabs.Trigger name="discover"><NativeTabsIcon sf={{ default: "safari", selected: "safari.fill" }} /><NativeTabsLabel>Discover</NativeTabsLabel></NativeTabs.Trigger>)}
+      {isLoggedIn && (<NativeTabs.Trigger name="shorts"><NativeTabsIcon sf={{ default: "play.rectangle", selected: "play.rectangle.fill" }} /><NativeTabsLabel>Shorts</NativeTabsLabel></NativeTabs.Trigger>)}
       {isLoggedIn && (<NativeTabs.Trigger name="search"><NativeTabsIcon sf={{ default: "magnifyingglass.circle", selected: "magnifyingglass.circle.fill" }} /><NativeTabsLabel>Search</NativeTabsLabel></NativeTabs.Trigger>)}
       {isLoggedIn && (<NativeTabs.Trigger name="apps"><NativeTabsIcon sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }} /><NativeTabsLabel>Apps</NativeTabsLabel></NativeTabs.Trigger>)}
       {isLoggedIn && (<NativeTabs.Trigger name="me"><NativeTabsIcon sf={{ default: "person.circle", selected: "person.circle.fill" }} /><NativeTabsLabel>Profile</NativeTabsLabel></NativeTabs.Trigger>)}
@@ -312,6 +315,7 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
     >
       <Tabs.Screen name="index"       options={{ href: isLoggedIn ? undefined : null }} />
       <Tabs.Screen name="discover"    options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="shorts"      options={{ href: isLoggedIn ? undefined : null }} />
       <Tabs.Screen name="search"      options={{ href: isLoggedIn ? undefined : null }} />
       <Tabs.Screen name="contacts"    options={{ href: null }} />
       <Tabs.Screen name="communities" options={{ href: null }} />

@@ -781,7 +781,7 @@ export default function SearchScreen() {
     const per = p as PersonResult;
     return (
       <Animated.View entering={FadeInDown.delay(i * 30).duration(200)}>
-        <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push({ pathname: "/contact/[id]", params: { id: per.id, init_name: per.display_name, init_handle: per.handle, init_avatar: per.avatar_url ?? "", init_verified: per.is_verified ? "1" : "0", init_org_verified: per.is_organization_verified ? "1" : "0" } } as any)} activeOpacity={0.75}>
+        <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(`/@${per.handle}` as any)} activeOpacity={0.75}>
           <View style={{ position: "relative" }}>
             {per.avatar_url
               ? <Image source={{ uri: per.avatar_url }} style={{ width: 48, height: 48, borderRadius: per.is_organization_verified ? 12 : 24 }} />
@@ -1606,7 +1606,7 @@ export default function SearchScreen() {
                 <TouchableOpacity
                   key={p.id}
                   style={{ width: 148, backgroundColor: colors.surface, borderRadius: 22, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}
-                  onPress={() => router.push(`/profile/${p.handle}` as any)}
+                  onPress={() => router.push(`/@${p.handle}` as any)}
                   activeOpacity={0.8}
                 >
                   {/* Gradient top band */}
