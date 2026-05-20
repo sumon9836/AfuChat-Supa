@@ -35,21 +35,89 @@ function escapeHtml(str: string): string {
 function renderProfilePage(profile: any, posts: any[], isPrivate = false): string {
   const displayName = escapeHtml(profile.display_name || "User");
   const handle = escapeHtml(profile.handle || "");
-  const bio = escapeHtml(profile.bio || "");
+  const bio = profile.show_bio_publicly === false ? "" : escapeHtml(profile.bio || "");
   const avatarUrl = profile.avatar_url || "";
+  const bannerUrl = profile.banner_url || "";
+  const websiteUrl = profile.website_url || "";
+  const githubUrl = profile.github_url || "";
+  const portfolioUrl = profile.portfolio_url || "";
+  const developerTagline = escapeHtml(profile.developer_tagline || "");
+  const country = escapeHtml(profile.country || "");
+  const region = escapeHtml(profile.region || "");
+  const location = [region, country].filter(Boolean).join(", ");
+  const currentGrade = escapeHtml(profile.current_grade || "");
+  const xp = profile.xp || 0;
+  const interests: string[] = Array.isArray(profile.interests) ? profile.interests.map((i: string) => escapeHtml(i)) : [];
+  const availableForHire = profile.available_for_hire === true;
+  const businessCategory = escapeHtml(profile.business_category || "");
+  const isBusiness = profile.is_organization_verified || profile.is_business_mode;
   const isVerified = profile.is_organization_verified || profile.is_verified;
-  const verifiedBadge = profile.is_organization_verified
-    ? '<span style="color:#D4A853;margin-left:4px;" title="Verified Business">&#10004;</span>'
+  const joinedDate = profile.created_at ? new Date(profile.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long" }) : "";
+
+  const followerCount = profile.followers ?? profile.follower_count ?? 0;
+  const followingCount = profile.following ?? profile.following_count ?? 0;
+
+  // Prefer banner for OG image (landscape), fall back to avatar, then default
+  const ogImage = bannerUrl || avatarUrl || `${SITE_URL}/og-default.png`;
+  const ogImageIsLandscape = !!(bannerUrl); // banner is wide format
+
+  // Build description for SEO
+  const descParts: string[] = [];
+  if (followerCount > 0) descParts.push(`${followerCount.toLocaleString()} followers`);
+  if (currentGrade) descParts.push(`Grade: ${currentGrade}`);
+  if (location) descParts.push(location);
+  if (bio) descParts.push(bio.slice(0, 160));
+  else descParts.push(`${profile.display_name || "User"} on ${SITE_NAME}`);
+  const metaDescription = descParts.join(" · ").slice(0, 300);
+
+  // Verified badge HTML
+  const verifiedBadgeHtml = profile.is_organization_verified
+    ? '<span style="color:#D4A853;margin-left:4px;font-size:15px;" title="Verified Business">&#10004;</span>'
     : profile.is_verified
-      ? `<span style="color:${BRAND_COLOR};margin-left:4px;" title="Verified">&#10004;</span>`
+      ? `<span style="color:${BRAND_COLOR};margin-left:4px;font-size:15px;" title="Verified">&#10004;</span>`
       : "";
+
+  const sameAs: string[] = [];
+  if (websiteUrl) sameAs.push(websiteUrl);
+  if (githubUrl) sameAs.push(githubUrl);
+  if (portfolioUrl) sameAs.push(portfolioUrl);
+
+  const jsonLd: any = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    name: `${profile.display_name || "User"} (@${profile.handle}) on AfuChat`,
+    url: `${SITE_URL}/@${profile.handle}`,
+    mainEntity: {
+      "@type": isBusiness ? "Organization" : "Person",
+      name: profile.display_name || "User",
+      alternateName: `@${profile.handle}`,
+      url: `${SITE_URL}/@${profile.handle}`,
+      image: avatarUrl || undefined,
+      description: profile.bio || `${profile.display_name || "User"} on AfuChat`,
+      sameAs: sameAs.length > 0 ? sameAs : undefined,
+      ...(location ? { homeLocation: { "@type": "Place", name: location } } : {}),
+      ...(isBusiness && businessCategory ? { knowsAbout: businessCategory } : {}),
+      interactionStatistic: [
+        { "@type": "InteractionCounter", interactionType: "https://schema.org/FollowAction", userInteractionCount: followerCount },
+        { "@type": "InteractionCounter", interactionType: "https://schema.org/WriteAction", userInteractionCount: posts.length },
+      ],
+    },
+  };
 
   const postsHtml = posts.map((p) => {
     const content = escapeHtml(p.content || "");
-    const contentTrunc = content.length > 280 ? content.substring(0, 277) + "..." : content;
+    const contentTrunc = content.length > 280 ? content.substring(0, 277) + "…" : content;
     const date = new Date(p.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    const images = (p.images || []).map((img: string) =>
-      `<img src="${escapeHtml(img)}" alt="Post image" style="max-width:100%;border-radius:12px;margin-top:8px;" loading="lazy" />`
+    const ago = (() => {
+      const diff = Date.now() - new Date(p.created_at).getTime();
+      const d = Math.floor(diff / 86400000);
+      if (d < 1) return "today";
+      if (d < 30) return `${d}d ago`;
+      if (d < 365) return `${Math.floor(d / 30)}mo ago`;
+      return `${Math.floor(d / 365)}y ago`;
+    })();
+    const images = (p.images || []).map((img: string, i: number) =>
+      `<img src="${escapeHtml(img)}" alt="Post image ${i + 1}" style="width:100%;border-radius:10px;margin-top:10px;max-height:400px;object-fit:cover;" loading="${i === 0 ? "eager" : "lazy"}" />`
     ).join("");
     const postUrl = `${SITE_URL}/p/${encodeUuidToShort(p.id)}`;
     return `
@@ -58,45 +126,16 @@ function renderProfilePage(profile: any, posts: any[], isPrivate = false): strin
           <meta itemprop="author" content="${displayName}" />
           <meta itemprop="datePublished" content="${p.created_at}" />
           <meta itemprop="url" content="${postUrl}" />
-          <p itemprop="articleBody">${contentTrunc}</p>
+          ${contentTrunc ? `<p class="post-body" itemprop="articleBody">${contentTrunc}</p>` : ""}
           ${images}
           <div class="post-meta">
-            <time datetime="${p.created_at}">${date}</time>
+            <time datetime="${p.created_at}" title="${date}">${ago}</time>
+            ${(p.view_count || 0) > 0 ? `<span>&#128065;&#65039; ${p.view_count.toLocaleString()}</span>` : ""}
           </div>
         </article>
       </a>
     `;
   }).join("");
-
-  const followerCount = profile.followers || 0;
-
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "ProfilePage",
-    name: `${profile.display_name || "User"} on AfuChat`,
-    url: `${SITE_URL}/@${profile.handle}`,
-    mainEntity: {
-      "@type": "Person",
-      name: profile.display_name || "User",
-      alternateName: `@${profile.handle}`,
-      url: `${SITE_URL}/@${profile.handle}`,
-      image: avatarUrl || undefined,
-      description: profile.bio || `${profile.display_name || "User"} on AfuChat`,
-      sameAs: profile.website ? [profile.website] : [],
-      interactionStatistic: [
-        {
-          "@type": "InteractionCounter",
-          interactionType: "https://schema.org/FollowAction",
-          userInteractionCount: followerCount,
-        },
-        {
-          "@type": "InteractionCounter",
-          interactionType: "https://schema.org/WriteAction",
-          userInteractionCount: posts.length,
-        },
-      ],
-    },
-  };
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -104,171 +143,169 @@ function renderProfilePage(profile: any, posts: any[], isPrivate = false): strin
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${displayName} (@${handle}) — ${SITE_NAME}</title>
-  <meta name="description" content="${followerCount > 0 ? `${followerCount.toLocaleString()} followers. ` : ""}${bio ? escapeHtml(bio) : `${displayName} on ${SITE_NAME}. Join AfuChat to connect.`}" />
-  <meta name="robots" content="${isPrivate ? "noindex, nofollow" : "index, follow"}" />
+  <meta name="description" content="${escapeHtml(metaDescription)}" />
+  <meta name="robots" content="${isPrivate ? "noindex, nofollow" : "index, follow, max-image-preview:large"}" />
   <link rel="canonical" href="${SITE_URL}/@${handle}" />
 
+  <!-- Open Graph -->
   <meta property="og:type" content="profile" />
-  <meta property="og:title" content="${displayName} (@${handle})" />
-  <meta property="og:description" content="${escapeHtml(bio ? bio.slice(0, 200) : `${profile.display_name || "User"} on ${SITE_NAME}. Follow to see their posts and updates.`)}" />
+  <meta property="og:title" content="${displayName} (@${handle}) — ${SITE_NAME}" />
+  <meta property="og:description" content="${escapeHtml(metaDescription)}" />
   <meta property="og:url" content="${SITE_URL}/@${handle}" />
   <meta property="og:site_name" content="${SITE_NAME}" />
-  ${avatarUrl ? `<meta property="og:image" content="${escapeHtml(avatarUrl)}" />
-  <meta property="og:image:alt" content="${displayName} profile photo" />` : `<meta property="og:image" content="${SITE_URL}/og-default.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />`}
+  <meta property="og:image" content="${escapeHtml(ogImage)}" />
+  ${ogImageIsLandscape ? `<meta property="og:image:width" content="1200" />\n  <meta property="og:image:height" content="400" />` : `<meta property="og:image:width" content="400" />\n  <meta property="og:image:height" content="400" />`}
+  <meta property="og:image:alt" content="${displayName} on AfuChat" />
   <meta property="profile:username" content="${handle}" />
+  ${followerCount > 0 ? `<meta property="og:see_also" content="${SITE_URL}/@${handle}" />` : ""}
 
-  <meta name="twitter:card" content="${avatarUrl ? "summary" : "summary_large_image"}" />
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card" content="${ogImageIsLandscape ? "summary_large_image" : avatarUrl ? "summary" : "summary_large_image"}" />
   <meta name="twitter:site" content="@afuchat" />
   <meta name="twitter:creator" content="@${handle}" />
   <meta name="twitter:title" content="${displayName} (@${handle}) — ${SITE_NAME}" />
-  <meta name="twitter:description" content="${escapeHtml(bio ? bio.slice(0, 200) : `${profile.display_name || "User"} on ${SITE_NAME}. ${followerCount > 0 ? `${followerCount.toLocaleString()} followers.` : ""}`)}" />
-  ${avatarUrl ? `<meta name="twitter:image" content="${escapeHtml(avatarUrl)}" />
-  <meta name="twitter:image:alt" content="${displayName} profile photo" />` : `<meta name="twitter:image" content="${SITE_URL}/og-default.png" />`}
+  <meta name="twitter:description" content="${escapeHtml(metaDescription)}" />
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}" />
+  <meta name="twitter:image:alt" content="${displayName} on AfuChat" />
+
+  <!-- Fediverse / Mastodon -->
   <meta name="fediverse:creator" content="@${handle}@afuchat.com" />
+
   <meta name="theme-color" content="${BRAND_COLOR}" />
+  <link rel="icon" type="image/png" href="${SITE_URL}/favicon.png" />
 
   <script type="application/ld+json">${JSON.stringify(jsonLd).replace(/<\//g, "<\\/")}</script>
 
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
-      background: #000;
-      color: #fff;
-      min-height: 100vh;
-    }
-    .container { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
-    .profile-header {
-      text-align: center;
-      padding: 40px 20px;
-      background: linear-gradient(135deg, ${BRAND_COLOR}22, ${BRAND_COLOR}08);
-      border-radius: 20px;
-      margin-bottom: 24px;
-    }
-    .avatar {
-      width: 96px;
-      height: 96px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid ${BRAND_COLOR};
-      margin-bottom: 16px;
-    }
-    .avatar-placeholder {
-      width: 96px;
-      height: 96px;
-      border-radius: 50%;
-      background: ${BRAND_COLOR};
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 16px;
-    }
-    .name { font-size: 24px; font-weight: 700; display: inline; }
-    .handle { color: #888; font-size: 15px; margin-top: 4px; }
-    .bio { color: #ccc; font-size: 15px; margin-top: 12px; line-height: 1.5; max-width: 400px; margin-left: auto; margin-right: auto; }
-    .stats { display: flex; gap: 24px; justify-content: center; margin-top: 20px; }
-    .stat-item { text-align: center; }
-    .stat-value { font-size: 18px; font-weight: 700; color: ${BRAND_COLOR}; }
-    .stat-label { font-size: 12px; color: #888; }
-    .cta-btn {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 12px 32px;
-      background: ${BRAND_COLOR};
-      color: #fff;
-      text-decoration: none;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 15px;
-    }
-    .cta-btn:hover { opacity: 0.9; }
-    .posts-section { margin-top: 8px; }
-    .posts-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #ccc; }
-    .post {
-      background: #111;
-      border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 12px;
-    }
-    .post p { font-size: 15px; line-height: 1.6; }
-    .post-meta {
-      display: flex;
-      gap: 16px;
-      margin-top: 12px;
-      font-size: 13px;
-      color: #666;
-    }
-    .empty-posts { text-align: center; color: #666; padding: 40px; }
-    .footer {
-      text-align: center;
-      padding: 40px 16px;
-      color: #444;
-      font-size: 13px;
-    }
-    .footer a { color: ${BRAND_COLOR}; text-decoration: none; }
-    .badge-business {
-      display: inline-block;
-      background: #D4A853;
-      color: #fff;
-      font-size: 10px;
-      padding: 2px 8px;
-      border-radius: 10px;
-      margin-left: 6px;
-      vertical-align: middle;
-    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#e8eaed;min-height:100vh}
+    a{color:inherit;text-decoration:none}
+    .top-bar{background:linear-gradient(135deg,${BRAND_COLOR},#0097A7);padding:12px 20px;text-align:center}
+    .top-bar a{color:#fff;font-weight:700;font-size:17px;letter-spacing:.3px}
+    .banner{width:100%;height:200px;object-fit:cover;display:block;background:linear-gradient(135deg,${BRAND_COLOR}44,#0097A744)}
+    .banner-placeholder{width:100%;height:200px;background:linear-gradient(135deg,${BRAND_COLOR}33,#0097A722)}
+    .profile-wrap{max-width:640px;margin:0 auto}
+    .avatar-wrap{padding:0 20px;margin-top:-48px;display:flex;align-items:flex-end;gap:16px;justify-content:space-between}
+    .avatar{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #0a0a0a;background:#1a1a1a;flex-shrink:0}
+    .avatar-placeholder{width:96px;height:96px;border-radius:50%;background:${BRAND_COLOR};display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;color:#fff;border:3px solid #0a0a0a;flex-shrink:0}
+    .follow-btn{display:inline-block;padding:10px 24px;background:${BRAND_COLOR};color:#fff;border-radius:20px;font-weight:600;font-size:14px;margin-bottom:4px}
+    .info{padding:14px 20px 0}
+    .name-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .name{font-size:22px;font-weight:700;color:#fff}
+    .handle-row{color:#888;font-size:14px;margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .badge{display:inline-flex;align-items:center;gap:3px;background:#D4A85322;color:#D4A853;font-size:11px;font-weight:600;padding:2px 8px;border-radius:8px;border:1px solid #D4A85344}
+    .badge-cyan{background:${BRAND_COLOR}22;color:${BRAND_COLOR};border-color:${BRAND_COLOR}44}
+    .badge-green{background:#22c55e22;color:#22c55e;border-color:#22c55e44}
+    .tagline{color:#aaa;font-size:14px;margin-top:10px;font-style:italic}
+    .bio-text{color:#ccc;font-size:15px;margin-top:10px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word}
+    .meta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+    .meta-item{display:flex;align-items:center;gap:5px;color:#888;font-size:13px}
+    .meta-item a{color:${BRAND_COLOR}}
+    .interests{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+    .interest-tag{background:#1e1e1e;color:#aaa;font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid #2a2a2a}
+    .stats{display:flex;gap:0;margin-top:16px;padding:14px 20px;border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a}
+    .stat{flex:1;text-align:center;padding:0 8px}
+    .stat-val{font-size:18px;font-weight:700;color:#fff}
+    .stat-lbl{font-size:11px;color:#666;margin-top:2px}
+    .section{padding:20px}
+    .section-title{font-size:15px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+    .post{background:#111;border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid #1a1a1a;transition:background .15s}
+    .post:hover{background:#141414}
+    .post-body{font-size:15px;line-height:1.6;color:#e0e0e0;white-space:pre-wrap;word-wrap:break-word}
+    .post-meta{display:flex;gap:14px;margin-top:10px;font-size:12px;color:#555}
+    .empty{text-align:center;color:#555;padding:32px;font-size:14px}
+    .cta-section{text-align:center;padding:32px 20px;background:#111;margin-top:4px}
+    .cta-title{font-size:19px;font-weight:700;color:#fff;margin-bottom:6px}
+    .cta-sub{color:#777;font-size:14px;margin-bottom:18px}
+    .cta-btn{display:inline-block;padding:13px 36px;background:${BRAND_COLOR};color:#fff;border-radius:14px;font-weight:700;font-size:15px}
+    .cta-btn:hover{opacity:.88}
+    .footer{text-align:center;padding:24px 20px 40px;color:#333;font-size:12px}
+    .footer a{color:#555}
+    @media(max-width:480px){.info{padding:12px 14px 0}.stats{padding:12px 14px}.section{padding:14px}.avatar{width:80px;height:80px}.avatar-placeholder{width:80px;height:80px;font-size:30px}.name{font-size:19px}}
   </style>
 </head>
-<body>
-  <div class="container" itemscope itemtype="https://schema.org/ProfilePage">
-    <header class="profile-header">
+<body itemscope itemtype="https://schema.org/ProfilePage">
+  <div class="top-bar"><a href="${SITE_URL}">${SITE_NAME}</a></div>
+
+  ${bannerUrl
+    ? `<img class="banner" src="${escapeHtml(bannerUrl)}" alt="${displayName} banner" />`
+    : `<div class="banner-placeholder"></div>`}
+
+  <div class="profile-wrap">
+    <!-- Avatar + CTA -->
+    <div class="avatar-wrap">
       ${avatarUrl
         ? `<img class="avatar" src="${escapeHtml(avatarUrl)}" alt="${displayName}" itemprop="image" />`
-        : `<div class="avatar-placeholder">${displayName.charAt(0).toUpperCase()}</div>`
-      }
-      <div>
-        <h1 class="name" itemprop="name">${displayName}</h1>${verifiedBadge}
-        ${profile.is_organization_verified ? '<span class="badge-business">Business</span>' : ""}
-      </div>
-      <p class="handle" itemprop="alternateName">@${handle}</p>
-      ${bio ? `<p class="bio" itemprop="description">${bio}</p>` : ""}
-      <div class="stats">
-        <div class="stat-item">
-          <div class="stat-value">${posts.length}</div>
-          <div class="stat-label">Posts</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">${(profile.followers || 0).toLocaleString()}</div>
-          <div class="stat-label">Followers</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">${(profile.following || 0).toLocaleString()}</div>
-          <div class="stat-label">Following</div>
-        </div>
-      </div>
-      <a href="${SITE_URL}?ref=${handle}" class="cta-btn">Join AfuChat</a>
-    </header>
+        : `<div class="avatar-placeholder" itemprop="image">${displayName.charAt(0).toUpperCase()}</div>`}
+      <a href="https://play.google.com/store/apps/details?id=com.afuchat.app" class="follow-btn">Follow on AfuChat</a>
+    </div>
 
-    ${posts.length > 0 ? `
-      <section class="posts-section">
-        <h2 class="posts-title">Recent Posts</h2>
-        ${postsHtml}
-      </section>
-    ` : `
-      <div class="empty-posts">
-        <p>No public posts yet.</p>
+    <!-- Name & identity -->
+    <div class="info">
+      <div class="name-row">
+        <h1 class="name" itemprop="name">${displayName}</h1>
+        ${verifiedBadgeHtml}
+        ${isBusiness ? `<span class="badge">&#128188; ${businessCategory || "Business"}</span>` : ""}
+        ${availableForHire ? `<span class="badge badge-green">&#128188; For Hire</span>` : ""}
       </div>
-    `}
+      <div class="handle-row">
+        <span itemprop="alternateName">@${handle}</span>
+        ${joinedDate ? `<span>&#128197; Joined ${joinedDate}</span>` : ""}
+        ${currentGrade ? `<span class="badge badge-cyan">&#127942; ${currentGrade}</span>` : ""}
+      </div>
+      ${developerTagline ? `<p class="tagline">${developerTagline}</p>` : ""}
+      ${bio ? `<p class="bio-text" itemprop="description">${bio}</p>` : ""}
+
+      <!-- Meta links & location -->
+      ${(location || websiteUrl || githubUrl || portfolioUrl || xp > 0) ? `
+      <div class="meta-row">
+        ${location ? `<span class="meta-item">&#127758; ${location}</span>` : ""}
+        ${xp > 0 ? `<span class="meta-item">&#9889; ${xp.toLocaleString()} XP</span>` : ""}
+        ${websiteUrl ? `<span class="meta-item">&#128279; <a href="${escapeHtml(websiteUrl)}" rel="nofollow noopener" target="_blank">${escapeHtml(websiteUrl.replace(/^https?:\/\/(www\.)?/, "").split("/")[0])}</a></span>` : ""}
+        ${githubUrl ? `<span class="meta-item">&#9899; <a href="${escapeHtml(githubUrl)}" rel="nofollow noopener" target="_blank">GitHub</a></span>` : ""}
+        ${portfolioUrl ? `<span class="meta-item">&#127912; <a href="${escapeHtml(portfolioUrl)}" rel="nofollow noopener" target="_blank">Portfolio</a></span>` : ""}
+      </div>` : ""}
+
+      <!-- Interests -->
+      ${interests.length > 0 ? `
+      <div class="interests">
+        ${interests.map(i => `<span class="interest-tag">${i}</span>`).join("")}
+      </div>` : ""}
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-val">${followerCount.toLocaleString()}</div>
+        <div class="stat-lbl">Followers</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">${followingCount.toLocaleString()}</div>
+        <div class="stat-lbl">Following</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">${posts.length}${posts.length >= 20 ? "+" : ""}</div>
+        <div class="stat-lbl">Posts</div>
+      </div>
+      ${xp > 0 ? `<div class="stat"><div class="stat-val">${xp.toLocaleString()}</div><div class="stat-lbl">XP</div></div>` : ""}
+    </div>
+
+    <!-- Recent posts -->
+    <div class="section">
+      <div class="section-title">Recent Posts</div>
+      ${posts.length > 0 ? postsHtml : `<div class="empty">No public posts yet.</div>`}
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <div class="cta-title">Follow ${displayName} on AfuChat</div>
+      <div class="cta-sub">Like, reply, and connect with ${displayName} on the AfuChat app</div>
+      <a href="https://play.google.com/store/apps/details?id=com.afuchat.app" class="cta-btn">&#127381; Get AfuChat Free</a>
+    </div>
 
     <footer class="footer">
       <p>&copy; ${new Date().getFullYear()} <a href="${SITE_URL}">${SITE_NAME}</a>. All rights reserved.</p>
-      <p style="margin-top:8px;">
-        <a href="${SITE_URL}/terms">Terms</a> &middot; <a href="${SITE_URL}/privacy">Privacy</a>
-      </p>
+      <p style="margin-top:5px"><a href="${SITE_URL}/terms">Terms</a> &middot; <a href="${SITE_URL}/privacy">Privacy</a></p>
     </footer>
   </div>
 </body>

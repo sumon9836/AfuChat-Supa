@@ -194,6 +194,8 @@ function renderVideoPage(
   stats: { likes: number; replies: number },
   shortId: string,
   durationSeconds: number | null = null,
+  videoWidth: number | null = null,
+  videoHeight: number | null = null,
 ): string {
   const displayName = escapeHtml(author.display_name || "User");
   const handle = escapeHtml(author.handle || "user");
@@ -219,14 +221,16 @@ function renderVideoPage(
     ? `<span style="color:${BRAND_COLOR};font-size:16px;" title="Verified">&#10004;</span>`
     : "";
 
-  const ogImageFinal = posterUrl || avatarUrl || `${SITE_URL}/logo.png`;
+  // Strip cache-busting ?t= param from video URL for stable OG links
+  const ogVideoUrl = videoUrl.replace(/[?&]t=\d+(&|$)/, "$1").replace(/[?&]$/, "");
+  const ogImageFinal = posterUrl || avatarUrl || `${SITE_URL}/og-default.png`;
 
   const jsonLd = buildVideoJsonLd({
     name: `@${author.handle || "user"}: ${content ? truncate(content, 100) : "Video"}`,
     description: ogDescription,
     thumbnailUrl: ogImageFinal,
     uploadDate: new Date(post.created_at).toISOString(),
-    contentUrl: videoUrl,
+    contentUrl: ogVideoUrl,
     embedUrl,
     pageUrl,
     durationSeconds,
@@ -258,11 +262,11 @@ function renderVideoPage(
   <meta property="og:image" content="${escapeHtml(ogImageFinal)}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:video" content="${escapeHtml(videoUrl)}" />
-  <meta property="og:video:secure_url" content="${escapeHtml(videoUrl)}" />
+  <meta property="og:video" content="${escapeHtml(ogVideoUrl)}" />
+  <meta property="og:video:secure_url" content="${escapeHtml(ogVideoUrl)}" />
   <meta property="og:video:type" content="video/mp4" />
-  <meta property="og:video:width" content="720" />
-  <meta property="og:video:height" content="1280" />
+  <meta property="og:video:width" content="${videoWidth || 720}" />
+  <meta property="og:video:height" content="${videoHeight || 1280}" />
 
   <!-- Twitter Player Card (in-feed video playback on Twitter/X) -->
   <meta name="twitter:card" content="player" />
@@ -420,7 +424,7 @@ async function handleVideoPage(param: string, res: any, embedOnly = false) {
     supabase.from("post_acknowledgments").select("id", { count: "exact", head: true }).eq("post_id", postId),
     supabase.from("post_replies").select("id", { count: "exact", head: true }).eq("post_id", postId),
     assetId
-      ? supabase.from("video_assets").select("duration_seconds").eq("id", assetId).maybeSingle()
+      ? supabase.from("video_assets").select("duration_seconds, width, height").eq("id", assetId).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -429,10 +433,12 @@ async function handleVideoPage(param: string, res: any, embedOnly = false) {
   const likeCount = (likes as any)?.count || 0;
   const replyCount = (replies as any)?.count || 0;
   const durationSeconds: number | null = (asset as any)?.duration_seconds ?? null;
+  const videoWidth: number | null = (asset as any)?.width ?? null;
+  const videoHeight: number | null = (asset as any)?.height ?? null;
   const shortId = encodeUuidToShort(post.id);
 
   res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
-  res.send(renderVideoPage(post, author, videoUrl, posterUrl, { likes: likeCount, replies: replyCount }, shortId, durationSeconds));
+  res.send(renderVideoPage(post, author, videoUrl, posterUrl, { likes: likeCount, replies: replyCount }, shortId, durationSeconds, videoWidth, videoHeight));
 }
 
 // Full video preview page
