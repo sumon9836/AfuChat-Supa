@@ -224,15 +224,12 @@ const DT_CSS = `
 /* Active item */
 .dt-bnav-item.act{color:#00BCD4;font-weight:700}
 
-/* ── Icon chip (lights up on active) ── */
+/* ── Icon chip ── */
 .dt-bnav-icon{
   position:relative;
   width:54px;height:36px;border-radius:18px;
   display:flex;align-items:center;justify-content:center;
-  transition:background .2s;
 }
-.dt-bnav-item.act .dt-bnav-icon{background:rgba(0,188,212,0.16)}
-.dt-lt .dt-bnav-item.act .dt-bnav-icon{background:rgba(0,188,212,0.12)}
 
 /* ── Badge ── */
 .dt-bnav-badge{
