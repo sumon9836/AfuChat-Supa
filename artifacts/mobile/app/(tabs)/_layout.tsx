@@ -1,9 +1,8 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  Animated,
   Image,
   Platform,
   Pressable,
@@ -106,57 +105,37 @@ function CompactTabBar({
   const { colors, isDark } = useTheme();
   const totalUnread     = useTotalUnread(userId);
   const active          = normalizeTabPath(pathname);
-  const isIOS           = Platform.OS === "ios";
   const isAndroid       = Platform.OS === "android";
 
-  // Sliding oval animation — offset 11px = pillPaddingH(8) + ovalMargin(3)
-  const OVAL_OFFSET = 11;
-  const pillAnim  = useRef(new Animated.Value(OVAL_OFFSET)).current;
-  const [slotWidth, setSlotWidth] = useState(0);
-  const activeIdx = Math.max(0, TABS.findIndex(t => t.route === active));
+  const bottomPos = Math.max(insets.bottom, isAndroid ? 8 : 10) + 14;
 
-  useEffect(() => {
-    if (slotWidth === 0) return;
-    Animated.spring(pillAnim, {
-      toValue: OVAL_OFFSET + activeIdx * slotWidth,
-      useNativeDriver: true,
-      damping: 20,
-      stiffness: 180,
-    }).start();
-  }, [activeIdx, slotWidth]);
+  const barBg      = isDark ? "rgba(28,28,30,0.97)" : "rgba(255,255,255,0.97)";
+  const borderColor = isDark ? "rgba(44,44,46,1)"   : "rgba(221,215,201,1)";
 
-  const barBg = isDark ? "rgba(18,22,28,0.96)" : "rgba(255,255,255,0.96)";
-
-  // Use boxShadow on web (shadow* props are deprecated there); native shadow on iOS/Android.
   const shadow = Platform.select({
     web: {
       boxShadow: isDark
-        ? "0 12px 36px rgba(0,0,0,0.60), 0 4px 12px rgba(0,0,0,0.32)"
-        : "0 6px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.07)",
+        ? "0 12px 40px rgba(0,0,0,0.55), 0 4px 14px rgba(0,0,0,0.30)"
+        : "0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
     },
     default: isDark
       ? {
           shadowColor: "#000",
-          shadowOpacity: 0.55,
-          shadowRadius: 28,
-          shadowOffset: { width: 0, height: 10 },
-          elevation: 24,
+          shadowOpacity: 0.50,
+          shadowRadius: 24,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 20,
         }
       : {
           shadowColor: "#000",
-          shadowOpacity: 0.12,
-          shadowRadius: 20,
-          shadowOffset: { width: 0, height: 5 },
-          elevation: 16,
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 12,
         },
   });
 
-  // Edge-to-edge on Android can set insets.bottom to 0 on gesture-nav devices.
-  // Always guarantee at least 8dp above the gesture handle bar.
-  const bottomPos = Math.max(insets.bottom, isAndroid ? 8 : 10) + 6;
-
-  // Brand-tinted ripple — subtle so it doesn't fight with the focused highlight.
-  const ripple = { color: colors.accent + "28", borderless: false } as const;
+  const ripple = { color: colors.accent + "22", borderless: false } as const;
 
   function handleTabPress(route: typeof TABS[number]["route"]) {
     if (Platform.OS !== "web") {
@@ -170,116 +149,62 @@ function CompactTabBar({
   }
 
   return (
-    <View
-      style={[bar.container, { bottom: bottomPos, pointerEvents: "box-none" }]}
-    >
-      <View style={[bar.pill, shadow, { backgroundColor: barBg }]}>
-
-        {/* Invisible row used to measure per-slot width */}
-        <View
-          pointerEvents="none"
-          style={{ position: "absolute", top: 0, bottom: 0, left: 8, right: 8, flexDirection: "row", opacity: 0 }}
-          onLayout={e => {
-            const w = e.nativeEvent.layout.width / TABS.length;
-            if (w > 0 && w !== slotWidth) {
-              pillAnim.setValue(OVAL_OFFSET + activeIdx * w);
-              setSlotWidth(w);
-            }
-          }}
-        />
-
-        {/* Sliding oval highlight */}
-        {slotWidth > 0 && (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              bar.slidingOval,
-              {
-                width: slotWidth - 6,
-                backgroundColor: colors.accent + "22",
-                transform: [{ translateX: pillAnim }],
-              },
-            ]}
-          />
-        )}
-
+    <View style={[bar.container, { bottom: bottomPos, pointerEvents: "box-none" }]}>
+      <View style={[bar.pill, shadow, { backgroundColor: barBg, borderColor }]}>
         {TABS.map((tab) => {
           const focused   = active === tab.route;
           const iconColor = focused
             ? colors.accent
-            : isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.38)";
+            : isDark ? "rgba(95,93,105,1)" : "rgba(110,108,118,1)";
           const isChats   = tab.route === "/(tabs)";
           const isProfile = tab.route === "/(tabs)/me";
 
           return (
             <View key={tab.route} style={bar.item}>
-              <View style={bar.pillClip}>
-                <Pressable
-                  android_ripple={ripple}
-                  style={({ pressed }) => [
-                    bar.pressable,
-                    !isAndroid && pressed ? { opacity: 0.72 } : null,
-                  ]}
-                  onPress={() => handleTabPress(tab.route)}
-                  accessibilityRole="button"
-                  accessibilityLabel={tab.label}
-                  accessibilityState={{ selected: focused }}
-                  // Expand touch target to 48 dp minimum (Material guideline).
-                  hitSlop={
-                    isAndroid
-                      ? { top: 8, bottom: 8, left: 4, right: 4 }
-                      : undefined
-                  }
-                >
-                  <View style={bar.iconWrap}>
-                    {isProfile && avatarUrl ? (
-                      <Image
-                        source={{ uri: avatarUrl }}
-                        style={[
-                          bar.avatar,
-                          focused
-                            ? { borderColor: colors.accent, borderWidth: 2 }
-                            : { borderColor: "transparent", borderWidth: 2 },
-                        ]}
-                      />
-                    ) : isChats ? (
-                      <Image
-                        source={afuSymbol}
-                        style={{ width: 34, height: 34 }}
-                        resizeMode="contain"
-                        tintColor={iconColor}
-                      />
-                    ) : isIOS && SymbolView ? (
-                      <SymbolView
-                        name={focused ? tab.sfOn : tab.sfOff}
-                        tintColor={iconColor}
-                        size={22}
-                      />
-                    ) : (
-                      <Ionicons
-                        name={(focused ? tab.mdOn : tab.mdOff) as any}
-                        size={22}
-                        color={iconColor}
-                      />
-                    )}
-                    <Text
-                      style={[bar.label, { color: iconColor }]}
-                      numberOfLines={1}
-                    >
-                      {tab.label}
-                    </Text>
-                  </View>
-                </Pressable>
-              </View>
+              <Pressable
+                android_ripple={ripple}
+                style={({ pressed }) => [
+                  bar.pressable,
+                  !isAndroid && pressed ? { opacity: 0.68 } : null,
+                ]}
+                onPress={() => handleTabPress(tab.route)}
+                accessibilityRole="button"
+                accessibilityLabel={tab.label}
+                accessibilityState={{ selected: focused }}
+              >
+                <View style={bar.iconChip}>
+                  {isProfile && avatarUrl ? (
+                    <Image
+                      source={{ uri: avatarUrl }}
+                      style={[
+                        bar.avatar,
+                        focused
+                          ? { borderColor: colors.accent, borderWidth: 2.5 }
+                          : { borderColor: "rgba(128,128,128,0.22)", borderWidth: 2 },
+                      ]}
+                    />
+                  ) : isChats ? (
+                    <Image
+                      source={afuSymbol}
+                      style={{ width: 44, height: 44 }}
+                      resizeMode="contain"
+                      tintColor={iconColor}
+                    />
+                  ) : (
+                    <Ionicons
+                      name={(focused ? tab.mdOn : tab.mdOff) as any}
+                      size={24}
+                      color={iconColor}
+                    />
+                  )}
+                </View>
+                <Text style={[bar.label, { color: iconColor }]} numberOfLines={1}>
+                  {tab.label}
+                </Text>
+              </Pressable>
 
-              {/* Unread badge — floats above the pill */}
               {isChats && totalUnread > 0 && (
-                <View
-                  style={[
-                    bar.badge,
-                    { backgroundColor: colors.accent, borderColor: barBg },
-                  ]}
-                >
+                <View style={[bar.badge, { backgroundColor: colors.accent }]}>
                   <Text style={bar.badgeText} numberOfLines={1}>
                     {totalUnread > 99 ? "99+" : String(totalUnread)}
                   </Text>
@@ -304,49 +229,41 @@ const bar = StyleSheet.create({
   pill: {
     flexDirection: "row",
     borderRadius: 999,
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 8,
-    overflow: "visible",
+    borderWidth: 1,
     alignSelf: "center",
-  },
-  slidingOval: {
-    position: "absolute",
-    top: 20,
-    bottom: 20,
-    borderRadius: 999,
   },
   item: {
     alignItems: "center",
     justifyContent: "center",
-  },
-  pillClip: {
-    borderRadius: 999,
-    overflow: "hidden",
+    width: 62,
   },
   pressable: {
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 999,
+    paddingVertical: 2,
+    width: 62,
   },
-  iconWrap: {
-    width: 56,
-    height: 58,
+  iconChip: {
+    width: 54,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    gap: 3,
-    paddingBottom: 2,
   },
   label: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontFamily: "Inter_700Bold",
-    letterSpacing: 0.1,
+    letterSpacing: 0.04,
     lineHeight: 14,
     textAlign: "center",
   },
   avatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   badge: {
     position: "absolute",
@@ -357,12 +274,11 @@ const bar = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 3,
-    borderWidth: 2,
+    paddingHorizontal: 4,
     zIndex: 10,
   },
   badgeText: {
-    color: "#fff",
+    color: "#000",
     fontSize: 9,
     fontFamily: "Inter_700Bold",
     lineHeight: 12,
