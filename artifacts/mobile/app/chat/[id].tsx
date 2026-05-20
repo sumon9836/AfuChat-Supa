@@ -5216,9 +5216,14 @@ STRICT RULES:
                   </View>
                 );
               }
-              const thumbData: Array<{ id: string; uri?: string; isCamera?: boolean; mediaType?: string }> = [
+              const fmtDur = (s: number) => {
+                const m = Math.floor(s / 60);
+                const sec = Math.floor(s % 60);
+                return `${m}:${sec.toString().padStart(2, "0")}`;
+              };
+              const thumbData: Array<{ id: string; uri?: string; isCamera?: boolean; mediaType?: string; duration?: number }> = [
                 { id: "__camera__", isCamera: true },
-                ...galleryAssets.map((a) => ({ id: a.id, uri: a.uri, mediaType: a.mediaType })),
+                ...galleryAssets.map((a) => ({ id: a.id, uri: a.uri, mediaType: a.mediaType, duration: a.duration })),
               ];
               return (
                 <View style={{ flex: 1 }}>
@@ -5308,8 +5313,13 @@ STRICT RULES:
                         >
                           <Image source={{ uri: item.uri }} style={{ width: thumbSize, height: thumbSize }} resizeMode="cover" />
                           {isVideo && (
-                            <View style={{ position: "absolute", bottom: 4, right: 4, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2 }}>
-                              <Ionicons name="play" size={10} color="#fff" />
+                            <View style={{ position: "absolute", bottom: 4, right: 4, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(0,0,0,0.60)", borderRadius: 5, paddingHorizontal: 5, paddingVertical: 3 }}>
+                              <Ionicons name="play" size={9} color="#fff" />
+                              {item.duration != null && item.duration > 0 && (
+                                <Text style={{ color: "#fff", fontSize: 9, fontFamily: "Inter_600SemiBold", letterSpacing: 0.2 }}>
+                                  {fmtDur(item.duration)}
+                                </Text>
+                              )}
                             </View>
                           )}
                         </TouchableOpacity>
