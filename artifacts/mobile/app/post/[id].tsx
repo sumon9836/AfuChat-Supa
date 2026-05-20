@@ -1272,13 +1272,13 @@ const styles = StyleSheet.create({
   editBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 
   /* Menu & report */
-  menuOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  menuSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 12, paddingHorizontal: 20 },
+  menuOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", paddingHorizontal: 8, paddingBottom: 8 },
+  menuSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomLeftRadius: 14, borderBottomRightRadius: 14, paddingTop: 12, paddingHorizontal: 20 },
   menuHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 16 },
   menuItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 12 },
   menuIconWrap: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   menuText: { fontSize: 16, fontFamily: "Inter_500Medium" },
-  reportSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 12, paddingHorizontal: 20, maxHeight: "80%" },
+  reportSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomLeftRadius: 14, borderBottomRightRadius: 14, paddingTop: 12, paddingHorizontal: 20, maxHeight: "80%" },
   reportTitle: { fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center", marginBottom: 4 },
   reportSubtitle: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 16, color: "gray" },
   reportReasons: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },

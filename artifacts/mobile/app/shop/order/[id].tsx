@@ -683,9 +683,9 @@ const st = StyleSheet.create({
     width: 42, height: 42, borderRadius: 21,
     alignItems: "center", justifyContent: "center",
   },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", paddingHorizontal: 8, paddingBottom: 8 },
   modalSheet: {
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 14, borderBottomRightRadius: 14,
     padding: 24, gap: 14,
   },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#ccc", alignSelf: "center", marginBottom: 8 },

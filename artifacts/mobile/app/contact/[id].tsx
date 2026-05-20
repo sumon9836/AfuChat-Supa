@@ -1447,11 +1447,10 @@ const st = StyleSheet.create({
   },
   optionsSheet: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    bottom: 8,
+    left: 8,
+    right: 8,
+    borderRadius: 20,
     paddingTop: 10,
     ...Platform.select({
       web: { boxShadow: "0 -3px 12px rgba(0,0,0,0.12)" } as any,

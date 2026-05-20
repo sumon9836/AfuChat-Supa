@@ -93,12 +93,11 @@ const bs = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)" },
   sheet: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 8,
+    left: 8,
+    right: 8,
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 20,
     paddingTop: 6,
     paddingBottom: 40,
     maxHeight: "80%",
@@ -819,7 +818,7 @@ export default function GroupManageScreen() {
 
       {/* ── Member action sheet ─── */}
       <BottomSheet visible={showMemberSheet} onClose={() => setShowMemberSheet(false)}>
-        <View style={{ backgroundColor: sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
+        <View style={{ backgroundColor: sheetBg, borderRadius: 20 }}>
           {selectedMember && (
             <>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sheetBorder }}>
@@ -877,7 +876,7 @@ export default function GroupManageScreen() {
 
       {/* ── Add members sheet ─── */}
       <BottomSheet visible={showAddSheet} onClose={() => { if (!addSaving) setShowAddSheet(false); }}>
-        <View style={{ backgroundColor: sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
+        <View style={{ backgroundColor: sheetBg, borderRadius: 20 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sheetBorder }}>
             <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.text }}>
               Add Members
