@@ -110,17 +110,23 @@ function renderProfilePage(profile: any, posts: any[], isPrivate = false): strin
 
   <meta property="og:type" content="profile" />
   <meta property="og:title" content="${displayName} (@${handle})" />
-  <meta property="og:description" content="${bio || `${displayName} on ${SITE_NAME}`}" />
+  <meta property="og:description" content="${escapeHtml(bio ? bio.slice(0, 200) : `${profile.display_name || "User"} on ${SITE_NAME}. Follow to see their posts and updates.`)}" />
   <meta property="og:url" content="${SITE_URL}/@${handle}" />
   <meta property="og:site_name" content="${SITE_NAME}" />
-  ${avatarUrl ? `<meta property="og:image" content="${escapeHtml(avatarUrl)}" />` : ""}
+  ${avatarUrl ? `<meta property="og:image" content="${escapeHtml(avatarUrl)}" />
+  <meta property="og:image:alt" content="${displayName} profile photo" />` : `<meta property="og:image" content="${SITE_URL}/og-default.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />`}
   <meta property="profile:username" content="${handle}" />
 
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="${avatarUrl ? "summary" : "summary_large_image"}" />
   <meta name="twitter:site" content="@afuchat" />
-  <meta name="twitter:title" content="${displayName} (@${handle})" />
-  <meta name="twitter:description" content="${bio || `${displayName} on ${SITE_NAME}`}" />
-  ${avatarUrl ? `<meta name="twitter:image" content="${escapeHtml(avatarUrl)}" />` : ""}
+  <meta name="twitter:creator" content="@${handle}" />
+  <meta name="twitter:title" content="${displayName} (@${handle}) — ${SITE_NAME}" />
+  <meta name="twitter:description" content="${escapeHtml(bio ? bio.slice(0, 200) : `${profile.display_name || "User"} on ${SITE_NAME}. ${followerCount > 0 ? `${followerCount.toLocaleString()} followers.` : ""}`)}" />
+  ${avatarUrl ? `<meta name="twitter:image" content="${escapeHtml(avatarUrl)}" />
+  <meta name="twitter:image:alt" content="${displayName} profile photo" />` : `<meta name="twitter:image" content="${SITE_URL}/og-default.png" />`}
+  <meta name="fediverse:creator" content="@${handle}@afuchat.com" />
   <meta name="theme-color" content="${BRAND_COLOR}" />
 
   <script type="application/ld+json">${JSON.stringify(jsonLd).replace(/<\//g, "<\\/")}</script>

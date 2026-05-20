@@ -41,13 +41,48 @@ router.get("/", async (_req, res) => {
 <meta name="robots" content="index, follow"/>
 <link rel="canonical" href="${URL_}"/>
 <meta property="og:type" content="website"/>
+<meta property="og:site_name" content="${SITE}"/>
+<meta property="og:locale" content="en_US"/>
 <meta property="og:title" content="${SITE} — The Social Super App"/>
-<meta property="og:description" content="Chat, share, pay, and connect — all in one app by ${COMPANY}."/>
+<meta property="og:description" content="Chat, share moments, earn with AI, make payments, and explore a vibrant community. Free on Android."/>
 <meta property="og:url" content="${URL_}"/>
-<meta property="og:image" content="${URL_}/screenshots/chats.png"/>
+<meta property="og:image" content="${URL_}/og-default.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="AfuChat — The Social Super App"/>
 <meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:site" content="@afuchat"/>
+<meta name="twitter:title" content="${SITE} — The Social Super App"/>
+<meta name="twitter:description" content="Chat, share moments, earn with AI, make payments, and connect with your community. Free on Android."/>
+<meta name="twitter:image" content="${URL_}/og-default.png"/>
+<meta name="twitter:image:alt" content="AfuChat — The Social Super App"/>
 <meta name="theme-color" content="${BRAND}"/>
 <link rel="icon" type="image/png" href="/logo.png"/>
+<script type="application/ld+json">${JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": SITE,
+  "url": URL_,
+  "logo": URL_ + "/logo.png",
+  "sameAs": [
+    "https://play.google.com/store/apps/details?id=com.afuchat.app",
+    "https://twitter.com/afuchat"
+  ],
+  "description": "AfuChat is the all-in-one social super app. Chat, share moments, earn with AI, make payments, and explore a vibrant community.",
+  "applicationCategory": "SocialNetworkingApplication",
+  "operatingSystem": "Android"
+})}</script>
+<script type="application/ld+json">${JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": SITE,
+  "url": URL_,
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": { "@type": "EntryPoint", "urlTemplate": URL_ + "/search?q={search_term_string}" },
+    "query-input": "required name=search_term_string"
+  }
+})}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet"/>
