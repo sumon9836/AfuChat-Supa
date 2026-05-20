@@ -7,7 +7,7 @@
     "icon": "./assets/images/logo.png",
     "scheme": "afuchat",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "jsEngine": "hermes",
     "backgroundColor": "#00BCD4",
     "notification": {
@@ -46,7 +46,7 @@
       },
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
