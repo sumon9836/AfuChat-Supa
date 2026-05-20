@@ -1,4 +1,9 @@
-const { withAndroidManifest } = require("@expo/config-plugins");
+let withAndroidManifest;
+try {
+  ({ withAndroidManifest } = require("@expo/config-plugins"));
+} catch {
+  ({ withAndroidManifest } = require("expo/config-plugins"));
+}
 
 const PERMISSIONS = [
   "android.permission.MANAGE_OWN_CALLS",
