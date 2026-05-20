@@ -5182,7 +5182,7 @@ STRICT RULES:
                   ListEmptyComponent={
                     galleryLoading ? (
                       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 40 }}>
-                        <ActivityIndicator color={accent} />
+                        <ActivityIndicator color={colors.accent} />
                       </View>
                     ) : (
                       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 40 }}>
@@ -5260,8 +5260,8 @@ STRICT RULES:
             if (attachTab === "Location") {
               return (
                 <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 32 }}>
-                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: accent + "20", alignItems: "center", justifyContent: "center" }}>
-                    <Ionicons name="location" size={32} color={accent} />
+                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.accent + "20", alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="location" size={32} color={colors.accent} />
                   </View>
                   <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text }}>Share Location</Text>
                   <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.textMuted, textAlign: "center" }}>
@@ -5285,7 +5285,7 @@ STRICT RULES:
                         });
                       } catch { showAlert("Error", "Could not get location."); }
                     }}
-                    style={{ backgroundColor: accent, paddingHorizontal: 32, paddingVertical: 13, borderRadius: 24 }}
+                    style={{ backgroundColor: colors.accent, paddingHorizontal: 32, paddingVertical: 13, borderRadius: 24 }}
                   >
                     <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 15 }}>Send Location</Text>
                   </TouchableOpacity>
@@ -5397,12 +5397,12 @@ STRICT RULES:
                       <Ionicons
                         name={active ? tab.icon.replace("-outline", "") as any : tab.icon as any}
                         size={22}
-                        color={active ? accent : colors.textMuted}
+                        color={active ? colors.accent : colors.textMuted}
                       />
                       <Text style={{
                         fontSize: 10,
                         fontFamily: active ? "Inter_600SemiBold" : "Inter_400Regular",
-                        color: active ? accent : colors.textMuted,
+                        color: active ? colors.accent : colors.textMuted,
                       }}>
                         {tab.label}
                       </Text>
