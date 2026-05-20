@@ -244,8 +244,6 @@ const DT_CSS = `
 /* ── Item label ── */
 .dt-bnav-label{font-size:10.5px;font-weight:inherit;letter-spacing:.04px;line-height:1}
 
-/* Push content above nav */
-@media(max-width:820px){.dt-content{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}}
 `;
 
 /* ─────────────────────────────────────────────────────────────
