@@ -516,18 +516,6 @@ export default function DesktopTabLayout() {
                 </div>
               ))}
 
-              {/* Notifications — always visible */}
-              <a
-                className="dt-notif"
-                href="/notifications"
-                onClick={(e) => {
-                  e.preventDefault();
-                  router.push("/notifications" as any);
-                }}
-              >
-                <Bell size={17} strokeWidth={1.8} />
-                <span>Notifications</span>
-              </a>
             </div>
 
             {/* User card */}

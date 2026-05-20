@@ -328,6 +328,15 @@ async function runMigrations(db: DB) {
     await db.runAsync("UPDATE schema_version SET version = 10");
   }
 
+  // ── v11: Drop notifications table — in-app notification feature removed ──
+  if (currentVersion < 11) {
+    const safe = async (sql: string) => { try { await db.execAsync(sql); } catch {} };
+    await safe("DROP TABLE IF EXISTS notifications");
+    await safe("DROP INDEX IF EXISTS idx_notif_created");
+    await safe("DROP INDEX IF EXISTS idx_notif_unread");
+    await db.runAsync("UPDATE schema_version SET version = 11");
+  }
+
   // ── v8: Own profile + full user settings on device ───────────────────────
   // user_profiles: the logged-in user's own profile (one row per account).
   // user_settings: all privacy/notification/chat settings stored permanently.

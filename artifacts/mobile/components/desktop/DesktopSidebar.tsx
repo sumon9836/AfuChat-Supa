@@ -84,15 +84,6 @@ const SECTIONS: NavSection[] = [
         match: (p) => p.startsWith("/ai"),
         requiresAuth: true,
       },
-      {
-        key: "notifications",
-        label: "Notifications",
-        icon: "notifications-outline",
-        iconActive: "notifications",
-        route: "/notifications",
-        match: (p) => p.startsWith("/notifications"),
-        requiresAuth: true,
-      },
     ],
   },
   // Note: Services (Wallet / Marketplace / Apps) and the Premium / Settings /

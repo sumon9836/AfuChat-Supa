@@ -7,13 +7,7 @@ import {
   setupNotificationListeners,
   clearBadge,
 } from "@/lib/pushNotifications";
-import { showBanner } from "@/lib/notifBannerStore";
-
 const RE_REGISTER_COOLDOWN_MS = 10 * 60 * 1000;
-
-// Notification types handled by their own native UI (call) or that are too
-// noisy as foreground banners (message) — handled by the chat screen itself.
-const BANNER_SKIP_TYPES = new Set(["call", "snoozed", "message"]);
 
 export function PushNotificationManager() {
   const { user } = useAuth();
@@ -37,38 +31,6 @@ export function PushNotificationManager() {
       cleanup();
       registered.current = false;
     };
-  }, [user?.id]);
-
-  // ── In-app foreground banner ───────────────────────────────────────
-  useEffect(() => {
-    if (Platform.OS === "web" || !user) return;
-
-    let Notifications: any = null;
-    try { Notifications = require("expo-notifications"); } catch { return; }
-    if (!Notifications) return;
-
-    const sub = Notifications.addNotificationReceivedListener((notification: any) => {
-      const content = notification?.request?.content;
-      if (!content) return;
-
-      const data: Record<string, string> = content.data || {};
-      const type = data.type || "";
-
-      if (BANNER_SKIP_TYPES.has(type)) return;
-
-      showBanner({
-        title: content.title || "AfuChat",
-        body: content.body || "",
-        type,
-        chatId: data.chatId,
-        postId: data.postId,
-        actorId: data.actorId,
-        url: data.url,
-        avatarUrl: null,
-      });
-    });
-
-    return () => sub.remove();
   }, [user?.id]);
 
   // ── App foreground — clear badge and refresh token ─────────────────

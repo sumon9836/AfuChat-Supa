@@ -463,16 +463,14 @@ async function routeNotificationResponse(response: any) {
       break;
     case "follow":
       if (data.actorId) router.push(`/contact/${data.actorId}` as any);
-      else router.push("/notifications" as any);
       break;
     case "like":
     case "reply":
     case "mention":
       if (data.postId) router.push(`/p/${data.postId}` as any);
-      else router.push("/notifications" as any);
       break;
     case "gift":
-      router.push("/notifications" as any);
+      router.push("/(tabs)/me" as any);
       break;
     default:
       break;

@@ -21,56 +21,7 @@ type NotifyParams = {
 };
 
 async function callNotify(params: NotifyParams) {
-  const {
-    userId, title, body, data, categoryIdentifier,
-    notificationType, actorId, postId, referenceId, referenceType,
-  } = params;
-
-  // ── Dedup check: skip if a matching notification was sent in the last 3 min ──
-  if (notificationType) {
-    try {
-      const windowStart = new Date(Date.now() - 3 * 60 * 1000).toISOString();
-      let dupQuery = supabase
-        .from("notifications")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("type", notificationType)
-        .gte("created_at", windowStart)
-        .limit(1);
-      if (actorId)     dupQuery = dupQuery.eq("actor_id", actorId);
-      else             dupQuery = dupQuery.is("actor_id", null);
-      if (postId)      dupQuery = dupQuery.eq("post_id", postId);
-      else             dupQuery = dupQuery.is("post_id", null);
-      if (referenceId) dupQuery = dupQuery.eq("reference_id", referenceId);
-      else             dupQuery = dupQuery.is("reference_id", null);
-
-      const { data: existing } = await dupQuery;
-      if (existing && existing.length > 0) return;
-    } catch (e) {
-      console.warn("[Notify] Dedup check failed:", e);
-    }
-  }
-
-  // ── Insert in-app notification record ───────────────────────────────────────
-  // Supabase Database Webhooks on the `notifications` table will pick this up
-  // and call the `push-notification-trigger` edge function automatically,
-  // providing true server-side push even when the sender's app is closed.
-  if (notificationType) {
-    try {
-      const record: Record<string, unknown> = {
-        user_id: userId,
-        actor_id: actorId || null,
-        type: notificationType,
-        post_id: postId || null,
-        reference_id: referenceId || null,
-        reference_type: referenceType || null,
-        is_read: false,
-      };
-      await supabase.from("notifications").insert(record);
-    } catch (e) {
-      console.warn("[Notify] DB insert failed:", e);
-    }
-  }
+  const { userId, title, body, data, categoryIdentifier } = params;
 
   // ── Client-side edge function call for immediate delivery ───────────────────
   // Runs in the background — does not block the caller.

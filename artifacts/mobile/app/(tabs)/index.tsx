@@ -668,7 +668,6 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
-  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [missedCallsCount, setMissedCallsCount] = useState(0);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [tabFilter, setTabFilter] = useState<ChatTabKey>("all");
@@ -743,51 +742,6 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
       Animated.spring(fabAnim, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }).start();
     }
   }, [fabAnim, expandStories, collapseStories]);
-
-  const fetchUnreadCount = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from("notifications")
-      .select("id, type, is_read, created_at, post_id, reference_id, actor_id")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(100);
-    if (!data) return;
-    const seen = new Map<string, any>();
-    for (const item of data) {
-      const key = [item.type, item.actor_id ?? "", item.post_id ?? "", item.reference_id ?? ""].join("|");
-      const existing = seen.get(key);
-      if (!existing) {
-        seen.set(key, item);
-      } else {
-        const diff = Math.abs(new Date(item.created_at).getTime() - new Date(existing.created_at).getTime());
-        if (diff < 5 * 60 * 1000) {
-          if (new Date(item.created_at) > new Date(existing.created_at)) seen.set(key, item);
-        } else {
-          seen.set(key + "|" + item.created_at, item);
-        }
-      }
-    }
-    const unread = Array.from(seen.values()).filter(n => !n.is_read).length;
-    setUnreadNotifCount(unread);
-  }, [user]);
-
-  useFocusEffect(useCallback(() => { fetchUnreadCount(); }, [fetchUnreadCount]));
-
-  useEffect(() => {
-    if (!user) return;
-
-    const notifChannel = supabase
-      .channel(`notif-badge:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => fetchUnreadCount()
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(notifChannel); };
-  }, [user, fetchUnreadCount]);
 
   const fetchMissedCalls = useCallback(async () => {
     if (!user) return;
@@ -1523,14 +1477,6 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
                 {missedCallsCount > 0 && (
                   <View style={styles.notifBadge}>
                     <Text style={styles.notifBadgeText}>{missedCallsCount > 99 ? "99+" : missedCallsCount}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push("/notifications")} style={styles.headerIcon}>
-                <Ionicons name="notifications-outline" size={22} color={colors.text} />
-                {unreadNotifCount > 0 && (
-                  <View style={styles.notifBadge}>
-                    <Text style={styles.notifBadgeText}>{unreadNotifCount > 99 ? "99+" : unreadNotifCount}</Text>
                   </View>
                 )}
               </TouchableOpacity>
