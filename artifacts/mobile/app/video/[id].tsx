@@ -1252,12 +1252,13 @@ const vStyles = StyleSheet.create({
   progressThumb: { position: "absolute", width: 10, height: 10, borderRadius: 5, backgroundColor: "#fff", top: -3, marginLeft: -5, ...Platform.select({ web: { boxShadow: "0 1px 3px rgba(0,0,0,0.4)" } as any, default: { shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 3, elevation: 3 } }) },
 });
 
-// ─── VideoPlayerScreen ────────────────────────────────────────────────────────
+// ─── VideoFeed (embeddable) ───────────────────────────────────────────────────
 
-export default function VideoPlayerScreen() {
+export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
   const { accent } = useAppAccent();
   const { colors, isDark } = useTheme();
-  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
+  const rawId = isEmbedded ? undefined : params.id;
   const id = rawId && !isUuid(rawId) ? decodeId(rawId) : rawId;
   const { user, profile } = useAuth();
   const insets = useSafeAreaInsets();
@@ -1834,12 +1835,12 @@ export default function VideoPlayerScreen() {
 
   if (loading) {
     return (
-      <View style={[mStyles.root, { backgroundColor: colors.background }]}>
+      <View style={[mStyles.root, { backgroundColor: colors.background }, isEmbedded && Platform.OS === "web" ? { position: "relative" as any, zIndex: undefined } : undefined]}>
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
         <ShortsFeedSkeleton dark={isDark} />
         {/* Render the real header on top so navigation chrome is visible during load */}
         <View style={[mStyles.headerRow, { paddingTop: insets.top + 6 }]}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={mStyles.headerSide}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={[mStyles.headerSide, isEmbedded && { opacity: 0, pointerEvents: "none" } as any]}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={mStyles.tabRow}>
@@ -1866,12 +1867,12 @@ export default function VideoPlayerScreen() {
   }
 
   return (
-    <View style={[mStyles.root, { backgroundColor: colors.background }]}>
+    <View style={[mStyles.root, { backgroundColor: colors.background }, isEmbedded && Platform.OS === "web" ? { position: "relative" as any, zIndex: undefined } : undefined]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
 
       {/* Fixed header */}
       <View style={[mStyles.headerRow, { paddingTop: insets.top + 6 }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={mStyles.headerSide}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={[mStyles.headerSide, isEmbedded && { opacity: 0, pointerEvents: "none" } as any]}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={mStyles.tabRow}>
@@ -2018,6 +2019,11 @@ export default function VideoPlayerScreen() {
       <SignInPromptModal visible={showSignInPrompt} onDismiss={() => setShowSignInPrompt(false)} />
     </View>
   );
+}
+
+// ─── Route default export ─────────────────────────────────────────────────────
+export default function VideoPlayerScreen() {
+  return <VideoFeed isEmbedded={false} />;
 }
 
 const mStyles = StyleSheet.create({
