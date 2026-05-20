@@ -1769,7 +1769,7 @@ export default function DiscoverScreen() {
       {user && (
         <TouchableOpacity
           ref={fabRef}
-          style={[styles.fab, { backgroundColor: colors.accent, bottom: insets.bottom + 90 }]}
+          style={[styles.fab, { backgroundColor: colors.accent, bottom: insets.bottom + (Platform.OS === "web" ? 108 : 90) }]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setShowCreatePicker(true);

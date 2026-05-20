@@ -6690,8 +6690,8 @@ const st = StyleSheet.create({
     bottom: 0,
   },
   inputFloatOuter: {
-    paddingHorizontal: 0,
     paddingTop: 4,
+    ...Platform.select({ web: { paddingHorizontal: 8 } }),
   },
   inputGlassPill: {
     borderRadius: 28,
@@ -6710,12 +6710,14 @@ const st = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 6,
     gap: 5,
+    ...Platform.select({ web: { paddingVertical: 4 } }),
   },
   inputInnerRow: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     minHeight: 44,
+    ...Platform.select({ web: { minHeight: 36 } }),
   },
   pillIcon: { paddingHorizontal: 6 },
   input: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 22, outlineStyle: "none" as any, paddingTop: 10, paddingBottom: 10, minHeight: 28, maxHeight: 120 },

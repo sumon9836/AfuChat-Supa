@@ -1932,7 +1932,7 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
 
       {user && panelMode && (
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.accent, bottom: 24, right: 24 }]}
+          style={[styles.fab, { backgroundColor: colors.accent, bottom: Platform.OS === "web" ? 104 : 24, right: 24 }]}
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/chat/new" as any); }}
           activeOpacity={0.85}
         >
