@@ -263,11 +263,7 @@ function CompactTabBar({
                       />
                     )}
                     <Text
-                      style={[
-                        bar.label,
-                        { color: iconColor },
-                        focused && { fontFamily: "Inter_700Bold" },
-                      ]}
+                      style={[bar.label, { color: iconColor }]}
                       numberOfLines={1}
                     >
                       {tab.label}
@@ -315,8 +311,8 @@ const bar = StyleSheet.create({
   },
   slidingOval: {
     position: "absolute",
-    top: 6,
-    bottom: 6,
+    top: 20,
+    bottom: 20,
     borderRadius: 999,
   },
   item: {
@@ -342,7 +338,7 @@ const bar = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_700Bold",
     letterSpacing: 0.1,
     lineHeight: 14,
     textAlign: "center",
