@@ -181,14 +181,17 @@ const DT_CSS = `
 /* ── Responsive: collapse sidebar on narrow viewports ── */
 @media(max-width:820px){.dt-sidebar{display:none}}
 
-/* ── Mobile bottom nav — floating pill, follows theme ── */
+/* ── Mobile bottom nav — centered floating pill, follows theme ── */
 .dt-bnav{
   display:none;
   position:fixed;
   bottom:calc(14px + env(safe-area-inset-bottom,0px));
-  left:12px;right:12px;
+  left:50%;
+  transform:translateX(-50%);
+  width:max-content;
+  max-width:calc(100vw - 24px);
   z-index:200;
-  border-radius:44px;
+  border-radius:999px;
   background:var(--dt-sb);
   border:1px solid var(--dt-bdr);
   backdrop-filter:blur(40px) saturate(2.2);
@@ -213,15 +216,17 @@ const DT_CSS = `
 @media(max-width:820px){.dt-bnav{display:flex}}
 
 .dt-bnav-inner{
-  display:flex;width:100%;align-items:center;
-  padding:8px 6px 8px;
+  display:flex;align-items:center;
+  padding:6px 8px;
   gap:0;
 }
 
 /* ── Nav item ── */
 .dt-bnav-item{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:4px;flex:1;padding:4px 2px;
+  gap:3px;
+  width:62px;
+  padding:2px 0;
   text-decoration:none;
   color:rgba(110,108,118,1);
   font-size:10px;font-weight:500;letter-spacing:.08px;
@@ -229,7 +234,7 @@ const DT_CSS = `
   background:none;border:none;font-family:inherit;
   border-radius:32px;
   -webkit-tap-highlight-color:transparent;
-  user-select:none;min-width:0;
+  user-select:none;flex-shrink:0;
 }
 .dt-dk .dt-bnav-item{color:rgba(95,93,105,1)}
 .dt-bnav-item:active{opacity:.68}
@@ -240,7 +245,7 @@ const DT_CSS = `
 /* ── Icon chip (lights up on active) ── */
 .dt-bnav-icon{
   position:relative;
-  width:46px;height:32px;border-radius:16px;
+  width:54px;height:36px;border-radius:18px;
   display:flex;align-items:center;justify-content:center;
   transition:background .2s;
 }
@@ -251,18 +256,18 @@ const DT_CSS = `
 .dt-bnav-badge{
   position:absolute;top:-3px;right:-1px;
   background:#00BCD4;color:#000;
-  font-size:8px;font-weight:800;min-width:14px;height:14px;
-  border-radius:7px;display:flex;align-items:center;
-  justify-content:center;padding:0 3px;line-height:1;
+  font-size:9px;font-weight:800;min-width:16px;height:16px;
+  border-radius:8px;display:flex;align-items:center;
+  justify-content:center;padding:0 4px;line-height:1;
   border:2px solid var(--dt-sb);
   pointer-events:none;
 }
 
 /* ── Item label ── */
-.dt-bnav-label{font-size:10px;letter-spacing:.06px;line-height:1}
+.dt-bnav-label{font-size:10.5px;font-weight:inherit;letter-spacing:.04px;line-height:1}
 
 /* Push content above nav */
-@media(max-width:820px){.dt-content{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}}
+@media(max-width:820px){.dt-content{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}}
 `;
 
 /* ─────────────────────────────────────────────────────────────
@@ -587,7 +592,7 @@ export default function DesktopTabLayout() {
                             src={avatarUrl}
                             alt={displayName}
                             style={{
-                              width: 26, height: 26, borderRadius: "50%",
+                              width: 28, height: 28, borderRadius: "50%",
                               objectFit: "cover",
                               border: active ? "2.5px solid #00BCD4" : "2px solid rgba(128,128,128,0.22)",
                               transition: "border-color .16s",
@@ -598,7 +603,7 @@ export default function DesktopTabLayout() {
                             src="/afu-symbol-icon.png"
                             alt="Chats"
                             style={{
-                              width: 22, height: 22,
+                              width: 26, height: 26,
                               objectFit: "contain",
                               filter: active
                                 ? "invert(68%) sepia(97%) saturate(450%) hue-rotate(148deg) brightness(98%) contrast(102%)"
@@ -610,8 +615,8 @@ export default function DesktopTabLayout() {
                           />
                         ) : (
                           <item.Icon
-                            size={22}
-                            strokeWidth={active ? 2.4 : 1.6}
+                            size={24}
+                            strokeWidth={active ? 2.3 : 1.7}
                             color={iconColor}
                           />
                         )}
