@@ -312,8 +312,8 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   brandLogo: {
-    width: 26,
-    height: 26,
+    width: 40,
+    height: 40,
     borderRadius: 6,
   },
   brandText: {

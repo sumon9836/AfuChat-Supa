@@ -441,7 +441,7 @@ const pub = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
   },
-  joinLogo: { width: 40, height: 40, borderRadius: 10 },
+  joinLogo: { width: 60, height: 60, borderRadius: 10 },
   joinTitle: { fontSize: 14, fontFamily: "Inter_700Bold", marginBottom: 2 },
   joinSub: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 16 },
   joinBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
@@ -503,7 +503,7 @@ const pub = StyleSheet.create({
 
 const splash = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  logo: { width: 80, height: 80, borderRadius: 20 },
+  logo: { width: 120, height: 120, borderRadius: 20 },
   brandText: { color: "#fff", fontSize: 24, fontWeight: "700", marginTop: 12 },
   loader: { marginTop: 24 },
   subText: { color: "rgba(255,255,255,0.7)", fontSize: 14, marginTop: 8 },

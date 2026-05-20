@@ -410,7 +410,7 @@ function CardFront({cardWidth:cw,cardHeight:ch,theme,profile,roleConf,memberNumb
       <GBg w={cw} h={ch} color={theme.primary}/>
       <FlagStrip colors={theme.flag} h={5}/>
       <LinearGradient colors={theme.headerBg} style={s.hdr}>
-        <Image source={afuSymbol} style={{width:17,height:17}} tintColor={BRAND} resizeMode="contain"/>
+        <Image source={afuSymbol} style={{width:28,height:28}} tintColor={BRAND} resizeMode="contain"/>
         <View style={{flex:1}}>
           <Text style={s.brand}>AFUCHAT</Text>
           <Text style={s.subHdr} numberOfLines={1}>UNIVERSE · DIGITAL IDENTITY CARD</Text>
@@ -461,7 +461,7 @@ function CardBack({cardWidth:cw,cardHeight:ch,theme,profile,memberNumber,afuId,i
       <GBg w={cw} h={ch} color={theme.primary}/>
       <FlagStrip colors={theme.flag} h={5}/>
       <LinearGradient colors={theme.headerBg} style={s.hdr}>
-        <Image source={afuSymbol} style={{width:13,height:13}} tintColor={BRAND} resizeMode="contain"/>
+        <Image source={afuSymbol} style={{width:22,height:22}} tintColor={BRAND} resizeMode="contain"/>
         <Text style={[s.subHdr,{color:BRAND,marginLeft:6}]}>AFUCHAT · DIGITAL FINGERPRINT</Text>
         <View style={{flex:1}}/>
         <View style={[s.secChip,{borderColor:theme.primary+"55"}]}>

@@ -366,7 +366,7 @@ const mobBackSt = StyleSheet.create({
 const mobSt = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: 28 },
   logoArea: { alignItems: "center", marginBottom: 36 },
-  logo: { width: 56, height: 56, marginBottom: 12 },
+  logo: { width: 88, height: 88, marginBottom: 12 },
   appName: { fontSize: 26, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginBottom: 4 },
   tagline: { fontSize: 15, fontFamily: "Inter_400Regular" },
 });

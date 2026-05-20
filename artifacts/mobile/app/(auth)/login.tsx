@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
   },
-  logoImg: { width: 46, height: 46 },
+  logoImg: { width: 72, height: 72 },
   appName: { fontSize: 30, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
   tagline: { fontSize: 14, fontFamily: "Inter_400Regular" },
 

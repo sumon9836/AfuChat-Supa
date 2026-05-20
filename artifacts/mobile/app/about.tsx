@@ -130,7 +130,7 @@ export default function AboutScreen() {
           style={st.hero}
         >
           <View style={st.heroLogo}>
-            <Image source={afuSymbol} style={{ width: 56, height: 56 }} resizeMode="contain" tintColor="#fff" />
+            <Image source={afuSymbol} style={{ width: 88, height: 88 }} resizeMode="contain" tintColor="#fff" />
           </View>
           <Text style={st.heroTitle}>AfuChat</Text>
           <Text style={st.heroTagline}>Connect with everyone, everywhere.</Text>
@@ -344,7 +344,7 @@ const st = StyleSheet.create({
   divider: { height: StyleSheet.hairlineWidth, marginLeft: 66 },
 
   footer: { alignItems: "center", paddingTop: 36, paddingBottom: 16, gap: 6 },
-  footerSymbol: { width: 28, height: 28, marginBottom: 4 },
+  footerSymbol: { width: 44, height: 44, marginBottom: 4 },
   footerName: { fontSize: 16, fontWeight: "800" },
   footerVersion: { fontSize: 12 },
   footerCopy: { fontSize: 12, marginTop: 4 },
