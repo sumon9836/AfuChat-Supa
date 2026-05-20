@@ -603,7 +603,7 @@ export default function DesktopTabLayout() {
                             src="/afu-symbol-icon.png"
                             alt="Chats"
                             style={{
-                              width: 26, height: 26,
+                              width: 34, height: 34,
                               objectFit: "contain",
                               filter: active
                                 ? "invert(68%) sepia(97%) saturate(450%) hue-rotate(148deg) brightness(98%) contrast(102%)"
