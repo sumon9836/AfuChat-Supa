@@ -73,6 +73,7 @@ import {
   getSeenVideoIds,
   markVideosSeen,
   weightedSample,
+  extractHashtags,
   type FeedSignals,
 } from "../../lib/feedAlgorithm";
 import * as Haptics from "@/lib/haptics";
@@ -836,6 +837,7 @@ const cmStyles = StyleSheet.create({
 const VideoItem = React.memo(function VideoItem({
   item, isActive, isNearActive, screenH, screenW, isFollowing, isSelf,
   onLike, onBookmark, onOpenComments, onShare, onFollow, onRecordView, onOpenMenu,
+  navOffset = 0,
 }: {
   item: VideoPost; isActive: boolean; isNearActive: boolean; screenH: number; screenW: number;
   isFollowing: boolean; isSelf: boolean;
@@ -843,6 +845,7 @@ const VideoItem = React.memo(function VideoItem({
   onOpenComments: (id: string) => void; onShare: (item: VideoPost) => void;
   onFollow: (authorId: string, isFollowing: boolean) => void; onRecordView: (postId: string) => void;
   onOpenMenu: (item: VideoPost) => void;
+  navOffset?: number;
 }) {
   const { accent } = useAppAccent();
   const { colors } = useTheme();
@@ -1116,7 +1119,7 @@ const VideoItem = React.memo(function VideoItem({
       <GradientOverlay position="bottom" height={380} />
 
       {/* Bottom info — author + caption */}
-      <View style={[vStyles.bottomArea, { bottom: insets.bottom + 56 }]} pointerEvents="box-none">
+      <View style={[vStyles.bottomArea, { bottom: insets.bottom + 56 + navOffset }]} pointerEvents="box-none">
         <TouchableOpacity
           onPress={() => router.push({ pathname: "/contact/[id]", params: { id: item.author_id, init_name: item.profile.display_name, init_handle: item.profile.handle, init_avatar: item.profile.avatar_url ?? "" } })}
           style={vStyles.authorRow} activeOpacity={0.8}
@@ -1169,7 +1172,7 @@ const VideoItem = React.memo(function VideoItem({
       </View>
 
       {/* Right action rail */}
-      <View style={[vStyles.rightCol, { bottom: insets.bottom + 32 }]} pointerEvents="box-none">
+      <View style={[vStyles.rightCol, { bottom: insets.bottom + 32 + navOffset }]} pointerEvents="box-none">
         {/* Like */}
         <View style={vStyles.actionItem}>
           <Animated.View style={{ transform: [{ scale: heartScale }] }}>
@@ -1213,7 +1216,7 @@ const VideoItem = React.memo(function VideoItem({
       {/* Progress bar */}
       <TouchableOpacity
         activeOpacity={1}
-        style={[vStyles.progressBar, { bottom: insets.bottom > 0 ? insets.bottom : 0 }]}
+        style={[vStyles.progressBar, { bottom: (insets.bottom > 0 ? insets.bottom : 0) + navOffset }]}
         onLayout={(e) => setProgressBarWidth(e.nativeEvent.layout.width)}
         onPress={(e) => handleProgressBarPress(e.nativeEvent.locationX)}
         hitSlop={{ top: 10, bottom: 10 }}
@@ -1379,19 +1382,31 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       }
     }
 
+    // For the "For You" feed on initial load, fetch a larger diverse pool from
+    // the last 30 days so the scoring algorithm can surface viral evergreen
+    // content — not just the newest N posts. On load-more, we fall back to
+    // standard cursor pagination to avoid re-fetching the same window.
+    const FOR_YOU_POOL = isLoadMore ? VIDEO_PAGE_SIZE : VIDEO_PAGE_SIZE * 4;
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
     let query = supabase
       .from("posts")
       .select(`id, author_id, content, video_url, image_url, created_at, audio_name, profiles!posts_author_id_fkey(display_name, handle, avatar_url)`)
       .not("video_url", "is", null)
       .or("post_type.eq.video,post_type.is.null")
-      .order("created_at", { ascending: false }).limit(VIDEO_PAGE_SIZE);
+      .order("created_at", { ascending: false })
+      .limit(tab === "for_you" && !cursor ? FOR_YOU_POOL : VIDEO_PAGE_SIZE);
 
-    if (tab === "following" && followingIds.length > 0) {
+    if (tab === "for_you" && !cursor) {
+      // Wide discovery window: last 30 days so the algo can rank evergreen content
+      query = query.gte("created_at", thirtyDaysAgo).or("visibility.eq.public,visibility.is.null");
+    } else if (tab === "following" && followingIds.length > 0) {
       query = query.in("author_id", followingIds).or("visibility.eq.public,visibility.eq.followers,visibility.is.null");
+      if (cursor) query = query.lt("created_at", cursor);
     } else {
       query = query.or("visibility.eq.public,visibility.is.null");
+      if (cursor) query = query.lt("created_at", cursor);
     }
-    if (cursor) query = query.lt("created_at", cursor);
 
     const { data, error: qErr } = await query;
     if (qErr) console.error("[VideoFeed] query error:", qErr.message, qErr.details);
@@ -1451,6 +1466,9 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         const scored = mapped.map((v) => {
           const interestMatches = matchInterestsWeighted(v.content, [], learnedWeights);
           const isSeen = seenVideoIds.has(v.id);
+          const hashtags = extractHashtags(v.content);
+          const engagementRate = v.likeCount / Math.max(v.view_count, 1);
+          const completionProxy = Math.min(v.likeCount / Math.max(v.view_count, 0.5), 1);
           const signals: FeedSignals = {
             likeCount: v.likeCount,
             replyCount: v.replyCount,
@@ -1458,7 +1476,6 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
             createdAt: v.created_at,
             interestMatches,
             isFollowing: followedSet.has(v.author_id),
-            // Use like history as proxy for author interaction strength
             authorInteractionCount: v.liked ? 3 : 0,
             isVerified: false,
             isOrgVerified: false,
@@ -1468,6 +1485,9 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
             contentLength: v.content?.length || 0,
             postType: "video",
             isSeen,
+            engagementRate,
+            hashtagCount: hashtags.length,
+            completionProxy,
           };
           const score = computeFeedScore(signals);
           return { id: v.id, author_id: v.author_id, score, postType: "video" as const, video: v };
@@ -1813,13 +1833,14 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
   const videoItemProps = React.useMemo(() => ({
     screenH: listHeight, screenW: SCREEN_W,
+    navOffset: isEmbedded ? 82 : 0,
     onLike: handleLike, onBookmark: handleBookmark,
     onOpenComments: setCommentPostId,
     onShare,
     onFollow: handleFollow,
     onRecordView: handleRecordView,
     onOpenMenu,
-  }), [listHeight, SCREEN_W, handleLike, handleBookmark, handleFollow, handleRecordView, onShare, onOpenMenu]);
+  }), [listHeight, SCREEN_W, isEmbedded, handleLike, handleBookmark, handleFollow, handleRecordView, onShare, onOpenMenu]);
 
   const renderItem = useCallback(({ item, index }: { item: VideoPost; index: number }) => (
     <VideoItem

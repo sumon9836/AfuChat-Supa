@@ -141,12 +141,23 @@ export type FeedSignals = {
   contentLength: number;
   postType?: string;
   isSeen?: boolean;
+  engagementRate?: number;   // likeCount / max(viewCount, 1) — high ratio = high quality
+  hashtagCount?: number;     // #hashtag count in content — signals curated/discoverable content
+  completionProxy?: number;  // avg watch depth proxy: likeCount / max(viewCount, 0.5) capped 0–1
 };
+
+// ─── Hashtag extractor ────────────────────────────────────────────────────────
+export function extractHashtags(content: string): string[] {
+  if (!content) return [];
+  return (content.match(/#[\w\u0080-\uFFFF]+/g) || []).map((t) => t.slice(1).toLowerCase());
+}
 
 export function computeFeedScore(signals: FeedSignals): number {
   const ageHours = (Date.now() - new Date(signals.createdAt).getTime()) / 3600000;
 
   // ── Freshness: tiered decay curve ─────────────────────────────────────────
+  // Older videos still score via engagement/interest — not zero — so viral
+  // evergreen content can surface even after days/weeks.
   const freshnessScore =
     ageHours < 1 ? 45
     : ageHours < 3 ? 40
@@ -155,13 +166,13 @@ export function computeFeedScore(signals: FeedSignals): number {
     : ageHours < 24 ? 22
     : ageHours < 48 ? 15
     : ageHours < 72 ? 10
-    : ageHours < 168 ? 5
-    : 2;
+    : ageHours < 168 ? 6
+    : ageHours < 336 ? 3
+    : 1;
 
   // ── Viral velocity: engagement per hour with sqrt dampening ───────────────
   const velocityWindow = Math.max(ageHours, 0.5);
   const rawVelocity = (signals.likeCount + signals.replyCount * 2.5) / velocityWindow;
-  // sqrt dampening so viral posts don't completely drown everything else
   const trendingScore = Math.min(Math.sqrt(rawVelocity) * 12, 35);
 
   // ── Burst signal: brand-new post gaining traction fast ────────────────────
@@ -170,6 +181,23 @@ export function computeFeedScore(signals: FeedSignals): number {
   // ── Absolute engagement (log scale to prevent outlier dominance) ──────────
   const rawEngagement = signals.likeCount * 1.5 + signals.replyCount * 3 + Math.min(signals.viewCount, 200) * 0.04;
   const engagementScore = Math.min(rawEngagement > 0 ? Math.log1p(rawEngagement) * 6 : 0, 22);
+
+  // ── Engagement rate: likes per view — indicates retained-audience quality ─
+  // A video with 10 likes / 12 views scores higher than 10 likes / 10 000 views.
+  const engagementRateScore = signals.engagementRate != null
+    ? Math.min(signals.engagementRate * 90, 20)
+    : 0;
+
+  // ── Completion proxy: like-to-view ratio bounded 0–1 ─────────────────────
+  // High completion → content compelling enough to watch to the end.
+  const completionScore = signals.completionProxy != null
+    ? Math.min(signals.completionProxy * 16, 14)
+    : 0;
+
+  // ── Hashtag quality: curated / discoverable content ──────────────────────
+  const hashtagScore = signals.hashtagCount
+    ? Math.min(signals.hashtagCount * 1.8, 7)
+    : 0;
 
   // ── Interest alignment ────────────────────────────────────────────────────
   const interestScore = signals.interestMatches * 13;
@@ -201,11 +229,11 @@ export function computeFeedScore(signals: FeedSignals): number {
   const seenPenalty = signals.isSeen ? -45 : 0;
 
   // ── Random jitter: large enough to surface unexpected gems ───────────────
-  // 0–15 pts (was 0–5). This is the key lever for variety between sessions.
   const randomJitter = Math.random() * 15;
 
   return (
     freshnessScore + trendingScore + burstScore + engagementScore +
+    engagementRateScore + completionScore + hashtagScore +
     interestScore + affinityScore + qualityScore +
     diversityPenalty + seenPenalty + randomJitter
   );
