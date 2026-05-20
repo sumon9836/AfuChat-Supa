@@ -31,6 +31,7 @@ import { DataModeProvider } from "@/context/DataModeContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
+import { CallManager } from "@/components/CallManager";
 import { initConnectivityToasts } from "@/lib/toast";
 
 // Keep the native splash visible until fonts are ready so we never flash
@@ -120,6 +121,7 @@ export default function RootLayout() {
                       </Stack>
                       <ToastContainer />
                       <AlertModal />
+                      <CallManager />
                     </ChatPreferencesProvider>
                   </AdvancedFeaturesProvider>
                 </LanguageProvider>
