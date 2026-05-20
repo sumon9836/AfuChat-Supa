@@ -240,7 +240,7 @@ const DT_CSS = `
 /* ── Icon chip (lights up on active) ── */
 .dt-bnav-icon{
   position:relative;
-  width:54px;height:34px;border-radius:17px;
+  width:46px;height:32px;border-radius:16px;
   display:flex;align-items:center;justify-content:center;
   transition:background .2s;
 }
@@ -250,7 +250,7 @@ const DT_CSS = `
 /* ── Badge ── */
 .dt-bnav-badge{
   position:absolute;top:-3px;right:-1px;
-  background:#FF3B30;color:#fff;
+  background:#00BCD4;color:#000;
   font-size:8px;font-weight:800;min-width:14px;height:14px;
   border-radius:7px;display:flex;align-items:center;
   justify-content:center;padding:0 3px;line-height:1;
@@ -558,10 +558,11 @@ export default function DesktopTabLayout() {
         {/* ══ MOBILE BOTTOM NAV (visible only when sidebar is hidden) ══ */}
         {(() => {
           const BNAV = [
-            { label: "Chats",    Icon: MessageCircle, route: "/(tabs)"           as const, matchPaths: ["/", "/(tabs)", "/index", "/chat"] },
-            { label: "Discover", Icon: Compass,       route: "/(tabs)/discover"  as const, matchPaths: ["/discover", "/(tabs)/discover"] },
-            { label: "Apps",     Icon: Grid3X3,       route: "/(tabs)/apps"      as const, matchPaths: ["/apps", "/(tabs)/apps"] },
-            { label: "Profile",  Icon: User,          route: "/(tabs)/me"        as const, matchPaths: ["/me", "/(tabs)/me"] },
+            { label: "Chats",    Icon: MessageCircle, route: "/(tabs)"           as const, matchPaths: ["/", "/(tabs)", "/index", "/chat"], useAfuSymbol: true },
+            { label: "Discover", Icon: Compass,       route: "/(tabs)/discover"  as const, matchPaths: ["/discover", "/(tabs)/discover"],   useAfuSymbol: false },
+            { label: "Search",   Icon: Search,        route: "/(tabs)/search"    as const, matchPaths: ["/search", "/(tabs)/search"],        useAfuSymbol: false },
+            { label: "Apps",     Icon: Grid3X3,       route: "/(tabs)/apps"      as const, matchPaths: ["/apps", "/(tabs)/apps"],            useAfuSymbol: false },
+            { label: "Profile",  Icon: User,          route: "/(tabs)/me"        as const, matchPaths: ["/me", "/(tabs)/me"],                useAfuSymbol: false },
           ] as const;
           return (
             <nav className="dt-bnav" aria-label="Mobile navigation">
@@ -570,6 +571,7 @@ export default function DesktopTabLayout() {
                   const active = isActiveRoute(pathname, item.matchPaths as unknown as string[]);
                   const isChats = item.label === "Chats";
                   const isProfile = item.label === "Profile";
+                  const iconColor = active ? "#00BCD4" : undefined;
                   return (
                     <a
                       key={item.route}
@@ -585,17 +587,32 @@ export default function DesktopTabLayout() {
                             src={avatarUrl}
                             alt={displayName}
                             style={{
-                              width: 28, height: 28, borderRadius: "50%",
+                              width: 26, height: 26, borderRadius: "50%",
                               objectFit: "cover",
                               border: active ? "2.5px solid #00BCD4" : "2px solid rgba(128,128,128,0.22)",
                               transition: "border-color .16s",
+                            }}
+                          />
+                        ) : item.useAfuSymbol ? (
+                          <img
+                            src="/afu-symbol-icon.png"
+                            alt="Chats"
+                            style={{
+                              width: 22, height: 22,
+                              objectFit: "contain",
+                              filter: active
+                                ? "invert(68%) sepia(97%) saturate(450%) hue-rotate(148deg) brightness(98%) contrast(102%)"
+                                : isDark
+                                  ? "invert(40%) sepia(0%) saturate(0%) brightness(70%)"
+                                  : "invert(30%) sepia(0%) saturate(0%) brightness(60%)",
+                              transition: "filter .16s",
                             }}
                           />
                         ) : (
                           <item.Icon
                             size={22}
                             strokeWidth={active ? 2.4 : 1.6}
-                            color={active ? "#00BCD4" : undefined}
+                            color={iconColor}
                           />
                         )}
                         {isChats && unread > 0 && (
