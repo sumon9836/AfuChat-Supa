@@ -1412,6 +1412,10 @@ function ChatScreen() {
   const { features: advancedFeatures } = useAdvancedFeatures();
   const { isLowData: chatIsLowData } = useDataMode();
   const { statsMap, getDynamicPrice } = useGiftPrices();
+  const pickerQuality = (() => {
+    const base = chatPrefs.media_quality === "High" ? 1.0 : chatPrefs.media_quality === "Low" ? 0.4 : 0.8;
+    return chatIsLowData ? Math.min(base, 0.4) : base;
+  })();
 
   const playNotificationSound = useCallback(() => {
     if (!chatPrefs.sounds_enabled) return;
@@ -3815,8 +3819,6 @@ STRICT RULES:
     setShowAttachMenu(false);
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") { showAlert("Permission needed", "Camera access is required to take photos."); return; }
-    const baseQuality = chatPrefs.media_quality === "High" ? 1.0 : chatPrefs.media_quality === "Low" ? 0.4 : 0.8;
-    const pickerQuality = chatIsLowData ? Math.min(baseQuality, 0.4) : baseQuality;
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: pickerQuality });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
@@ -3828,8 +3830,6 @@ STRICT RULES:
     setShowAttachMenu(false);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") { showAlert("Permission needed", "Gallery access is required."); return; }
-    const baseQuality = chatPrefs.media_quality === "High" ? 1.0 : chatPrefs.media_quality === "Low" ? 0.4 : 0.8;
-    const pickerQuality = chatIsLowData ? Math.min(baseQuality, 0.4) : baseQuality;
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: pickerQuality, allowsMultipleSelection: false });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
