@@ -2549,7 +2549,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   noAccess: { fontSize: 18, fontFamily: "Inter_600SemiBold", marginTop: 12 },
   header: { borderBottomWidth: StyleSheet.hairlineWidth },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingBottom: 8 },
+  headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8 },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   headerTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },

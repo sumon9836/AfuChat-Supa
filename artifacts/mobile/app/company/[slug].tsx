@@ -1446,8 +1446,8 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
   emptyBtn: { marginTop: 6, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
 
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.52)", paddingHorizontal: 8, paddingBottom: 8 },
-  modalSheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderBottomLeftRadius: 14, borderBottomRightRadius: 14, padding: 20, gap: 12 },
+  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.52)", paddingHorizontal: 8 },
+  modalSheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, gap: 12 },
   modalHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 4 },
   modalTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
   postModalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },

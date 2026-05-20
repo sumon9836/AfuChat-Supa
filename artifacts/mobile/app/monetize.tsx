@@ -1278,12 +1278,10 @@ const cs = StyleSheet.create({
 
   // ── Modals ────────────────────────────────────────────────────────────────
 
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8, paddingBottom: 8 },
+  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8 },
   modalSheet: {
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
     padding: 24,
     gap: 16,
     ...Platform.select({

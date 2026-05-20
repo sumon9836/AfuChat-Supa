@@ -613,8 +613,6 @@ const sheet = StyleSheet.create({
   container: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 24,

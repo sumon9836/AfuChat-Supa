@@ -218,13 +218,11 @@ export function TwoFactorGate({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 8, paddingBottom: 8 },
+  overlay: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 8 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
   sheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
     padding: 24,
     paddingBottom: 40,
     gap: 14,

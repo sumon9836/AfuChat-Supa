@@ -698,8 +698,8 @@ function CommentsSheet({ visible, onClose, postId, postAuthorId, onReplyCountCha
 
 const cStyles = StyleSheet.create({
   kavFull: { flex: 1 },
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", paddingHorizontal: 8, paddingBottom: 8 },
-  container: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 14, borderBottomRightRadius: 14, overflow: "hidden" },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", paddingHorizontal: 8 },
+  container: { borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: "hidden" },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.2)", alignSelf: "center", marginVertical: 12 },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 12, gap: 10 },
   title: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },

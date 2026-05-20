@@ -804,8 +804,8 @@ const fieldSt = StyleSheet.create({
 });
 
 const verSt = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8, paddingBottom: 8 },
-  sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 14, borderBottomRightRadius: 14, padding: 20, maxHeight: "90%" },
+  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8 },
+  sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "90%" },
   handle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 4 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   title: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
@@ -824,7 +824,7 @@ const verSt = StyleSheet.create({
   notes: { borderRadius: 12, borderWidth: 1, padding: 12, fontSize: 14, fontFamily: "Inter_400Regular", minHeight: 80, textAlignVertical: "top" },
   submitBtn: { borderRadius: 12, paddingVertical: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
   submitBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  pickerSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 14, borderBottomRightRadius: 14, padding: 20 },
+  pickerSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   pickerTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginBottom: 8 },
   pickerOption: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 13, paddingHorizontal: 4, borderRadius: 8 },
   pickerOptionText: { fontSize: 15, fontFamily: "Inter_400Regular" },

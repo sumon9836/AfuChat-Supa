@@ -5568,7 +5568,7 @@ STRICT RULES:
           };
 
           return (
-            <View style={{ flex: 1, justifyContent: "flex-end", paddingHorizontal: 8, paddingBottom: 8 }}>
+            <View style={{ flex: 1, justifyContent: "flex-end", paddingHorizontal: 8 }}>
               {/* Dim backdrop — tap to dismiss */}
               <TouchableOpacity
                 style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.45)" }]}
@@ -5582,8 +5582,6 @@ STRICT RULES:
                 backgroundColor: colors.surface,
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
-                borderBottomLeftRadius: 14,
-                borderBottomRightRadius: 14,
                 overflow: "visible",
               }}>
                 {/* Drag handle */}
@@ -6370,12 +6368,10 @@ const st = StyleSheet.create({
   },
   backBtn: { padding: 6 },
 
-  optionsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end", paddingHorizontal: 8, paddingBottom: 8 },
+  optionsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end", paddingHorizontal: 8 },
   optionsSheet: {
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
     paddingBottom: 32,
     paddingTop: 10,
     ...Platform.select({
@@ -6746,7 +6742,7 @@ const st = StyleSheet.create({
   recordingText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
 
   sheetOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)" },
-  sheetContent: { position: "absolute", bottom: 8, left: 8, right: 8, borderRadius: 20, padding: 24, gap: 14 },
+  sheetContent: { position: "absolute", bottom: 0, left: 8, right: 8, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 14 },
   sheetHandle: { width: 40, height: 5, borderRadius: 3, backgroundColor: "#CCC", alignSelf: "center", marginBottom: 8 },
   desktopSheetOverlay: { backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" },
   desktopSheetCard: { width: "90%", maxWidth: 480, borderRadius: 16, padding: 24, gap: 14, ...Platform.select({ web: { boxShadow: "0 8px 40px rgba(0,0,0,0.22)" } as any }) },
@@ -6829,8 +6825,8 @@ const st = StyleSheet.create({
   gifThumb: { width: "100%", height: 80, borderRadius: 10 },
   gifLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
 
-  forwardOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8, paddingBottom: 8 },
-  forwardSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 14, borderBottomRightRadius: 14, paddingBottom: 40, overflow: "hidden" },
+  forwardOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8 },
+  forwardSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 40, overflow: "hidden" },
   forwardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: StyleSheet.hairlineWidth },
   forwardTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   forwardPreview: { flexDirection: "row", gap: 8, padding: 12, marginHorizontal: 16, marginVertical: 10, borderRadius: 10 },

@@ -1788,7 +1788,7 @@ export default function DiscoverScreen() {
         onRequestClose={() => setShowCreatePicker(false)}
       >
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end", paddingHorizontal: 8, paddingBottom: 8 }}
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end", paddingHorizontal: 8 }}
           activeOpacity={1}
           onPress={() => setShowCreatePicker(false)}
         >
@@ -2034,13 +2034,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "flex-end",
     paddingHorizontal: 8,
-    paddingBottom: 8,
   },
   menuSheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
     paddingTop: 12,
     paddingHorizontal: 8,
   },
@@ -2111,8 +2108,6 @@ const styles = StyleSheet.create({
   createPickerSheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
     padding: 20,
     gap: 10,
   },

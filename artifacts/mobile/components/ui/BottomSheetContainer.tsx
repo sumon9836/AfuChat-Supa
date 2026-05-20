@@ -2,8 +2,8 @@
  * BottomSheetContainer
  *
  * Use this as the outermost View inside every new slide-up Modal.
- * It gives the sheet a floating appearance with 8 dp gap from all
- * device edges and rounded corners on all sides.
+ * The sheet floats 8 dp from the left/right device edges and sits
+ * FLAT against the bottom — only the top corners are rounded.
  *
  * Usage:
  *   <Modal visible={...} transparent animationType="slide" ...>
@@ -18,14 +18,13 @@
  *     backdrop: {
  *       flex: 1,
  *       justifyContent: "flex-end",
- *       paddingHorizontal: SHEET_EDGE_GAP,
- *       paddingBottom: SHEET_EDGE_GAP,
+ *       paddingHorizontal: SHEET_EDGE_GAP,   // side inset only — no bottom gap
  *       backgroundColor: "rgba(0,0,0,0.5)",
  *     },
  *   });
  *
- * The exported constant SHEET_EDGE_GAP (= 8) should be used on the
- * backdrop overlay so the sheet is consistently inset on all sides.
+ * SHEET_EDGE_GAP (= 8) is the horizontal inset. Do NOT add paddingBottom
+ * to the backdrop — the sheet must be flush with the screen bottom.
  */
 
 import React from "react";
@@ -34,7 +33,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const SHEET_EDGE_GAP = 8;
 export const SHEET_BORDER_RADIUS = 20;
-export const SHEET_BOTTOM_RADIUS = 14;
 
 interface Props {
   children: React.ReactNode;
@@ -73,15 +71,12 @@ export const SHEET_OVERLAY_STYLE: ViewStyle = {
   flex: 1,
   justifyContent: "flex-end",
   paddingHorizontal: SHEET_EDGE_GAP,
-  paddingBottom: SHEET_EDGE_GAP,
 };
 
 const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: SHEET_BORDER_RADIUS,
     borderTopRightRadius: SHEET_BORDER_RADIUS,
-    borderBottomLeftRadius: SHEET_BOTTOM_RADIUS,
-    borderBottomRightRadius: SHEET_BOTTOM_RADIUS,
     overflow: "hidden",
   },
 });

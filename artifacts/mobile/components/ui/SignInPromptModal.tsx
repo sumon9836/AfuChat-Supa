@@ -80,13 +80,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
     paddingHorizontal: 8,
-    paddingBottom: 8,
   },
   sheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
     paddingTop: 14,
     paddingHorizontal: 24,
     alignItems: "center",
