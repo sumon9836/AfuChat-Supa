@@ -11,8 +11,9 @@ import { showBanner } from "@/lib/notifBannerStore";
 
 const RE_REGISTER_COOLDOWN_MS = 10 * 60 * 1000;
 
-// Notification types handled by their own native UI — skip the in-app banner for these
-const BANNER_SKIP_TYPES = new Set(["call", "snoozed"]);
+// Notification types handled by their own native UI (call) or that are too
+// noisy as foreground banners (message) — handled by the chat screen itself.
+const BANNER_SKIP_TYPES = new Set(["call", "snoozed", "message"]);
 
 export function PushNotificationManager() {
   const { user } = useAuth();
