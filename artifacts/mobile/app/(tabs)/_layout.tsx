@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Image,
   Platform,
   Pressable,
@@ -108,6 +109,22 @@ function CompactTabBar({
   const isIOS           = Platform.OS === "ios";
   const isAndroid       = Platform.OS === "android";
 
+  // Sliding oval animation — offset 11px = pillPaddingH(8) + ovalMargin(3)
+  const OVAL_OFFSET = 11;
+  const pillAnim  = useRef(new Animated.Value(OVAL_OFFSET)).current;
+  const [slotWidth, setSlotWidth] = useState(0);
+  const activeIdx = Math.max(0, TABS.findIndex(t => t.route === active));
+
+  useEffect(() => {
+    if (slotWidth === 0) return;
+    Animated.spring(pillAnim, {
+      toValue: OVAL_OFFSET + activeIdx * slotWidth,
+      useNativeDriver: true,
+      damping: 20,
+      stiffness: 180,
+    }).start();
+  }, [activeIdx, slotWidth]);
+
   const barBg = isDark ? "rgba(18,22,28,0.96)" : "rgba(255,255,255,0.96)";
 
   // Use boxShadow on web (shadow* props are deprecated there); native shadow on iOS/Android.
@@ -157,6 +174,35 @@ function CompactTabBar({
       style={[bar.container, { bottom: bottomPos, pointerEvents: "box-none" }]}
     >
       <View style={[bar.pill, shadow, { backgroundColor: barBg }]}>
+
+        {/* Invisible row used to measure per-slot width */}
+        <View
+          pointerEvents="none"
+          style={{ position: "absolute", top: 0, bottom: 0, left: 8, right: 8, flexDirection: "row", opacity: 0 }}
+          onLayout={e => {
+            const w = e.nativeEvent.layout.width / TABS.length;
+            if (w > 0 && w !== slotWidth) {
+              pillAnim.setValue(OVAL_OFFSET + activeIdx * w);
+              setSlotWidth(w);
+            }
+          }}
+        />
+
+        {/* Sliding oval highlight */}
+        {slotWidth > 0 && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              bar.slidingOval,
+              {
+                width: slotWidth - 6,
+                backgroundColor: colors.accent + "22",
+                transform: [{ translateX: pillAnim }],
+              },
+            ]}
+          />
+        )}
+
         {TABS.map((tab) => {
           const focused   = active === tab.route;
           const iconColor = focused
@@ -167,19 +213,7 @@ function CompactTabBar({
 
           return (
             <View key={tab.route} style={bar.item}>
-              {/*
-               * Two-layer pill structure for Android:
-               *   1. pillClip  — borderRadius + overflow:hidden clips the ripple
-               *   2. Pressable — receives android_ripple and the touch event
-               * The focused highlight colour lives on pillClip so it renders
-               * underneath the ripple overlay (correct stacking order).
-               */}
-              <View
-                style={[
-                  bar.pillClip,
-                  focused && { backgroundColor: colors.accent + "1C" },
-                ]}
-              >
+              <View style={bar.pillClip}>
                 <Pressable
                   android_ripple={ripple}
                   style={({ pressed }) => [
@@ -278,6 +312,12 @@ const bar = StyleSheet.create({
     paddingHorizontal: 8,
     overflow: "visible",
     alignSelf: "center",
+  },
+  slidingOval: {
+    position: "absolute",
+    top: 6,
+    bottom: 6,
+    borderRadius: 999,
   },
   item: {
     alignItems: "center",
