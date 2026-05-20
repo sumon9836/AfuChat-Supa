@@ -4343,10 +4343,20 @@ STRICT RULES:
     return t.length > 80 ? t.slice(0, 80) + "…" : t;
   }
 
+  // The FlatList may append lensCardMsg after the messages array.
+  // All render helpers must index into this combined list — never into
+  // `messages` alone — otherwise the out-of-bounds index crashes on
+  // `undefined.sent_at` when the lens card is the active item.
+  const listData: Message[] = useMemo(
+    () => lensCardMsg ? [...messages, lensCardMsg] : messages,
+    [messages, lensCardMsg]
+  );
+
   function shouldShowTail(index: number): boolean {
-    if (index === messages.length - 1) return true;
-    const current = messages[index];
-    const next = messages[index + 1];
+    if (index >= listData.length - 1) return true;
+    const current = listData[index];
+    const next = listData[index + 1];
+    if (!current || !next) return true;
     return current.sender_id !== next.sender_id;
   }
 
@@ -4357,9 +4367,10 @@ STRICT RULES:
 
   function shouldShowDate(index: number): boolean {
     if (index === 0) return true;
-    const current = new Date(messages[index].sent_at);
-    const prev = new Date(messages[index - 1].sent_at);
-    return current.toDateString() !== prev.toDateString();
+    const current = listData[index];
+    const prev = listData[index - 1];
+    if (!current?.sent_at || !prev?.sent_at) return true;
+    return new Date(current.sent_at).toDateString() !== new Date(prev.sent_at).toDateString();
   }
 
   const handleScroll = useCallback((e: any) => {
@@ -4407,10 +4418,11 @@ STRICT RULES:
 
   const getMessageSpacing = useCallback((index: number): number => {
     if (index === 0) return 0;
-    const current = messages[index];
-    const prev = messages[index - 1];
+    const current = listData[index];
+    const prev = listData[index - 1];
+    if (!current || !prev) return 8;
     return current.sender_id === prev.sender_id ? 2 : 8;
-  }, [messages]);
+  }, [listData]);
 
   const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMe = item.sender_id === user?.id;
@@ -4663,7 +4675,7 @@ STRICT RULES:
           <View style={{ flex: 1 }}>
             <FlatList
               ref={flatListRef}
-              data={lensCardMsg ? [...messages, lensCardMsg] : messages}
+              data={listData}
               keyExtractor={(m) => m.id}
               extraData={[highlightedMsgId, lensCardMsg?.id]}
               renderItem={renderMessage}
