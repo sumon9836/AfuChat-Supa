@@ -22,7 +22,6 @@ import { Image as ExpoImage } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Location from "expo-location";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/lib/supabase";
@@ -260,7 +259,6 @@ export default function UserDiscoveryScreen() {
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  const [locationGranted, setLocationGranted] = useState<boolean | null>(null);
   const [locating, setLocating] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusKm, setRadiusKm] = useState(5);
@@ -375,17 +373,11 @@ export default function UserDiscoveryScreen() {
     setLocating(true);
     setNearbyError(null);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLocationGranted(false);
-        setLocating(false);
-        return;
-      }
-      setLocationGranted(true);
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+      const res = await fetch("https://ipapi.co/json/");
+      if (!res.ok) throw new Error("network error");
+      const data = await res.json();
+      if (!data.latitude || !data.longitude) throw new Error("no coords");
+      const coords = { lat: data.latitude as number, lng: data.longitude as number };
       setUserCoords(coords);
       if (user) {
         await supabase
@@ -398,7 +390,7 @@ export default function UserDiscoveryScreen() {
           .eq("id", user.id);
       }
     } catch {
-      setNearbyError("Could not get your location. Please try again.");
+      setNearbyError("Could not detect your location via network. Please check your connection and try again.");
     }
     setLocating(false);
   }, [user]);
@@ -455,10 +447,10 @@ export default function UserDiscoveryScreen() {
     if (tab === "discover") {
       loadDiscoverUsers();
     } else {
-      if (!locationGranted) {
+      if (!userCoords) {
         setLoading(false);
-        if (locationGranted === null) requestLocation();
-      } else if (userCoords) {
+        requestLocation();
+      } else {
         loadNearbyUsers();
       }
     }
@@ -575,37 +567,15 @@ export default function UserDiscoveryScreen() {
   );
 
   const renderNearbyEmpty = () => {
-    if (locationGranted === false) {
-      return (
-        <View style={styles.emptyWrap}>
-          <View style={[styles.emptyIconWrap, { backgroundColor: accent + "15" }]}>
-            <Ionicons name="location-outline" size={44} color={accent} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            Location Access Needed
-          </Text>
-          <Text style={[styles.emptySub, { color: colors.textMuted }]}>
-            Allow AfuChat to access your location to find people around you.
-          </Text>
-          <TouchableOpacity
-            style={[styles.emptyBtn, { backgroundColor: accent }]}
-            onPress={requestLocation}
-          >
-            <Ionicons name="location" size={16} color="#fff" />
-            <Text style={styles.emptyBtnText}>Allow Location</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
     if (locating) {
       return (
         <View style={styles.emptyWrap}>
           <RadarAnimation color={accent} />
           <Text style={[styles.emptyTitle, { color: colors.text, marginTop: 28 }]}>
-            Finding your location…
+            Detecting via network…
           </Text>
           <Text style={[styles.emptySub, { color: colors.textMuted }]}>
-            Scanning for AfuChat users nearby
+            Using your network connection to find AfuChat users nearby
           </Text>
         </View>
       );
@@ -619,7 +589,7 @@ export default function UserDiscoveryScreen() {
           <Text style={[styles.emptyTitle, { color: colors.text }]}>{nearbyError}</Text>
           <TouchableOpacity
             style={[styles.emptyBtn, { backgroundColor: accent }]}
-            onPress={() => loadNearbyUsers()}
+            onPress={requestLocation}
           >
             <Ionicons name="refresh" size={16} color="#fff" />
             <Text style={styles.emptyBtnText}>Try Again</Text>
@@ -692,7 +662,7 @@ export default function UserDiscoveryScreen() {
             }}
           >
             <Ionicons
-              name={t === "discover" ? "compass-outline" : "navigate-outline"}
+              name={t === "discover" ? "compass-outline" : "wifi-outline"}
               size={15}
               color={tab === t ? accent : colors.textMuted}
             />
@@ -928,10 +898,10 @@ export default function UserDiscoveryScreen() {
             <View style={styles.emptyWrap}>
               <RadarAnimation color={accent} />
               <Text style={[styles.emptyTitle, { color: colors.text, marginTop: 28 }]}>
-                Finding your location…
+                Detecting via network…
               </Text>
               <Text style={[styles.emptySub, { color: colors.textMuted }]}>
-                Scanning for AfuChat users nearby
+                Using your network connection to find AfuChat users nearby
               </Text>
             </View>
           </View>
