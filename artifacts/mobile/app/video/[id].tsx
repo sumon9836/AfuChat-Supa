@@ -248,6 +248,7 @@ function WebVideoPlayer({
   onFirstPlay?: () => void;
   externalRef?: React.MutableRefObject<HTMLVideoElement | null>;
 }) {
+  const { colors } = useTheme();
   const innerRef = useRef<HTMLVideoElement | null>(null);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef(0);
@@ -336,7 +337,7 @@ function WebVideoPlayer({
         onWaiting={() => onBuffering(true)}
         onPlaying={() => { onBuffering(false); onFirstPlay?.(); }}
         onCanPlay={() => onBuffering(false)}
-        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "contain", backgroundColor: "#000", pointerEvents: "none" }}
+        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "contain", backgroundColor: colors.background, pointerEvents: "none" }}
       />
       {/* @ts-ignore */}
       <div
@@ -844,6 +845,7 @@ const VideoItem = React.memo(function VideoItem({
   onOpenMenu: (item: VideoPost) => void;
 }) {
   const { accent } = useAppAccent();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const videoRef = useRef<Video>(null);
   const webVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -1038,7 +1040,7 @@ const VideoItem = React.memo(function VideoItem({
           onFirstPlay={() => setVideoStarted(true)}
           externalRef={webVideoRef}
         />
-      ) : <View style={[StyleSheet.absoluteFill, { backgroundColor: "#000" }]} />}
+      ) : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} />}
     </View>
   ) : (
     <View style={StyleSheet.absoluteFill}>
@@ -1061,7 +1063,7 @@ const VideoItem = React.memo(function VideoItem({
             }
           }}
         />
-      ) : <View style={[StyleSheet.absoluteFill, { backgroundColor: "#000" }]} />}
+      ) : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} />}
 
       {/* TapHandler on native — uses Responder, does NOT block scroll */}
       <TapHandler
@@ -1224,7 +1226,7 @@ const VideoItem = React.memo(function VideoItem({
 }); // React.memo
 
 const vStyles = StyleSheet.create({
-  item: { backgroundColor: "#000", overflow: "hidden" },
+  item: { backgroundColor: "transparent", overflow: "hidden" },
   centerOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   pauseCircle: { width: 68, height: 68, borderRadius: 34, backgroundColor: "rgba(0,0,0,0.35)", borderWidth: 2, borderColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
   gradientBase: { position: "absolute", left: 0, right: 0 },
@@ -2029,7 +2031,6 @@ export default function VideoPlayerScreen() {
 const mStyles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#000",
     ...(Platform.OS === "web" ? { position: "absolute" as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 } : {}),
   } as any,
   headerRow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 30, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingBottom: 10 },
