@@ -4528,9 +4528,9 @@ STRICT RULES:
     );
   }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup]);
 
-  // Single source of truth for the bottom offset: real keyboard → emoji panel → attach panel → safe area.
+  // Single source of truth for the bottom offset: real keyboard → emoji panel → safe area.
   const effectiveBottom = keyboardHeight > 0 ? keyboardHeight
-    : (showEmojiStickerPicker || showAttachPanel) ? emojiKeyboardHeight
+    : showEmojiStickerPicker ? emojiKeyboardHeight
     : insets.bottom;
 
   return (
@@ -5146,14 +5146,23 @@ STRICT RULES:
           />
         )}
 
-        {/* ── Telegram-style attachment panel ──────────────────────────────────
-            Content area above + icon tab bar below, matching the image reference. ── */}
-        {showAttachPanel && (() => {
+      </View>
+
+      {/* ── Attachment bottom sheet ───────────────────────────────────────── */}
+      <Modal
+        visible={showAttachPanel}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAttachPanel(false)}
+      >
+        {(() => {
           const THUMB_COLS = 3;
           const SW2 = Dimensions.get("window").width;
+          const SH2 = Dimensions.get("window").height;
           const thumbSize = Math.floor(SW2 / THUMB_COLS) - 2;
+          const SHEET_H = Math.round(SH2 * 0.55);
           const TAB_BAR_H = 62;
-          const contentH = emojiKeyboardHeight - TAB_BAR_H;
+          const contentH = SHEET_H - TAB_BAR_H - 28; // 28 = handle area
 
           const TABS: { key: typeof attachTab; icon: string; label: string }[] = [
             { key: "Gallery",  icon: "images-outline",        label: "Gallery"  },
@@ -5371,49 +5380,70 @@ STRICT RULES:
           };
 
           return (
-            <View style={{ height: emojiKeyboardHeight, backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
-              {/* Content area */}
-              <View style={{ height: contentH }}>
-                {renderContent()}
-              </View>
+            <View style={{ flex: 1, justifyContent: "flex-end" }}>
+              {/* Dim backdrop — tap to dismiss */}
+              <TouchableOpacity
+                style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.45)" }]}
+                activeOpacity={1}
+                onPress={() => setShowAttachPanel(false)}
+              />
 
-              {/* Tab bar */}
+              {/* Sheet */}
               <View style={{
-                height: TAB_BAR_H,
-                flexDirection: "row",
-                borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: colors.border,
+                height: SHEET_H,
                 backgroundColor: colors.surface,
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                overflow: "hidden",
               }}>
-                {TABS.map((tab) => {
-                  const active = attachTab === tab.key;
-                  return (
-                    <TouchableOpacity
-                      key={tab.key}
-                      activeOpacity={0.7}
-                      onPress={() => setAttachTab(tab.key)}
-                      style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 3 }}
-                    >
-                      <Ionicons
-                        name={active ? tab.icon.replace("-outline", "") as any : tab.icon as any}
-                        size={22}
-                        color={active ? colors.accent : colors.textMuted}
-                      />
-                      <Text style={{
-                        fontSize: 10,
-                        fontFamily: active ? "Inter_600SemiBold" : "Inter_400Regular",
-                        color: active ? colors.accent : colors.textMuted,
-                      }}>
-                        {tab.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                {/* Drag handle */}
+                <View style={{ alignItems: "center", paddingTop: 10, paddingBottom: 6 }}>
+                  <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+                </View>
+
+                {/* Content area */}
+                <View style={{ height: contentH }}>
+                  {renderContent()}
+                </View>
+
+                {/* Tab bar */}
+                <View style={{
+                  height: TAB_BAR_H,
+                  flexDirection: "row",
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.border,
+                  backgroundColor: colors.surface,
+                }}>
+                  {TABS.map((tab) => {
+                    const active = attachTab === tab.key;
+                    return (
+                      <TouchableOpacity
+                        key={tab.key}
+                        activeOpacity={0.7}
+                        onPress={() => setAttachTab(tab.key)}
+                        style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 3 }}
+                      >
+                        <Ionicons
+                          name={active ? tab.icon.replace("-outline", "") as any : tab.icon as any}
+                          size={22}
+                          color={active ? colors.accent : colors.textMuted}
+                        />
+                        <Text style={{
+                          fontSize: 10,
+                          fontFamily: active ? "Inter_600SemiBold" : "Inter_400Regular",
+                          color: active ? colors.accent : colors.textMuted,
+                        }}>
+                          {tab.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             </View>
           );
         })()}
-      </View>
+      </Modal>
 
       <MiniProfilePopup
         userId={miniProfileUserId}
