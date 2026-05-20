@@ -6539,12 +6539,12 @@ const st = StyleSheet.create({
 
   floatingInputContainer: {
     position: "absolute",
-    left: 0,
-    right: 0,
+    left: 12,
+    right: 12,
     bottom: 0,
   },
   inputFloatOuter: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 0,
     paddingTop: 4,
   },
   inputGlassPill: {
@@ -6552,9 +6552,10 @@ const st = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(120,120,128,0.22)",
     overflow: "hidden",
+    marginBottom: 6,
     ...Platform.select({
-      web: { boxShadow: "0 -2px 10px rgba(0,0,0,0.06)" } as any,
-      default: { shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 6 },
+      web: { boxShadow: "0 4px 24px rgba(0,0,0,0.18)" } as any,
+      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 14 },
     }),
   },
   inputBarRow: {
