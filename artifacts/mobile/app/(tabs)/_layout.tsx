@@ -211,7 +211,7 @@ function CompactTabBar({
                     ) : isChats ? (
                       <Image
                         source={afuSymbol}
-                        style={{ width: 23, height: 23 }}
+                        style={{ width: 22, height: 22 }}
                         resizeMode="contain"
                         tintColor={iconColor}
                       />
@@ -219,15 +219,25 @@ function CompactTabBar({
                       <SymbolView
                         name={focused ? tab.sfOn : tab.sfOff}
                         tintColor={iconColor}
-                        size={23}
+                        size={22}
                       />
                     ) : (
                       <Ionicons
                         name={(focused ? tab.mdOn : tab.mdOff) as any}
-                        size={23}
+                        size={22}
                         color={iconColor}
                       />
                     )}
+                    <Text
+                      style={[
+                        bar.label,
+                        { color: iconColor },
+                        focused && { fontFamily: "Inter_700Bold" },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {tab.label}
+                    </Text>
                   </View>
                 </Pressable>
               </View>
@@ -283,10 +293,17 @@ const bar = StyleSheet.create({
     borderRadius: 999,
   },
   iconWrap: {
-    width: 46,
-    height: 42,
+    width: 52,
+    height: 52,
     alignItems: "center",
     justifyContent: "center",
+    gap: 2,
+  },
+  label: {
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
+    letterSpacing: 0.1,
+    lineHeight: 13,
   },
   avatar: {
     width: 22,
