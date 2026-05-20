@@ -549,7 +549,6 @@ export default function DesktopTabLayout() {
           const BNAV = [
             { label: "Chats",    Icon: MessageCircle, route: "/(tabs)"           as const, matchPaths: ["/", "/(tabs)", "/index", "/chat"], useAfuSymbol: true },
             { label: "Discover", Icon: Compass,       route: "/(tabs)/discover"  as const, matchPaths: ["/discover", "/(tabs)/discover"],   useAfuSymbol: false },
-            { label: "Search",   Icon: Search,        route: "/(tabs)/search"    as const, matchPaths: ["/search", "/(tabs)/search"],        useAfuSymbol: false },
             { label: "Apps",     Icon: Grid3X3,       route: "/(tabs)/apps"      as const, matchPaths: ["/apps", "/(tabs)/apps"],            useAfuSymbol: false },
             { label: "Profile",  Icon: User,          route: "/(tabs)/me"        as const, matchPaths: ["/me", "/(tabs)/me"],                useAfuSymbol: false },
           ] as const;
