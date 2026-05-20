@@ -245,7 +245,7 @@ function CompactTabBar({
                     ) : isChats ? (
                       <Image
                         source={afuSymbol}
-                        style={{ width: 22, height: 22 }}
+                        style={{ width: 34, height: 34 }}
                         resizeMode="contain"
                         tintColor={iconColor}
                       />

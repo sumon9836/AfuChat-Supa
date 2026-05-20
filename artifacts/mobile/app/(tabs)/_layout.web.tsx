@@ -219,7 +219,7 @@ const DT_CSS = `
   padding:2px 0;
   text-decoration:none;
   color:rgba(110,108,118,1);
-  font-size:10px;font-weight:500;letter-spacing:.08px;
+  font-size:10px;font-weight:700;letter-spacing:.08px;
   transition:color .16s;cursor:pointer;
   background:none;border:none;font-family:inherit;
   border-radius:32px;
