@@ -1,51 +1,56 @@
 /**
- * Shorts tab — fetches the first video and immediately opens the feed.
- * Logic is inlined here (no intermediate redirect) so navigation is
- * one clean hop: tab → /video/[id].
+ * Shorts tab — navigates to the video feed whenever this tab is focused.
+ * Uses useFocusEffect so it fires at the right time in the navigation
+ * lifecycle (not during mount before the navigator is ready).
  */
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, StatusBar, StyleSheet } from "react-native";
-import { router, Stack } from "expo-router";
+import { router, Stack, useFocusEffect } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/lib/supabase";
 
 export default function ShortsTab() {
   const { colors, isDark } = useTheme();
-  const navigated = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (navigated.current) return;
-    navigated.current = true;
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      setError(null);
 
-    (async () => {
-      try {
-        const { data, error: dbErr } = await supabase
-          .from("posts")
-          .select("id")
-          .eq("post_type", "video")
-          .eq("visibility", "public")
-          .not("video_url", "is", null)
-          .order("created_at", { ascending: false })
-          .limit(1);
+      (async () => {
+        try {
+          const { data, error: dbErr } = await supabase
+            .from("posts")
+            .select("id")
+            .eq("post_type", "video")
+            .eq("visibility", "public")
+            .not("video_url", "is", null)
+            .order("created_at", { ascending: false })
+            .limit(1);
 
-        if (dbErr) {
-          setError("Could not load Shorts. Check your connection and try again.");
-          return;
+          if (cancelled) return;
+
+          if (dbErr) {
+            setError("Could not load Shorts. Check your connection and try again.");
+            return;
+          }
+
+          const firstId = data?.[0]?.id;
+          if (!firstId) {
+            setError("No videos yet — check back soon.");
+            return;
+          }
+
+          router.push({ pathname: "/video/[id]", params: { id: firstId } } as any);
+        } catch {
+          if (!cancelled) setError("Could not load Shorts.");
         }
+      })();
 
-        const firstId = data?.[0]?.id;
-        if (!firstId) {
-          setError("No videos yet — check back soon.");
-          return;
-        }
-
-        router.push({ pathname: "/video/[id]", params: { id: firstId } } as any);
-      } catch {
-        setError("Could not load Shorts.");
-      }
-    })();
-  }, []);
+      return () => { cancelled = true; };
+    }, []),
+  );
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -67,9 +72,7 @@ export default function ShortsTab() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
+  root: { flex: 1 },
   errorWrap: {
     flex: 1,
     alignItems: "center",
