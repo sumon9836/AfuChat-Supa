@@ -58,6 +58,7 @@ import { notifyPostLike, notifyPostReply } from "@/lib/notifyUser";
 import { RichText } from "@/components/ui/RichText";
 import { encodeId, decodeId, isUuid } from "@/lib/shortId";
 import { getCachedVideoUri, cacheVideo, markVideoWatched } from "@/lib/videoCache";
+import { onShortsRefresh } from "@/lib/shortsRefresh";
 import { getLocalFeedPost } from "@/lib/storage/localFeed";
 import { saveVideoProgress, clearVideoProgress } from "@/lib/videoProgress";
 import { useResolvedVideoSource } from "@/hooks/useResolvedVideoSource";
@@ -1564,6 +1565,19 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     fetchVideos(videoTab).catch(() => { setLoading(false); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoTab]);
+
+  // Double-tap the Shorts tab to refresh: scroll to top and reload feed.
+  useEffect(() => {
+    if (!isEmbedded) return;
+    const unsub = onShortsRefresh(() => {
+      setActiveIndex(0);
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
+      if (webScrollRef.current) webScrollRef.current.scrollTop = 0;
+      fetchVideos(videoTabRef.current).catch(() => { setLoading(false); });
+    });
+    return unsub;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEmbedded]);
 
   // Realtime like/reply count updates
   useEffect(() => {

@@ -20,6 +20,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { TabSwipeProvider } from "@/context/TabSwipeContext";
 import { getLocalConversations } from "@/lib/storage/localConversations";
 import { supabase } from "@/lib/supabase";
+import { emitShortsRefresh } from "@/lib/shortsRefresh";
 
 let isLiquidGlassAvailable: () => boolean = () => false;
 try {
@@ -107,6 +108,8 @@ function CompactTabBar({
   const active          = normalizeTabPath(pathname);
   const isAndroid       = Platform.OS === "android";
 
+  const lastShortsTapRef = useRef<number>(0);
+
   const bottomPos = Math.max(insets.bottom, isAndroid ? 8 : 10) + 14;
 
   const barBg      = isDark ? "rgba(28,28,30,0.97)" : "rgba(255,255,255,0.97)";
@@ -144,6 +147,15 @@ function CompactTabBar({
           ? Haptics.ImpactFeedbackStyle.Light
           : Haptics.ImpactFeedbackStyle.Rigid,
       ).catch(() => {});
+    }
+    if (route === "/(tabs)/shorts") {
+      const now = Date.now();
+      if (active === "/(tabs)/shorts" && now - lastShortsTapRef.current < 400) {
+        emitShortsRefresh();
+        lastShortsTapRef.current = 0;
+        return;
+      }
+      lastShortsTapRef.current = now;
     }
     router.navigate(route as any);
   }
