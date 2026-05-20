@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/hooks/useTheme";
 import { useGiftPrices } from "@/hooks/useGiftPrices";
-import { GiftCardSkeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
 import Colors from "@/constants/colors";
 
 export type DbGift = {
@@ -131,6 +131,8 @@ const CARD_COLS = 4;
 const CARD_GAP = 8;
 const CARD_W = Math.floor((SCREEN_WIDTH - 32 - CARD_GAP * (CARD_COLS - 1)) / CARD_COLS);
 const CARD_H = Math.floor(CARD_W * 1.2);
+// Fixed height for the gift grid — same for skeleton and loaded state so the sheet never resizes
+const GRID_H = CARD_H * 3 + CARD_GAP * 2 + 16; // 3 rows visible + gaps + padding
 
 function Gift3DCard({
   gift,
@@ -342,7 +344,11 @@ export default function GiftPickerSheet({
             </ScrollView>
 
             {loading ? (
-              <View style={{ padding: 12, gap: 12 }}>{[1,2,3,4].map(i => <GiftCardSkeleton key={i} />)}</View>
+              <View style={{ height: GRID_H, flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16, gap: CARD_GAP, alignContent: "flex-start", overflow: "hidden" }}>
+                {Array.from({ length: CARD_COLS * 3 }).map((_, i) => (
+                  <Skeleton key={i} width={CARD_W} height={CARD_H} borderRadius={16} />
+                ))}
+              </View>
             ) : filtered.length === 0 ? (
               <View style={styles.loadingWrap}>
                 <Text style={{ fontSize: 40 }}>🎁</Text>
@@ -530,7 +536,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
   },
   grid: {
-    maxHeight: Dimensions.get("window").height * 0.38,
+    height: GRID_H,
   },
   gridContent: {
     paddingHorizontal: 16,
