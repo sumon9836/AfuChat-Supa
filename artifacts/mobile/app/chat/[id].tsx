@@ -2395,7 +2395,7 @@ function ChatScreen() {
         };
         // Keep the lens card in its own state so it's never wiped by
         // any setMessages call (SQLite preload, network merge, realtime, etc.)
-        setLensCardMsg(cardMsg);
+        setLensCardMsg({ ...cardMsg, sent_at: new Date().toISOString() });
         // Immediately generate a rich AfuAI response about the scanned item
         setTimeout(() => handleAfuAiLensIntro(ctx, id as string), 700);
       } catch {}
@@ -2406,7 +2406,7 @@ function ChatScreen() {
   async function handleAfuAiLensIntro(ctx: NonNullable<typeof lensContextRef.current>, chatId: string) {
     setIsAfuAiTyping(true);
     const thinkingId = `lens_thinking_${Date.now()}`;
-    setMessages(prev => [...prev, {
+    setMessages(prev => [{
       id: thinkingId,
       chat_id: chatId,
       sender_id: AFUAI_BOT_ID,
@@ -2416,7 +2416,7 @@ function ChatScreen() {
       reactions: [],
       _isAi: true,
       _pending: true,
-    }]);
+    }, ...prev]);
     const contextLines = [
       `Title: ${ctx.title}`,
       `Category: ${ctx.category}`,
@@ -2456,7 +2456,7 @@ function ChatScreen() {
         } catch {}
         setMessages(prev => {
           const filtered = prev.filter(m => m.id !== thinkingId);
-          return [...filtered, {
+          return [{
             id: savedId || `lens_reply_${Date.now()}`,
             chat_id: chatId,
             sender_id: AFUAI_BOT_ID,
@@ -2470,7 +2470,7 @@ function ChatScreen() {
               `What are the main uses of ${ctx.title}?`,
               `Any interesting history or origin?`,
             ],
-          }];
+          }, ...filtered];
         });
       }
     } catch {
@@ -3342,15 +3342,37 @@ STRICT RULES:
   async function sendForward(targetChatId: string) {
     if (!forwardMsg || !user) return;
     setForwardSending(true);
-    await supabase.from("messages").insert({
-      chat_id: targetChatId,
-      sender_id: user.id,
-      encrypted_content: `↪ Forwarded\n${forwardMsg.encrypted_content}`,
-    });
-    setForwardSending(false);
-    setForwardMsg(null);
-    setForwardChats([]);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Build the forwarded content.  For lens cards we serialise the full
+    // analysis data so the recipient sees the complete scan result, not just
+    // the title.
+    let content: string;
+    if (forwardMsg._isLensCard && forwardMsg._lensData) {
+      const d = forwardMsg._lensData;
+      const parts: string[] = [`📷 AI Lens: ${d.title}`];
+      if (d.description) parts.push(d.description);
+      if (d.answer) parts.push(`Analysis: ${d.answer}`);
+      if (d.facts?.length) parts.push(`Facts:\n${d.facts.map((f: string) => `• ${f}`).join("\n")}`);
+      content = `↪ Forwarded\n${parts.join("\n\n")}`;
+    } else {
+      content = `↪ Forwarded\n${forwardMsg.encrypted_content}`;
+    }
+
+    try {
+      const { error } = await supabase.from("messages").insert({
+        chat_id: targetChatId,
+        sender_id: user.id,
+        encrypted_content: content,
+      });
+      if (error) throw error;
+      setForwardMsg(null);
+      setForwardChats([]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setForwardSending(false);
+    }
   }
 
   async function addReaction(msg: Message, emoji: string) {
@@ -4343,12 +4365,13 @@ STRICT RULES:
     return t.length > 80 ? t.slice(0, 80) + "…" : t;
   }
 
-  // The FlatList may append lensCardMsg after the messages array.
+  // lensCardMsg is placed at index 0 (the bottom of the inverted FlatList)
+  // so it always appears as the most-recent item — never jumps to the top.
   // All render helpers must index into this combined list — never into
   // `messages` alone — otherwise the out-of-bounds index crashes on
   // `undefined.sent_at` when the lens card is the active item.
   const listData: Message[] = useMemo(
-    () => lensCardMsg ? [...messages, lensCardMsg] : messages,
+    () => lensCardMsg ? [lensCardMsg, ...messages] : messages,
     [messages, lensCardMsg]
   );
 
@@ -4439,10 +4462,20 @@ STRICT RULES:
           </View>
         )}
         {item._isLensCard ? (
-          <LensContextCard
-            msg={item}
-            onSuggestionTap={(text) => sendMessage(text)}
-          />
+          <TouchableOpacity
+            activeOpacity={1}
+            delayLongPress={500}
+            onLongPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setForwardMsg(item);
+              loadForwardChats();
+            }}
+          >
+            <LensContextCard
+              msg={item}
+              onSuggestionTap={(text) => sendMessage(text)}
+            />
+          </TouchableOpacity>
         ) : (
           <MessageBubble
             msg={item}
@@ -4467,7 +4500,7 @@ STRICT RULES:
         )}
       </View>
     );
-  }, [messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup]);
+  }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup]);
 
   // Single source of truth for the bottom offset: real keyboard → emoji panel → attach panel → safe area.
   const effectiveBottom = keyboardHeight > 0 ? keyboardHeight
