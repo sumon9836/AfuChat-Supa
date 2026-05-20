@@ -1744,6 +1744,10 @@ function ChatScreen() {
   const [galleryHasMore, setGalleryHasMore] = useState(true);
   const [galleryLoadingMore, setGalleryLoadingMore] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [contactList, setContactList] = useState<{ id: string; name: string; phone: string; initials: string }[]>([]);
+  const [contactSearch, setContactSearch] = useState("");
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactSending, setContactSending] = useState<string | null>(null);
 
   const GALLERY_PAGE = 60;
 
@@ -1773,6 +1777,35 @@ function ChatScreen() {
     })();
     // Also request camera permission so the live preview is ready
     if (!cameraPermission?.granted) requestCameraPermission();
+  }, [showAttachPanel, attachTab]);
+
+  useEffect(() => {
+    if (!showAttachPanel || attachTab !== "Contact" || Platform.OS === "web") return;
+    if (contactList.length > 0) return; // already loaded
+    (async () => {
+      setContactsLoading(true);
+      try {
+        const { status } = await Contacts.requestPermissionsAsync();
+        if (status === "granted") {
+          const { data } = await Contacts.getContactsAsync({
+            fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
+            sort: Contacts.SortTypes.FirstName,
+          });
+          const mapped = data
+            .filter((c) => c.name)
+            .map((c) => {
+              const phone = c.phoneNumbers?.[0]?.number ?? "";
+              const words = (c.name ?? "").trim().split(/\s+/);
+              const initials = words.length >= 2
+                ? words[0][0] + words[words.length - 1][0]
+                : (words[0]?.[0] ?? "?");
+              return { id: c.id ?? Math.random().toString(), name: c.name ?? "", phone, initials: initials.toUpperCase() };
+            });
+          setContactList(mapped);
+        }
+      } catch { /* ignore */ }
+      setContactsLoading(false);
+    })();
   }, [showAttachPanel, attachTab]);
 
   async function loadMoreGalleryAssets() {
@@ -5402,40 +5435,96 @@ STRICT RULES:
             }
 
             if (attachTab === "Contact") {
-              return (
-                <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 32 }}>
-                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#007AFF20", alignItems: "center", justifyContent: "center" }}>
-                    <Ionicons name="person-circle" size={32} color="#007AFF" />
+              if (contactsLoading) {
+                return (
+                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                    <ActivityIndicator color="#007AFF" size="large" />
+                    <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 10, fontFamily: "Inter_400Regular" }}>Loading contacts…</Text>
                   </View>
-                  <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text }}>Share a Contact</Text>
-                  <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.textMuted, textAlign: "center" }}>
-                    Pick a contact from your phonebook to share their details.
-                  </Text>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={async () => {
-                      setShowAttachPanel(false);
-                      try {
-                        const { status } = await Contacts.requestPermissionsAsync();
-                        if (status !== "granted") { showAlert("Permission needed", "Contacts access is required."); return; }
-                        const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers], pageSize: 1 });
-                        if (data[0]) {
-                          const c = data[0];
-                          const phone = c.phoneNumbers?.[0]?.number ?? "";
-                          const activeChatId = await getOrCreateChatId();
-                          if (!activeChatId || !user) return;
-                          await supabase.from("messages").insert({
-                            chat_id: activeChatId,
-                            sender_id: user.id,
-                            encrypted_content: `👤 ${c.name}${phone ? `\n${phone}` : ""}`,
-                          });
-                        }
-                      } catch { showAlert("Error", "Could not access contacts."); }
-                    }}
-                    style={{ backgroundColor: "#007AFF", paddingHorizontal: 32, paddingVertical: 13, borderRadius: 24 }}
-                  >
-                    <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 15 }}>Choose Contact</Text>
-                  </TouchableOpacity>
+                );
+              }
+              if (contactList.length === 0) {
+                return (
+                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 }}>
+                    <Ionicons name="people-outline" size={40} color={colors.textMuted} />
+                    <Text style={{ fontSize: 15, fontFamily: "Inter_600SemiBold", color: colors.text }}>No contacts found</Text>
+                    <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.textMuted, textAlign: "center" }}>
+                      Allow contacts access in your device settings to share contacts here.
+                    </Text>
+                  </View>
+                );
+              }
+              const q = contactSearch.toLowerCase().trim();
+              const filtered = q
+                ? contactList.filter((c) => c.name.toLowerCase().includes(q) || c.phone.includes(q))
+                : contactList;
+              return (
+                <View style={{ flex: 1 }}>
+                  {/* Search bar */}
+                  <View style={{ flexDirection: "row", alignItems: "center", marginHorizontal: 12, marginBottom: 6, paddingHorizontal: 12, height: 38, borderRadius: 12, backgroundColor: colors.inputBg, gap: 8 }}>
+                    <Ionicons name="search" size={16} color={colors.textMuted} />
+                    <TextInput
+                      value={contactSearch}
+                      onChangeText={setContactSearch}
+                      placeholder="Search contacts…"
+                      placeholderTextColor={colors.textMuted}
+                      style={{ flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", color: colors.text, outlineStyle: "none" as any }}
+                    />
+                    {contactSearch.length > 0 && (
+                      <TouchableOpacity onPress={() => setContactSearch("")} hitSlop={8}>
+                        <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <FlatList
+                    data={filtered}
+                    keyExtractor={(c) => c.id}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    ListEmptyComponent={
+                      <View style={{ alignItems: "center", paddingTop: 32 }}>
+                        <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: "Inter_400Regular" }}>No contacts match "{contactSearch}"</Text>
+                      </View>
+                    }
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        disabled={contactSending === item.id}
+                        onPress={async () => {
+                          setContactSending(item.id);
+                          try {
+                            const activeChatId = await getOrCreateChatId();
+                            if (!activeChatId || !user) return;
+                            await supabase.from("messages").insert({
+                              chat_id: activeChatId,
+                              sender_id: user.id,
+                              encrypted_content: `👤 ${item.name}${item.phone ? `\n${item.phone}` : ""}`,
+                            });
+                            setShowAttachPanel(false);
+                          } catch { showAlert("Error", "Could not send contact."); }
+                          setContactSending(null);
+                        }}
+                        style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 11, gap: 12 }}
+                      >
+                        {/* Avatar / initials */}
+                        <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "#007AFF22", alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: "#007AFF" }}>{item.initials}</Text>
+                        </View>
+                        {/* Name + phone */}
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: colors.text }} numberOfLines={1}>{item.name}</Text>
+                          {item.phone ? <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.textMuted, marginTop: 1 }} numberOfLines={1}>{item.phone}</Text> : null}
+                        </View>
+                        {/* Send indicator */}
+                        {contactSending === item.id ? (
+                          <ActivityIndicator size="small" color="#007AFF" />
+                        ) : (
+                          <Ionicons name="arrow-forward-circle-outline" size={22} color="#007AFF" />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    ItemSeparatorComponent={() => <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 70 }} />}
+                  />
                 </View>
               );
             }
