@@ -22,6 +22,7 @@ import {
   Alert,
   Animated,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -461,9 +462,21 @@ function CommentsSheet({ visible, onClose, postId, postAuthorId, onReplyCountCha
   const [replyingTo, setReplyingTo] = useState<Reply | null>(null);
   const [sortMode, setSortMode] = useState<"recent" | "top">("recent");
   const [newCommentIds, setNewCommentIds] = useState<Set<string>>(new Set());
+  const [kbHeight, setKbHeight] = useState(0);
   const listRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const sendScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const show = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKbHeight(e.endCoordinates.height);
+    });
+    const hide = Keyboard.addListener("keyboardDidHide", () => {
+      setKbHeight(0);
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const loadReplies = useCallback(() => {
     if (!postId) return;
@@ -566,10 +579,10 @@ function CommentsSheet({ visible, onClose, postId, postAuthorId, onReplyCountCha
   const listMaxH = Math.max(sheetMaxH - 210 - Math.max(insets.bottom, 16), 80);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : Platform.OS === "web" ? undefined : "height"} style={cStyles.kavFull}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={cStyles.kavFull}>
         <Pressable style={cStyles.overlay} onPress={onClose}>
-          <Pressable onPress={() => {}} style={[cStyles.container, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: sheetMaxH }]}>
+          <Pressable onPress={() => {}} style={[cStyles.container, { paddingBottom: Math.max(insets.bottom, 16) + kbHeight, maxHeight: sheetMaxH }]}>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111115", borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
             <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.12)" }} pointerEvents="none" />
             <View style={cStyles.handle} />
@@ -1777,7 +1790,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         return;
       }
       const url = await resolveDownloadUrl();
-      const dest = `${(FileSystem as any).cacheDirectory ?? ""}afuchat_dl_${item.id}.mp4`;
+      const dest = `${FileSystem.cacheDirectory ?? FileSystem.documentDirectory ?? ""}afuchat_dl_${item.id}.mp4`;
       const { uri, status: dlStatus } = await FileSystem.downloadAsync(url, dest);
       if (!uri || (dlStatus !== undefined && (dlStatus < 200 || dlStatus >= 400))) throw new Error(`HTTP ${dlStatus}`);
       await MediaLibrary.createAssetAsync(uri);

@@ -685,7 +685,10 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
           )
         );
       } else {
-        await supabase.from("post_acknowledgments").insert({ post_id: postId, user_id: user.id });
+        await supabase.from("post_acknowledgments").upsert(
+          { post_id: postId, user_id: user.id },
+          { onConflict: "post_id,user_id", ignoreDuplicates: true }
+        );
         setPosts((prev) =>
           prev.map((p) =>
             p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p
