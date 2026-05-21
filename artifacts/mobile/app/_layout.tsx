@@ -1,7 +1,4 @@
 import "react-native-gesture-handler";
-// Register the FCM CallService background task at module scope — must be
-// imported before any React component renders (Expo TaskManager requirement).
-import "@/lib/callService";
 import { enableScreens } from "react-native-screens";
 
 enableScreens(true);
@@ -31,9 +28,7 @@ import { DataModeProvider } from "@/context/DataModeContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
-import { CallManager } from "@/components/CallManager";
 import { initConnectivityToasts } from "@/lib/toast";
-import { initInstallReferrer } from "@/lib/installReferrer";
 
 // Keep the native splash visible until fonts are ready so we never flash
 // a blank screen between the system launch image and the app UI.
@@ -68,7 +63,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     initConnectivityToasts();
-    initInstallReferrer();
   }, []);
 
   useEffect(() => {
@@ -123,7 +117,6 @@ export default function RootLayout() {
                       </Stack>
                       <ToastContainer />
                       <AlertModal />
-                      <CallManager />
                     </ChatPreferencesProvider>
                   </AdvancedFeaturesProvider>
                 </LanguageProvider>

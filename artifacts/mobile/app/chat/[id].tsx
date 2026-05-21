@@ -36,7 +36,6 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as MediaLibrary from "expo-media-library";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import * as Location from "expo-location";
 import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
 import { Video, ResizeMode, Audio } from "expo-av";
@@ -809,29 +808,8 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   async function handleFileTap() {
     if (!msg.attachment_url) return;
     const url = msg.attachment_url;
-    const _isApk = Platform.OS === "android" &&
-      (url.toLowerCase().includes(".apk") ||
-       (msg.encrypted_content?.toLowerCase() ?? "").includes(".apk"));
-
     async function _openOrInstall(localPath: string) {
-      if (_isApk) {
-        // Try to launch Android's package installer via a content:// URI.
-        try {
-          const contentUri = await FileSystem.getContentUriAsync(localPath);
-          await Linking.openURL(contentUri);
-          return;
-        } catch {}
-        // Fallback: share sheet pointing at the APK (still opens installer).
-        try {
-          const Sharing = await import("expo-sharing");
-          await Sharing.shareAsync(localPath, {
-            dialogTitle: "Install app",
-            mimeType: "application/vnd.android.package-archive",
-          });
-        } catch {}
-      } else {
-        openChatFile(localPath);
-      }
+      openChatFile(localPath);
     }
 
     const local = getLocalAttachmentUri(url);
@@ -998,10 +976,6 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   const hasStoryReply = msg.attachment_url && msg.attachment_type === "story_reply";
   const hasTextContent = msg.encrypted_content && !["📷 Photo", "🎥 Video", "GIF"].includes(msg.encrypted_content);
 
-  // Detect APK files: check both the URL and the message label (📎 filename.apk)
-  const isApk = !!hasFile && Platform.OS === "android" &&
-    ((msg.attachment_url?.toLowerCase() ?? "").includes(".apk") ||
-     (msg.encrypted_content?.toLowerCase() ?? "").includes(".apk"));
 
   const replyIconOpacity = swipeX.interpolate({
     inputRange: isMe ? [-SWIPE_THRESHOLD, -10, 0] : [0, 10, SWIPE_THRESHOLD],
@@ -1132,11 +1106,11 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                   : <Ionicons
                       name={
                         attachUri && !attachUri.startsWith("http")
-                          ? (isApk ? "logo-android" : "document-text")
+                          ? "document-text"
                           : "download-outline"
                       }
                       size={22}
-                      color={isApk && attachUri && !attachUri.startsWith("http") ? "#3DDC84" : textColor}
+                      color={textColor}
                     />
                 }
               </View>
@@ -1146,8 +1120,8 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                   {fileDownloading
                     ? "Downloading…"
                     : attachUri && !attachUri.startsWith("http")
-                      ? (isApk ? "Tap to install" : "Tap to open")
-                      : (isApk ? "Tap to download & install" : "Tap to download")}
+                      ? "Tap to open"
+                      : "Tap to download"}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -1741,7 +1715,7 @@ function ChatScreen() {
   }));
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showAttachPanel, setShowAttachPanel] = useState(false);
-  const [attachTab, setAttachTab] = useState<"Gallery" | "Wallet" | "File" | "Location" | "Poll" | "Contact">("Gallery");
+  const [attachTab, setAttachTab] = useState<"Gallery" | "Wallet" | "File" | "Poll" | "Contact">("Gallery");
   const [galleryAssets, setGalleryAssets] = useState<MediaLibrary.Asset[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryEndCursor, setGalleryEndCursor] = useState<string | undefined>(undefined);
@@ -5234,7 +5208,6 @@ STRICT RULES:
             { key: "Gallery",  icon: "images-outline",        label: "Gallery"  },
             { key: "Wallet",   icon: "wallet-outline",         label: "Wallet"   },
             { key: "File",     icon: "document-text-outline",  label: "File"     },
-            { key: "Location", icon: "location-outline",       label: "Location" },
             { key: "Poll",     icon: "bar-chart-outline",      label: "Poll"     },
             { key: "Contact",  icon: "person-circle-outline",  label: "Contact"  },
           ];
@@ -5394,42 +5367,6 @@ STRICT RULES:
                       <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.text }}>{ft.label}</Text>
                     </TouchableOpacity>
                   ))}
-                </View>
-              );
-            }
-
-            if (attachTab === "Location") {
-              return (
-                <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 32 }}>
-                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.accent + "20", alignItems: "center", justifyContent: "center" }}>
-                    <Ionicons name="location" size={32} color={colors.accent} />
-                  </View>
-                  <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text }}>Share Location</Text>
-                  <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.textMuted, textAlign: "center" }}>
-                    Your current location will be shared as a message.
-                  </Text>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={async () => {
-                      setShowAttachPanel(false);
-                      try {
-                        const { status } = await Location.requestForegroundPermissionsAsync();
-                        if (status !== "granted") { showAlert("Permission needed", "Location access is required."); return; }
-                        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                        const mapsUrl = `https://maps.google.com/?q=${loc.coords.latitude},${loc.coords.longitude}`;
-                        const activeChatId = await getOrCreateChatId();
-                        if (!activeChatId || !user) return;
-                        await supabase.from("messages").insert({
-                          chat_id: activeChatId,
-                          sender_id: user.id,
-                          encrypted_content: `📍 Location\n${mapsUrl}`,
-                        });
-                      } catch { showAlert("Error", "Could not get location."); }
-                    }}
-                    style={{ backgroundColor: colors.accent, paddingHorizontal: 32, paddingVertical: 13, borderRadius: 24 }}
-                  >
-                    <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 15 }}>Send Location</Text>
-                  </TouchableOpacity>
                 </View>
               );
             }
