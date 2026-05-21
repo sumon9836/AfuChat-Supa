@@ -1218,9 +1218,12 @@ function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; o
   }, [user, loadChats]);
 
   // Periodic background refresh — ensures the list stays current even if
-  // a realtime event is missed or the channel briefly disconnects
+  // a realtime event is missed or the channel briefly disconnects.
+  // Skipped on web: realtime subscriptions are reliable there and the
+  // 15-second poll causes visible flicker in the browser.
   useFocusEffect(
     useCallback(() => {
+      if (Platform.OS === "web") return;
       const interval = setInterval(() => loadChats(true), 15000);
       return () => clearInterval(interval);
     }, [loadChats])

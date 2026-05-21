@@ -161,7 +161,11 @@ function CompactTabBar({
   }
 
   return (
-    <View style={[bar.container, { bottom: bottomPos, pointerEvents: "box-none" }]}>
+    <View style={[
+      bar.container,
+      { bottom: bottomPos, pointerEvents: "box-none" },
+      Platform.OS === "web" ? { position: "fixed" as any } : null,
+    ]}>
       <View style={[bar.pill, shadow, { backgroundColor: barBg, borderColor }]}>
         {TABS.map((tab) => {
           const focused   = active === tab.route;
@@ -367,7 +371,7 @@ export default function TabLayout() {
     <TabSwipeProvider>
       <View style={{ flex: 1 }}>
         <ClassicTabLayout isLoggedIn={isLoggedIn} />
-        {isLoggedIn && (
+        {isLoggedIn && !isDesktop && (
           <CompactTabBar
             userId={user?.id}
             avatarUrl={profile?.avatar_url}
