@@ -380,8 +380,7 @@ export default function MeScreen() {
     <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
       <OfflineBanner />
 
-      {/* ── main row (content + optional right rail) ── */}
-      <View style={{ flex: 1, flexDirection: isDesktop ? "row" : "column" }}>
+      <View style={{ flex: 1 }}>
 
         {/* ── profile content column ── */}
         <ScrollView
@@ -644,16 +643,7 @@ export default function MeScreen() {
 
         </ScrollView>
 
-        {/* ── right rail (wide desktop only) ── */}
-        {isDesktop && screenW >= 1180 ? (
-          <View style={{ width: 340, flexShrink: 0, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.border }}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-              <RightRail />
-            </ScrollView>
-          </View>
-        ) : null}
-
-      </View>{/* end main row */}
+      </View>
 
       <AvatarViewer
         visible={avatarOpen}

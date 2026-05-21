@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { DesktopConversationArea, type OpenTab } from "@/components/desktop/DesktopConversationArea";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ActivityIndicator,
@@ -1503,49 +1502,7 @@ function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; o
       )}
 
 
-      <View style={[styles.body, isDesktop && styles.bodyRow]}>
-        {isDesktop && (
-          <View style={styles.rail}>
-            {TABS.map((tab) => {
-              const active = tabFilter === tab.key;
-              return (
-                <TouchableOpacity
-                  key={tab.key}
-                  style={styles.railTab}
-                  onPress={() => setTabFilter(tab.key)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.railIconWrap}>
-                    <Ionicons
-                      name={tab.icon}
-                      size={22}
-                      color={active ? colors.text : colors.textMuted}
-                    />
-                    {tab.count > 0 && (
-                      <View style={[styles.railBadge, { backgroundColor: tab.key === "unread" ? "#FF3B30" : colors.backgroundSecondary }]}>
-                        <Text style={[styles.railBadgeText, { color: tab.key === "unread" ? "#fff" : colors.textSecondary }]}>
-                          {tab.count > 99 ? "99+" : tab.count}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.railLabel,
-                      {
-                        color: active ? colors.text : colors.textMuted,
-                        fontFamily: active ? "Inter_700Bold" : "Inter_500Medium",
-                      },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {tab.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
+      <View style={styles.body}>
 
         {/* ── Mobile swipeable pager (only when folders exist) ──────────── */}
         {showFolderUI && hasFolders ? (
@@ -1935,55 +1892,6 @@ function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; o
  * On mobile, renders the full-screen chats list as usual.
  */
 export default function ChatsRoute() {
-  const { isDesktop } = useIsDesktop();
-  const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
-
-  if (isDesktop) {
-    return (
-      <View style={{ flex: 1, flexDirection: "row" }}>
-        <ChatsScreen
-          panelMode
-          onOpenChat={(item, chatId) => {
-            setOpenTabs((prev) => {
-              if (prev.some((t) => t.chatId === chatId)) return prev;
-              return [
-                ...prev,
-                {
-                  chatId,
-                  otherName: item.other_display_name || item.name || "",
-                  otherAvatar: item.other_avatar || item.avatar_url || null,
-                  isGroup: item.is_group,
-                  isChannel: item.is_channel,
-                  otherId: item.other_id || "",
-                  chatName: item.name || "",
-                  chatAvatar: item.avatar_url || null,
-                  isVerified: item.is_verified,
-                  isOrgVerified: item.is_organization_verified,
-                },
-              ];
-            });
-            setActiveTabId(chatId);
-          }}
-        />
-        <DesktopConversationArea
-          openTabs={openTabs}
-          activeTabId={activeTabId}
-          onTabChange={setActiveTabId}
-          onTabClose={(id: string) => {
-            setOpenTabs((prev) => {
-              const remaining = prev.filter((t) => t.chatId !== id);
-              if (activeTabId === id) {
-                setActiveTabId(remaining[remaining.length - 1]?.chatId ?? null);
-              }
-              return remaining;
-            });
-          }}
-        />
-      </View>
-    );
-  }
-
   return <ChatsScreen />;
 }
 

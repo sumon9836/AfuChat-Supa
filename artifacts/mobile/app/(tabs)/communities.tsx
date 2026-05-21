@@ -310,10 +310,7 @@ export default function CommunitiesScreen() {
         }
       />
 
-      {/* ── two-pane row on desktop ── */}
-      <View style={{ flex: 1, flexDirection: isDesktop ? "row" : "column" }}>
-
-        {/* ── left: tab switcher + list ── */}
+      <View style={{ flex: 1 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={[ss.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
             {(["groups", "channels"] as CommunityTab[]).map((tab) => {
@@ -377,23 +374,16 @@ export default function CommunitiesScreen() {
             </View>
           ) : (
             <FlatList
-              key={isDesktop ? "2col" : "1col"}
               data={listData as any[]}
               keyExtractor={(item) => item.id}
-              numColumns={isDesktop ? 2 : 1}
-              columnWrapperStyle={isDesktop ? { gap: 10, paddingHorizontal: 12, paddingTop: 10 } : undefined}
               renderItem={({ item, index }) =>
                 activeTab === "groups" ? (
-                  <View style={isDesktop ? { flex: 1 } : undefined}>
-                    <GroupCard item={item as Group} index={index} />
-                  </View>
+                  <GroupCard item={item as Group} index={index} />
                 ) : (
-                  <View style={isDesktop ? { flex: 1 } : undefined}>
-                    <ChannelCard item={item as Channel} index={index} />
-                  </View>
+                  <ChannelCard item={item as Channel} index={index} />
                 )
               }
-              contentContainerStyle={isDesktop ? { paddingBottom: insets.bottom + 90 } : { padding: 12, gap: 10, paddingBottom: insets.bottom + 90 }}
+              contentContainerStyle={{ padding: 12, gap: 10, paddingBottom: insets.bottom + 90 }}
               showsVerticalScrollIndicator={false}
               refreshControl={
                 <RefreshControl
@@ -405,15 +395,6 @@ export default function CommunitiesScreen() {
             />
           )}
         </View>
-
-        {/* ── right: suggested rail (wide desktop only) ── */}
-        {isDesktop && width >= 1180 ? (
-          <View style={{ width: 320, flexShrink: 0, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.border }}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-              <RightRail />
-            </ScrollView>
-          </View>
-        ) : null}
 
       </View>
     </View>
