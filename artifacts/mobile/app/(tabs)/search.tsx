@@ -36,6 +36,8 @@ import {
   removeSavedSearch,
   type SavedSearch,
 } from "@/lib/searchStore";
+import { trackEvent } from "@/lib/activityTracker";
+import { getPersonalizedTags, getSearchSuggestions } from "@/lib/personalization";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -306,8 +308,10 @@ export default function SearchScreen() {
   const [hasSearched, setHasSearched] = useState(false);
   const [totalCount,  setTotalCount]  = useState(0);
 
-  const [history,     setHistory]     = useState<string[]>([]);
-  const [saved,       setSaved]       = useState<SavedSearch[]>([]);
+  const [history,          setHistory]          = useState<string[]>([]);
+  const [saved,            setSaved]            = useState<SavedSearch[]>([]);
+  const [personalizedTags, setPersonalizedTags] = useState<string[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
 
   const [trendingPeople,   setTrendingPeople]   = useState<PersonResult[]>([]);
   const [trendingHashtags, setTrendingHashtags] = useState<{ tag: string; count: number }[]>([]);
@@ -347,6 +351,7 @@ export default function SearchScreen() {
     loadTrendingPeople();
     loadTrendingHashtags();
     loadTrendingVideos();
+    getPersonalizedTags(14).then((tags) => { if (tags.length > 0) setPersonalizedTags(tags); }).catch(() => {});
   }
 
   async function loadTrendingPeople() {
@@ -655,7 +660,10 @@ export default function SearchScreen() {
         + events.length + gifts.length + marketItems.length + jobs.length;
       setTotalCount(total);
       setLoading(false);
-      if (trimmed.length > 0) addToHistory(trimmed).then(setHistory);
+      if (trimmed.length > 0) {
+        addToHistory(trimmed).then(setHistory);
+        trackEvent("search", { query: trimmed, tab: currentTab, results_count: total });
+      }
     } catch {
       if (id === searchIdRef.current) setLoading(false);
     }
@@ -667,8 +675,10 @@ export default function SearchScreen() {
     setQuery(t);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (t.trim().length === 0) {
-      setResults(EMPTY); setHasSearched(false); setTotalCount(0); return;
+      setResults(EMPTY); setHasSearched(false); setTotalCount(0);
+      setSearchSuggestions([]); return;
     }
+    getSearchSuggestions(t).then(setSearchSuggestions).catch(() => {});
     debounceRef.current = setTimeout(() => {
       performSearch(t, tab, verifiedOnly, sortMode, dateRange);
     }, 520);
@@ -1264,7 +1274,7 @@ export default function SearchScreen() {
   function NoResults() {
     const tags = trendingHashtags.length > 0
       ? trendingHashtags.slice(0, 8)
-      : FALLBACK_TAGS.slice(0, 8).map(t => ({ tag: t, count: 0 }));
+      : (personalizedTags.length > 0 ? personalizedTags : FALLBACK_TAGS).slice(0, 8).map(t => ({ tag: t, count: 0 }));
     return (
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: scrollPB + 16 }} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.duration(300)} style={{ alignItems: "center", paddingTop: 36, paddingHorizontal: 24 }}>
@@ -1422,7 +1432,7 @@ export default function SearchScreen() {
   function renderDiscovery() {
     const displayTags = trendingHashtags.length > 0
       ? trendingHashtags.slice(0, 10)
-      : FALLBACK_TAGS.slice(0, 10).map(t => ({ tag: t, count: 0 }));
+      : (personalizedTags.length > 0 ? personalizedTags : FALLBACK_TAGS).slice(0, 10).map(t => ({ tag: t, count: 0 }));
 
     const G = 10;
     const PH = 16;
@@ -1565,8 +1575,10 @@ export default function SearchScreen() {
         {displayTags.length > 0 && (
           <Animated.View entering={FadeInDown.delay(150).duration(300)} style={{ paddingTop: 28 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: PH, marginBottom: 14 }}>
-              <Ionicons name="flame" size={18} color={RED} />
-              <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.text, flex: 1, letterSpacing: -0.5 }}>Trending</Text>
+              <Ionicons name={trendingHashtags.length === 0 && personalizedTags.length > 0 ? "sparkles" as any : "flame"} size={18} color={trendingHashtags.length === 0 && personalizedTags.length > 0 ? BRAND : RED} />
+              <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.text, flex: 1, letterSpacing: -0.5 }}>
+                {trendingHashtags.length === 0 && personalizedTags.length > 0 ? "Based on your interests" : "Trending"}
+              </Text>
               <TouchableOpacity onPress={() => { setQuery("#"); inputRef.current?.focus(); }} activeOpacity={0.7}>
                 <Text style={{ fontSize: 13, color: BRAND, fontFamily: "Inter_600SemiBold" }}>See all</Text>
               </TouchableOpacity>
@@ -1765,6 +1777,28 @@ export default function SearchScreen() {
               ? <TouchableOpacity hitSlop={8}><Ionicons name="mic-outline" size={17} color={colors.textMuted} /></TouchableOpacity>
               : null}
         </View>
+
+        {/* Inline search suggestions — appear while typing, before submitting */}
+        {query.length > 1 && !hasSearched && searchSuggestions.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="always"
+            contentContainerStyle={{ gap: 6, paddingVertical: 6 }}
+          >
+            {searchSuggestions.map((s) => (
+              <TouchableOpacity
+                key={s}
+                onPress={() => { setQuery(s); setSearchSuggestions([]); performSearch(s, tab, verifiedOnly, sortMode, dateRange); inputRef.current?.blur(); }}
+                style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: colors.inputBg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: colors.border }}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="time-outline" size={13} color={colors.textMuted} />
+                <Text style={{ color: colors.text, fontSize: 13, fontFamily: "Inter_400Regular" }} numberOfLines={1}>{s}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
         {/* Filter pills — only shown when actively searching */}
         {(query.length > 0 || hasSearched) && (

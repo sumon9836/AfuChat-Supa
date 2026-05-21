@@ -62,6 +62,7 @@ import { getCachedVideoUri, cacheVideo, markVideoWatched } from "@/lib/videoCach
 import { onShortsRefresh } from "@/lib/shortsRefresh";
 import { getLocalFeedPost } from "@/lib/storage/localFeed";
 import { showActionToast as globalShowActionToast } from "@/lib/toast";
+import { trackEvent } from "@/lib/activityTracker";
 import { saveVideoProgress, clearVideoProgress } from "@/lib/videoProgress";
 import { useResolvedVideoSource } from "@/hooks/useResolvedVideoSource";
 import { getPostVideoManifest, pickBestSource } from "@/lib/videoApi";
@@ -1755,6 +1756,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     recordedViews.current.add(postId);
     supabase.from("post_views").upsert({ post_id: postId, viewer_id: user.id }, { onConflict: "post_id,viewer_id" }).then(null, () => {});
     setVideos((prev) => prev.map((v) => v.id === postId ? { ...v, view_count: v.view_count + 1 } : v));
+    const video = videosRef.current.find((v) => v.id === postId);
+    trackEvent("view_video", { post_id: postId, author_id: video?.author_id ?? "" });
   }, [user]);
 
   function getVideoUrl(item: VideoPost): string {

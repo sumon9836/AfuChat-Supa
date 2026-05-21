@@ -45,6 +45,8 @@ import { notifyPostLike } from "@/lib/notifyUser";
 import { timeAgo as formatRelative } from "@/lib/timeAgo";
 import { sharePost, shareVideo } from "@/lib/share";
 import { matchInterestsWeighted, recordInteraction, getLearnedInterestBoosts, computeFeedScore, diversifyFeed, getSeenPostIds, markPostsSeen, weightedSample, type FeedSignals } from "@/lib/feedAlgorithm";
+import { trackEvent } from "@/lib/activityTracker";
+import { getMergedLearnedWeights } from "@/lib/personalization";
 import { useLanguage } from "@/context/LanguageContext";
 import { translateText, LANG_LABELS } from "@/lib/translate";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -694,9 +696,12 @@ export default function DiscoverScreen() {
       const postId = vi.item?.id as string | undefined;
       if (!postId || recordedViewsRef.current.has(postId)) continue;
       recordedViewsRef.current.add(postId);
+      const authorId = vi.item?.author_id as string | undefined;
+      const postType = vi.item?.post_type as string | undefined;
       supabase.from("post_views").insert({ post_id: postId, viewer_id: user.id }).then(() => {
         setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, view_count: (p.view_count || 0) + 1 } : p));
       });
+      trackEvent("view_post", { post_id: postId, author_id: authorId ?? "", post_type: postType ?? "text" });
     }
   };
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -716,7 +721,7 @@ export default function DiscoverScreen() {
   }, [user]);
 
   useEffect(() => {
-    getLearnedInterestBoosts().then((w) => { learnedWeightsRef.current = w; });
+    getMergedLearnedWeights().then((w) => { learnedWeightsRef.current = w; });
   }, []);
 
   const fetchPosts = useCallback(async (offset: number, isRefresh: boolean, tab?: "for_you" | "following", background?: boolean) => {
@@ -1442,8 +1447,9 @@ export default function DiscoverScreen() {
       setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, bookmarked: true } : p));
       const content = [post.content, post.article_title].filter(Boolean).join(" ");
       recordInteraction(content, "bookmark").then(async () => {
-        learnedWeightsRef.current = await getLearnedInterestBoosts();
+        learnedWeightsRef.current = await getMergedLearnedWeights();
       });
+      trackEvent("bookmark_post", { post_id: postId, author_id: post.author_id });
     }
   }, [user, postsRef]);
 
@@ -1495,8 +1501,9 @@ export default function DiscoverScreen() {
         );
         const content = [post.content, post.article_title].filter(Boolean).join(" ");
         recordInteraction(content, "like").then(async () => {
-          learnedWeightsRef.current = await getLearnedInterestBoosts();
+          learnedWeightsRef.current = await getMergedLearnedWeights();
         });
+        trackEvent("like_post", { post_id: postId, author_id: post.author_id });
         if (post.author_id !== user.id) {
           notifyPostLike({
             postAuthorId: post.author_id,

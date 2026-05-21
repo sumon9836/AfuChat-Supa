@@ -18,7 +18,7 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { AppAccentProvider } from "@/context/AppAccentContext";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -29,6 +29,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
 import { initConnectivityToasts } from "@/lib/toast";
+import { initActivityTracker } from "@/lib/activityTracker";
 
 // Keep the native splash visible until fonts are ready so we never flash
 // a blank screen between the system launch image and the app UI.
@@ -41,6 +42,12 @@ if (Platform.OS !== "web") {
 // intended sizes regardless of the device's accessibility font-size setting.
 (Text as any).defaultProps = { ...((Text as any).defaultProps ?? {}), allowFontScaling: false };
 (TextInput as any).defaultProps = { ...((TextInput as any).defaultProps ?? {}), allowFontScaling: false };
+
+function ActivityTrackerSync() {
+  const { user } = useAuth();
+  useEffect(() => { initActivityTracker(user?.id ?? null); }, [user?.id]);
+  return null;
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = Font.useFonts({
@@ -93,6 +100,7 @@ export default function RootLayout() {
           <AppAccentProvider>
             <DataModeProvider>
               <AuthProvider>
+                <ActivityTrackerSync />
                 <LanguageProvider>
                   <AdvancedFeaturesProvider>
                     <ChatPreferencesProvider>
