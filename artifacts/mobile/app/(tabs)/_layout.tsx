@@ -371,7 +371,7 @@ export default function TabLayout() {
     <TabSwipeProvider>
       <View style={{ flex: 1 }}>
         <ClassicTabLayout isLoggedIn={isLoggedIn} />
-        {isLoggedIn && !isDesktop && (
+        {isLoggedIn && Platform.OS !== "web" && (
           <CompactTabBar
             userId={user?.id}
             avatarUrl={profile?.avatar_url}

@@ -313,8 +313,8 @@ const DT_CSS = `
 }
 @media(max-width:820px){
   .dt-side{display:none}
-  .dt-topbar{left:0}
-  .dt-body{padding-left:0}
+  .dt-topbar{display:none!important}
+  .dt-body{padding-left:0;padding-top:0}
   .dt-bnav{display:flex}
 }
 .dt-bnav{
@@ -832,12 +832,6 @@ function DesktopShell() {
 
   /* No-shell routes (landing, auth pages): pass through */
   if (noShell) {
-    return <Slot />;
-  }
-
-  /* Mobile web: skip all desktop chrome — the native tab layout handles
-     rendering, routing, and the CompactTabBar exactly as in the app. */
-  if (!isDesktop) {
     return <Slot />;
   }
 
