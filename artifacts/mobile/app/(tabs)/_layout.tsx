@@ -22,44 +22,14 @@ import { getLocalConversations } from "@/lib/storage/localConversations";
 import { supabase } from "@/lib/supabase";
 import { emitShortsRefresh } from "@/lib/shortsRefresh";
 
-let isLiquidGlassAvailable: () => boolean = () => false;
-try {
-  isLiquidGlassAvailable = require("expo-glass-effect").isLiquidGlassAvailable;
-} catch (_) {}
-
-// expo-router/unstable-native-tabs requires a native module (NativeTabsView)
-// that is NOT bundled in Expo Go — loading it causes an immediate native crash.
-// We only need it on iOS 26+ Liquid Glass builds (custom EAS build, not Expo Go).
-// Guard it behind a Platform check + try-catch so the native module is never
-// initialised on devices that don't have it.
-let NativeTabs: any = null;
-let NativeTabsIcon: any = null;
-let NativeTabsLabel: any = null;
-if (Platform.OS === "ios") {
-  try {
-    const nt = require("expo-router/unstable-native-tabs");
-    NativeTabs = nt.NativeTabs;
-    NativeTabsIcon = nt.Icon;
-    NativeTabsLabel = nt.Label;
-  } catch (_) {}
-}
-
-// expo-symbols is also iOS-only (SF Symbols). Guard the same way.
-let SymbolView: React.ComponentType<{ name: string; tintColor?: string; size?: number }> | null = null;
-if (Platform.OS === "ios") {
-  try {
-    SymbolView = require("expo-symbols").SymbolView;
-  } catch (_) {}
-}
-
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
 const TABS = [
-  { route: "/(tabs)/chats",    label: "Chats",    sfOn: "message.fill",              sfOff: "message",                       mdOn: "chatbubble",     mdOff: "chatbubble-outline"  },
-  { route: "/(tabs)/discover", label: "Discover", sfOn: "safari.fill",               sfOff: "safari",                        mdOn: "compass",        mdOff: "compass-outline"     },
-  { route: "/(tabs)/shorts",   label: "Shorts",   sfOn: "play.rectangle.fill",       sfOff: "play.rectangle",                mdOn: "play-circle",    mdOff: "play-circle-outline" },
-  { route: "/(tabs)/apps",     label: "Apps",     sfOn: "square.grid.2x2.fill",      sfOff: "square.grid.2x2",               mdOn: "grid",           mdOff: "grid-outline"        },
-  { route: "/(tabs)/me",       label: "Profile",  sfOn: "person.circle.fill",        sfOff: "person.circle",                 mdOn: "person",         mdOff: "person-outline"      },
+  { route: "/(tabs)/chats",    label: "Chats",    mdOn: "chatbubble",   mdOff: "chatbubble-outline"  },
+  { route: "/(tabs)/discover", label: "Discover", mdOn: "compass",      mdOff: "compass-outline"     },
+  { route: "/(tabs)/shorts",   label: "Shorts",   mdOn: "play-circle",  mdOff: "play-circle-outline" },
+  { route: "/(tabs)/apps",     label: "Apps",     mdOn: "grid",         mdOff: "grid-outline"        },
+  { route: "/(tabs)/me",       label: "Profile",  mdOn: "person",       mdOff: "person-outline"      },
 ] as const;
 
 function normalizeTabPath(p: string): string {
@@ -303,19 +273,6 @@ const bar = StyleSheet.create({
   },
 });
 
-function NativeTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
-  if (!NativeTabs) return null;
-  return (
-    <NativeTabs>
-      {isLoggedIn && (<NativeTabs.Trigger name="chats"><NativeTabsIcon sf={{ default: "message.fill", selected: "message.fill" }} /><NativeTabsLabel>Chats</NativeTabsLabel></NativeTabs.Trigger>)}
-      {isLoggedIn && (<NativeTabs.Trigger name="discover"><NativeTabsIcon sf={{ default: "safari", selected: "safari.fill" }} /><NativeTabsLabel>Discover</NativeTabsLabel></NativeTabs.Trigger>)}
-      {isLoggedIn && (<NativeTabs.Trigger name="shorts"><NativeTabsIcon sf={{ default: "play.rectangle", selected: "play.rectangle.fill" }} /><NativeTabsLabel>Shorts</NativeTabsLabel></NativeTabs.Trigger>)}
-      {isLoggedIn && (<NativeTabs.Trigger name="apps"><NativeTabsIcon sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }} /><NativeTabsLabel>Apps</NativeTabsLabel></NativeTabs.Trigger>)}
-      {isLoggedIn && (<NativeTabs.Trigger name="me"><NativeTabsIcon sf={{ default: "person.circle", selected: "person.circle.fill" }} /><NativeTabsLabel>Profile</NativeTabsLabel></NativeTabs.Trigger>)}
-    </NativeTabs>
-  );
-}
-
 function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
   const { colors } = useTheme();
   return (
@@ -361,14 +318,6 @@ export default function TabLayout() {
       router.replace({ pathname: "/onboarding", params: { userId: session.user.id } });
     }
   }, [session, profile, loading]);
-
-  if (isLiquidGlassAvailable()) {
-    return (
-      <TabSwipeProvider>
-        <NativeTabLayout isLoggedIn={isLoggedIn} />
-      </TabSwipeProvider>
-    );
-  }
 
   return (
     <TabSwipeProvider>

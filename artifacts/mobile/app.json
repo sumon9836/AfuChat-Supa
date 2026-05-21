@@ -20,25 +20,6 @@
       "resizeMode": "contain",
       "backgroundColor": "#00BCD4"
     },
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.afuchat.app",
-      "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification"
-        ],
-        "NSCameraUsageDescription": "AfuChat uses the camera for video calls, QR scanning, and photos.",
-        "NSContactsUsageDescription": "AfuChat uses contacts to help you find friends.",
-        "NSPhotoLibraryUsageDescription": "AfuChat uses your photo library to share images.",
-        "NSMicrophoneUsageDescription": "AfuChat uses the microphone for voice and video calls.",
-        "NSLocationWhenInUseUsageDescription": "AfuChat uses your location only when the Nearby Friends feature is open, to show AfuChat users near you. Your exact location is never visible to other users."
-      },
-      "associatedDomains": [
-        "applinks:afuchat.com",
-        "applinks:www.afuchat.com"
-      ],
-      "buildNumber": "2.0.72"
-    },
     "android": {
       "package": "com.afuchat.app",
       "adaptiveIcon": {
