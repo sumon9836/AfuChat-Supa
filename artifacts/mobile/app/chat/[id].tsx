@@ -21,7 +21,8 @@ import {
   View,
 } from "react-native";
 
-const _SW = Dimensions.get("window").width;
+// Cap screen width so attachment bubbles don't fill an entire desktop monitor.
+const _SW = Math.min(Dimensions.get("window").width, 480);
 const ATTACH_W = Math.round(_SW * 0.58);
 const ATTACH_H = Math.round(ATTACH_W * 0.82);
 const STORY_REPLY_W = Math.round(_SW * 0.50);
@@ -48,6 +49,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase, supabaseUrl as SUPA_URL, supabaseAnonKey as SUPA_KEY } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useGiftPrices } from "@/hooks/useGiftPrices";
 import { Avatar } from "@/components/ui/Avatar";
 import { RichText } from "@/components/ui/RichText";
@@ -1380,6 +1382,7 @@ function ChatScreen() {
   const isDraft = id === "new";
   const { user, profile, isPremium, subscription, refreshProfile } = useAuth();
   const { colors } = useTheme();
+  const { isDesktop } = useIsDesktop();
   const BRAND = colors.accent;
   const { textToSpeech: ttsEnabled } = useLanguage();
   const { prefs: chatPrefs, themeColors: chatThemeColors, bubbleRadius: chatBubbleRadius } = useChatPreferences();
@@ -4576,9 +4579,11 @@ STRICT RULES:
     <View style={[st.root, { backgroundColor: colors.background }]}>
       {Platform.OS !== "web" && <OfflineBanner />}
       <View style={[st.header, { backgroundColor: colors.surface, paddingTop: insets.top + 4, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={st.backBtn} hitSlop={12}>
-          <Ionicons name="chevron-back" size={26} color={colors.text} />
-        </TouchableOpacity>
+        {!isDesktop && (
+          <TouchableOpacity onPress={() => router.back()} style={st.backBtn} hitSlop={12}>
+            <Ionicons name="chevron-back" size={26} color={colors.text} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={st.headerProfile}
           activeOpacity={0.7}

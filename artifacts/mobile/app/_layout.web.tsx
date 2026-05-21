@@ -17,6 +17,7 @@ import {
   Bell, ShoppingBag, UserCheck, Plus, ChevronLeft,
 } from "lucide-react";
 
+import { ChatsListPanel } from "@/app/(tabs)/index";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -222,6 +223,28 @@ const DT_CSS = `
   min-width:0;
 }
 .dt-body>div{flex:1;min-height:0;display:flex;flex-direction:column}
+
+/* ─── Chat master-detail split panel ───────────────────────────────────── */
+/* .dt-body>div sets flex-direction:column; override to row for the split.   */
+.dt-chat-split{flex-direction:row!important;overflow:hidden}
+.dt-chat-list-panel{
+  width:360px;flex-shrink:0;overflow:hidden;
+  border-right:1px solid var(--bdr);
+  display:flex;flex-direction:column;
+}
+.dt-chat-conv-pane{
+  flex:1;min-width:0;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.dt-chat-empty{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:12px;padding:32px;
+  color:var(--mt);
+  font-family:'Inter',sans-serif;
+}
+.dt-chat-empty svg{opacity:0.35}
+.dt-chat-empty p{font-size:15px;text-align:center;opacity:0.55;margin:0}
 
 /* ─── Centred page wrapper (max 840 px) ─────────────────────────────────── */
 /* Applied to all non-wide routes so content never stretches across the full  */
@@ -493,6 +516,14 @@ function isActiveRoute(pathname: string, matchPaths: string[]): boolean {
     }
     return pathname === p || pathname.startsWith(p + "/");
   });
+}
+
+/**
+ * Chat conversation routes — rendered as a split panel on desktop:
+ * left=ChatsListPanel (360px), right=conversation slot.
+ */
+function isChatRoute(pathname: string): boolean {
+  return pathname.startsWith("/chat/");
 }
 
 /**
@@ -999,7 +1030,16 @@ function DesktopShell() {
             MAIN BODY
         ══════════════════════════════════ */}
         <main className="dt-body">
-          {isWideRoute(pathname) ? (
+          {isChatRoute(pathname) ? (
+            <div className="dt-chat-split">
+              <div className="dt-chat-list-panel">
+                <ChatsListPanel />
+              </div>
+              <div className="dt-chat-conv-pane">
+                <Slot />
+              </div>
+            </div>
+          ) : isWideRoute(pathname) ? (
             <Slot />
           ) : (
             <div className="dt-page-wrap">
