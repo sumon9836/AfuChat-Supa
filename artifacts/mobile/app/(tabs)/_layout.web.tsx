@@ -178,6 +178,12 @@ const DT_CSS = `
 }
 @keyframes dt-rot{to{transform:rotate(360deg)}}
 
+/* ── Centered page wrapper — all non-chat routes ── */
+.dt-page-inner{
+  max-width:960px;width:100%;margin:0 auto;
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+}
+
 /* ── Responsive: collapse sidebar on narrow viewports ── */
 @media(max-width:820px){.dt-sidebar{display:none}}
 
@@ -539,7 +545,13 @@ export default function DesktopTabLayout() {
 
           {/* ══ MAIN CONTENT ══ */}
           <main className="dt-content">
-            <Slot />
+            {(pathname === "/" || pathname === "/index" || pathname === "/(tabs)" || pathname.startsWith("/chat/")) ? (
+              <Slot />
+            ) : (
+              <div className="dt-page-inner">
+                <Slot />
+              </div>
+            )}
           </main>
 
         </div>

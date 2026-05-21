@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -16,8 +17,10 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { supabase } from "@/lib/supabase";
 import { GlassHeader } from "@/components/ui/GlassHeader";
+import { RightRail } from "@/components/desktop/RightRail";
 import { showAlert } from "@/lib/alert";
 import { isOnline } from "@/lib/offlineStore";
 import * as Haptics from "@/lib/haptics";
@@ -50,6 +53,7 @@ type CommunityTab = "groups" | "channels";
 export default function CommunitiesScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
+  const { isDesktop, width } = useIsDesktop();
   const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<CommunityTab>("groups");
@@ -306,88 +310,112 @@ export default function CommunitiesScreen() {
         }
       />
 
-      <View style={[ss.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        {(["groups", "channels"] as CommunityTab[]).map((tab) => {
-          const isActive = activeTab === tab;
-          const label = tab === "groups" ? "Groups" : "Channels";
-          const icon = tab === "groups" ? "people" : "megaphone";
-          const accentColor = tab === "groups" ? BRAND : PURPLE;
-          return (
-            <TouchableOpacity
-              key={tab}
-              style={[ss.tab, isActive && { borderBottomColor: accentColor, borderBottomWidth: 2 }]}
-              onPress={() => setActiveTab(tab)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name={icon} size={16} color={isActive ? accentColor : colors.textMuted} />
-              <Text
-                style={[
-                  ss.tabLabel,
-                  { color: isActive ? accentColor : colors.textMuted },
-                  isActive && { fontFamily: "Inter_600SemiBold" },
-                ]}
-              >
-                {label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {/* ── two-pane row on desktop ── */}
+      <View style={{ flex: 1, flexDirection: isDesktop ? "row" : "column" }}>
 
-      {loading ? (
-        <View style={ss.center}>
-          <ActivityIndicator color={activeTab === "groups" ? BRAND : PURPLE} />
-        </View>
-      ) : listData.length === 0 ? (
-        <View style={ss.empty}>
-          <View style={[ss.emptyIcon, { backgroundColor: colors.surface }]}>
-            <Ionicons
-              name={activeTab === "groups" ? "people-outline" : "megaphone-outline"}
-              size={40}
-              color={colors.textMuted}
-            />
+        {/* ── left: tab switcher + list ── */}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={[ss.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+            {(["groups", "channels"] as CommunityTab[]).map((tab) => {
+              const isActive = activeTab === tab;
+              const label = tab === "groups" ? "Groups" : "Channels";
+              const icon = tab === "groups" ? "people" : "megaphone";
+              const accentColor = tab === "groups" ? BRAND : PURPLE;
+              return (
+                <TouchableOpacity
+                  key={tab}
+                  style={[ss.tab, isActive && { borderBottomColor: accentColor, borderBottomWidth: 2 }]}
+                  onPress={() => setActiveTab(tab)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={icon} size={16} color={isActive ? accentColor : colors.textMuted} />
+                  <Text
+                    style={[
+                      ss.tabLabel,
+                      { color: isActive ? accentColor : colors.textMuted },
+                      isActive && { fontFamily: "Inter_600SemiBold" },
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-          <Text style={[ss.emptyTitle, { color: colors.text }]}>
-            No public {activeTab} yet
-          </Text>
-          <Text style={[ss.emptySub, { color: colors.textSecondary }]}>
-            {activeTab === "groups"
-              ? "Create a public group and toggle visibility so others can discover it here."
-              : "Create a public channel to broadcast to your audience."}
-          </Text>
-          <TouchableOpacity
-            style={[ss.emptyBtn, { backgroundColor: activeTab === "groups" ? BRAND : PURPLE }]}
-            onPress={() =>
-              router.push(activeTab === "groups" ? ("/group/create" as any) : ("/channel/intro" as any))
-            }
-          >
-            <Text style={ss.emptyBtnText}>
-              Create {activeTab === "groups" ? "Group" : "Channel"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={listData as any[]}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) =>
-            activeTab === "groups" ? (
-              <GroupCard item={item as Group} index={index} />
-            ) : (
-              <ChannelCard item={item as Channel} index={index} />
-            )
-          }
-          contentContainerStyle={{ padding: 12, gap: 10, paddingBottom: insets.bottom + 90 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={refresh}
-              tintColor={activeTab === "groups" ? BRAND : PURPLE}
+
+          {loading ? (
+            <View style={ss.center}>
+              <ActivityIndicator color={activeTab === "groups" ? BRAND : PURPLE} />
+            </View>
+          ) : listData.length === 0 ? (
+            <View style={ss.empty}>
+              <View style={[ss.emptyIcon, { backgroundColor: colors.surface }]}>
+                <Ionicons
+                  name={activeTab === "groups" ? "people-outline" : "megaphone-outline"}
+                  size={40}
+                  color={colors.textMuted}
+                />
+              </View>
+              <Text style={[ss.emptyTitle, { color: colors.text }]}>
+                No public {activeTab} yet
+              </Text>
+              <Text style={[ss.emptySub, { color: colors.textSecondary }]}>
+                {activeTab === "groups"
+                  ? "Create a public group and toggle visibility so others can discover it here."
+                  : "Create a public channel to broadcast to your audience."}
+              </Text>
+              <TouchableOpacity
+                style={[ss.emptyBtn, { backgroundColor: activeTab === "groups" ? BRAND : PURPLE }]}
+                onPress={() =>
+                  router.push(activeTab === "groups" ? ("/group/create" as any) : ("/channel/intro" as any))
+                }
+              >
+                <Text style={ss.emptyBtnText}>
+                  Create {activeTab === "groups" ? "Group" : "Channel"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              key={isDesktop ? "2col" : "1col"}
+              data={listData as any[]}
+              keyExtractor={(item) => item.id}
+              numColumns={isDesktop ? 2 : 1}
+              columnWrapperStyle={isDesktop ? { gap: 10, paddingHorizontal: 12, paddingTop: 10 } : undefined}
+              renderItem={({ item, index }) =>
+                activeTab === "groups" ? (
+                  <View style={isDesktop ? { flex: 1 } : undefined}>
+                    <GroupCard item={item as Group} index={index} />
+                  </View>
+                ) : (
+                  <View style={isDesktop ? { flex: 1 } : undefined}>
+                    <ChannelCard item={item as Channel} index={index} />
+                  </View>
+                )
+              }
+              contentContainerStyle={isDesktop ? { paddingBottom: insets.bottom + 90 } : { padding: 12, gap: 10, paddingBottom: insets.bottom + 90 }}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={refresh}
+                  tintColor={activeTab === "groups" ? BRAND : PURPLE}
+                />
+              }
             />
-          }
-        />
-      )}
+          )}
+        </View>
+
+        {/* ── right: suggested rail (wide desktop only) ── */}
+        {isDesktop && width >= 1180 ? (
+          <View style={{ width: 320, flexShrink: 0, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.border }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              <RightRail />
+            </ScrollView>
+          </View>
+        ) : null}
+
+      </View>
     </View>
   );
 }

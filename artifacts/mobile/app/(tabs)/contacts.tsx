@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import {
   ActivityIndicator,
   Platform,
@@ -100,6 +101,7 @@ function ContactRow({ item, phonebookName }: { item: Contact; phonebookName?: st
 export default function ContactsScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
+  const { isDesktop } = useIsDesktop();
   const insets = useSafeAreaInsets();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -381,7 +383,12 @@ export default function ContactsScreen() {
             tintColor={colors.accent}
           />
         }
-        contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 90,
+          maxWidth: isDesktop ? 720 : undefined,
+          alignSelf: "center",
+          width: "100%",
+        }}
         showsVerticalScrollIndicator={false}
       />
     </View>

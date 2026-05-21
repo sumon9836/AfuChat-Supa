@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { RightRail } from "@/components/desktop/RightRail";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import {
@@ -211,6 +213,7 @@ const pc = StyleSheet.create({
 
 export default function MeScreen() {
   const { colors, isDark, accent } = useTheme();
+  const { isDesktop, width: screenW } = useIsDesktop();
   const { profile, isPremium, subscription, loading, user } = useAuth();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [hasCompanyPage, setHasCompanyPage] = useState(false);
@@ -376,11 +379,22 @@ export default function MeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
       <OfflineBanner />
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={[s.content, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 96 }]}
-        showsVerticalScrollIndicator={false}
-      >
+
+      {/* ── main row (content + optional right rail) ── */}
+      <View style={{ flex: 1, flexDirection: isDesktop ? "row" : "column" }}>
+
+        {/* ── profile content column ── */}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[s.content, {
+            paddingTop: isDesktop ? 20 : insets.top + 10,
+            paddingBottom: insets.bottom + 96,
+            maxWidth: isDesktop ? 720 : undefined,
+            alignSelf: "center",
+            width: "100%",
+          }]}
+          showsVerticalScrollIndicator={false}
+        >
 
         {/* ── Profile Hero Card ──────────────────────────────────────── */}
         <View style={[s.heroCard, { backgroundColor: colors.surface, borderColor: colors.border, borderTopColor: accent }]}>
@@ -628,7 +642,18 @@ export default function MeScreen() {
           </View>
         )}
 
-      </ScrollView>
+        </ScrollView>
+
+        {/* ── right rail (wide desktop only) ── */}
+        {isDesktop && screenW >= 1180 ? (
+          <View style={{ width: 340, flexShrink: 0, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.border }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              <RightRail />
+            </ScrollView>
+          </View>
+        ) : null}
+
+      </View>{/* end main row */}
 
       <AvatarViewer
         visible={avatarOpen}
