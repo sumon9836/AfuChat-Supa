@@ -41,7 +41,7 @@ import {
 import * as Clipboard from "expo-clipboard";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
@@ -850,7 +850,7 @@ const cmStyles = StyleSheet.create({
 const VideoItem = React.memo(function VideoItem({
   item, isActive, isNearActive, screenH, screenW, isFollowing, isSelf,
   onLike, onBookmark, onOpenComments, onShare, onFollow, onRecordView, onOpenMenu,
-  navOffset = 0,
+  navOffset = 0, tabFocused = true,
 }: {
   item: VideoPost; isActive: boolean; isNearActive: boolean; screenH: number; screenW: number;
   isFollowing: boolean; isSelf: boolean;
@@ -858,7 +858,7 @@ const VideoItem = React.memo(function VideoItem({
   onOpenComments: (id: string) => void; onShare: (item: VideoPost) => void;
   onFollow: (authorId: string, isFollowing: boolean) => void; onRecordView: (postId: string) => void;
   onOpenMenu: (item: VideoPost) => void;
-  navOffset?: number;
+  navOffset?: number; tabFocused?: boolean;
 }) {
   const { accent } = useAppAccent();
   const insets = useSafeAreaInsets();
@@ -908,6 +908,22 @@ const VideoItem = React.memo(function VideoItem({
     }, 500);
     return () => { if (cacheDelayRef.current) { clearTimeout(cacheDelayRef.current); cacheDelayRef.current = null; } };
   }, [isNearActive]);
+
+  // Pause and show poster when app/tab loses focus; resume seamlessly on return.
+  // Resetting videoStarted shows the poster image immediately so there's no black
+  // frame while the AVPlayer re-syncs after the screen regains focus.
+  useEffect(() => {
+    if (!tabFocused) {
+      setVideoStarted(false);
+      videoStartedRef.current = false;
+      if (Platform.OS === "web" && webVideoRef.current) {
+        webVideoRef.current.pause();
+      }
+    } else if (isActive && Platform.OS === "web" && webVideoRef.current && !paused) {
+      webVideoRef.current.play().catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabFocused]);
 
   // Reset when leaving viewport; record view when becoming active
   useEffect(() => {
@@ -1031,7 +1047,7 @@ const VideoItem = React.memo(function VideoItem({
     <View style={StyleSheet.absoluteFill}>
       {shouldMountVideo ? (
         <WebVideoPlayer
-          src={playbackUri} poster={item.image_url} active={isActive} paused={paused} preloadOnly={preloadOnly}
+          src={playbackUri} poster={item.image_url} active={isActive && tabFocused} paused={paused} preloadOnly={preloadOnly}
           onTogglePause={() => setPaused((p) => !p)} onDoubleTap={triggerDoubleTapLike}
           onLongPress={() => onOpenMenu(item)}
           onProgress={(pos, dur) => {
@@ -1065,7 +1081,7 @@ const VideoItem = React.memo(function VideoItem({
           source={{ uri: playbackUri }}
           style={StyleSheet.absoluteFill}
           resizeMode={ResizeMode.CONTAIN}
-          shouldPlay={isActive && !paused && !preloadOnly}
+          shouldPlay={isActive && !paused && !preloadOnly && tabFocused}
           isLooping
           isMuted={false}
           posterSource={item.image_url ? { uri: item.image_url } : undefined}
@@ -1294,6 +1310,14 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   const [downloading, setDownloading] = useState(false);
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
+  const [tabFocused, setTabFocused] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      setTabFocused(true);
+      return () => { setTabFocused(false); };
+    }, [])
+  );
 
   const listRef = useRef<FlatList>(null);
   const webScrollRef = useRef<HTMLDivElement | null>(null);
@@ -1783,7 +1807,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
     setDownloading(true); showToast("Saving to device…", 30000);
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== "granted") {
         setDownloading(false); setDownloadToast(null);
         Alert.alert("Permission needed", "Please allow media library access in Settings to save videos.");
@@ -1865,7 +1889,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     onFollow: handleFollow,
     onRecordView: handleRecordView,
     onOpenMenu,
-  }), [listHeight, SCREEN_W, isEmbedded, handleLike, handleBookmark, handleFollow, handleRecordView, onShare, onOpenMenu]);
+    tabFocused,
+  }), [listHeight, SCREEN_W, isEmbedded, handleLike, handleBookmark, handleFollow, handleRecordView, onShare, onOpenMenu, tabFocused]);
 
   const renderItem = useCallback(({ item, index }: { item: VideoPost; index: number }) => (
     <VideoItem
