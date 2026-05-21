@@ -16,7 +16,7 @@
 // table using media_type values: chat_image, chat_gif, chat_audio, chat_file.
 
 import { Platform } from "react-native";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { getDB } from "./db";
 
 const BASE = ((FileSystem as any).documentDirectory ?? "") + "afuchat_media/chat/";

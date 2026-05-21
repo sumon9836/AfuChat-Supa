@@ -13,7 +13,7 @@
 //   • All downloads are fire-and-forget; errors are silently ignored.
 
 import { Platform } from "react-native";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Network from "expo-network";
 import { getDB } from "./db";
 

@@ -28,6 +28,7 @@ import { DataModeProvider } from "@/context/DataModeContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
+import { PushNotificationManager } from "@/components/PushNotificationManager";
 import { initConnectivityToasts } from "@/lib/toast";
 import { initActivityTracker } from "@/lib/activityTracker";
 
@@ -101,6 +102,7 @@ export default function RootLayout() {
             <DataModeProvider>
               <AuthProvider>
                 <ActivityTrackerSync />
+                <PushNotificationManager />
                 <LanguageProvider>
                   <AdvancedFeaturesProvider>
                     <ChatPreferencesProvider>

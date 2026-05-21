@@ -10,7 +10,7 @@
 //   • clearMediaCache() is user-initiated only
 
 import { Platform } from "react-native";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { getDB } from "./db";
 
 // ── documentDirectory = permanent; OS never clears this automatically ──────────

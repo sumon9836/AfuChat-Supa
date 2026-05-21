@@ -21,7 +21,7 @@
 // so re-requesting the same URL returns the cached file instantly.
 
 import { Platform } from "react-native";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 // ─── Config ────────────────────────────────────────────────────────────────
 
