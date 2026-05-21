@@ -47,6 +47,7 @@ import { getLocalConversations, saveConversations, hasLocalConversations, delete
 import { addOnlineListener, preloadConversationMessages } from "@/lib/offlineSync";
 import { wasChatRecentlyVisited, clearChatVisited, getActiveChatId } from "@/lib/chatVisited";
 import { showAlert, confirmAlert } from "@/lib/alert";
+import { showToast, showActionToast } from "@/lib/toast";
 import { useChatPreferences } from "@/context/ChatPreferencesContext";
 import { useAdvancedFeatures } from "@/context/AdvancedFeaturesContext";
 import {
@@ -1080,13 +1081,23 @@ function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; o
         if (error) {
           showAlert("Couldn't update pin", error.message);
           loadChats(true);
+        } else {
+          showActionToast(
+            next ? "Chat pinned" : "Chat unpinned",
+            "Undo",
+            async () => {
+              setChats((prev) =>
+                prev.map((c) => (c.id === item.id ? { ...c, is_pinned: !next } : c)),
+              );
+              await supabase.from("chats").update({ is_pinned: !next }).eq("id", item.id);
+            },
+            { type: "info", icon: next ? "pin" : "pin-outline" },
+          );
         }
         return;
       }
       if (action === "toggleArchive") {
         const next = !item.is_archived;
-        // Update in-place — archived chats stay visible but sink to the
-        // bottom of the list (sort pushes is_archived=true to the end).
         setChats((prev) =>
           prev.map((c) => c.id === item.id ? { ...c, is_archived: next } : c),
         );
@@ -1097,6 +1108,18 @@ function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; o
         if (error) {
           showAlert("Couldn't archive chat", error.message);
           loadChats(true);
+        } else {
+          showActionToast(
+            next ? "Chat archived" : "Chat unarchived",
+            "Undo",
+            async () => {
+              setChats((prev) =>
+                prev.map((c) => (c.id === item.id ? { ...c, is_archived: !next } : c)),
+              );
+              await supabase.from("chats").update({ is_archived: !next }).eq("id", item.id);
+            },
+            { type: "info", icon: next ? "archive" : "archive-outline" },
+          );
         }
         return;
       }

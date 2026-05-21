@@ -61,6 +61,7 @@ import { encodeId, decodeId, isUuid } from "@/lib/shortId";
 import { getCachedVideoUri, cacheVideo, markVideoWatched } from "@/lib/videoCache";
 import { onShortsRefresh } from "@/lib/shortsRefresh";
 import { getLocalFeedPost } from "@/lib/storage/localFeed";
+import { showActionToast as globalShowActionToast } from "@/lib/toast";
 import { saveVideoProgress, clearVideoProgress } from "@/lib/videoProgress";
 import { useResolvedVideoSource } from "@/hooks/useResolvedVideoSource";
 import { getPostVideoManifest, pickBestSource } from "@/lib/videoApi";
@@ -1833,7 +1834,15 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   }
 
   function handleCopyLink(item: VideoPost) { Clipboard.setStringAsync(getVideoUrl(item)); showToast("Link copied"); }
-  function handleNotInterested(item: VideoPost) { setVideos((prev) => prev.filter((v) => v.id !== item.id)); showToast("Removed from feed"); }
+  function handleNotInterested(item: VideoPost) {
+    setVideos((prev) => prev.filter((v) => v.id !== item.id));
+    globalShowActionToast(
+      "Removed from feed",
+      "Undo",
+      () => setVideos((prev) => prev.some((v) => v.id === item.id) ? prev : [item, ...prev]),
+      { type: "info", icon: "eye-off-outline" },
+    );
+  }
   function handleReport(item: VideoPost) {
     Alert.alert("Report video", "Why are you reporting this?", [
       { text: "Spam", onPress: () => showToast("Report submitted — thanks") },

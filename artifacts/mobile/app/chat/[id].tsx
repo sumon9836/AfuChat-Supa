@@ -56,6 +56,7 @@ import { RichText } from "@/components/ui/RichText";
 import Colors from "@/constants/colors";
 import { LinearGradient } from "expo-linear-gradient";
 import { showAlert } from "@/lib/alert";
+import { showToast as globalShowToast } from "@/lib/toast";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { notifyNewMessage, notifyGiftReceived } from "@/lib/notifyUser";
 import {
@@ -3292,6 +3293,7 @@ STRICT RULES:
           } else {
             setMessages((prev) => prev.filter((m) => m.id !== msg.id));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            globalShowToast("Message deleted", { type: "info", icon: "trash-outline" });
           }
         },
       },
