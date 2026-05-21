@@ -38,6 +38,7 @@ import { useContextMenu, ContextMenu } from "@/components/desktop/ContextMenu";
 import { VideoThumbnail } from "@/components/ui/VideoThumbnail";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import OfflineBanner from "@/components/ui/OfflineBanner";
+import PostUploadBanner from "@/components/ui/PostUploadBanner";
 import { isOnline, onConnectivityChange } from "@/lib/offlineStore";
 import { getLocalFeedPosts, saveFeedPosts, getNewestFeedPostDate, type FeedTab as LocalFeedTab } from "@/lib/storage/localFeed";
 import { getCachedFeedTab, cacheFeedTab, getCachedMoments, cacheMoments, cacheFeedCursor } from "@/lib/offlineStore";
@@ -1535,6 +1536,7 @@ export default function DiscoverScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <OfflineBanner />
+      <PostUploadBanner />
       <DesktopFeedLayout>
 
       {/* ── Scroll-aware header (absolutely positioned so it can slide away) ── */}

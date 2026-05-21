@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -132,6 +132,19 @@ export default function CommunitiesScreen() {
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel("communities-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chats" }, () => load())
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chats" }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "channels" }, () => load())
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "channels" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, load]);
 
   async function refresh() { setRefreshing(true); await load(); }
 

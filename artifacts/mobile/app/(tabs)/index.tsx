@@ -62,10 +62,7 @@ import {
   getStoryUploadState,
   subscribeStoryUpload,
 } from "@/lib/storyUploadStore";
-import {
-  getPostUploadState,
-  subscribePostUpload,
-} from "@/lib/postUploadStore";
+import PostUploadBannerShared from "@/components/ui/PostUploadBanner";
 import {
   getViewedUserIds,
   subscribeStoryViewed,
@@ -393,58 +390,8 @@ function StoryUploadBanner({ colors }: { colors: any }) {
   );
 }
 
-function usePostUpload() {
-  return useSyncExternalStore(subscribePostUpload, getPostUploadState, getPostUploadState);
-}
-
-function PostUploadBanner({ colors }: { colors: any }) {
-  const upload = usePostUpload();
-  if (!upload) return null;
-
-  const isDone   = upload.done;
-  const isFailed = upload.failed;
-  const pct      = Math.round(upload.progress * 100);
-  const isVideo  = upload.type === "video";
-
-  return (
-    <View style={[uploadBannerStyles.wrap, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-      <View style={uploadBannerStyles.row}>
-        <View style={[uploadBannerStyles.iconCircle, { backgroundColor: isDone ? "#22C55E20" : isFailed ? "#EF444420" : colors.accent + "22" }]}>
-          <Ionicons
-            name={isDone ? "checkmark-circle" : isFailed ? "alert-circle" : isVideo ? "videocam" : "image"}
-            size={16}
-            color={isDone ? "#22C55E" : isFailed ? "#EF4444" : colors.accent}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[uploadBannerStyles.label, { color: colors.text }]}>
-            {isDone
-              ? `${isVideo ? "Video" : "Post"} published!`
-              : isFailed
-              ? `${isVideo ? "Video" : "Post"} upload failed`
-              : `Posting your ${isVideo ? "video" : "post"}…`}
-          </Text>
-          {isFailed && upload.errorMessage ? (
-            <Text style={[uploadBannerStyles.caption, { color: "#EF4444" }]} numberOfLines={2}>
-              {upload.errorMessage}
-            </Text>
-          ) : upload.label ? (
-            <Text style={[uploadBannerStyles.caption, { color: colors.textMuted }]} numberOfLines={1}>
-              {upload.label}
-            </Text>
-          ) : null}
-        </View>
-        {!isDone && !isFailed && (
-          <Text style={[uploadBannerStyles.pct, { color: colors.accent }]}>{pct}%</Text>
-        )}
-      </View>
-      {!isDone && !isFailed && (
-        <View style={[uploadBannerStyles.track, { backgroundColor: colors.border }]}>
-          <View style={[uploadBannerStyles.fill, { width: `${pct}%` as any, backgroundColor: colors.accent }]} />
-        </View>
-      )}
-    </View>
-  );
+function PostUploadBanner({ colors: _colors }: { colors?: any }) {
+  return <PostUploadBannerShared />;
 }
 
 const uploadBannerStyles = StyleSheet.create({

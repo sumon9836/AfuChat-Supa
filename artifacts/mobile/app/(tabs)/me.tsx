@@ -294,6 +294,45 @@ export default function MeScreen() {
     });
   }, [user?.id]);
 
+  // Live follower / following / post counts
+  useEffect(() => {
+    if (!user) return;
+    const STATS_KEY = `me_stats_${user.id}`;
+
+    function refreshFollowers() {
+      supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user!.id).then(({ count }) => {
+        setFollowerCount(count ?? 0);
+        AsyncStorage.getItem(STATS_KEY).then((raw) => {
+          try { const cur = raw ? JSON.parse(raw) : {}; AsyncStorage.setItem(STATS_KEY, JSON.stringify({ ...cur, fc: count ?? 0 })).catch(() => {}); } catch {}
+        });
+      });
+    }
+    function refreshFollowing() {
+      supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user!.id).then(({ count }) => {
+        setFollowingCount(count ?? 0);
+        AsyncStorage.getItem(STATS_KEY).then((raw) => {
+          try { const cur = raw ? JSON.parse(raw) : {}; AsyncStorage.setItem(STATS_KEY, JSON.stringify({ ...cur, fgc: count ?? 0 })).catch(() => {}); } catch {}
+        });
+      });
+    }
+    function refreshPosts() {
+      supabase.from("posts").select("*", { count: "exact", head: true }).eq("author_id", user!.id).then(({ count }) => {
+        setPostCount(count ?? 0);
+        AsyncStorage.getItem(STATS_KEY).then((raw) => {
+          try { const cur = raw ? JSON.parse(raw) : {}; AsyncStorage.setItem(STATS_KEY, JSON.stringify({ ...cur, pc: count ?? 0 })).catch(() => {}); } catch {}
+        });
+      });
+    }
+
+    const ch = supabase
+      .channel(`me-stats:${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${user.id}` }, refreshFollowers)
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` }, refreshFollowing)
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts",   filter: `author_id=eq.${user.id}` }, refreshPosts)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
+
   async function openMyNotes() {
     if (!user || notesLoading) return;
     void Haptics.selectionAsync();
