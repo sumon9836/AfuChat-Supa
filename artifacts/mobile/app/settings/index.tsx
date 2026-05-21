@@ -156,7 +156,7 @@ export default function SettingsScreen() {
                     )}
                   </View>
 
-                  {/* Name / handle / badge */}
+                  {/* Name / handle / email / badge */}
                   <View style={styles.accountInfo}>
                     <Text style={[styles.accountName, { color: colors.text }]} numberOfLines={1}>
                       {account.displayName}
@@ -164,6 +164,11 @@ export default function SettingsScreen() {
                     <Text style={[styles.accountHandle, { color: colors.textMuted }]} numberOfLines={1}>
                       @{account.handle}
                     </Text>
+                    {isCurrent && user?.email ? (
+                      <Text style={[styles.accountEmail, { color: colors.textMuted }]} numberOfLines={1}>
+                        {user.email}
+                      </Text>
+                    ) : null}
                     {isCurrent && (
                       <View style={[styles.activeBadge, { backgroundColor: accent + "22" }]}>
                         <Text style={[styles.activeBadgeText, { color: accent }]}>Active</Text>
@@ -373,6 +378,7 @@ const styles = StyleSheet.create({
   accountInfo: { flex: 1, gap: 1 },
   accountName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   accountHandle: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  accountEmail: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
   activeBadge: {
     alignSelf: "flex-start",
     borderRadius: 5,
