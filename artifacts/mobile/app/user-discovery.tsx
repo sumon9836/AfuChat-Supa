@@ -262,6 +262,7 @@ export default function UserDiscoveryScreen() {
 
   const [radiusKm, setRadiusKm] = useState(5);
   const [nearbyLoadError, setNearbyLoadError] = useState<string | null>(null);
+  const [myLocationUpdatedAt, setMyLocationUpdatedAt] = useState<string | null>(null);
   const {
     coords: userCoords,
     locating,
@@ -390,14 +391,16 @@ export default function UserDiscoveryScreen() {
         .eq("id", user.id)
         .single();
       if (pref?.location_sharing_enabled === false) return;
+      const now = new Date().toISOString();
       await supabase
         .from("profiles")
         .update({
           latitude: coords.lat,
           longitude: coords.lng,
-          location_updated_at: new Date().toISOString(),
+          location_updated_at: now,
         })
         .eq("id", user.id);
+      setMyLocationUpdatedAt(now);
     },
     [user]
   );
@@ -472,18 +475,39 @@ export default function UserDiscoveryScreen() {
     if (tab === "nearby" && userCoords) {
       loadNearbyUsers(userCoords);
       channelRef.current?.unsubscribe();
+
+      // Debounce realtime reloads so rapid location updates from many users
+      // don't cause a flood of RPC calls.
+      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+      const debouncedReload = () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => loadNearbyUsers(userCoords), 3000);
+      };
+
       channelRef.current = supabase
         .channel("nearby-location-updates")
         .on(
           "postgres_changes",
           { event: "UPDATE", schema: "public", table: "profiles" },
           (payload: any) => {
-            if (payload.new?.latitude && payload.new?.longitude) {
-              loadNearbyUsers(userCoords);
+            // Only reload when a user's coordinates or sharing flag changed.
+            const n = payload.new as any;
+            const o = payload.old as any;
+            const coordsChanged =
+              n?.latitude !== o?.latitude || n?.longitude !== o?.longitude;
+            const sharingChanged =
+              n?.location_sharing_enabled !== o?.location_sharing_enabled;
+            if (coordsChanged || sharingChanged) {
+              debouncedReload();
             }
           }
         )
         .subscribe();
+
+      return () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        channelRef.current?.unsubscribe();
+      };
     }
     return () => {
       channelRef.current?.unsubscribe();
@@ -860,6 +884,24 @@ export default function UserDiscoveryScreen() {
         </View>
       ) : (
         <View style={[styles.chipsRow, { borderBottomColor: colors.border }]}>
+          {/* ── Location freshness banner ── */}
+          {myLocationUpdatedAt && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 14,
+                paddingTop: 6,
+                paddingBottom: 2,
+                gap: 5,
+              }}
+            >
+              <Ionicons name="time-outline" size={11} color={colors.textMuted} />
+              <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                Your location updated {formatLastSeen(myLocationUpdatedAt)}
+              </Text>
+            </View>
+          )}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -890,15 +932,26 @@ export default function UserDiscoveryScreen() {
                 </TouchableOpacity>
               );
             })}
-            {userCoords && (
-              <TouchableOpacity
-                style={[styles.chip, { backgroundColor: accent + "15", borderColor: accent + "40" }]}
-                onPress={handleRequestLocation}
-              >
+            <TouchableOpacity
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: locating ? colors.inputBg : accent + "15",
+                  borderColor: locating ? colors.border : accent + "40",
+                },
+              ]}
+              onPress={handleRequestLocation}
+              disabled={locating}
+            >
+              {locating ? (
+                <ActivityIndicator size={11} color={accent} />
+              ) : (
                 <Ionicons name="refresh-outline" size={13} color={accent} />
-                <Text style={[styles.chipText, { color: accent }]}>Refresh</Text>
-              </TouchableOpacity>
-            )}
+              )}
+              <Text style={[styles.chipText, { color: accent }]}>
+                {locating ? "Locating…" : "Refresh"}
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
       )}
@@ -1085,9 +1138,10 @@ const UserRow = React.memo(function UserRow({
                 </Text>
               </>
             )}
-            {isNearby && item.location_updated_at && !isNearby && (
+            {isNearby && item.location_updated_at && (
               <>
                 <View style={[styles.metaDot, { backgroundColor: colors.border }]} />
+                <Ionicons name="time-outline" size={10} color={colors.textMuted} />
                 <Text style={[styles.metaText, { color: colors.textMuted }]}>
                   {formatLastSeen(item.location_updated_at)}
                 </Text>
