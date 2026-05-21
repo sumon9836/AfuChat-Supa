@@ -2057,7 +2057,7 @@ function ChatScreen() {
                 })),
                 { onConflict: "message_id,user_id" }
               ).then(() => {});
-              typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: toMark.map((m: any) => m.id) } });
+              typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: toMark.map((m: any) => m.id), chat_id: id } });
             }
           });
       }
@@ -2252,7 +2252,7 @@ function ChatScreen() {
 
           if (user) {
             supabase.from("message_status").upsert({ message_id: newMsg.id, user_id: user.id, delivered_at: new Date().toISOString(), read_at: new Date().toISOString() }, { onConflict: "message_id,user_id" }).then(() => {});
-            typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: [newMsg.id] } });
+            typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: [newMsg.id], chat_id: id } });
             markChatVisited(id);
           }
         }
@@ -2295,56 +2295,88 @@ function ChatScreen() {
       )
       .subscribe();
 
-    const typingChannel = supabase.channel(`typing:${id}`, { config: { broadcast: { self: false } } });
-    typingChannelRef.current = typingChannel;
-
-    typingChannel
-      .on("broadcast", { event: "typing" }, (payload) => {
-        const { user_id: uid, display_name: name, is_typing } = (payload.payload || {}) as any;
-        if (!uid || uid === user?.id) return;
-
-        const clearTyper = () => {
-          if (typingTimersRef.current.has(uid)) {
-            clearTimeout(typingTimersRef.current.get(uid)!);
-            typingTimersRef.current.delete(uid);
-          }
-          typingMapRef.current.delete(uid);
-          setTypingUsers(Array.from(typingMapRef.current.values()));
-        };
-
-        if (is_typing) {
-          typingMapRef.current.set(uid, name || "Someone");
-          if (typingTimersRef.current.has(uid)) clearTimeout(typingTimersRef.current.get(uid)!);
-          typingTimersRef.current.set(uid, setTimeout(clearTyper, 6000));
-          setTypingUsers(Array.from(typingMapRef.current.values()));
-        } else {
-          clearTyper();
-        }
-      })
-      .on("broadcast", { event: "read" }, (payload) => {
-        const { reader_id, message_ids } = (payload.payload || {}) as { reader_id: string; message_ids: string[] };
-        if (!reader_id || reader_id === user?.id || !Array.isArray(message_ids)) return;
-        const readSet = new Set(message_ids);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.sender_id === user?.id && readSet.has(m.id)
-              ? { ...m, status: "read" as const }
-              : m
-          )
-        );
-      })
-      .subscribe();
-
     return () => {
       clearActiveChatId();
       supabase.removeChannel(msgSub);
-      supabase.removeChannel(typingChannel);
+    };
+  }, [id, loadChatInfo, loadMessages]);
+
+  // ── Realtime: typing indicators + read receipts (user-scoped for DMs) ─────
+  useEffect(() => {
+    if (!user || !id) return;
+    const isDM = !!chatInfo && !chatInfo.is_group && !chatInfo.is_channel && !!chatInfo.other_id;
+    const otherId = chatInfo?.other_id;
+
+    const handleTypingEvent = (payload: any) => {
+      const { user_id: uid, display_name: name, is_typing } = (payload.payload || {}) as any;
+      if (!uid || uid === user?.id) return;
+      const clearTyper = () => {
+        if (typingTimersRef.current.has(uid)) {
+          clearTimeout(typingTimersRef.current.get(uid)!);
+          typingTimersRef.current.delete(uid);
+        }
+        typingMapRef.current.delete(uid);
+        setTypingUsers(Array.from(typingMapRef.current.values()));
+      };
+      if (is_typing) {
+        typingMapRef.current.set(uid, name || "Someone");
+        if (typingTimersRef.current.has(uid)) clearTimeout(typingTimersRef.current.get(uid)!);
+        typingTimersRef.current.set(uid, setTimeout(clearTyper, 6000));
+        setTypingUsers(Array.from(typingMapRef.current.values()));
+      } else {
+        clearTyper();
+      }
+    };
+
+    const handleReadEvent = (payload: any) => {
+      const { reader_id, message_ids } = (payload.payload || {}) as { reader_id: string; message_ids: string[] };
+      if (!reader_id || reader_id === user?.id || !Array.isArray(message_ids)) return;
+      const readSet = new Set(message_ids);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.sender_id === user?.id && readSet.has(m.id)
+            ? { ...m, status: "read" as const }
+            : m
+        )
+      );
+    };
+
+    let receiveChannel: ReturnType<typeof supabase.channel>;
+    let sendChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    if (isDM && otherId) {
+      receiveChannel = supabase.channel(`user-typing-${user.id}`, { config: { broadcast: { self: false } } });
+      receiveChannel
+        .on("broadcast", { event: "typing" }, (payload: any) => {
+          if ((payload.payload?.chat_id ?? id) !== id) return;
+          handleTypingEvent(payload);
+        })
+        .on("broadcast", { event: "read" }, (payload: any) => {
+          if ((payload.payload?.chat_id ?? id) !== id) return;
+          handleReadEvent(payload);
+        })
+        .subscribe();
+      sendChannel = supabase.channel(`user-typing-${otherId}`, { config: { broadcast: { self: false } } });
+      sendChannel.subscribe();
+      typingChannelRef.current = sendChannel;
+    } else {
+      receiveChannel = supabase.channel(`typing:${id}`, { config: { broadcast: { self: false } } });
+      receiveChannel
+        .on("broadcast", { event: "typing" }, handleTypingEvent)
+        .on("broadcast", { event: "read" }, handleReadEvent)
+        .subscribe();
+      typingChannelRef.current = receiveChannel;
+    }
+
+    return () => {
+      supabase.removeChannel(receiveChannel);
+      if (sendChannel) supabase.removeChannel(sendChannel);
       typingChannelRef.current = null;
       typingTimersRef.current.forEach((t) => clearTimeout(t));
       typingTimersRef.current.clear();
       typingMapRef.current.clear();
     };
-  }, [id, loadChatInfo, loadMessages]);
+  }, [user, id, chatInfo?.other_id, chatInfo?.is_group, chatInfo?.is_channel]);
 
   // ── Realtime: online status (1-on-1 chats only) ───────────────────────────
   useEffect(() => {
@@ -2374,17 +2406,12 @@ function ChatScreen() {
     if (!user || !id || isDraft) return;
     if (!chatPrefs.typing_indicators) return;
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
-    typingChannelRef.current?.send({
-      type: "broadcast",
-      event: "typing",
-      payload: { user_id: user.id, display_name: profile?.display_name || "Someone", is_typing: true },
-    });
+    const isDM = !!chatInfo && !chatInfo.is_group && !chatInfo.is_channel;
+    const basePayload: Record<string, any> = { user_id: user.id, display_name: profile?.display_name || "Someone", is_typing: true };
+    if (isDM) basePayload.chat_id = id;
+    typingChannelRef.current?.send({ type: "broadcast", event: "typing", payload: basePayload });
     typingTimeout.current = setTimeout(() => {
-      typingChannelRef.current?.send({
-        type: "broadcast",
-        event: "typing",
-        payload: { user_id: user.id, display_name: profile?.display_name || "Someone", is_typing: false },
-      });
+      typingChannelRef.current?.send({ type: "broadcast", event: "typing", payload: { ...basePayload, is_typing: false } });
     }, 3000);
   }
 

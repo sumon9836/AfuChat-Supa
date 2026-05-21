@@ -1277,35 +1277,29 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
   }, [user, chatIdsKey, loadChats]);
 
   useEffect(() => {
-    if (!user || !chatIdsKey || !chatPrefs.typing_indicators) return;
-    const chatIds = chatIdsKey.split(",").slice(0, 20);
-    const channels = chatIds.map((chatId) => {
-      const ch = supabase.channel(`typing:${chatId}`, { config: { broadcast: { self: false } } });
-      ch.on("broadcast", { event: "typing" }, (payload) => {
-        const { user_id: uid, is_typing } = (payload.payload || {}) as any;
-        if (!uid || uid === user.id) return;
-        if (is_typing) {
-          if (typingTimersRef.current[chatId]) clearTimeout(typingTimersRef.current[chatId]);
-          setTypingChatIds((prev) => ({ ...prev, [chatId]: true }));
-          typingTimersRef.current[chatId] = setTimeout(() => {
-            setTypingChatIds((prev) => { const next = { ...prev }; delete next[chatId]; return next; });
-          }, 6000);
-        } else {
-          if (typingTimersRef.current[chatId]) { clearTimeout(typingTimersRef.current[chatId]); delete typingTimersRef.current[chatId]; }
+    if (!user || !chatPrefs.typing_indicators) return;
+    const ch = supabase.channel(`user-typing-${user.id}`, { config: { broadcast: { self: false } } });
+    ch.on("broadcast", { event: "typing" }, (payload) => {
+      const { chat_id: chatId, user_id: uid, is_typing } = (payload.payload || {}) as any;
+      if (!uid || uid === user.id || !chatId) return;
+      if (is_typing) {
+        if (typingTimersRef.current[chatId]) clearTimeout(typingTimersRef.current[chatId]);
+        setTypingChatIds((prev) => ({ ...prev, [chatId]: true }));
+        typingTimersRef.current[chatId] = setTimeout(() => {
           setTypingChatIds((prev) => { const next = { ...prev }; delete next[chatId]; return next; });
-        }
-      });
-      ch.subscribe();
-      return ch;
-    });
-
+        }, 6000);
+      } else {
+        if (typingTimersRef.current[chatId]) { clearTimeout(typingTimersRef.current[chatId]); delete typingTimersRef.current[chatId]; }
+        setTypingChatIds((prev) => { const next = { ...prev }; delete next[chatId]; return next; });
+      }
+    }).subscribe();
     return () => {
-      channels.forEach((ch) => supabase.removeChannel(ch));
+      supabase.removeChannel(ch);
       Object.values(typingTimersRef.current).forEach((t) => clearTimeout(t));
       typingTimersRef.current = {};
       setTypingChatIds({});
     };
-  }, [user, chatIdsKey, chatPrefs.typing_indicators]);
+  }, [user, chatPrefs.typing_indicators]);
 
   const tabFiltered = chats.filter((c) => {
     if (tabFilter === "unread") return c.unread_count > 0;

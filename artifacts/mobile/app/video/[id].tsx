@@ -1620,7 +1620,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
   // Realtime like/reply count updates
   useEffect(() => {
-    const channel = supabase.channel(`video-feed-realtime:${user?.id ?? "anon"}`)
+    const channel = supabase.channel(`video-feed-realtime:${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "post_acknowledgments" }, (payload: any) => {
         const postId = payload.new?.post_id || payload.old?.post_id;
         if (!postId) return;

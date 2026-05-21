@@ -277,19 +277,19 @@ export default function AdminDashboard() {
 
   const loadPlans = useCallback(async () => {
     if (!isAdmin) return;
-    const { data } = await supabase.from("subscription_plans").select("*").order("acoin_price", { ascending: true });
+    const { data } = await supabase.from("subscription_plans").select("id, name, description, acoin_price, duration_days, tier, is_active").order("acoin_price", { ascending: true });
     if (data) setPlans(data);
   }, []);
 
   const loadCurrency = useCallback(async () => {
     if (!isAdmin) return;
-    const { data } = await supabase.from("currency_settings").select("*").limit(1).maybeSingle();
+    const { data } = await supabase.from("currency_settings").select("id, nexa_to_acoin_rate, conversion_fee_percent, p2p_fee_percent").limit(1).maybeSingle();
     if (data) setCurrencySettings(data);
   }, []);
 
   const loadReports = useCallback(async () => {
     if (!isAdmin) return;
-    const { data } = await supabase.from("user_reports").select("*").order("created_at", { ascending: false }).limit(50);
+    const { data } = await supabase.from("user_reports").select("id, reporter_id, reported_user_id, reason, description, status, created_at").order("created_at", { ascending: false }).limit(50);
     if (data) {
       const userIds = [...new Set(data.flatMap((r: any) => [r.reporter_id, r.reported_user_id].filter(Boolean)))];
       if (userIds.length > 0) {
@@ -354,7 +354,7 @@ export default function AdminDashboard() {
 
       const { data: mReports } = await supabase
         .from("match_reports")
-        .select("*")
+        .select("id, reporter_id, reported_id, reason, description, created_at")
         .order("created_at", { ascending: false })
         .limit(30);
       if (mReports) setMatchReports(mReports);
@@ -486,7 +486,7 @@ export default function AdminDashboard() {
     if (!isAdmin) return;
     setConfigLoading(true);
     try {
-      const { data } = await supabase.from("app_settings").select("*").limit(1).maybeSingle();
+      const { data } = await supabase.from("app_settings").select("id, maintenance_mode, registration_enabled, gifts_enabled, match_enabled, ai_chat_enabled, stories_enabled, channels_enabled, red_envelopes_enabled, video_calls_enabled, creator_monetization_enabled").limit(1).maybeSingle();
       setAppConfig(data || {});
     } catch {}
     setConfigLoading(false);
