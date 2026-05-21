@@ -33,6 +33,7 @@ import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
 import { CallManager } from "@/components/CallManager";
 import { initConnectivityToasts } from "@/lib/toast";
+import { initInstallReferrer } from "@/lib/installReferrer";
 
 // Keep the native splash visible until fonts are ready so we never flash
 // a blank screen between the system launch image and the app UI.
@@ -67,6 +68,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     initConnectivityToasts();
+    initInstallReferrer();
   }, []);
 
   useEffect(() => {
