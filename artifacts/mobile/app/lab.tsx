@@ -34,6 +34,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getEdgeFnBase, edgeHeaders } from "@/lib/aiHelper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient as SafeGrad } from "@/components/ui/SafeGradient";
 
 // Camera — native only
 let CameraView: any = null;
@@ -730,12 +731,7 @@ export default function LabScreen() {
 // ── Gradient fallback (for permission screen) ──────────────────────────────────
 
 function LinearGradientFallback({ style, children }: { style?: any; children: React.ReactNode }) {
-  try {
-    const { LinearGradient } = require("expo-linear-gradient");
-    return <LinearGradient colors={[BRAND, BRAND2]} style={style}>{children}</LinearGradient>;
-  } catch {
-    return <View style={[style, { backgroundColor: BRAND }]}>{children}</View>;
-  }
+  return <SafeGrad colors={[BRAND, BRAND2]} style={style}>{children}</SafeGrad>;
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────────

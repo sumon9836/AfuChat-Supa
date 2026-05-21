@@ -54,7 +54,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Image as ExpoImage } from "expo-image";
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";

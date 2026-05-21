@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { useOpenLink } from "@/lib/useOpenLink";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

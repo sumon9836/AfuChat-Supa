@@ -13,7 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/ui/SafeGradient";
 
 const STORAGE_KEY = "afu_community_banner_v1_seen";
 const USE_NATIVE_DRIVER = Platform.OS !== "web";

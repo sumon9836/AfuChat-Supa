@@ -54,7 +54,7 @@ import { useGiftPrices } from "@/hooks/useGiftPrices";
 import { Avatar } from "@/components/ui/Avatar";
 import { RichText } from "@/components/ui/RichText";
 import Colors from "@/constants/colors";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/ui/SafeGradient";
 import { showAlert } from "@/lib/alert";
 import { showToast as globalShowToast } from "@/lib/toast";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";

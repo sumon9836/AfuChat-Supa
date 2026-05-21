@@ -26,7 +26,7 @@ import { GlassHeader } from "@/components/ui/GlassHeader";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import Colors from "@/constants/colors";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Image as ExpoImage } from "expo-image";
 import { showToast } from "@/lib/toast";
 

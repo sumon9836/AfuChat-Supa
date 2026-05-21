@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/ui/SafeGradient";
 import { PostDetailSkeleton } from "@/components/ui/Skeleton";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { router, useLocalSearchParams } from "expo-router";

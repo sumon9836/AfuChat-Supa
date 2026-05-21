@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/ui/SafeGradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "@/lib/haptics";
 import { useTheme } from "@/hooks/useTheme";

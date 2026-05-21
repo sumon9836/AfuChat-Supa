@@ -20,7 +20,7 @@ import * as Haptics from "@/lib/haptics";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassMenuSeparator } from "@/components/ui/GlassMenuItem";
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/ui/SafeGradient";
 
 // ─── Provider config ──────────────────────────────────────────────────────────
 type Provider = {

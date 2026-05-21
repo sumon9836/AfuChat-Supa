@@ -24,7 +24,7 @@ const SafeFlashList: typeof import("react-native").FlatList =
   Platform.OS === "web"
     ? (FlatList as any)
     : (require("@shopify/flash-list").FlashList as any);
-import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Redirect, router, useFocusEffect, useNavigation, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
