@@ -63,6 +63,10 @@ import {
   subscribeStoryUpload,
 } from "@/lib/storyUploadStore";
 import {
+  getPostUploadState,
+  subscribePostUpload,
+} from "@/lib/postUploadStore";
+import {
   getViewedUserIds,
   subscribeStoryViewed,
 } from "@/lib/storyViewedStore";
@@ -389,6 +393,60 @@ function StoryUploadBanner({ colors }: { colors: any }) {
   );
 }
 
+function usePostUpload() {
+  return useSyncExternalStore(subscribePostUpload, getPostUploadState, getPostUploadState);
+}
+
+function PostUploadBanner({ colors }: { colors: any }) {
+  const upload = usePostUpload();
+  if (!upload) return null;
+
+  const isDone   = upload.done;
+  const isFailed = upload.failed;
+  const pct      = Math.round(upload.progress * 100);
+  const isVideo  = upload.type === "video";
+
+  return (
+    <View style={[uploadBannerStyles.wrap, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={uploadBannerStyles.row}>
+        <View style={[uploadBannerStyles.iconCircle, { backgroundColor: isDone ? "#22C55E20" : isFailed ? "#EF444420" : colors.accent + "22" }]}>
+          <Ionicons
+            name={isDone ? "checkmark-circle" : isFailed ? "alert-circle" : isVideo ? "videocam" : "image"}
+            size={16}
+            color={isDone ? "#22C55E" : isFailed ? "#EF4444" : colors.accent}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[uploadBannerStyles.label, { color: colors.text }]}>
+            {isDone
+              ? `${isVideo ? "Video" : "Post"} published!`
+              : isFailed
+              ? `${isVideo ? "Video" : "Post"} upload failed`
+              : `Posting your ${isVideo ? "video" : "post"}…`}
+          </Text>
+          {isFailed && upload.errorMessage ? (
+            <Text style={[uploadBannerStyles.caption, { color: "#EF4444" }]} numberOfLines={2}>
+              {upload.errorMessage}
+            </Text>
+          ) : upload.label ? (
+            <Text style={[uploadBannerStyles.caption, { color: colors.textMuted }]} numberOfLines={1}>
+              {upload.label}
+            </Text>
+          ) : null}
+        </View>
+        {!isDone && !isFailed && (
+          <Text style={[uploadBannerStyles.pct, { color: colors.accent }]}>{pct}%</Text>
+        )}
+      </View>
+      {!isDone && !isFailed && (
+        <View style={[uploadBannerStyles.track, { backgroundColor: colors.border }]}>
+          <View style={[uploadBannerStyles.fill, { width: `${pct}%` as any, backgroundColor: colors.accent }]} />
+        </View>
+      )}
+    </View>
+  );
+}
+
 const uploadBannerStyles = StyleSheet.create({
   wrap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth },
   row: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
@@ -502,6 +560,20 @@ function StoriesBar({ userId, colors, isDesktop }: { userId: string; colors: any
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
+  }, [loadStories]);
+
+  // Reload when our own story finishes uploading (in-process backup to Supabase realtime)
+  useEffect(() => {
+    let wasDone = false;
+    return subscribeStoryUpload(() => {
+      const s = getStoryUploadState();
+      if (s?.done && !wasDone) {
+        wasDone = true;
+        // Small delay to let the DB propagate before fetching
+        setTimeout(() => loadStories(), 500);
+      }
+      if (!s) wasDone = false;
+    });
   }, [loadStories]);
 
   if (storyUsers.length === 0 && isDesktop) return null;
@@ -1613,6 +1685,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                       ListHeaderComponent={isAll && !search && user ? (
                         <>
                           <StoryUploadBanner colors={colors} />
+                          <PostUploadBanner colors={colors} />
                           {chats.length < 8 && <SuggestedUsers compact maxCards={10} />}
                         </>
                       ) : null}
@@ -1695,6 +1768,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                 ListHeaderComponent={user && tabFilter === "all" && !search ? (
                   <>
                     <StoryUploadBanner colors={colors} />
+                    <PostUploadBanner colors={colors} />
                     {chats.length < 8 && <SuggestedUsers compact maxCards={10} />}
                   </>
                 ) : null}
