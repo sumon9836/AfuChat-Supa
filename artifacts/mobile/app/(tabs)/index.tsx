@@ -669,7 +669,6 @@ function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; o
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
-  const [missedCallsCount, setMissedCallsCount] = useState(0);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [tabFilter, setTabFilter] = useState<ChatTabKey>("all");
   const [typingChatIds, setTypingChatIds] = useState<Record<string, boolean>>({});
@@ -743,30 +742,6 @@ function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; o
       Animated.spring(fabAnim, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }).start();
     }
   }, [fabAnim, expandStories, collapseStories]);
-
-  const fetchMissedCalls = useCallback(async () => {
-    if (!user) return;
-    try {
-      const { count } = await supabase
-        .from("calls")
-        .select("id", { count: "exact", head: true })
-        .eq("callee_id", user.id)
-        .eq("status", "missed");
-      setMissedCallsCount(count ?? 0);
-    } catch { /* ignore */ }
-  }, [user]);
-
-  useFocusEffect(useCallback(() => { fetchMissedCalls(); }, [fetchMissedCalls]));
-
-  useEffect(() => {
-    if (!user) return;
-    const callChannel = supabase
-      .channel(`missed-calls:${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "calls", filter: `callee_id=eq.${user.id}` },
-        () => fetchMissedCalls())
-      .subscribe();
-    return () => { supabase.removeChannel(callChannel); };
-  }, [user, fetchMissedCalls]);
 
   const loadChats = useCallback(async (background = false) => {
     if (!user) return;
@@ -1405,20 +1380,6 @@ function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; o
           <Text style={[styles.panelTitle, { color: colors.text }]}>Chats</Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <TouchableOpacity
-              onPress={() => router.push("/call-history" as any)}
-              style={[styles.panelHeaderBtn, { backgroundColor: colors.backgroundSecondary }]}
-              activeOpacity={0.7}
-            >
-              <View>
-                <Ionicons name="call-outline" size={18} color={colors.text} />
-                {missedCallsCount > 0 && (
-                  <View style={[styles.notifBadge, { top: -4, right: -4 }]}>
-                    <Text style={styles.notifBadgeText}>{missedCallsCount > 9 ? "9+" : missedCallsCount}</Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
               onPress={() => router.push("/chat/new" as any)}
               style={[styles.panelHeaderBtn, { backgroundColor: colors.backgroundSecondary }]}
               activeOpacity={0.7}
@@ -1471,18 +1432,7 @@ function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; o
                 All
               </Text>
             </TouchableOpacity>
-          ) : (
-            <>
-              <TouchableOpacity onPress={() => router.push("/call-history" as any)} style={styles.headerIcon}>
-                <Ionicons name="call-outline" size={22} color={colors.text} />
-                {missedCallsCount > 0 && (
-                  <View style={styles.notifBadge}>
-                    <Text style={styles.notifBadgeText}>{missedCallsCount > 99 ? "99+" : missedCallsCount}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
+          ) : null}
         </View>
       </View>
       )}

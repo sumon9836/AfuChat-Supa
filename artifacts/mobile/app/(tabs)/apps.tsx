@@ -18,6 +18,7 @@ import { useTheme } from "@/hooks/useTheme";
 import OfflineBanner from "@/components/ui/OfflineBanner";
 import { useAuth } from "@/context/AuthContext";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { showAlert } from "@/lib/alert";
 
 const USAGE_KEY = "afu_app_usage";
 const COLS = 4;
@@ -33,6 +34,7 @@ type AppItem = {
   badge?: string;
   featuredSub?: string;
   adminOnly?: boolean;
+  comingSoon?: boolean;
 };
 
 type Category = {
@@ -69,8 +71,9 @@ const CATEGORIES: Category[] = [
         icon: "scan",
         gradient: ["#FF6B35", "#FF3B00"],
         route: "/lab",
-        badge: "NEW",
+        badge: "SOON",
         featuredSub: "Point your camera at anything and get instant AI-powered answers.",
+        comingSoon: true,
       },
     ],
   },
@@ -117,7 +120,9 @@ const CATEGORIES: Category[] = [
         icon: "gift",
         gradient: ["#FF3B30", "#FF453A"],
         route: "/gifts",
+        badge: "SOON",
         featuredSub: "Send animated gifts to people you love.",
+        comingSoon: true,
       },
       {
         id: "shop",
@@ -181,8 +186,9 @@ const CATEGORIES: Category[] = [
         icon: "heart",
         gradient: ["#FF2D55", "#FF375F"],
         route: "/match",
-        badge: "NEW",
+        badge: "SOON",
         featuredSub: "Meet new people and find meaningful connections.",
+        comingSoon: true,
       },
       {
         id: "events",
@@ -243,6 +249,10 @@ function AppTile({
   }
   function handlePress() {
     Haptics.selectionAsync();
+    if (app.comingSoon) {
+      showAlert(`${app.label} — Coming Soon`, "This feature is not available yet. Stay tuned!");
+      return;
+    }
     onTap(app.id);
     router.push(app.route as any);
   }
@@ -319,6 +329,10 @@ function FeaturedBanner({ app, onTap }: { app: AppItem; onTap: (id: string) => v
 
   function handlePress() {
     Haptics.selectionAsync();
+    if (app.comingSoon) {
+      showAlert(`${app.label} — Coming Soon`, "This feature is not available yet. Stay tuned!");
+      return;
+    }
     onTap(app.id);
     router.push(app.route as any);
   }
