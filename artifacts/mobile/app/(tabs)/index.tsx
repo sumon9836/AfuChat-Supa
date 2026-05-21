@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { DesktopConversationArea, type OpenTab } from "@/components/desktop/DesktopConversationArea";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ActivityIndicator,
@@ -650,7 +651,7 @@ async function findOrCreateNotesChatId(userId: string): Promise<string | null> {
  * open. On the chats tab itself, `panelMode` is false and the list takes the
  * full route width as usual.
  */
-function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
+function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; onOpenChat?: (item: ChatItem, chatId: string) => void } = {}) {
   const { colors, isDark } = useTheme();
   const { user, profile, linkedAccounts, switchAccount } = useAuth();
   const insets = useSafeAreaInsets();
@@ -1657,6 +1658,7 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
                               chatId = (await findOrCreateNotesChatId(user.id)) || "";
                               if (!chatId) return;
                             }
+                            if (onOpenChat) { onOpenChat(item, chatId); return; }
                             router.push({
                               pathname: "/chat/[id]",
                               params: {
@@ -1738,6 +1740,7 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
                         chatId = (await findOrCreateNotesChatId(user.id)) || "";
                         if (!chatId) return;
                       }
+                      if (onOpenChat) { onOpenChat(item, chatId); return; }
                       router.push({
                         pathname: "/chat/[id]",
                         params: {
@@ -1975,12 +1978,62 @@ function ChatsScreen({ panelMode = false }: { panelMode?: boolean } = {}) {
 /**
  * Default route export — the chats screen as it appears at /(tabs).
  *
- * On mobile we render the full chats list. On desktop we render a tiny
- * stub: `DesktopShell` mounts the persistent `ChatsListPanel` on the left
- * and the `ChatHomePlaceholder` empty state on the right, so this route
- * just needs to occupy the slot and not render its own duplicate list.
+ * On desktop (web ≥ 1024px or ?view=desktop), renders a two-pane layout:
+ *   Left  (360px) — persistent chats list in panel mode
+ *   Right (flex 1) — tabbed conversation area; clicking a chat opens it
+ *                    in a tab instead of navigating to /chat/[id].
+ * On mobile, renders the full-screen chats list as usual.
  */
 export default function ChatsRoute() {
+  const { isDesktop } = useIsDesktop();
+  const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+
+  if (isDesktop) {
+    return (
+      <View style={{ flex: 1, flexDirection: "row" }}>
+        <ChatsScreen
+          panelMode
+          onOpenChat={(item, chatId) => {
+            setOpenTabs((prev) => {
+              if (prev.some((t) => t.chatId === chatId)) return prev;
+              return [
+                ...prev,
+                {
+                  chatId,
+                  otherName: item.other_display_name || item.name || "",
+                  otherAvatar: item.other_avatar || item.avatar_url || null,
+                  isGroup: item.is_group,
+                  isChannel: item.is_channel,
+                  otherId: item.other_id || "",
+                  chatName: item.name || "",
+                  chatAvatar: item.avatar_url || null,
+                  isVerified: item.is_verified,
+                  isOrgVerified: item.is_organization_verified,
+                },
+              ];
+            });
+            setActiveTabId(chatId);
+          }}
+        />
+        <DesktopConversationArea
+          openTabs={openTabs}
+          activeTabId={activeTabId}
+          onTabChange={setActiveTabId}
+          onTabClose={(id: string) => {
+            setOpenTabs((prev) => {
+              const remaining = prev.filter((t) => t.chatId !== id);
+              if (activeTabId === id) {
+                setActiveTabId(remaining[remaining.length - 1]?.chatId ?? null);
+              }
+              return remaining;
+            });
+          }}
+        />
+      </View>
+    );
+  }
+
   return <ChatsScreen />;
 }
 
