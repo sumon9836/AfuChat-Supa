@@ -90,7 +90,7 @@ export default function StoreStorefront() {
         .select("*, profiles!shops_seller_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified)")
         .eq("seller_id", userId).single(),
       supabase.from("shop_products")
-        .select("*")
+        .select("id, shop_id, seller_id, name, description, price_acoin, images, category, stock, is_unlimited_stock, is_available, sales_count, created_at, updated_at")
         .eq("seller_id", userId)
         .eq("is_available", true)
         .order("sales_count", { ascending: false }),

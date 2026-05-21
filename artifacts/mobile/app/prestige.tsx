@@ -72,7 +72,7 @@ export default function PrestigeScreen() {
     const [richRes, aheadRes, purchaseRes, txRes] = await Promise.all([
       supabase.from("profiles").select("id, display_name, handle, acoin, avatar_url").order("acoin", { ascending: false }).limit(25),
       supabase.from("profiles").select("id", { count: "exact", head: true }).gt("acoin", acoin),
-      supabase.from("status_goods_purchases").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("status_goods_purchases").select("id, good_id, good_name, good_emoji, acoin_cost, tier_required, equipped, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("acoin_transactions").select("id, amount, transaction_type, created_at, metadata").eq("user_id", user.id).in("transaction_type", ["status_good_purchase", "conversion", "topup", "subscription"]).order("created_at", { ascending: false }).limit(30),
     ]);
 

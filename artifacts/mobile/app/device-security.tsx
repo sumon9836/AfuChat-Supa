@@ -214,8 +214,8 @@ export default function DeviceSecurityScreen() {
       await registerCurrentDevice();
 
       const [{ data: prefData }, { data: sessionData }] = await Promise.all([
-        supabase.from("security_preferences").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("device_sessions").select("*").eq("user_id", user.id)
+        supabase.from("security_preferences").select("user_id, two_factor_enabled, login_alerts, require_pin, biometric_lock, screenshot_protection").eq("user_id", user.id).maybeSingle(),
+        supabase.from("device_sessions").select("id, device_name, device_type, platform, last_seen, ip_address, is_current, location").eq("user_id", user.id)
           .order("is_current", { ascending: false }).order("last_seen", { ascending: false }),
       ]);
 

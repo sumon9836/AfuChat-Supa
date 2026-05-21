@@ -193,7 +193,7 @@ router.get("/company/:slug", async (req, res) => {
 
   const { data: page } = await supabase
     .from("organization_pages")
-    .select("*")
+    .select("id, slug, name, tagline, description, logo_url, cover_url, industry, location, size, website, org_type, founded_year, followers_count, email, physical_address")
     .eq("slug", slug)
     .single();
 

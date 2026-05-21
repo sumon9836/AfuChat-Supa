@@ -149,7 +149,7 @@ export default function CompanyPageScreen() {
     if (!slug) return;
     const { data: pageData } = await supabase
       .from("organization_pages")
-      .select("*")
+      .select("id, slug, name, tagline, description, logo_url, cover_url, website, email, industry, org_type, size, founded_year, location, physical_address, registration_number, jurisdiction_code, social_links, admin_id, is_verified, followers_count, posts_count")
       .eq("slug", slug)
       .single();
 

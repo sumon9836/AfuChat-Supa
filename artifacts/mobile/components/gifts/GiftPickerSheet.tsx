@@ -230,14 +230,15 @@ export default function GiftPickerSheet({
   const loadGifts = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from("gifts").select("*").order("base_xp_cost", { ascending: true });
+      const giftCols = "id, name, emoji, base_xp_cost, rarity, description, image_url";
+      const { data, error } = await supabase.from("gifts").select(giftCols).order("base_xp_cost", { ascending: true });
       if (data && data.length > 0) {
         if (data.length < 40) {
           await supabase.from("gifts").upsert(
             STATIC_GIFTS.map((g) => ({ ...g, image_url: null })),
             { onConflict: "name", ignoreDuplicates: true }
           );
-          const { data: reloaded } = await supabase.from("gifts").select("*").order("base_xp_cost", { ascending: true });
+          const { data: reloaded } = await supabase.from("gifts").select(giftCols).order("base_xp_cost", { ascending: true });
           setGifts(reloaded ?? data);
         } else {
           setGifts(data);
@@ -247,7 +248,7 @@ export default function GiftPickerSheet({
           STATIC_GIFTS.map((g) => ({ ...g, image_url: null })),
           { onConflict: "name", ignoreDuplicates: true }
         );
-        const { data: seeded } = await supabase.from("gifts").select("*").order("base_xp_cost", { ascending: true });
+        const { data: seeded } = await supabase.from("gifts").select(giftCols).order("base_xp_cost", { ascending: true });
         setGifts(seeded ?? []);
       }
     } catch {

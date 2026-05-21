@@ -302,7 +302,7 @@ export default function PostShortLinkScreen() {
 
   const loadReplies = useCallback(async () => {
     if (!id || !isOnline()) return;
-    const { data } = await supabase.from("post_replies").select("id, content, created_at, parent_reply_id, profiles!post_replies_author_id_fkey(id, display_name, avatar_url, handle, is_verified, is_organization_verified)").eq("post_id", id).order("created_at", { ascending: true }).limit(200);
+    const { data } = await supabase.from("post_replies").select("id, content, created_at, parent_reply_id, profiles!post_replies_author_id_fkey(id, display_name, avatar_url, handle, is_verified, is_organization_verified)").eq("post_id", id).order("created_at", { ascending: true }).limit(50);
     if (data) setReplies(data.map((r: any) => ({ ...r, author: r.profiles, parent_reply_id: r.parent_reply_id || null })));
   }, [id]);
 

@@ -54,7 +54,7 @@ export default function MomentsScreen() {
         .gt("expires_at", now)
         .eq("privacy", "everyone")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(50);
 
       if (joined.error) {
         const fallback = await supabase
@@ -63,7 +63,7 @@ export default function MomentsScreen() {
           .gt("expires_at", now)
           .eq("privacy", "everyone")
           .order("created_at", { ascending: false })
-          .limit(200);
+          .limit(50);
         if (fallback.error) {
           setStoryUsers([]);
           setLoading(false);

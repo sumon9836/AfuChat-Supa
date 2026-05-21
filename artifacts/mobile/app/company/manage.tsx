@@ -109,7 +109,7 @@ export default function ManageCompanyPageScreen() {
   const load = useCallback(async () => {
     if (!slug || !user) return;
     const [{ data }, { data: verReqs }] = await Promise.all([
-      supabase.from("organization_pages").select("*").eq("slug", slug).single(),
+      supabase.from("organization_pages").select("id, slug, name, tagline, description, logo_url, cover_url, website, email, industry, org_type, size, founded_year, location, physical_address, registration_number, jurisdiction_code, social_links, admin_id, is_verified, followers_count, posts_count").eq("slug", slug).single(),
       supabase
         .from("org_verification_requests")
         .select("id, status, notes, created_at")

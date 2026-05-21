@@ -75,7 +75,7 @@ function buildFingerprint(): string {
 export async function getMyDeviceSessions(userId: string) {
   const { data } = await supabase
     .from("user_device_sessions")
-    .select("*")
+    .select("id, device_fingerprint, device_name, device_os, device_model, is_trusted, created_at, last_seen_at")
     .eq("user_id", userId)
     .order("last_seen_at", { ascending: false });
   return data || [];

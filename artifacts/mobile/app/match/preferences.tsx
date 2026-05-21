@@ -44,7 +44,7 @@ export default function MatchPreferencesScreen() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("match_preferences").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+    supabase.from("match_preferences").select("user_id, show_in_match, interested_in, min_age, max_age").eq("user_id", user.id).maybeSingle().then(({ data }) => {
       if (data) setPrefs({ show_in_match: data.show_in_match, interested_in: data.interested_in, min_age: data.min_age, max_age: data.max_age });
       setLoading(false);
     });

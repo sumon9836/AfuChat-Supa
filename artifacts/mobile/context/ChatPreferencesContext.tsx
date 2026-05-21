@@ -92,7 +92,7 @@ export function ChatPreferencesProvider({ children }: { children: React.ReactNod
     if (!user) { setLoading(false); return; }
     const { data } = await supabase
       .from("chat_preferences")
-      .select("*")
+      .select("user_id, chat_theme, bubble_style, font_size, sounds_enabled, auto_download, read_receipts, chat_lock, enter_to_send, media_quality, save_to_gallery, link_previews, typing_indicators, archive_on_delete, chat_backup")
       .eq("user_id", user.id)
       .maybeSingle();
     if (data) {

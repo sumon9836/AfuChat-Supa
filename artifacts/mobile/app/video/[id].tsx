@@ -487,7 +487,7 @@ function CommentsSheet({ visible, onClose, postId, postAuthorId, onReplyCountCha
       .select("id, author_id, content, created_at, parent_reply_id, profiles!post_replies_author_id_fkey(display_name, handle, avatar_url)")
       .eq("post_id", postId)
       .order("created_at", { ascending: true })
-      .limit(200)
+      .limit(50)
       .then(({ data }) => {
         if (data) {
           setReplies(data.map((r: any) => ({
@@ -1620,7 +1620,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
   // Realtime like/reply count updates
   useEffect(() => {
-    const channel = supabase.channel("video-feed-realtime")
+    const channel = supabase.channel(`video-feed-realtime:${user?.id ?? "anon"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "post_acknowledgments" }, (payload: any) => {
         const postId = payload.new?.post_id || payload.old?.post_id;
         if (!postId) return;

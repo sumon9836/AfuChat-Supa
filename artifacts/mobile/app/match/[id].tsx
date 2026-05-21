@@ -104,7 +104,7 @@ export default function MatchConversationScreen() {
     if (!id || !user) return;
     const [{ data: matchData }, { data: msgs }] = await Promise.all([
       supabase.from("match_matches").select("user1_id, user2_id, is_super_match").eq("id", id).single(),
-      supabase.from("match_messages").select("*").eq("match_id", id).order("sent_at"),
+      supabase.from("match_messages").select("id, match_id, sender_id, content, media_url, is_gift, gift_emoji, read_at, sent_at").eq("match_id", id).order("sent_at").range(0, 49),
     ]);
     if (matchData) {
       setMatch(matchData);

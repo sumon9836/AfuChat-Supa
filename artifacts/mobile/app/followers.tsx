@@ -80,7 +80,8 @@ export default function FollowersScreen() {
       const { data: followRows } = await supabase
         .from("follows")
         .select(joinCol)
-        .eq(followCol, userId);
+        .eq(followCol, userId)
+        .limit(200);
 
       if (!followRows || followRows.length === 0) {
         setUsers([]);
@@ -112,7 +113,8 @@ export default function FollowersScreen() {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, acoin, follower_count")
-        .in("id", visibleIds);
+        .in("id", visibleIds)
+        .limit(200);
 
       if (profiles) {
         setUsers(profiles as FollowUser[]);

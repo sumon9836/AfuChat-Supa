@@ -1,5 +1,5 @@
 /**
- * In-memory profile cache.
+ * In-memory profile cache with 5-minute TTL.
  *
  * Stores lightweight profile snapshots keyed by user ID so that the
  * contact/[id] screen can render immediately on first open (from params)
@@ -10,6 +10,8 @@
  * to render the profile header. Full data (bio, posts, counts) is still
  * fetched from the network and updates the cache entry when it arrives.
  */
+
+const TTL_MS = 5 * 60 * 1000;
 
 export type CachedProfile = {
   id: string;
@@ -30,17 +32,25 @@ export type CachedProfile = {
   created_at?: string | null;
 };
 
-const _cache = new Map<string, CachedProfile>();
+type Entry = { data: CachedProfile; fetchedAt: number };
+
+const _cache = new Map<string, Entry>();
 
 /** Store or update a profile entry. Partial updates are merged. */
 export function setProfileCache(id: string, data: Partial<CachedProfile>): void {
-  const existing = _cache.get(id) ?? ({ id } as CachedProfile);
-  _cache.set(id, { ...existing, ...data, id });
+  const existing = _cache.get(id)?.data ?? ({ id } as CachedProfile);
+  _cache.set(id, { data: { ...existing, ...data, id }, fetchedAt: Date.now() });
 }
 
-/** Retrieve a cached profile by ID, or null if not cached. */
+/** Retrieve a cached profile by ID, or null if not cached / expired. */
 export function getProfileCache(id: string): CachedProfile | null {
-  return _cache.get(id) ?? null;
+  const entry = _cache.get(id);
+  if (!entry) return null;
+  if (Date.now() - entry.fetchedAt > TTL_MS) {
+    _cache.delete(id);
+    return null;
+  }
+  return entry.data;
 }
 
 /** Clear the entire cache (e.g. on logout). */

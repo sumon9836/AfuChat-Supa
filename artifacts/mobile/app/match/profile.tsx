@@ -79,8 +79,8 @@ export default function MatchProfileEditScreen() {
   async function load() {
     if (!user) return;
     const [{ data: mp }, { data: mphotos }, gifts, convertedIds, hiddenRaw] = await Promise.all([
-      supabase.from("match_profiles").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("match_photos").select("*").eq("user_id", user.id).order("display_order"),
+      supabase.from("match_profiles").select("user_id, name, bio, job_title, company, school, location_name, country, interests, relationship_goal, updated_at").eq("user_id", user.id).maybeSingle(),
+      supabase.from("match_photos").select("id, url, display_order, is_primary").eq("user_id", user.id).order("display_order"),
       getReceivedMatchGifts(user.id),
       getConvertedGiftIds(user.id),
       AsyncStorage.getItem(`match_hidden_gifts_${user.id}`),

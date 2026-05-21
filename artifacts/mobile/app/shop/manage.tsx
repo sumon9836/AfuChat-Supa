@@ -57,8 +57,8 @@ export default function ShopManage() {
   const load = useCallback(async () => {
     if (!user) return;
     const [shopRes, productsRes, ordersRes] = await Promise.all([
-      supabase.from("shops").select("*").eq("seller_id", user.id).single(),
-      supabase.from("shop_products").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("shops").select("id, seller_id, name, description, banner_url, logo_url, category, address, is_active, pin_to_profile, total_sales, total_revenue_acoin, rating, review_count, created_at, updated_at").eq("seller_id", user.id).single(),
+      supabase.from("shop_products").select("id, shop_id, seller_id, name, description, price_acoin, images, category, stock, is_unlimited_stock, is_available, sales_count, created_at, updated_at").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("shop_orders").select("*, buyer_profile:profiles!shop_orders_buyer_id_fkey(display_name, handle, avatar_url), shop_order_items(*, shop_products(name, images))").eq("seller_id", user.id).order("created_at", { ascending: false }).limit(50),
     ]);
     setShop(shopRes.data as Shop);

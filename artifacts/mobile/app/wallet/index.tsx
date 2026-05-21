@@ -427,21 +427,21 @@ export default function WalletScreen() {
     ] = await Promise.all([
       supabase.from("xp_transfers")
         .select("id, amount, created_at, status, message, receiver_id, profiles!xp_transfers_receiver_id_fkey(handle, display_name)")
-        .eq("sender_id", user.id).order("created_at", { ascending: false }).limit(100),
+        .eq("sender_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("xp_transfers")
         .select("id, amount, created_at, status, message, sender_id, profiles!xp_transfers_sender_id_fkey(handle, display_name)")
-        .eq("receiver_id", user.id).order("created_at", { ascending: false }).limit(100),
+        .eq("receiver_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("acoin_transactions")
         .select("id, amount, transaction_type, nexa_spent, fee_charged, created_at, metadata")
-        .eq("user_id", user.id).order("created_at", { ascending: false }).limit(200),
+        .eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("currency_settings")
         .select("nexa_to_acoin_rate, conversion_fee_percent, p2p_fee_percent").limit(1).single(),
       supabase.from("gift_transactions")
         .select("id, gift_id, receiver_id, xp_cost, message, created_at, gifts(name, emoji), profiles!gift_transactions_receiver_id_fkey(handle, display_name)")
-        .eq("sender_id", user.id).order("created_at", { ascending: false }).limit(100),
+        .eq("sender_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("gift_transactions")
         .select("id, gift_id, sender_id, xp_cost, message, created_at, gifts(name, emoji), profiles!gift_transactions_sender_id_fkey(handle, display_name)")
-        .eq("receiver_id", user.id).order("created_at", { ascending: false }).limit(100),
+        .eq("receiver_id", user.id).order("created_at", { ascending: false }).limit(50),
     ]);
 
     if (settings) setCurrencySettings(settings as CurrencySettings);

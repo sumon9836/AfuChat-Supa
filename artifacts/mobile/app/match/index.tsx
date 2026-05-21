@@ -587,7 +587,7 @@ export default function MatchScreen() {
     if (!user) return;
     setLoading(true);
     // Get my preferences
-    const { data: prefs } = await supabase.from("match_preferences").select("*").eq("user_id", user.id).maybeSingle();
+    const { data: prefs } = await supabase.from("match_preferences").select("user_id, show_in_match, interested_in, min_age, max_age").eq("user_id", user.id).maybeSingle();
     // Get swiped IDs
     const { data: swiped } = await supabase.from("match_swipes").select("swiped_id").eq("swiper_id", user.id);
     const swipedIds = (swiped ?? []).map((s: any) => s.swiped_id);

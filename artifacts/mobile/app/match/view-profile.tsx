@@ -52,7 +52,7 @@ export default function ViewProfileScreen() {
   useEffect(() => {
     if (!userId || !user) return;
     Promise.all([
-      supabase.from("match_profiles").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("match_profiles").select("user_id, name, date_of_birth, bio, job_title, company, school, location_name, country, interests, relationship_goal, show_age, education_level").eq("user_id", userId).maybeSingle(),
       supabase.from("match_photos").select("url, is_primary, display_order").eq("user_id", userId).order("display_order"),
       getPublicProfileGifts(user.id, userId),
     ]).then(([{ data: mp }, { data: ph }, giftData]) => {

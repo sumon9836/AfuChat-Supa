@@ -345,7 +345,7 @@ router.get("/@:handle", async (req, res) => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, display_name, handle, bio, show_bio_publicly, avatar_url, banner_url, website_url, github_url, portfolio_url, developer_tagline, country, region, current_grade, xp, interests, available_for_hire, business_category, is_organization_verified, is_business_mode, is_verified, created_at, is_private, follower_count, following_count")
     .eq("handle", handle)
     .single();
 

@@ -67,7 +67,7 @@ export default function TicketDetail() {
   const fetchData = useCallback(async () => {
     if (!id) return;
     const [{ data: t }, { data: msgs }] = await Promise.all([
-      supabase.from("support_tickets").select("*").eq("id", id).single(),
+      supabase.from("support_tickets").select("id, subject, category, status, priority, email, created_at").eq("id", id).single(),
       supabase
         .from("support_messages")
         .select("*, sender:profiles!support_messages_sender_id_fkey(display_name, handle, avatar_url)")

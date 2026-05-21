@@ -73,7 +73,7 @@ export default function NotificationSettingsScreen() {
   // Load prefs from DB
   useEffect(() => {
     if (!user) return;
-    supabase.from("notification_preferences").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+    supabase.from("notification_preferences").select("user_id, push_enabled, push_messages, push_likes, push_follows, push_gifts, push_mentions, push_replies, quiet_hours_enabled").eq("user_id", user.id).maybeSingle().then(({ data }) => {
       if (data) setPrefs({ ...defaults, ...data });
     });
   }, [user]);
