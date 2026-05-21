@@ -21,6 +21,7 @@ import { ChatsListPanel } from "@/app/(tabs)/index";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { AppAccentProvider } from "@/context/AppAccentContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AdvancedFeaturesProvider } from "@/context/AdvancedFeaturesContext";
@@ -735,6 +736,7 @@ export default function RootWebLayout() {
 function DesktopShell() {
   const { session, profile, loading, user } = useAuth();
   const { isDark } = useTheme();
+  const { isDesktop } = useIsDesktop();
   const pathname = usePathname();
 
   /* ── unread chat count ── */
@@ -828,19 +830,25 @@ function DesktopShell() {
 
   const noShell = isNoShell(pathname) || !session;
 
-  /* Loading */
-  if (loading && !noShell) {
+  /* No-shell routes (landing, auth pages): pass through */
+  if (noShell) {
+    return <Slot />;
+  }
+
+  /* Mobile web: skip all desktop chrome — the native tab layout handles
+     rendering, routing, and the CompactTabBar exactly as in the app. */
+  if (!isDesktop) {
+    return <Slot />;
+  }
+
+  /* Desktop loading spinner */
+  if (loading) {
     const theme = isDark ? "dt-dk" : "dt-lt";
     return (
       <div className={`dt-shell ${theme}`}>
         <div className="dt-loading"><div className="dt-spin" /></div>
       </div>
     );
-  }
-
-  /* No-shell routes: pass through */
-  if (noShell) {
-    return <Slot />;
   }
 
   const theme        = isDark ? "dt-dk" : "dt-lt";
