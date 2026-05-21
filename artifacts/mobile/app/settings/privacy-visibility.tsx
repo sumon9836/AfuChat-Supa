@@ -26,6 +26,7 @@ type Settings = {
   hide_following_list: boolean;
   hide_posts_non_followers: boolean;
   hide_from_search: boolean;
+  location_sharing_enabled: boolean;
 };
 
 function ToggleRow({ icon, label, description, value, onToggle, saving }: {
@@ -51,15 +52,33 @@ export default function PrivacyVisibilityScreen() {
   const { colors } = useTheme();
   const { user, refreshProfile } = useAuth();
   const insets = useSafeAreaInsets();
-  const [settings, setSettings] = useState<Settings>({ hide_followers_list: false, hide_following_list: false, hide_posts_non_followers: false, hide_from_search: false });
+  const [settings, setSettings] = useState<Settings>({
+    hide_followers_list: false,
+    hide_following_list: false,
+    hide_posts_non_followers: false,
+    hide_from_search: false,
+    location_sharing_enabled: true,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<keyof Settings | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("hide_followers_list, hide_following_list, hide_posts_non_followers, hide_from_search").eq("id", user.id).single()
+    supabase
+      .from("profiles")
+      .select("hide_followers_list, hide_following_list, hide_posts_non_followers, hide_from_search, location_sharing_enabled")
+      .eq("id", user.id)
+      .single()
       .then(({ data }) => {
-        if (data) setSettings({ hide_followers_list: data.hide_followers_list ?? false, hide_following_list: data.hide_following_list ?? false, hide_posts_non_followers: data.hide_posts_non_followers ?? false, hide_from_search: data.hide_from_search ?? false });
+        if (data) {
+          setSettings({
+            hide_followers_list: data.hide_followers_list ?? false,
+            hide_following_list: data.hide_following_list ?? false,
+            hide_posts_non_followers: data.hide_posts_non_followers ?? false,
+            hide_from_search: data.hide_from_search ?? false,
+            location_sharing_enabled: data.location_sharing_enabled !== false,
+          });
+        }
         setLoading(false);
       });
   }, [user]);
@@ -67,11 +86,24 @@ export default function PrivacyVisibilityScreen() {
   async function toggle(field: keyof Settings, value: boolean) {
     if (!user) return;
     setSaving(field);
-    // Write to device immediately (offline-first)
     patchLocalSetting(user.id, field as any, value).catch(() => {});
-    const { error } = await supabase.from("profiles").update({ [field]: value }).eq("id", user.id);
-    if (error) showAlert("Error", "Failed to save setting.");
-    else { setSettings((prev) => ({ ...prev, [field]: value })); await refreshProfile(); }
+
+    // When the user disables location sharing, also clear their stored
+    // coordinates so they stop appearing in other users' Nearby results immediately.
+    const update: Record<string, any> = { [field]: value };
+    if (field === "location_sharing_enabled" && !value) {
+      update.latitude = null;
+      update.longitude = null;
+      update.location_updated_at = null;
+    }
+
+    const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
+    if (error) {
+      showAlert("Error", "Failed to save setting.");
+    } else {
+      setSettings((prev) => ({ ...prev, [field]: value }));
+      await refreshProfile();
+    }
     setSaving(null);
   }
 
@@ -92,7 +124,18 @@ export default function PrivacyVisibilityScreen() {
             <View style={[styles.sep, { backgroundColor: colors.border, marginLeft: 62 }]} />
             <ToggleRow icon="search" label="Hide From Search" description="Your profile won't appear in search results" value={settings.hide_from_search} onToggle={(v) => toggle("hide_from_search", v)} saving={saving === "hide_from_search"} />
           </GlassCard>
-          <Text style={[styles.hint, { color: colors.textMuted }]}>Hiding your lists does not affect who can follow or message you. All changes are applied instantly.</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>LOCATION</Text>
+          <GlassCard style={styles.group} variant="medium">
+            <ToggleRow
+              icon="navigate"
+              label="Share My Location"
+              description="Appear in other users' Nearby Friends tab. Turning this off removes you instantly."
+              value={settings.location_sharing_enabled}
+              onToggle={(v) => toggle("location_sharing_enabled", v)}
+              saving={saving === "location_sharing_enabled"}
+            />
+          </GlassCard>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>Your exact location is never visible to other users — only your approximate distance is shown. Disabling this removes you from Nearby results immediately.</Text>
         </ScrollView>
       )}
     </View>

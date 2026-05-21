@@ -378,11 +378,18 @@ export default function UserDiscoveryScreen() {
   }, [user, selectedInterest]);
 
   // requestLocation comes from useNearbyLocation hook above.
-  // After getting coords, save them to the user's profile so the
-  // nearby_users RPC can compute distances server-side.
+  // After getting coords, save them to the user's profile only when location
+  // sharing is enabled, so the nearby_users RPC can compute distances.
   const saveCoordsToDB = useCallback(
     async (coords: { lat: number; lng: number }) => {
       if (!user) return;
+      // Check sharing preference before persisting coords.
+      const { data: pref } = await supabase
+        .from("profiles")
+        .select("location_sharing_enabled")
+        .eq("id", user.id)
+        .single();
+      if (pref?.location_sharing_enabled === false) return;
       await supabase
         .from("profiles")
         .update({
