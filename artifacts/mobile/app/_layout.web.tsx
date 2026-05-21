@@ -245,6 +245,15 @@ const DT_CSS = `
 }
 .dt-chat-empty svg{opacity:0.35}
 .dt-chat-empty p{font-size:15px;text-align:center;opacity:0.55;margin:0}
+/* On mobile: hide the left panel so only the main content pane fills screen */
+@media(max-width:820px){
+  .dt-chat-list-panel{display:none!important}
+  .dt-desktop-only{display:none!important}
+  .dt-mobile-only{flex:1;display:flex!important;flex-direction:column;min-height:0;overflow:hidden}
+}
+@media(min-width:821px){
+  .dt-mobile-only{display:none!important}
+}
 
 /* ─── Centred page wrapper (max 840 px) ─────────────────────────────────── */
 /* Applied to all non-wide routes so content never stretches across the full  */
@@ -1048,10 +1057,15 @@ function DesktopShell() {
               </div>
               <div className="dt-chat-conv-pane">
                 {isChatHomeRoute(pathname) ? (
-                  <div className="dt-chat-empty">
-                    <MessageCircle size={44} strokeWidth={1.1} />
-                    <p>Select a conversation to start chatting</p>
-                  </div>
+                  <>
+                    <div className="dt-chat-empty dt-desktop-only">
+                      <MessageCircle size={44} strokeWidth={1.1} />
+                      <p>Select a conversation to start chatting</p>
+                    </div>
+                    <div className="dt-mobile-only">
+                      <Slot />
+                    </div>
+                  </>
                 ) : (
                   <Slot />
                 )}
