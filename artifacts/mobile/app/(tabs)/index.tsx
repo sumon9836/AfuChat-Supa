@@ -809,13 +809,14 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
           chat_members(user_id, profiles(id, display_name, avatar_url, is_verified, is_organization_verified, last_seen, show_online_status))
         `)
         .in("id", chatIds)
-        .order("updated_at", { ascending: false }),
+        .order("updated_at", { ascending: false })
+        .limit(200),
       supabase
         .from("messages")
         .select("id, chat_id, encrypted_content, sent_at, attachment_type, sender_id")
         .in("chat_id", chatIds)
         .order("sent_at", { ascending: false })
-        .limit(Math.max(chatIds.length * 2, 200)),
+        .limit(Math.min(Math.max(chatIds.length * 2, 50), 100)),
       unreadCheckIds.length > 0
         ? supabase
             .from("messages")
@@ -823,7 +824,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
             .in("chat_id", unreadCheckIds)
             .neq("sender_id", user.id)
             .order("sent_at", { ascending: false })
-            .limit(2000)
+            .limit(500)
         : Promise.resolve({ data: [] }),
     ]);
 

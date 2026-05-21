@@ -741,10 +741,13 @@ function DesktopShell() {
   useEffect(() => { refreshUnread(); }, [refreshUnread]);
   useEffect(() => {
     if (!user?.id) return;
+    // Scope to message_status rows owned by this user instead of subscribing
+    // to the entire messages table (which would receive every message from every
+    // user in the system and cause massive unnecessary egress).
     const ch = supabase
       .channel("dt-unread")
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, refreshUnread)
-      .on("postgres_changes", { event: "*", schema: "public", table: "message_receipts" }, refreshUnread)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_status", filter: `user_id=eq.${user.id}` }, refreshUnread)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "message_status", filter: `user_id=eq.${user.id}` }, refreshUnread)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, refreshUnread]);

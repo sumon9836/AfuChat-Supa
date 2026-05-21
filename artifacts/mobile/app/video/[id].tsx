@@ -1327,6 +1327,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   const loadingMoreRef = useRef(false);
   const hasMoreRef = useRef(hasMore);
   const videoTabRef = useRef(videoTab);
+  // Tracks loaded video IDs so the realtime callback can skip posts not in feed
+  const loadedVideoIdsRef = useRef<Set<string>>(new Set());
   const activeIndexRef = useRef(activeIndex);
   const videosLenRef = useRef(videos.length);
   // Stable ref for user — lets fetchVideos read the current user without
@@ -1340,7 +1342,11 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
   useEffect(() => { videoTabRef.current = videoTab; }, [videoTab]);
   useEffect(() => { activeIndexRef.current = activeIndex; }, [activeIndex]);
-  useEffect(() => { videosLenRef.current = videos.length; videosRef.current = videos; }, [videos]);
+  useEffect(() => {
+    videosLenRef.current = videos.length;
+    videosRef.current = videos;
+    loadedVideoIdsRef.current = new Set(videos.map((v) => v.id));
+  }, [videos]);
   useEffect(() => { userRef.current = user; }, [user]);
 
   // Web: hide scrollbar CSS
@@ -1618,24 +1624,26 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmbedded]);
 
-  // Realtime like/reply count updates
+  // Realtime like/reply count updates — only fire DB calls for videos that
+  // are actually loaded in this feed (avoids count queries for unrelated posts).
   useEffect(() => {
-    const channel = supabase.channel(`video-feed-realtime:${id}`)
+    const channel = supabase.channel(`video-feed-realtime:${id ?? "embed"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "post_acknowledgments" }, (payload: any) => {
         const postId = payload.new?.post_id || payload.old?.post_id;
-        if (!postId) return;
+        if (!postId || !loadedVideoIdsRef.current.has(postId)) return;
         supabase.from("post_acknowledgments").select("id", { count: "exact", head: true }).eq("post_id", postId)
           .then(({ count }) => { setVideos((prev) => prev.map((v) => v.id === postId ? { ...v, likeCount: count || 0 } : v)); });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "post_replies" }, (payload: any) => {
         const postId = payload.new?.post_id || payload.old?.post_id;
-        if (!postId) return;
+        if (!postId || !loadedVideoIdsRef.current.has(postId)) return;
         supabase.from("post_replies").select("id", { count: "exact", head: true }).eq("post_id", postId)
           .then(({ count }) => { setVideos((prev) => prev.map((v) => v.id === postId ? { ...v, replyCount: count || 0 } : v)); });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   // ── FlatList config ────────────────────────────────────────────────────────
 

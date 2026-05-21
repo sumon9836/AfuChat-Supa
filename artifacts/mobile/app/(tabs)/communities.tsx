@@ -136,12 +136,15 @@ export default function CommunitiesScreen() {
 
   useEffect(() => {
     if (!user) return;
+    // Subscribe to the user's own chat_members and channel_subscriptions rows
+    // instead of the full chats/channels tables (which would receive every
+    // community update from every user in the system).
     const ch = supabase
       .channel("communities-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chats" }, () => load())
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chats" }, () => load())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "channels" }, () => load())
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "channels" }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_members", filter: `user_id=eq.${user.id}` }, () => load())
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "chat_members", filter: `user_id=eq.${user.id}` }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "channel_subscriptions", filter: `user_id=eq.${user.id}` }, () => load())
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "channel_subscriptions", filter: `user_id=eq.${user.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, load]);

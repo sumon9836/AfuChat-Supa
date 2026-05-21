@@ -794,7 +794,8 @@ export default function DiscoverScreen() {
       const { data: followData } = await supabase
         .from("follows")
         .select("following_id")
-        .eq("follower_id", user.id);
+        .eq("follower_id", user.id)
+        .limit(1000);
 
       const followingIds = (followData || []).map((f: any) => f.following_id);
 
@@ -833,11 +834,12 @@ export default function DiscoverScreen() {
         if (data.length < PAGE_SIZE) setHasMore(false); else setHasMore(true);
 
         const postIds = data.map((p: any) => p.id);
+        const _followLimit = PAGE_SIZE * 3;
         const [{ data: myLikes }, { data: replyCounts }, { data: myBookmarks }, { data: likeCounts }] = await Promise.all([
-          postIds.length > 0 && user ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds).eq("user_id", user.id) : { data: [] },
-          postIds.length > 0 ? supabase.from("post_replies").select("post_id").in("post_id", postIds) : { data: [] },
-          postIds.length > 0 && user ? supabase.from("post_bookmarks").select("post_id").in("post_id", postIds).eq("user_id", user.id) : { data: [] },
-          postIds.length > 0 ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds) : { data: [] },
+          postIds.length > 0 && user ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds).eq("user_id", user.id).limit(_followLimit) : { data: [] },
+          postIds.length > 0 ? supabase.from("post_replies").select("post_id").in("post_id", postIds).limit(_followLimit) : { data: [] },
+          postIds.length > 0 && user ? supabase.from("post_bookmarks").select("post_id").in("post_id", postIds).eq("user_id", user.id).limit(_followLimit) : { data: [] },
+          postIds.length > 0 ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds).limit(_followLimit) : { data: [] },
         ]);
 
         const myLikeSet = new Set((myLikes || []).map((l: any) => l.post_id));
@@ -1007,6 +1009,7 @@ export default function DiscoverScreen() {
       const postIds = data.map((p: any) => p.id);
       const authorIds = [...new Set(data.map((p: any) => p.author_id))];
 
+      const _fyLimit = PAGE_SIZE * 3;
       const [
         { data: likeCounts },
         { data: myLikes },
@@ -1017,20 +1020,20 @@ export default function DiscoverScreen() {
         { data: myBookmarks },
       ] = await Promise.all([
         postIds.length > 0
-          ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds)
+          ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds).limit(_fyLimit)
           : { data: [] },
         postIds.length > 0 && user
-          ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds).eq("user_id", user.id)
+          ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds).eq("user_id", user.id).limit(_fyLimit)
           : { data: [] },
         postIds.length > 0
-          ? supabase.from("post_replies").select("post_id").in("post_id", postIds)
+          ? supabase.from("post_replies").select("post_id").in("post_id", postIds).limit(_fyLimit)
           : { data: [] },
         authorIds.length > 0 && user
           ? supabase.from("post_acknowledgments")
               .select("post_id, posts!inner(author_id)")
               .eq("user_id", user.id)
               .in("posts.author_id", authorIds)
-              .limit(500)
+              .limit(100)
           : { data: [] },
         authorIds.length > 0 && user
           ? supabase.from("follows").select("following_id").eq("follower_id", user.id).in("following_id", authorIds)
@@ -1040,10 +1043,10 @@ export default function DiscoverScreen() {
               .select("post_id, posts!inner(author_id)")
               .eq("author_id", user.id)
               .in("posts.author_id", authorIds)
-              .limit(500)
+              .limit(100)
           : { data: [] },
         postIds.length > 0 && user
-          ? supabase.from("post_bookmarks").select("post_id").in("post_id", postIds).eq("user_id", user.id)
+          ? supabase.from("post_bookmarks").select("post_id").in("post_id", postIds).eq("user_id", user.id).limit(_fyLimit)
           : { data: [] },
       ]);
 

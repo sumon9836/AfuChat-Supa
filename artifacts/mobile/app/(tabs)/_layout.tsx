@@ -83,10 +83,12 @@ function useTotalUnread(userId: string | undefined): number {
 
   useEffect(() => {
     if (!userId) return;
+    // Filter to message_status rows for this user — avoids receiving every
+    // message from every user in the system (table-wide subscription).
     const ch = supabase
       .channel("tab-bar-unread")
-      .on("postgres_changes", { event: "INSERT",  schema: "public", table: "messages" },         refresh)
-      .on("postgres_changes", { event: "UPDATE",  schema: "public", table: "message_receipts" }, refresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_status", filter: `user_id=eq.${userId}` }, refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "message_status", filter: `user_id=eq.${userId}` }, refresh)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [userId, refresh]);
