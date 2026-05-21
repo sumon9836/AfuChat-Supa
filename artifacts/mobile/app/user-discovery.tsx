@@ -24,6 +24,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useNearbyLocation } from "@/hooks/useNearbyLocation";
 import { supabase } from "@/lib/supabase";
 import { ContactRowSkeleton } from "@/components/ui/Skeleton";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
@@ -259,10 +260,17 @@ export default function UserDiscoveryScreen() {
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  const [locating, setLocating] = useState(false);
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusKm, setRadiusKm] = useState(5);
-  const [nearbyError, setNearbyError] = useState<string | null>(null);
+  const [nearbyLoadError, setNearbyLoadError] = useState<string | null>(null);
+  const {
+    coords: userCoords,
+    locating,
+    error: locationError,
+    requestLocation,
+    clearCoords,
+  } = useNearbyLocation();
+
+  const nearbyError = locationError || nearbyLoadError;
 
   const channelRef = useRef<any>(null);
   const searchRef = useRef<TextInput>(null);
@@ -369,31 +377,28 @@ export default function UserDiscoveryScreen() {
     }
   }, [user, selectedInterest]);
 
-  const requestLocation = useCallback(async () => {
-    setLocating(true);
-    setNearbyError(null);
-    try {
-      const res = await fetch("https://ipapi.co/json/");
-      if (!res.ok) throw new Error("network error");
-      const data = await res.json();
-      if (!data.latitude || !data.longitude) throw new Error("no coords");
-      const coords = { lat: data.latitude as number, lng: data.longitude as number };
-      setUserCoords(coords);
-      if (user) {
-        await supabase
-          .from("profiles")
-          .update({
-            latitude: coords.lat,
-            longitude: coords.lng,
-            location_updated_at: new Date().toISOString(),
-          })
-          .eq("id", user.id);
-      }
-    } catch {
-      setNearbyError("Could not detect your location via network. Please check your connection and try again.");
-    }
-    setLocating(false);
-  }, [user]);
+  // requestLocation comes from useNearbyLocation hook above.
+  // After getting coords, save them to the user's profile so the
+  // nearby_users RPC can compute distances server-side.
+  const saveCoordsToDB = useCallback(
+    async (coords: { lat: number; lng: number }) => {
+      if (!user) return;
+      await supabase
+        .from("profiles")
+        .update({
+          latitude: coords.lat,
+          longitude: coords.lng,
+          location_updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+    },
+    [user]
+  );
+
+  const handleRequestLocation = useCallback(async () => {
+    const result = await requestLocation();
+    if (result) await saveCoordsToDB(result);
+  }, [requestLocation, saveCoordsToDB]);
 
   const loadNearbyUsers = useCallback(
     async (coords?: { lat: number; lng: number }) => {
@@ -401,7 +406,7 @@ export default function UserDiscoveryScreen() {
       const c = coords || userCoords;
       if (!c) return;
       setLoading(true);
-      setNearbyError(null);
+      setNearbyLoadError(null);
 
       const [{ data, error }, followSet] = await Promise.all([
         supabase.rpc("nearby_users", {
@@ -414,7 +419,7 @@ export default function UserDiscoveryScreen() {
       ]);
 
       if (error) {
-        setNearbyError("Failed to load nearby users.");
+        setNearbyLoadError("Failed to load nearby users.");
       } else {
         setFollowing(followSet);
         setUsers(
@@ -449,7 +454,7 @@ export default function UserDiscoveryScreen() {
     } else {
       if (!userCoords) {
         setLoading(false);
-        requestLocation();
+        handleRequestLocation();
       } else {
         loadNearbyUsers();
       }
@@ -572,10 +577,10 @@ export default function UserDiscoveryScreen() {
         <View style={styles.emptyWrap}>
           <RadarAnimation color={accent} />
           <Text style={[styles.emptyTitle, { color: colors.text, marginTop: 28 }]}>
-            Detecting via network…
+            Finding your location…
           </Text>
           <Text style={[styles.emptySub, { color: colors.textMuted }]}>
-            Using your network connection to find AfuChat users nearby
+            Using your device location to find AfuChat users nearby
           </Text>
         </View>
       );
@@ -589,7 +594,7 @@ export default function UserDiscoveryScreen() {
           <Text style={[styles.emptyTitle, { color: colors.text }]}>{nearbyError}</Text>
           <TouchableOpacity
             style={[styles.emptyBtn, { backgroundColor: accent }]}
-            onPress={requestLocation}
+            onPress={handleRequestLocation}
           >
             <Ionicons name="refresh" size={16} color="#fff" />
             <Text style={styles.emptyBtnText}>Try Again</Text>
@@ -658,7 +663,7 @@ export default function UserDiscoveryScreen() {
             style={styles.tabItem}
             onPress={() => {
               setTab(t);
-              if (t === "nearby" && !userCoords) requestLocation();
+              if (t === "nearby" && !userCoords) handleRequestLocation();
             }}
           >
             <Ionicons
@@ -881,7 +886,7 @@ export default function UserDiscoveryScreen() {
             {userCoords && (
               <TouchableOpacity
                 style={[styles.chip, { backgroundColor: accent + "15", borderColor: accent + "40" }]}
-                onPress={requestLocation}
+                onPress={handleRequestLocation}
               >
                 <Ionicons name="refresh-outline" size={13} color={accent} />
                 <Text style={[styles.chipText, { color: accent }]}>Refresh</Text>

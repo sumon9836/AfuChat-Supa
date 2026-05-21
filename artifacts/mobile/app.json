@@ -30,7 +30,8 @@
         "NSCameraUsageDescription": "AfuChat uses the camera for video calls, QR scanning, and photos.",
         "NSContactsUsageDescription": "AfuChat uses contacts to help you find friends.",
         "NSPhotoLibraryUsageDescription": "AfuChat uses your photo library to share images.",
-        "NSMicrophoneUsageDescription": "AfuChat uses the microphone for voice and video calls."
+        "NSMicrophoneUsageDescription": "AfuChat uses the microphone for voice and video calls.",
+        "NSLocationWhenInUseUsageDescription": "AfuChat uses your location only when the Nearby Friends feature is open, to show AfuChat users near you. Your exact location is never visible to other users."
       },
       "associatedDomains": [
         "applinks:afuchat.com",
@@ -63,7 +64,9 @@
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
-        "android.permission.ACCESS_MEDIA_LOCATION"
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "intentFilters": [
         {
@@ -131,8 +134,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "AfuChat uses your location to find nearby people and detect your country.",
-          "locationWhenInUsePermission": "AfuChat uses your location to find nearby AfuChat users and detect your country."
+          "locationWhenInUsePermission": "AfuChat uses your location only when the Nearby Friends feature is open, to show AfuChat users near you. Your exact location is never visible to other users.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
         }
       ],
       [

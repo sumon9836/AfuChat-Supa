@@ -17,7 +17,10 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 async function tryGps(): Promise<GeoResult | null> {
-  const { status } = await withTimeout(Location.requestForegroundPermissionsAsync(), 5000);
+  // Only use GPS if the user already granted permission elsewhere (e.g. Nearby tab).
+  // Never request the permission during country detection — that keeps the
+  // location permission out of the onboarding flow and avoids Google Play flags.
+  const { status } = await withTimeout(Location.getForegroundPermissionsAsync(), 5000);
   if (status !== "granted") return null;
   const loc = await withTimeout(
     Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
