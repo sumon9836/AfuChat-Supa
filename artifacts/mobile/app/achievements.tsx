@@ -13,11 +13,17 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import Colors from "@/constants/colors";
 
 function useBadgeSize() {
   const { width } = useWindowDimensions();
-  return (width - 48 - 24) / 3;
+  const { isDesktop } = useIsDesktop();
+  // On desktop, content is constrained to 840 px by the page wrapper;
+  // use 4 columns. On mobile, use 3 columns within the actual screen width.
+  const containerWidth = isDesktop ? Math.min(width, 840) : width;
+  const cols = isDesktop ? 4 : 3;
+  return (containerWidth - 48 - 8 * (cols - 1)) / cols;
 }
 
 type Achievement = {
@@ -152,24 +158,26 @@ function SummaryBar({ achievements }: { achievements: Achievement[] }) {
 export default function AchievementsScreen() {
   const { profile, isPremium } = useAuth();
   const { colors } = useTheme();
+  const { isDesktop } = useIsDesktop();
   const insets = useSafeAreaInsets();
-  const BADGE_SIZE = useBadgeSize();
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const achievements = buildAchievements(profile, isPremium);
   const filtered = selectedCategory === "All" ? achievements : achievements.filter((a) => a.category === selectedCategory);
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.backgroundSecondary, paddingTop: insets.top }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={colors.accent} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Achievements</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={[styles.screen, { backgroundColor: colors.backgroundSecondary, paddingTop: isDesktop ? 0 : insets.top }]}>
+      {!isDesktop && (
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={24} color={colors.accent} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Achievements</Text>
+          <View style={{ width: 40 }} />
+        </View>
+      )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 + insets.bottom, paddingTop: isDesktop ? 24 : 0 }}>
         <SummaryBar achievements={achievements} />
 
         <ScrollView
@@ -194,7 +202,7 @@ export default function AchievementsScreen() {
           ))}
         </ScrollView>
 
-        <View style={styles.badgeGrid}>
+        <View style={[styles.badgeGrid, isDesktop && { justifyContent: "flex-start", gap: 12 }]}>
           {filtered.map((a) => <AchievementBadge key={a.id} achievement={a} />)}
         </View>
       </ScrollView>

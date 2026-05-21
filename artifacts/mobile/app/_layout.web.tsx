@@ -14,7 +14,7 @@ import {
   MessageCircle, Compass, Search, Bot, Wallet, Grid3X3,
   User, Settings, Edit3, Users, Bookmark, Star, LogOut,
   Copy, ExternalLink, MoreHorizontal, FileText, Film, Hash,
-  Bell, ShoppingBag, UserCheck, Plus,
+  Bell, ShoppingBag, UserCheck, Plus, ChevronLeft,
 } from "lucide-react";
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -202,6 +202,12 @@ const DT_CSS = `
   font-size:13px;font-weight:800;
 }
 .dt-tb-divider{width:1px;height:24px;background:var(--bdr);margin:0 4px;flex-shrink:0}
+.dt-tb-back{
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;border:none;background:none;cursor:pointer;padding:0;
+  color:var(--txt2);transition:background .1s,color .1s;flex-shrink:0;
+}
+.dt-tb-back:hover{background:var(--hov);color:var(--txt)}
 
 /* ════════════════════════════════════════════
    BODY  (offset 240 px left + 56 px top)
@@ -216,6 +222,17 @@ const DT_CSS = `
   min-width:0;
 }
 .dt-body>div{flex:1;min-height:0;display:flex;flex-direction:column}
+
+/* ─── Centred page wrapper (max 840 px) ─────────────────────────────────── */
+/* Applied to all non-wide routes so content never stretches across the full  */
+/* viewport on large monitors.                                                 */
+.dt-page-wrap{
+  align-self:center;
+  width:100%;max-width:840px;
+}
+@media(max-width:820px){
+  .dt-page-wrap{max-width:100%}
+}
 
 .dt-loading{display:flex;flex:1;align-items:center;justify-content:center;background:var(--bg);min-height:100vh}
 .dt-spin{
@@ -478,6 +495,42 @@ function isActiveRoute(pathname: string, matchPaths: string[]): boolean {
   });
 }
 
+/**
+ * Routes that should span the full body width on desktop.
+ * Discover has its own DesktopFeedLayout; the me/profile tab uses a RightRail.
+ * Everything else gets a centred max-width column via .dt-page-wrap.
+ */
+function isWideRoute(pathname: string): boolean {
+  return (
+    pathname.includes("/discover") ||
+    pathname.includes("/(tabs)/me") ||
+    pathname.startsWith("/me")
+  );
+}
+
+/**
+ * Primary/top-level routes accessible directly from the sidebar.
+ * These don't need a back button in the topbar.
+ */
+const PRIMARY_ROUTES = new Set([
+  "/(tabs)", "/(tabs)/index", "/(tabs)/discover",
+  "/(tabs)/search", "/(tabs)/me", "/(tabs)/ai",
+  "/ai", "/wallet", "/wallet/index",
+  "/games", "/games/index",
+  "/apps", "/apps/index",
+  "/notifications", "/notifications/index",
+  "/settings", "/settings/index",
+  "/support", "/support/index",
+  "/premium", "/achievements",
+  "/referral", "/freelance",
+  "/communities", "/contacts",
+  "/saved", "/company", "/shop",
+]);
+
+function isPrimaryRoute(pathname: string): boolean {
+  return PRIMARY_ROUTES.has(pathname);
+}
+
 /** Routes rendered WITHOUT the desktop shell (fullscreen or marketing) */
 function isNoShell(pathname: string): boolean {
   return (
@@ -513,26 +566,72 @@ function getPageTitle(pathname: string): string {
   if (pathname.includes("/discover")) return "Discover";
   if (pathname.includes("/search")) return "Search";
   if (pathname.startsWith("/ai")) return "AfuAI";
-  if (pathname.startsWith("/wallet")) return "Wallet";
-  if (pathname.includes("/apps")) return "Apps";
+
+  // ── Settings sub-pages (specific before generic) ──────────────────────────
+  if (pathname.startsWith("/settings/privacy-account"))     return "Account Privacy";
+  if (pathname.startsWith("/settings/privacy-visibility"))  return "Visibility";
+  if (pathname.startsWith("/settings/privacy-messages"))    return "Messages Privacy";
+  if (pathname.startsWith("/settings/privacy-interactions"))return "Reactions & Tags";
+  if (pathname.startsWith("/settings/privacy-restricted"))  return "Restricted Accounts";
+  if (pathname.startsWith("/settings/privacy-data"))        return "Data & Permissions";
+  if (pathname.startsWith("/settings/privacy-download"))    return "Download My Data";
+  if (pathname.startsWith("/settings/privacy"))             return "Privacy";
+  if (pathname.startsWith("/settings/notifications"))       return "Notifications";
+  if (pathname.startsWith("/settings/security"))            return "Security";
+  if (pathname.startsWith("/settings/two-factor"))          return "Two-Factor Auth";
+  if (pathname.startsWith("/settings/oauth-providers"))     return "Connected Accounts";
+  if (pathname.startsWith("/settings/blocked"))             return "Blocked Users";
+  if (pathname.startsWith("/settings/chat"))                return "Chat Settings";
+  if (pathname.startsWith("/settings/offline-videos"))      return "Offline Videos";
+  if (pathname.startsWith("/settings/storage"))             return "Storage";
+  if (pathname.startsWith("/settings"))                     return "Settings";
+
+  // ── Wallet sub-pages ───────────────────────────────────────────────────────
+  if (pathname.startsWith("/wallet/topup"))                 return "Top Up";
+  if (pathname.startsWith("/wallet/scan"))                  return "Scan QR";
+  if (pathname.startsWith("/wallet/requests"))              return "Payment Requests";
+  if (pathname.startsWith("/wallet/gift-vault"))            return "Gift Vault";
+  if (pathname.startsWith("/wallet"))                       return "Wallet";
+
+  // ── Games ─────────────────────────────────────────────────────────────────
+  if (pathname.startsWith("/games/snake"))         return "Snake";
+  if (pathname.startsWith("/games/tetris"))        return "Tetris";
+  if (pathname.startsWith("/games/game-2048"))     return "2048";
+  if (pathname.startsWith("/games/brick-breaker")) return "Brick Breaker";
+  if (pathname.startsWith("/games/flappy"))        return "Flappy Bird";
+  if (pathname.startsWith("/games/memory-match"))  return "Memory Match";
+  if (pathname.startsWith("/games/minesweeper"))   return "Minesweeper";
+  if (pathname.startsWith("/games/space-shooter")) return "Space Shooter";
+  if (pathname.startsWith("/games"))               return "Games";
+
+  // ── Support sub-pages ─────────────────────────────────────────────────────
+  if (pathname.startsWith("/support/ticket"))      return "Support Ticket";
+  if (pathname.startsWith("/support"))             return "Help & Support";
+
+  // ── Other routes ──────────────────────────────────────────────────────────
+  if (pathname.includes("/apps"))            return "Apps";
   if (pathname.startsWith("/shop") || pathname.startsWith("/store")) return "Marketplace";
-  if (pathname.includes("/communities")) return "Communities";
-  if (pathname.includes("/contacts")) return "Contacts";
-  if (pathname.startsWith("/saved")) return "Saved";
-  if (pathname.includes("/me")) return "Profile";
-  if (pathname.startsWith("/achievements")) return "Achievements";
-  if (pathname.startsWith("/settings")) return "Settings";
+  if (pathname.includes("/communities"))     return "Communities";
+  if (pathname.includes("/contacts"))        return "Contacts";
+  if (pathname.startsWith("/saved"))         return "Saved";
+  if (pathname.includes("/me"))              return "Profile";
+  if (pathname.startsWith("/achievements"))  return "Achievements";
   if (pathname.startsWith("/notifications")) return "Notifications";
-  if (pathname.startsWith("/premium")) return "Premium";
-  if (pathname.startsWith("/referral")) return "Refer a friend";
-  if (pathname.startsWith("/support")) return "Help & Support";
-  if (pathname.startsWith("/freelance")) return "Freelance";
-  if (pathname.startsWith("/games")) return "Games";
-  if (pathname.startsWith("/gifts")) return "Gifts";
-  if (pathname.startsWith("/company")) return "Pages";
-  if (pathname.startsWith("/profile")) return "Profile";
-  if (pathname.startsWith("/group")) return "Group";
-  if (pathname.startsWith("/channel")) return "Channel";
+  if (pathname.startsWith("/premium"))       return "Premium";
+  if (pathname.startsWith("/referral"))      return "Refer a Friend";
+  if (pathname.startsWith("/freelance"))     return "Freelance";
+  if (pathname.startsWith("/gifts"))         return "Gifts";
+  if (pathname.startsWith("/company"))       return "Pages";
+  if (pathname.startsWith("/profile"))       return "Profile";
+  if (pathname.startsWith("/group"))         return "Group";
+  if (pathname.startsWith("/channel"))       return "Channel";
+  if (pathname.startsWith("/followers"))     return "Followers";
+  if (pathname.startsWith("/following"))     return "Following";
+  if (pathname.startsWith("/post/"))         return "Post";
+  if (pathname.startsWith("/create-post"))   return "New Post";
+  if (pathname.startsWith("/create-story"))  return "New Story";
+  if (pathname.startsWith("/profile/edit"))  return "Edit Profile";
+  if (pathname.startsWith("/leaderboard"))   return "Leaderboard";
   return "AfuChat";
 }
 
@@ -817,6 +916,16 @@ function DesktopShell() {
             TOP BAR
         ══════════════════════════════════ */}
         <header className="dt-topbar">
+          {/* Back button — shown for non-primary routes where GlassHeader is hidden */}
+          {!isPrimaryRoute(pathname) && (
+            <button
+              className="dt-tb-back"
+              title="Go back"
+              onClick={() => router.back()}
+            >
+              <ChevronLeft size={20} strokeWidth={2} />
+            </button>
+          )}
           <span className="dt-tb-title">{pageTitle}</span>
 
           <div className="dt-tb-srch">
@@ -890,7 +999,13 @@ function DesktopShell() {
             MAIN BODY
         ══════════════════════════════════ */}
         <main className="dt-body">
-          <Slot />
+          {isWideRoute(pathname) ? (
+            <Slot />
+          ) : (
+            <div className="dt-page-wrap">
+              <Slot />
+            </div>
+          )}
         </main>
 
       </div>

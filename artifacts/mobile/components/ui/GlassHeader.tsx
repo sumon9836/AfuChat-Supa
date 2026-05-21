@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 export interface GlassHeaderProps {
   title: string;
@@ -35,6 +36,12 @@ export function GlassHeader({
 }: GlassHeaderProps) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useIsDesktop();
+
+  // On desktop the top-bar already shows the page title and the sidebar
+  // provides navigation — render nothing so pages don't show a duplicate
+  // mobile-style header chrome.
+  if (isDesktop) return null;
 
   function handleBack() {
     if (onBack) { onBack(); return; }
