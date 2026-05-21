@@ -521,9 +521,20 @@ function isActiveRoute(pathname: string, matchPaths: string[]): boolean {
 /**
  * Chat conversation routes — rendered as a split panel on desktop:
  * left=ChatsListPanel (360px), right=conversation slot.
+ * The home tab (/(tabs)) is also treated as a chat route so the chats list
+ * never fills the entire body; instead it sits in the left panel with an
+ * empty-state welcome on the right.
  */
 function isChatRoute(pathname: string): boolean {
-  return pathname.startsWith("/chat/");
+  return (
+    pathname.startsWith("/chat/") ||
+    pathname === "/(tabs)" ||
+    pathname === "/(tabs)/index"
+  );
+}
+
+function isChatHomeRoute(pathname: string): boolean {
+  return pathname === "/(tabs)" || pathname === "/(tabs)/index";
 }
 
 /**
@@ -1036,7 +1047,14 @@ function DesktopShell() {
                 <ChatsListPanel />
               </div>
               <div className="dt-chat-conv-pane">
-                <Slot />
+                {isChatHomeRoute(pathname) ? (
+                  <div className="dt-chat-empty">
+                    <MessageCircle size={44} strokeWidth={1.1} />
+                    <p>Select a conversation to start chatting</p>
+                  </div>
+                ) : (
+                  <Slot />
+                )}
               </div>
             </div>
           ) : isWideRoute(pathname) ? (

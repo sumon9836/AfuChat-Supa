@@ -60,13 +60,34 @@ export default function IndexScreen() {
 
     // OAuth callbacks need more time — Supabase processes the token asynchronously.
     // Regular loads get the short timeout; OAuth gets up to 8 seconds.
-    const delay = isOAuthCallback ? 8000 : 1500;
+    // If a stored Supabase session exists in localStorage, give it more time to
+    // restore before giving up — prevents a landing-page flash on hard refresh.
+    const hasStoredSession =
+      Platform.OS === "web" &&
+      typeof window !== "undefined" &&
+      Object.keys(window.localStorage || {}).some(
+        (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
+      );
+
+    const delay = isOAuthCallback ? 8000 : hasStoredSession ? 5000 : 1500;
 
     const timeout = setTimeout(() => {
       if (redirected.current) return;
 
       // If we're still inside an OAuth handshake, let the auth listener handle it.
       if (Platform.OS === "web" && hasOAuthCallbackInUrl()) return;
+
+      // If a stored session token still exists, Supabase is still restoring the
+      // session — don't redirect to the landing page yet.
+      if (
+        Platform.OS === "web" &&
+        typeof window !== "undefined" &&
+        Object.keys(window.localStorage || {}).some(
+          (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
+        )
+      ) {
+        return;
+      }
 
       redirected.current = true;
       if (handle) {
