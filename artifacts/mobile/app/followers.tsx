@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -49,13 +49,19 @@ export default function FollowersScreen() {
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [myFollowerIds, setMyFollowerIds] = useState<Set<string>>(new Set());
   const [togglingFollow, setTogglingFollow] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const pageRef = useRef(0);
+
+  const PAGE_SIZE = 20;
 
   const isOwnProfile = user?.id === userId;
   const title = type === "followers" ? "Followers" : "Following";
 
   useEffect(() => {
     if (!userId) return;
-    loadPrivacyAndUsers();
+    pageRef.current = 0;
+    loadPrivacyAndUsers(0);
   }, [userId, type]);
 
   useEffect(() => {
@@ -70,25 +76,23 @@ export default function FollowersScreen() {
     }
   }, [search, users]);
 
-  const loadPrivacyAndUsers = async () => {
-    setLoading(true);
-    setUsers([]);
+  const loadPrivacyAndUsers = async (page: number) => {
+    const isReset = page === 0;
+    if (isReset) { setLoading(true); setUsers([]); }
     try {
       const followCol = type === "followers" ? "following_id" : "follower_id";
       const joinCol = type === "followers" ? "follower_id" : "following_id";
+      const profileKey = type === "followers" ? "follower" : "following";
+      const fkName = type === "followers"
+        ? "follows_follower_id_fkey"
+        : "follows_following_id_fkey";
 
       const { data: followRows } = await supabase
         .from("follows")
-        .select(joinCol)
+        .select(`${joinCol}, ${profileKey}:profiles!${fkName}(id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, acoin, follower_count)`)
         .eq(followCol, userId)
-        .limit(200);
-
-      if (!followRows || followRows.length === 0) {
-        setUsers([]);
-        return;
-      }
-
-      const userIds = followRows.map((r: any) => r[joinCol]);
+        .order("created_at", { ascending: false })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       let blockedIds: string[] = [];
       if (user) {
@@ -103,36 +107,28 @@ export default function FollowersScreen() {
         }
       }
 
-      const visibleIds = userIds.filter((id: string) => !blockedIds.includes(id));
+      const rawProfiles = (followRows || []).map((r: any) => r[profileKey]).filter(Boolean);
+      const profiles = rawProfiles.filter((p: any) => !blockedIds.includes(p.id));
 
-      if (visibleIds.length === 0) {
-        setUsers([]);
-        return;
-      }
-
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, acoin, follower_count")
-        .in("id", visibleIds)
-        .limit(200);
-
-      if (profiles) {
+      if (isReset) {
         setUsers(profiles as FollowUser[]);
+      } else {
+        setUsers(prev => [...prev, ...(profiles as FollowUser[])]);
       }
 
-      if (user) {
+      const visibleIds = profiles.map((p: any) => p.id);
+      setHasMore((followRows?.length ?? 0) === PAGE_SIZE);
+
+      if (user && visibleIds.length > 0) {
         const { data: myFollowing } = await supabase
           .from("follows")
           .select("following_id")
           .eq("follower_id", user.id)
           .in("following_id", visibleIds);
         if (myFollowing) {
-          setFollowingIds(new Set(myFollowing.map((f: any) => f.following_id)));
+          setFollowingIds(prev => new Set([...prev, ...myFollowing.map((f: any) => f.following_id)]));
         }
 
-        // For the "following" list we also need to know which of those users
-        // follow us back, so we can show "Friends" vs "Following".
-        // For "followers" list they all follow us by definition.
         if (type === "following") {
           const { data: theyFollow } = await supabase
             .from("follows")
@@ -140,15 +136,15 @@ export default function FollowersScreen() {
             .eq("following_id", user.id)
             .in("follower_id", visibleIds);
           if (theyFollow) {
-            setMyFollowerIds(new Set(theyFollow.map((f: any) => f.follower_id)));
+            setMyFollowerIds(prev => new Set([...prev, ...theyFollow.map((f: any) => f.follower_id)]));
           }
         } else {
-          // "followers" list — every entry is someone who follows us
-          setMyFollowerIds(new Set(visibleIds));
+          setMyFollowerIds(prev => new Set([...prev, ...visibleIds]));
         }
       }
     } catch (_) {} finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -312,6 +308,20 @@ export default function FollowersScreen() {
             data={filtered}
             keyExtractor={(item) => item.id}
             renderItem={renderUser}
+            ListFooterComponent={hasMore && !search.trim() ? (
+              <TouchableOpacity
+                onPress={() => {
+                  if (loadingMore) return;
+                  setLoadingMore(true);
+                  pageRef.current += 1;
+                  loadPrivacyAndUsers(pageRef.current);
+                }}
+                disabled={loadingMore}
+                style={{ paddingVertical: 16, alignItems: "center" as const }}
+              >
+                {loadingMore ? <ActivityIndicator size="small" color={colors.accent} /> : <Text style={{ color: colors.accent, fontSize: 14 }}>Load more</Text>}
+              </TouchableOpacity>
+            ) : null}
             contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
             ItemSeparatorComponent={() => (
               <View style={[styles.separator, { backgroundColor: colors.border, marginLeft: 76 }]} />

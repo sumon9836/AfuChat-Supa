@@ -34,9 +34,13 @@ export default function MomentsScreen() {
   const { user } = useAuth();
   const [storyUsers, setStoryUsers] = useState<StoryUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [storiesLimit, setStoriesLimit] = useState(50);
+  const [hasMoreStories, setHasMoreStories] = useState(false);
   const channelRef = useRef<any>(null);
 
   const loadStories = useCallback(async () => {
+    // storiesLimit captured in closure — adding to deps below triggers re-fetch on load-more
+
     try {
       const now = new Date().toISOString();
 
@@ -54,7 +58,7 @@ export default function MomentsScreen() {
         .gt("expires_at", now)
         .eq("privacy", "everyone")
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(storiesLimit);
 
       if (joined.error) {
         const fallback = await supabase
@@ -63,7 +67,7 @@ export default function MomentsScreen() {
           .gt("expires_at", now)
           .eq("privacy", "everyone")
           .order("created_at", { ascending: false })
-          .limit(50);
+          .limit(storiesLimit);
         if (fallback.error) {
           setStoryUsers([]);
           setLoading(false);
@@ -139,6 +143,7 @@ export default function MomentsScreen() {
       });
 
       setStoryUsers(users);
+      setHasMoreStories(storiesData.length >= storiesLimit);
     } catch (err) {
       // Never let the screen crash the app's error boundary — show empty state.
       console.warn("[moments] loadStories failed:", err);
@@ -146,7 +151,7 @@ export default function MomentsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, storiesLimit]);
 
   useFocusEffect(
     useCallback(() => {
@@ -154,6 +159,10 @@ export default function MomentsScreen() {
       loadStories();
     }, [loadStories])
   );
+
+  useEffect(() => {
+    if (storiesLimit > 50) loadStories();
+  }, [storiesLimit, loadStories]);
 
   useEffect(() => {
     try {
@@ -284,6 +293,11 @@ export default function MomentsScreen() {
           renderItem={renderItem}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          ListFooterComponent={hasMoreStories ? (
+            <TouchableOpacity onPress={() => setStoriesLimit(l => l + 50)} style={{ paddingVertical: 16, alignItems: "center" as const }}>
+              <Text style={{ color: Colors.brand, fontSize: 14 }}>Load more moments</Text>
+            </TouchableOpacity>
+          ) : null}
         />
       )}
     </View>

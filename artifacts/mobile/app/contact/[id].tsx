@@ -254,18 +254,23 @@ export default function ContactProfileScreen() {
 
   useEffect(() => {
     if (!id) return;
-    supabase
-      .from("profiles")
-      .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, is_business_mode, xp, current_grade, website_url, country, created_at, last_seen, show_online_status, acoin")
-      .eq("id", id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setProfile(data as Profile);
-          setProfileCache(id as string, data as any);
-        }
-        setLoading(false);
-      });
+    const hasFreshCache = !!getProfileCache(id as string);
+    if (!hasFreshCache) {
+      supabase
+        .from("profiles")
+        .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, is_business_mode, xp, current_grade, website_url, country, created_at, last_seen, show_online_status, acoin")
+        .eq("id", id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setProfile(data as Profile);
+            setProfileCache(id as string, data as any);
+          }
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
 
     supabase.from("shops").select("id, pin_to_profile").eq("seller_id", id).eq("is_active", true).eq("pin_to_profile", true).maybeSingle().then(({ data }) => setHasShop(!!data));
 

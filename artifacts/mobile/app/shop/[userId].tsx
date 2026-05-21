@@ -87,7 +87,7 @@ export default function StoreStorefront() {
     if (!userId) return;
     const [shopRes, productsRes] = await Promise.all([
       supabase.from("shops")
-        .select("*, profiles!shops_seller_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified)")
+        .select("id, seller_id, name, description, banner_url, logo_url, category, address, is_active, pin_to_profile, total_sales, total_revenue_acoin, rating, review_count, created_at, updated_at, profiles!shops_seller_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified)")
         .eq("seller_id", userId).single(),
       supabase.from("shop_products")
         .select("id, shop_id, seller_id, name, description, price_acoin, images, category, stock, is_unlimited_stock, is_available, sales_count, created_at, updated_at")

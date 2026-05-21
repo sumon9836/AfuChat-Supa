@@ -81,6 +81,8 @@ export default function MatchConversationScreen() {
   const [match, setMatch] = useState<{ user1_id: string; user2_id: string; is_super_match: boolean } | null>(null);
   const [otherProfile, setOtherProfile] = useState<MatchProfile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [hasEarlierMessages, setHasEarlierMessages] = useState(false);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -100,11 +102,32 @@ export default function MatchConversationScreen() {
 
   useEffect(() => { if (id) loadAll(); }, [id]);
 
+  async function loadEarlierMessages() {
+    if (!id || !user || loadingEarlier || !hasEarlierMessages) return;
+    setLoadingEarlier(true);
+    const oldestSentAt = messages[0]?.sent_at;
+    if (!oldestSentAt) { setLoadingEarlier(false); return; }
+    const { data } = await supabase
+      .from("match_messages")
+      .select("id, match_id, sender_id, content, media_url, is_gift, gift_emoji, read_at, sent_at")
+      .eq("match_id", id)
+      .order("sent_at", { ascending: false })
+      .lt("sent_at", oldestSentAt)
+      .limit(50);
+    if (data && data.length > 0) {
+      setMessages(prev => [...(data as Message[]).reverse(), ...prev]);
+      setHasEarlierMessages(data.length === 50);
+    } else {
+      setHasEarlierMessages(false);
+    }
+    setLoadingEarlier(false);
+  }
+
   async function loadAll() {
     if (!id || !user) return;
     const [{ data: matchData }, { data: msgs }] = await Promise.all([
       supabase.from("match_matches").select("user1_id, user2_id, is_super_match").eq("id", id).single(),
-      supabase.from("match_messages").select("id, match_id, sender_id, content, media_url, is_gift, gift_emoji, read_at, sent_at").eq("match_id", id).order("sent_at").range(0, 49),
+      supabase.from("match_messages").select("id, match_id, sender_id, content, media_url, is_gift, gift_emoji, read_at, sent_at").eq("match_id", id).order("sent_at", { ascending: false }).limit(50),
     ]);
     if (matchData) {
       setMatch(matchData);
@@ -113,7 +136,9 @@ export default function MatchConversationScreen() {
       const { data: mp } = await supabase.from("match_profiles").select("user_id, name, date_of_birth, job_title, location_name").eq("user_id", otherId).maybeSingle();
       if (mp) setOtherProfile({ ...mp, primary_photo: photos?.url ?? null });
     }
-    setMessages((msgs as Message[]) ?? []);
+    const initialMsgs = ((msgs as Message[]) ?? []).reverse();
+    setMessages(initialMsgs);
+    setHasEarlierMessages(initialMsgs.length === 50);
     setLoading(false);
     await supabase.from("match_messages").update({ read_at: new Date().toISOString() }).eq("match_id", id).neq("sender_id", user.id).is("read_at", null);
     const balance = await getAcoinBalance(user.id);
@@ -306,6 +331,11 @@ export default function MatchConversationScreen() {
           keyExtractor={(m) => m.id}
           contentContainerStyle={[styles.msgList, { paddingBottom: 12 }]}
           onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: false })}
+          ListHeaderComponent={hasEarlierMessages ? (
+            <TouchableOpacity onPress={loadEarlierMessages} disabled={loadingEarlier} style={{ paddingVertical: 12, alignItems: "center" as const }}>
+              {loadingEarlier ? <ActivityIndicator size="small" color="rgba(255,255,255,0.6)" /> : <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>Load earlier messages</Text>}
+            </TouchableOpacity>
+          ) : null}
           renderItem={({ item }) => {
             const isMine = item.sender_id === user?.id;
             const msgReactions = reactions[item.id] ?? [];

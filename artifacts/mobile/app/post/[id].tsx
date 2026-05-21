@@ -292,6 +292,9 @@ export default function PostDetailScreen() {
   const insets = useSafeAreaInsets();
   const [post, setPost] = useState<PostData | null>(null);
   const [replies, setReplies] = useState<Reply[]>([]);
+  const [hasMoreReplies, setHasMoreReplies] = useState(false);
+  const [loadingMoreReplies, setLoadingMoreReplies] = useState(false);
+  const repliesOffsetRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
@@ -434,17 +437,38 @@ export default function PostDetailScreen() {
 
   const loadReplies = useCallback(async () => {
     if (!id) return;
+    repliesOffsetRef.current = 0;
     const { data } = await supabase
       .from("post_replies")
       .select("id, content, created_at, parent_reply_id, profiles!post_replies_author_id_fkey(id, display_name, avatar_url, handle, is_verified, is_organization_verified)")
       .eq("post_id", id)
       .order("created_at", { ascending: true })
-      .limit(50);
+      .range(0, 49);
 
     if (data) {
       setReplies(data.map((r: any) => ({ ...r, author: r.profiles, parent_reply_id: r.parent_reply_id || null })));
+      setHasMoreReplies(data.length === 50);
+      repliesOffsetRef.current = data.length;
     }
   }, [id]);
+
+  const loadMoreReplies = useCallback(async () => {
+    if (!id || loadingMoreReplies || !hasMoreReplies) return;
+    setLoadingMoreReplies(true);
+    const offset = repliesOffsetRef.current;
+    const { data } = await supabase
+      .from("post_replies")
+      .select("id, content, created_at, parent_reply_id, profiles!post_replies_author_id_fkey(id, display_name, avatar_url, handle, is_verified, is_organization_verified)")
+      .eq("post_id", id)
+      .order("created_at", { ascending: true })
+      .range(offset, offset + 49);
+    if (data) {
+      setReplies(prev => [...prev, ...data.map((r: any) => ({ ...r, author: r.profiles, parent_reply_id: r.parent_reply_id || null }))]);
+      setHasMoreReplies(data.length === 50);
+      repliesOffsetRef.current = offset + data.length;
+    }
+    setLoadingMoreReplies(false);
+  }, [id, loadingMoreReplies, hasMoreReplies]);
 
   useEffect(() => { loadPost(); loadReplies(); }, [loadPost, loadReplies]);
 
@@ -696,6 +720,11 @@ export default function PostDetailScreen() {
         <FlatList
           data={buildReplyTree(replies)}
           keyExtractor={(item) => item.id}
+          ListFooterComponent={hasMoreReplies ? (
+            <TouchableOpacity onPress={loadMoreReplies} disabled={loadingMoreReplies} style={{ paddingVertical: 16, alignItems: "center" as const }}>
+              {loadingMoreReplies ? <ActivityIndicator size="small" color={colors.textMuted} /> : <Text style={{ color: colors.accent, fontSize: 14 }}>Load more replies</Text>}
+            </TouchableOpacity>
+          ) : null}
           ListHeaderComponent={
             <View>
               {post.post_type === "article" ? (

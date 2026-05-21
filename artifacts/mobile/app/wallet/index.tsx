@@ -407,6 +407,8 @@ export default function WalletScreen() {
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
   const [balanceCurrency, setBalanceCurrency] = useState<BalanceCurrency>("acoin");
+  const [txLimit, setTxLimit] = useState(50);
+  const [hasMoreTx, setHasMoreTx] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -427,21 +429,21 @@ export default function WalletScreen() {
     ] = await Promise.all([
       supabase.from("xp_transfers")
         .select("id, amount, created_at, status, message, receiver_id, profiles!xp_transfers_receiver_id_fkey(handle, display_name)")
-        .eq("sender_id", user.id).order("created_at", { ascending: false }).limit(50),
+        .eq("sender_id", user.id).order("created_at", { ascending: false }).limit(txLimit),
       supabase.from("xp_transfers")
         .select("id, amount, created_at, status, message, sender_id, profiles!xp_transfers_sender_id_fkey(handle, display_name)")
-        .eq("receiver_id", user.id).order("created_at", { ascending: false }).limit(50),
+        .eq("receiver_id", user.id).order("created_at", { ascending: false }).limit(txLimit),
       supabase.from("acoin_transactions")
         .select("id, amount, transaction_type, nexa_spent, fee_charged, created_at, metadata")
-        .eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
+        .eq("user_id", user.id).order("created_at", { ascending: false }).limit(txLimit),
       supabase.from("currency_settings")
         .select("nexa_to_acoin_rate, conversion_fee_percent, p2p_fee_percent").limit(1).single(),
       supabase.from("gift_transactions")
         .select("id, gift_id, receiver_id, xp_cost, message, created_at, gifts(name, emoji), profiles!gift_transactions_receiver_id_fkey(handle, display_name)")
-        .eq("sender_id", user.id).order("created_at", { ascending: false }).limit(50),
+        .eq("sender_id", user.id).order("created_at", { ascending: false }).limit(txLimit),
       supabase.from("gift_transactions")
         .select("id, gift_id, sender_id, xp_cost, message, created_at, gifts(name, emoji), profiles!gift_transactions_sender_id_fkey(handle, display_name)")
-        .eq("receiver_id", user.id).order("created_at", { ascending: false }).limit(50),
+        .eq("receiver_id", user.id).order("created_at", { ascending: false }).limit(txLimit),
     ]);
 
     if (settings) setCurrencySettings(settings as CurrencySettings);
@@ -525,6 +527,7 @@ export default function WalletScreen() {
     });
 
     all.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setHasMoreTx([xpSent, xpReceived, acoinTx, giftsSent, giftsReceived].some(d => (d?.length ?? 0) >= txLimit));
     setTransactions(all);
     cacheWallet({ acoin: profile?.acoin ?? 0, transactions: all });
     } catch (_) {
@@ -532,7 +535,7 @@ export default function WalletScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, profile]);
+  }, [user, profile, txLimit]);
 
   const loadPendingCount = useCallback(async () => {
     if (!user) return;
@@ -611,8 +614,13 @@ export default function WalletScreen() {
         keyExtractor={(item, i) => item.type === "header" ? `h-${item.title}` : `tx-${item.tx.id}-${i}`}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor="#fff" />
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); setTxLimit(50); loadData(); }} tintColor="#fff" />
         }
+        ListFooterComponent={hasMoreTx && !loading ? (
+          <TouchableOpacity onPress={() => setTxLimit(l => l + 50)} style={{ paddingVertical: 16, alignItems: "center" as const }}>
+            <Text style={{ color: Colors.brand, fontSize: 14 }}>Load more transactions</Text>
+          </TouchableOpacity>
+        ) : null}
         ListHeaderComponent={() => (
           <>
             {/* ── Hero gradient card ── */}

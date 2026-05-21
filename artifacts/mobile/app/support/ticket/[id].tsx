@@ -70,7 +70,7 @@ export default function TicketDetail() {
       supabase.from("support_tickets").select("id, subject, category, status, priority, email, created_at").eq("id", id).single(),
       supabase
         .from("support_messages")
-        .select("*, sender:profiles!support_messages_sender_id_fkey(display_name, handle, avatar_url)")
+        .select("id, ticket_id, sender_id, sender_type, message, is_internal, created_at, sender:profiles!support_messages_sender_id_fkey(display_name, handle, avatar_url)")
         .eq("ticket_id", id)
         .eq("is_internal", false)
         .order("created_at", { ascending: true }),
