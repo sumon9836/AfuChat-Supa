@@ -34,6 +34,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { RichText } from "@/components/ui/RichText";
 import Colors from "@/constants/colors";
 import { PostSkeleton } from "@/components/ui/Skeleton";
+import { useContextMenu, ContextMenu } from "@/components/desktop/ContextMenu";
 import { VideoThumbnail } from "@/components/ui/VideoThumbnail";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import OfflineBanner from "@/components/ui/OfflineBanner";
@@ -132,6 +133,22 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareablePost, setShareablePost] = useState<ShareablePost | null>(null);
   const isOwnPost = currentUser?.id === item.author_id;
+
+  const { bind: ctxBind, menuProps: ctxMenuProps } = useContextMenu([
+    [
+      { key: "open",    label: "Open post",                     icon: "open-outline",     onSelect: () => openPost() },
+      { key: "like",    label: item.liked ? "Unlike" : "Like",  icon: item.liked ? "heart" : "heart-outline", onSelect: () => { if (!currentUser) { onRequireAuth?.(); return; } onToggleLike(item.id); } },
+      { key: "save",    label: item.bookmarked ? "Unsave" : "Save", icon: item.bookmarked ? "bookmark" : "bookmark-outline", onSelect: () => { if (!currentUser) { onRequireAuth?.(); return; } onToggleBookmark(item.id); } },
+      { key: "profile", label: `View @${item.profile.handle}`, icon: "person-outline",   onSelect: () => router.push({ pathname: "/contact/[id]", params: { id: item.author_id, init_name: item.profile.display_name, init_handle: item.profile.handle, init_avatar: item.profile.avatar_url ?? "" } } as any) },
+    ],
+    [
+      { key: "copy",  label: "Copy link", icon: "link-outline",  onSelect: () => { if (typeof window !== "undefined") navigator.clipboard?.writeText(`${window.location.origin}/p/${item.id}`); } },
+      { key: "share", label: "Share",     icon: "share-outline", onSelect: () => setShowShareModal(true) },
+    ],
+    [
+      { key: "report", label: "Report", icon: "flag-outline", destructive: true, onSelect: () => {} },
+    ],
+  ]);
   const showFollowBtn = !isOwnPost && !item.isFollowing;
 
   const allImages = item.images.length > 0 ? item.images : item.image_url ? [item.image_url] : [];
@@ -222,6 +239,8 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
         style={[styles.card, { backgroundColor: colors.background }]}
         onPress={openPost}
         activeOpacity={0.97}
+        // @ts-ignore — RN Web supports onContextMenu
+        onContextMenu={Platform.OS === "web" ? ctxBind.onContextMenu : undefined}
       >
           {/* ── Header ── */}
           <View style={styles.cardHeader}>
@@ -523,6 +542,9 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* desktop right-click context menu */}
+      <ContextMenu {...ctxMenuProps} />
     </>
   );
 }, (prev, next) =>

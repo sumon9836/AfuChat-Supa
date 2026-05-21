@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Slot, router, usePathname } from "expo-router";
 import {
   MessageCircle, Compass, Search, Bot, Wallet, Grid3X3,
   User, Settings, Edit3, Users, Bell, Bookmark, Star,
+  LogOut, Copy, ExternalLink, MoreHorizontal, FileText, Film, Hash,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -183,6 +184,33 @@ const DT_CSS = `
   max-width:960px;width:100%;margin:0 auto;
   flex:1;display:flex;flex-direction:column;overflow:hidden;
 }
+
+/* ── Floating dropdown panels ── */
+.dt-drop{
+  position:fixed;z-index:9500;
+  background:var(--dt-sb);border:1.5px solid var(--dt-bdr);
+  border-radius:12px;padding:6px;min-width:204px;
+  box-shadow:0 12px 36px rgba(0,0,0,0.16),0 3px 10px rgba(0,0,0,0.08);
+}
+.dt-dk .dt-drop{box-shadow:0 12px 40px rgba(0,0,0,0.60),0 4px 14px rgba(0,0,0,0.35)}
+.dt-drop-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:8px;cursor:pointer;
+  font-size:13px;font-weight:500;color:var(--dt-txt2);
+  transition:background .1s,color .1s;
+  background:none;border:none;width:100%;text-align:left;
+  font-family:inherit;line-height:1.3;text-decoration:none;
+}
+.dt-drop-item:hover{background:var(--dt-hover);color:var(--dt-txt)}
+.dt-danger{color:#EF4444!important}
+.dt-danger:hover{background:rgba(239,68,68,0.10)!important;color:#EF4444!important}
+.dt-drop-lbl{
+  display:flex;align-items:center;gap:10px;
+  padding:5px 10px 6px;font-size:10.5px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--dt-txt3);
+  cursor:default;user-select:none;
+}
+.dt-drop-hr{height:1px;background:var(--dt-bdr);margin:4px 2px;border:none}
 
 /* ── Responsive: collapse sidebar on narrow viewports ── */
 @media(max-width:820px){.dt-sidebar{display:none}}
@@ -373,6 +401,25 @@ export default function DesktopTabLayout() {
   const pathname = usePathname();
   const [unread, setUnread] = useState(0);
 
+  /* ── dropdown state ── */
+  const composeRef = useRef<HTMLButtonElement | null>(null);
+  const [composeDrop, setComposeDrop] = useState<{ top: number; left: number } | null>(null);
+  const [userDrop, setUserDrop]       = useState<{ bottom: number; left: number } | null>(null);
+  const [navCtx, setNavCtx]           = useState<{ x: number; y: number; route: string; label: string } | null>(null);
+
+  const closeAll = useCallback(() => { setComposeDrop(null); setUserDrop(null); setNavCtx(null); }, []);
+
+  useEffect(() => {
+    if (!composeDrop && !userDrop && !navCtx) return;
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as Element)?.closest?.(".dt-drop")) closeAll();
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeAll(); };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("mousedown", onDown); window.removeEventListener("keydown", onKey); };
+  }, [composeDrop, userDrop, navCtx, closeAll]);
+
   /* ── unread count ── */
   const refreshUnread = useCallback(async () => {
     try {
@@ -456,9 +503,15 @@ export default function DesktopTabLayout() {
                 Afu<em>Chat</em>
               </span>
               <button
+                ref={composeRef}
                 className="dt-icon-btn"
-                title="New Conversation"
-                onClick={() => router.push("/(tabs)" as any)}
+                title="Create…"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (composeDrop) { setComposeDrop(null); return; }
+                  const rect = composeRef.current!.getBoundingClientRect();
+                  setComposeDrop({ top: rect.bottom + 6, left: Math.max(8, rect.right - 208) });
+                }}
               >
                 <Edit3 size={15} strokeWidth={2} />
               </button>
@@ -494,6 +547,11 @@ export default function DesktopTabLayout() {
                           e.preventDefault();
                           router.push(item.route as any);
                         }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setNavCtx({ x: e.clientX, y: e.clientY, route: item.route, label: item.label });
+                        }}
                       >
                         <item.Icon
                           size={17}
@@ -517,6 +575,11 @@ export default function DesktopTabLayout() {
             <div
               className="dt-user"
               onClick={() => router.push("/(tabs)/me")}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                setUserDrop({ bottom: window.innerHeight - r.top + 4, left: r.left + 4 });
+              }}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => e.key === "Enter" && router.push("/(tabs)/me")}
@@ -532,13 +595,15 @@ export default function DesktopTabLayout() {
               </div>
               <button
                 className="dt-icon-btn"
-                title="Settings"
+                title="More options"
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push("/settings" as any);
+                  if (userDrop) { setUserDrop(null); return; }
+                  const r = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                  setUserDrop({ bottom: window.innerHeight - r.top + 4, left: r.left - 170 });
                 }}
               >
-                <Settings size={14} strokeWidth={1.8} />
+                <MoreHorizontal size={14} strokeWidth={1.8} />
               </button>
             </div>
           </nav>
@@ -629,6 +694,74 @@ export default function DesktopTabLayout() {
         })()}
 
       </TabSwipeProvider>
+
+      {/* ══ COMPOSE DROPDOWN ══ */}
+      {composeDrop && (
+        <div className="dt-drop" style={{ top: composeDrop.top, left: composeDrop.left }} onMouseDown={(e) => e.stopPropagation()}>
+          <div className="dt-drop-lbl">Create</div>
+          <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/(tabs)" as any); }}>
+            <MessageCircle size={14} strokeWidth={1.8} /><span>New Chat</span>
+          </button>
+          <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/create-post" as any); }}>
+            <FileText size={14} strokeWidth={1.8} /><span>New Post</span>
+          </button>
+          <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/story/create" as any); }}>
+            <Film size={14} strokeWidth={1.8} /><span>New Story</span>
+          </button>
+          <hr className="dt-drop-hr" />
+          <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/group/create" as any); }}>
+            <Users size={14} strokeWidth={1.8} /><span>New Group</span>
+          </button>
+          <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/channel/intro" as any); }}>
+            <Hash size={14} strokeWidth={1.8} /><span>New Channel</span>
+          </button>
+        </div>
+      )}
+
+      {/* ══ USER DROPDOWN ══ */}
+      {userDrop && (
+        <div className="dt-drop" style={{ bottom: userDrop.bottom, left: userDrop.left }} onMouseDown={(e) => e.stopPropagation()}>
+          <div className="dt-drop-lbl">{profile?.handle ? `@${profile.handle}` : "Account"}</div>
+          <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/(tabs)/me" as any); }}>
+            <User size={14} strokeWidth={1.8} /><span>View Profile</span>
+          </button>
+          <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/profile/edit" as any); }}>
+            <Edit3 size={14} strokeWidth={1.8} /><span>Edit Profile</span>
+          </button>
+          <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/settings" as any); }}>
+            <Settings size={14} strokeWidth={1.8} /><span>Settings</span>
+          </button>
+          {profile?.handle && (
+            <>
+              <hr className="dt-drop-hr" />
+              <button className="dt-drop-item" onClick={() => { closeAll(); navigator.clipboard?.writeText(`@${profile!.handle}`); }}>
+                <Copy size={14} strokeWidth={1.8} /><span>Copy @handle</span>
+              </button>
+            </>
+          )}
+          <hr className="dt-drop-hr" />
+          <button className="dt-drop-item dt-danger" onClick={() => { closeAll(); supabase.auth.signOut(); }}>
+            <LogOut size={14} strokeWidth={1.8} /><span>Sign out</span>
+          </button>
+        </div>
+      )}
+
+      {/* ══ NAV ITEM RIGHT-CLICK MENU ══ */}
+      {navCtx && (
+        <div className="dt-drop" style={{ top: Math.min(navCtx.y, window.innerHeight - 160), left: Math.min(navCtx.x + 4, window.innerWidth - 220) }} onMouseDown={(e) => e.stopPropagation()}>
+          <div className="dt-drop-lbl">{navCtx.label}</div>
+          <button className="dt-drop-item" onClick={() => { closeAll(); router.push(navCtx.route as any); }}>
+            <ExternalLink size={14} strokeWidth={1.8} /><span>Open</span>
+          </button>
+          <button className="dt-drop-item" onClick={() => { closeAll(); window.open(window.location.origin + navCtx.route, "_blank"); }}>
+            <ExternalLink size={14} strokeWidth={1.8} /><span>Open in new tab</span>
+          </button>
+          <hr className="dt-drop-hr" />
+          <button className="dt-drop-item" onClick={() => { closeAll(); navigator.clipboard?.writeText(window.location.origin + navCtx.route); }}>
+            <Copy size={14} strokeWidth={1.8} /><span>Copy link</span>
+          </button>
+        </div>
+      )}
     </>
   );
 }
