@@ -1484,7 +1484,7 @@ export default function CreateVideoScreen() {
     } = payload;
 
     if (router.canDismiss()) router.dismissAll();
-    else router.replace("/(tabs)");
+    else router.replace("/(tabs)/chats");
 
     startPostUpload("video", _cap.slice(0, 80));
 

@@ -137,7 +137,7 @@ export default function CreateStoryScreen() {
     if (router.canDismiss()) {
       router.dismissAll();
     } else {
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/chats");
     }
 
     // Start background upload — drives the progress bar in the chat UI

@@ -27,7 +27,7 @@ export default function IndexScreen() {
       if (profileReady && !profileOnboarded && userId) {
         router.replace({ pathname: "/onboarding", params: { userId } });
       } else {
-        router.replace("/(tabs)");
+        router.replace("/(tabs)/chats");
       }
     } else {
       if (Platform.OS === "web") {

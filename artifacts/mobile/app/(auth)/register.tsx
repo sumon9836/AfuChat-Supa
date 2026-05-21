@@ -185,7 +185,7 @@ export default function RegisterScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
-  useEffect(() => { if (user) router.replace("/(tabs)"); }, [user]);
+  useEffect(() => { if (user) router.replace("/(tabs)/chats"); }, [user]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -246,7 +246,7 @@ export default function RegisterScreen() {
         return;
       }
     }
-    router.replace("/(tabs)");
+    router.replace("/(tabs)/chats");
   }
 
   async function signInWithProvider(provider: string, useNativeFlow = true) {
@@ -271,13 +271,13 @@ export default function RegisterScreen() {
               const { data: prof } = await supabase.from("profiles").select("onboarding_completed").eq("id", uid).maybeSingle();
               if (!prof?.onboarding_completed) { setOauthLoading(null); router.replace({ pathname: "/onboarding", params: { userId: uid } } as any); return; }
             }
-            setOauthLoading(null); router.replace("/(tabs)"); return;
+            setOauthLoading(null); router.replace("/(tabs)/chats"); return;
           }
         }
         let at = url.hash ? new URLSearchParams(url.hash.substring(1)).get("access_token") : null;
         let rt = url.hash ? new URLSearchParams(url.hash.substring(1)).get("refresh_token") : null;
         if (!at) { at = url.searchParams.get("access_token"); rt = url.searchParams.get("refresh_token"); }
-        if (at && rt) { const { error: e } = await supabase.auth.setSession({ access_token: at, refresh_token: rt }); if (e) showAlert("Error", e.message); else router.replace("/(tabs)"); }
+        if (at && rt) { const { error: e } = await supabase.auth.setSession({ access_token: at, refresh_token: rt }); if (e) showAlert("Error", e.message); else router.replace("/(tabs)/chats"); }
       }
       setOauthLoading(null);
     } catch { setOauthLoading(null); showAlert("Error", "Could not complete sign up."); }

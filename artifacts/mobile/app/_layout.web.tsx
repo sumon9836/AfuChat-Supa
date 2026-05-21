@@ -17,7 +17,7 @@ import {
   Bell, ShoppingBag, UserCheck, Plus, ChevronLeft,
 } from "lucide-react";
 
-import { ChatsListPanel } from "@/app/(tabs)/index";
+import { ChatsListPanel } from "@/app/(tabs)/chats";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -369,8 +369,8 @@ const NAV_SECTIONS = [
       {
         label: "Chats",
         Icon: MessageCircle,
-        route: "/(tabs)" as const,
-        matchPaths: ["/", "/(tabs)", "/index", "/chat"],
+        route: "/(tabs)/chats" as const,
+        matchPaths: ["/chats", "/(tabs)/chats", "/chat"],
         badge: true,
       },
       {
@@ -483,8 +483,8 @@ const BNAV_ITEMS = [
   {
     label: "Chats",
     Icon: MessageCircle,
-    route: "/(tabs)" as const,
-    matchPaths: ["/", "/(tabs)", "/index", "/chat"],
+    route: "/(tabs)/chats" as const,
+    matchPaths: ["/chats", "/(tabs)/chats", "/chat"],
     useAfuSymbol: true,
   },
   {
@@ -515,15 +515,6 @@ const BNAV_ITEMS = [
 ───────────────────────────────────────────────────────── */
 function isActiveRoute(pathname: string, matchPaths: string[]): boolean {
   return matchPaths.some((p) => {
-    if (p === "/" || p === "/(tabs)" || p === "/index") {
-      return (
-        pathname === "/" ||
-        pathname === "/(tabs)" ||
-        pathname === "/(tabs)/index" ||
-        pathname === "/index" ||
-        pathname.startsWith("/chat/")
-      );
-    }
     return pathname === p || pathname.startsWith(p + "/");
   });
 }
@@ -538,13 +529,13 @@ function isActiveRoute(pathname: string, matchPaths: string[]): boolean {
 function isChatRoute(pathname: string): boolean {
   return (
     pathname.startsWith("/chat/") ||
-    pathname === "/(tabs)" ||
-    pathname === "/(tabs)/index"
+    pathname === "/chats" ||
+    pathname === "/(tabs)/chats"
   );
 }
 
 function isChatHomeRoute(pathname: string): boolean {
-  return pathname === "/(tabs)" || pathname === "/(tabs)/index";
+  return pathname === "/chats" || pathname === "/(tabs)/chats";
 }
 
 /**
@@ -565,7 +556,7 @@ function isWideRoute(pathname: string): boolean {
  * These don't need a back button in the topbar.
  */
 const PRIMARY_ROUTES = new Set([
-  "/(tabs)", "/(tabs)/index", "/(tabs)/discover",
+  "/(tabs)/chats", "/chats", "/(tabs)/discover",
   "/(tabs)/search", "/(tabs)/me", "/(tabs)/ai",
   "/ai", "/wallet", "/wallet/index",
   "/games", "/games/index",
@@ -611,8 +602,8 @@ function isNoShell(pathname: string): boolean {
 
 function getPageTitle(pathname: string): string {
   if (
-    pathname === "/(tabs)" ||
-    pathname === "/(tabs)/index" ||
+    pathname === "/chats" ||
+    pathname === "/(tabs)/chats" ||
     pathname.startsWith("/chat/")
   ) return "Chats";
   if (pathname.includes("/discover")) return "Discover";
@@ -1152,7 +1143,7 @@ function DesktopShell() {
           onMouseDown={(e) => e.stopPropagation()}
         >
           <div className="dt-drop-lbl">Create</div>
-          <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/(tabs)" as any); }}>
+          <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/(tabs)/chats" as any); }}>
             <MessageCircle size={14} strokeWidth={1.8} /><span>New Chat</span>
           </button>
           <button className="dt-drop-item" onClick={() => { closeAll(); router.push("/create-post" as any); }}>

@@ -587,7 +587,7 @@ export default function OnboardingScreen() {
     setTimeout(() => {
       setReferralModal(prev => {
         if (prev) return prev; // modal pending — navigation deferred to onDismiss
-        router.replace("/(tabs)");
+        router.replace("/(tabs)/chats");
         return null;
       });
     }, 60);
@@ -1137,7 +1137,7 @@ export default function OnboardingScreen() {
         referrerAvatar={referralModal.referrerAvatar}
         onDismiss={() => {
           setReferralModal(null);
-          router.replace("/(tabs)");
+          router.replace("/(tabs)/chats");
         }}
       />
     )}

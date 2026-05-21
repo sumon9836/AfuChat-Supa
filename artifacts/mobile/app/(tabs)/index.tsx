@@ -651,7 +651,7 @@ async function findOrCreateNotesChatId(userId: string): Promise<string | null> {
  * open. On the chats tab itself, `panelMode` is false and the list takes the
  * full route width as usual.
  */
-function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; onOpenChat?: (item: ChatItem, chatId: string) => void } = {}) {
+export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; onOpenChat?: (item: ChatItem, chatId: string) => void } = {}) {
   const { colors, isDark } = useTheme();
   const { user, profile, linkedAccounts, switchAccount } = useAuth();
   const insets = useSafeAreaInsets();
@@ -1918,7 +1918,7 @@ function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; o
  * On mobile, renders the full-screen chats list as usual.
  */
 export default function ChatsRoute() {
-  return <ChatsScreen />;
+  return <Redirect href="/(tabs)/chats" />;
 }
 
 /**

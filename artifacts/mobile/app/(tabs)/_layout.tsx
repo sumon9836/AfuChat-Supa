@@ -55,7 +55,7 @@ if (Platform.OS === "ios") {
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
 const TABS = [
-  { route: "/(tabs)",          label: "Chats",    sfOn: "message.fill",              sfOff: "message",                       mdOn: "chatbubble",     mdOff: "chatbubble-outline"  },
+  { route: "/(tabs)/chats",    label: "Chats",    sfOn: "message.fill",              sfOff: "message",                       mdOn: "chatbubble",     mdOff: "chatbubble-outline"  },
   { route: "/(tabs)/discover", label: "Discover", sfOn: "safari.fill",               sfOff: "safari",                        mdOn: "compass",        mdOff: "compass-outline"     },
   { route: "/(tabs)/shorts",   label: "Shorts",   sfOn: "play.rectangle.fill",       sfOff: "play.rectangle",                mdOn: "play-circle",    mdOff: "play-circle-outline" },
   { route: "/(tabs)/apps",     label: "Apps",     sfOn: "square.grid.2x2.fill",      sfOff: "square.grid.2x2",               mdOn: "grid",           mdOff: "grid-outline"        },
@@ -63,7 +63,7 @@ const TABS = [
 ] as const;
 
 function normalizeTabPath(p: string): string {
-  if (p === "/" || p === "/(tabs)" || p === "/(tabs)/index") return "/(tabs)";
+  if (p === "/" || p === "/(tabs)" || p === "/(tabs)/index" || p === "/chats" || p === "/(tabs)/chats") return "/(tabs)/chats";
   if (p === "/discover"  || p === "/(tabs)/discover")  return "/(tabs)/discover";
   if (p === "/shorts"    || p === "/(tabs)/shorts")    return "/(tabs)/shorts";
   if (p === "/apps"      || p === "/(tabs)/apps")      return "/(tabs)/apps";
@@ -172,7 +172,7 @@ function CompactTabBar({
           const iconColor = focused
             ? colors.accent
             : isDark ? "rgba(95,93,105,1)" : "rgba(110,108,118,1)";
-          const isChats   = tab.route === "/(tabs)";
+          const isChats   = tab.route === "/(tabs)/chats";
           const isProfile = tab.route === "/(tabs)/me";
 
           return (
@@ -305,7 +305,7 @@ function NativeTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
   if (!NativeTabs) return null;
   return (
     <NativeTabs>
-      {isLoggedIn && (<NativeTabs.Trigger name="index"><NativeTabsIcon sf={{ default: "message.fill", selected: "message.fill" }} /><NativeTabsLabel>Chats</NativeTabsLabel></NativeTabs.Trigger>)}
+      {isLoggedIn && (<NativeTabs.Trigger name="chats"><NativeTabsIcon sf={{ default: "message.fill", selected: "message.fill" }} /><NativeTabsLabel>Chats</NativeTabsLabel></NativeTabs.Trigger>)}
       {isLoggedIn && (<NativeTabs.Trigger name="discover"><NativeTabsIcon sf={{ default: "safari", selected: "safari.fill" }} /><NativeTabsLabel>Discover</NativeTabsLabel></NativeTabs.Trigger>)}
       {isLoggedIn && (<NativeTabs.Trigger name="shorts"><NativeTabsIcon sf={{ default: "play.rectangle", selected: "play.rectangle.fill" }} /><NativeTabsLabel>Shorts</NativeTabsLabel></NativeTabs.Trigger>)}
       {isLoggedIn && (<NativeTabs.Trigger name="apps"><NativeTabsIcon sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }} /><NativeTabsLabel>Apps</NativeTabsLabel></NativeTabs.Trigger>)}
@@ -326,7 +326,8 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
         tabBarStyle: { display: "none" },
       }}
     >
-      <Tabs.Screen name="index"       options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="index"       options={{ href: null }} />
+      <Tabs.Screen name="chats"       options={{ href: isLoggedIn ? undefined : null }} />
       <Tabs.Screen name="discover"    options={{ href: isLoggedIn ? undefined : null }} />
       <Tabs.Screen name="shorts"      options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
       <Tabs.Screen name="search"      options={{ href: null }} />

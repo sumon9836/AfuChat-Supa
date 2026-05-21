@@ -345,7 +345,7 @@ export default function LoginScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
-  useEffect(() => { if (user) router.replace("/(tabs)"); }, [user]);
+  useEffect(() => { if (user) router.replace("/(tabs)/chats"); }, [user]);
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -417,11 +417,11 @@ export default function LoginScreen() {
         setLoading(false);
         showAlert("Account Scheduled for Deletion", `Your account will be deleted in ${days} day${days !== 1 ? "s" : ""}. Restore it?`, [
           { text: "Delete Anyway", style: "destructive", onPress: async () => supabase.auth.signOut() },
-          { text: "Restore", style: "default", onPress: async () => { await supabase.from("profiles").update({ scheduled_deletion_at: null }).eq("id", data.user!.id); router.replace("/(tabs)"); } },
+          { text: "Restore", style: "default", onPress: async () => { await supabase.from("profiles").update({ scheduled_deletion_at: null }).eq("id", data.user!.id); router.replace("/(tabs)/chats"); } },
         ]); return;
       }
     }
-    setLoading(false); router.replace("/(tabs)");
+    setLoading(false); router.replace("/(tabs)/chats");
   }
 
   // ─── OAuth ──────────────────────────────────────────────────────────────
@@ -442,7 +442,7 @@ export default function LoginScreen() {
       const { data: prof } = await supabase.from("profiles").select("onboarding_completed").eq("id", uid).maybeSingle();
       if (!prof?.onboarding_completed) { router.replace({ pathname: "/onboarding", params: { userId: uid } } as any); return; }
     }
-    router.replace("/(tabs)");
+    router.replace("/(tabs)/chats");
   }
 
   async function signInWithProvider(provider: string, useNativeFlow = true) {
@@ -467,13 +467,13 @@ export default function LoginScreen() {
               const { data: prof } = await supabase.from("profiles").select("onboarding_completed").eq("id", uid).maybeSingle();
               if (!prof?.onboarding_completed) { setOauthLoading(null); router.replace({ pathname: "/onboarding", params: { userId: uid } } as any); return; }
             }
-            setOauthLoading(null); router.replace("/(tabs)"); return;
+            setOauthLoading(null); router.replace("/(tabs)/chats"); return;
           }
         }
         let at = url.hash ? new URLSearchParams(url.hash.substring(1)).get("access_token") : null;
         let rt = url.hash ? new URLSearchParams(url.hash.substring(1)).get("refresh_token") : null;
         if (!at) { at = url.searchParams.get("access_token"); rt = url.searchParams.get("refresh_token"); }
-        if (at && rt) { const { error: e } = await supabase.auth.setSession({ access_token: at, refresh_token: rt }); if (e) showAlert("Error", e.message); else router.replace("/(tabs)"); }
+        if (at && rt) { const { error: e } = await supabase.auth.setSession({ access_token: at, refresh_token: rt }); if (e) showAlert("Error", e.message); else router.replace("/(tabs)/chats"); }
       }
       setOauthLoading(null);
     } catch { setOauthLoading(null); showAlert("Error", "Could not complete sign in."); }
@@ -613,7 +613,7 @@ export default function LoginScreen() {
 
       {/* Modals */}
       <ForgotPasswordModal visible={forgotVisible} onClose={() => setForgotVisible(false)} isDark={isDark} />
-      <EmailVerifyModal visible={verifyVisible} email={verifyEmail} onClose={() => setVerifyVisible(false)} onVerified={() => { setVerifyVisible(false); router.replace("/(tabs)"); }} isDark={isDark} />
+      <EmailVerifyModal visible={verifyVisible} email={verifyEmail} onClose={() => setVerifyVisible(false)} onVerified={() => { setVerifyVisible(false); router.replace("/(tabs)/chats"); }} isDark={isDark} />
     </View>
   );
 }

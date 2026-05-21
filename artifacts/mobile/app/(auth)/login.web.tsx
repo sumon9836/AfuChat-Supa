@@ -196,7 +196,7 @@ export default function DesktopLoginPage() {
 
   useEffect(() => {
     if (!loading && session) {
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/chats");
     }
   }, [session, loading]);
 
@@ -248,7 +248,7 @@ export default function DesktopLoginPage() {
         throw signInErr;
       }
 
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/chats");
     } catch (e: any) {
       setError(e.message || "Sign-in failed. Please check your credentials.");
     } finally {
