@@ -285,7 +285,7 @@ export default function InAppBrowser() {
           javaScriptEnabled
           domStorageEnabled
           startInLoadingState={false}
-          decelerationRate="normal"
+          decelerationRate={Platform.OS === "ios" ? 0.998 : undefined}
           renderError={() => (
             <View style={[st.errorBox, { backgroundColor: pageBg }]}>
               <Ionicons name="wifi-outline" size={48} color={muted} />
