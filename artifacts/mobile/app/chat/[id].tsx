@@ -4568,7 +4568,7 @@ STRICT RULES:
 
   // Single source of truth for the bottom offset: real keyboard → emoji panel → safe area.
   const effectiveBottom = keyboardHeight > 0 ? keyboardHeight
-    : showEmojiStickerPicker ? emojiKeyboardHeight
+    : showEmojiStickerPicker ? emojiKeyboardHeight + insets.bottom
     : insets.bottom;
 
   return (
@@ -5102,16 +5102,33 @@ STRICT RULES:
             </View>
           </>
         )}
-        {showEmojiStickerPicker && (
+
+      </View>
+
+      {/* ── Emoji / sticker keyboard — anchored to screen bottom, same position as system keyboard ── */}
+      {showEmojiStickerPicker && !keyboardHeight && (
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: emojiKeyboardHeight + insets.bottom,
+            backgroundColor: colors.surface,
+            zIndex: 50,
+          }}
+        >
           <EmojiStickerPicker
             height={emojiKeyboardHeight}
             onEmojiSelected={(emoji) => setInput((prev) => prev + emoji)}
             onSendSticker={sendStickerMessage}
             onClose={() => setShowEmojiStickerPicker(false)}
           />
-        )}
-
-      </View>
+          {insets.bottom > 0 && (
+            <View style={{ height: insets.bottom, backgroundColor: colors.surface }} />
+          )}
+        </View>
+      )}
 
       {/* ── Attachment bottom sheet ───────────────────────────────────────── */}
       <Modal
