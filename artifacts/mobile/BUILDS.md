@@ -1,5 +1,21 @@
 # EAS Build History
 
+## v2.0.73 — Android APK (preview)
+
+- **Build ID**: `db5dc5e0-d2b3-454b-821d-79586d869281`
+- **Dashboard**: https://expo.dev/accounts/afume/projects/afuchat/builds/db5dc5e0-d2b3-454b-821d-79586d869281
+- **APK Download**: https://expo.dev/artifacts/eas/t67ZEhG2VwKpXAfcamRFmV.apk
+- **Status**: FINISHED ✓
+- **Platform**: Android
+- **Profile**: preview (APK, internal distribution)
+- **versionCode**: 2050
+- **Keystore**: managed by Expo (account: afume)
+- **SDK Version**: 54.0.0
+- **Triggered**: 2026-05-22
+- **Completed**: 2026-05-22T14:23:31Z (~22 min build time)
+
+---
+
 ## v2.0.68 — Android APK (preview)
 
 - **Build ID**: `b9ea03d0-6213-42ff-b0a3-cc6276680129`
