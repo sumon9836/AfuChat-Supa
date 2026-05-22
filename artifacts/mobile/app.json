@@ -78,8 +78,7 @@
             "DEFAULT"
           ]
         }
-      ],
-      "versionCode": 2071
+      ]
     },
     "web": {
       "favicon": "./assets/images/logo.png",

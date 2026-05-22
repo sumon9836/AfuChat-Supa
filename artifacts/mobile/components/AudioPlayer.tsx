@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   TouchableOpacity,
@@ -9,7 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Audio, AVPlaybackStatus } from "expo-av";
+import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from "expo-audio";
 
 interface AudioPlayerProps {
   uri: string;
@@ -39,136 +39,76 @@ function buildWaveBars(bars: number): number[] {
 const WAVE_SHAPE = buildWaveBars(BARS);
 
 export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: AudioPlayerProps) {
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [position, setPosition] = useState(0);
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const player = useAudioPlayer({ uri }, { updateInterval: 80 });
+  const status = useAudioPlayerStatus(player);
   const [speed, setSpeed] = useState<Speed>(1);
-  const barColor = waveColor || tintColor;
   const trackWidth = useRef(0);
-
-  const progress = duration > 0 ? Math.min(1, position / duration) : 0;
+  const barColor = waveColor || tintColor;
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadSound() {
-      try {
-        if (Platform.OS !== "web") {
-          await Audio.setAudioModeAsync({
-            playsInSilentModeIOS: true,
-            allowsRecordingIOS: false,
-            shouldDuckAndroid: false,
-            staysActiveInBackground: false,
-            playThroughEarpieceAndroid: false,
-          });
-        }
-
-        const { sound, status: initialStatus } = await Audio.Sound.createAsync(
-          { uri },
-          { shouldPlay: false, progressUpdateIntervalMillis: 80 },
-          (s: AVPlaybackStatus) => {
-            if (!mounted) return;
-            if (s.isLoaded) {
-              setPosition(s.positionMillis || 0);
-              if (s.durationMillis) setDuration(s.durationMillis);
-              setIsPlaying(s.isPlaying);
-              if (s.didJustFinish) {
-                setIsPlaying(false);
-                setPosition(0);
-                sound.setPositionAsync(0).catch(() => {});
-              }
-            }
-          }
-        );
-
-        if (!mounted) {
-          sound.unloadAsync();
-          return;
-        }
-
-        soundRef.current = sound;
-        if (initialStatus.isLoaded && initialStatus.durationMillis) {
-          setDuration(initialStatus.durationMillis);
-        }
-        setStatus("ready");
-      } catch {
-        if (mounted) setStatus("error");
-      }
+    if (Platform.OS !== "web") {
+      setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldDuckAndroid: false,
+        staysActiveInBackground: false,
+      } as any).catch(() => {});
     }
+  }, []);
 
-    loadSound();
+  useEffect(() => {
+    if (status.didJustFinish) {
+      player.seekTo(0).catch(() => {});
+    }
+  }, [status.didJustFinish]);
 
-    return () => {
-      mounted = false;
-      soundRef.current?.unloadAsync();
-      soundRef.current = null;
-    };
-  }, [uri]);
+  const durationMs = (status.duration ?? 0) * 1000;
+  const positionMs = (status.currentTime ?? 0) * 1000;
+  const isPlaying = status.playing ?? false;
+  const isLoaded = status.isLoaded ?? false;
+  const isBuffering = !isLoaded;
+
+  const progress = durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
+  const filled = Math.round(progress * BARS);
 
   const togglePlay = useCallback(async () => {
-    if (!soundRef.current || status !== "ready") return;
+    if (!isLoaded) return;
     try {
       if (isPlaying) {
-        await soundRef.current.pauseAsync();
+        player.pause();
       } else {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          allowsRecordingIOS: false,
-          shouldDuckAndroid: false,
-          playThroughEarpieceAndroid: false,
-        });
-        if (position >= duration && duration > 0) {
-          await soundRef.current.setPositionAsync(0);
+        if (positionMs >= durationMs && durationMs > 0) {
+          await player.seekTo(0);
         }
-        await soundRef.current.setRateAsync(speed, true);
-        await soundRef.current.playAsync();
+        player.play();
       }
     } catch {}
-  }, [isPlaying, position, duration, status, speed]);
+  }, [isPlaying, positionMs, durationMs, isLoaded, player]);
 
-  const cycleSpeed = useCallback(async () => {
-    if (!soundRef.current || status !== "ready") return;
+  const cycleSpeed = useCallback(() => {
+    if (!isLoaded) return;
     const idx = SPEEDS.indexOf(speed);
     const next = SPEEDS[(idx + 1) % SPEEDS.length];
     setSpeed(next);
-    try {
-      await soundRef.current.setRateAsync(next, true);
-    } catch {}
-  }, [speed, status]);
+    player.setPlaybackRate(next);
+  }, [speed, isLoaded, player]);
 
-  const seekFromTouch = useCallback(async (e: GestureResponderEvent) => {
-    if (!soundRef.current || status !== "ready" || duration === 0) return;
+  const seekFromTouch = useCallback((e: GestureResponderEvent) => {
+    if (!isLoaded || durationMs === 0) return;
     const { locationX } = e.nativeEvent;
     const ratio = Math.max(0, Math.min(1, locationX / (trackWidth.current || 1)));
-    const seekMs = Math.floor(ratio * duration);
-    setPosition(seekMs);
-    try {
-      await soundRef.current.setPositionAsync(seekMs);
-    } catch {}
-  }, [status, duration]);
+    player.seekTo(ratio * (status.duration ?? 0)).catch(() => {});
+  }, [isLoaded, durationMs, status.duration, player]);
 
   const onTrackLayout = useCallback((e: LayoutChangeEvent) => {
     trackWidth.current = e.nativeEvent.layout.width;
   }, []);
 
-  if (status === "error") {
-    return (
-      <View style={s.row}>
-        <Ionicons name="alert-circle" size={20} color={tintColor} />
-        <Text style={[s.time, { color: tintColor }]}>Audio unavailable</Text>
-      </View>
-    );
-  }
-
-  const displayTime = isPlaying || position > 0 ? formatTime(position) : formatTime(duration);
-  const filled = Math.round(progress * BARS);
+  const displayTime = (isPlaying || positionMs > 0) ? formatTime(positionMs) : formatTime(durationMs);
 
   return (
     <View style={s.row}>
-      <TouchableOpacity onPress={togglePlay} hitSlop={8} disabled={status === "loading"}>
-        {status === "loading" ? (
+      <TouchableOpacity onPress={togglePlay} hitSlop={8} disabled={isBuffering}>
+        {isBuffering ? (
           <Ionicons name="ellipsis-horizontal" size={24} color={tintColor} style={{ opacity: 0.5 }} />
         ) : (
           <Ionicons name={isPlaying ? "pause" : "play"} size={24} color={tintColor} />
@@ -195,8 +135,8 @@ export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: A
         ))}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={cycleSpeed} hitSlop={8} disabled={status === "loading"}>
-        <Text style={[s.speed, { color: tintColor, opacity: status === "loading" ? 0.4 : 1 }]}>
+      <TouchableOpacity onPress={cycleSpeed} hitSlop={8} disabled={isBuffering}>
+        <Text style={[s.speed, { color: tintColor, opacity: isBuffering ? 0.4 : 1 }]}>
           {speed}×
         </Text>
       </TouchableOpacity>

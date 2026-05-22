@@ -171,8 +171,9 @@ type ChatInfo = {
   other_show_online_status?: boolean;
 };
 
-// Enable LayoutAnimation on Android so keyboard show/hide transitions are smooth.
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+// LayoutAnimation on Android: only enabled on old architecture.
+// New Architecture handles layout transitions natively — calling this is a no-op there.
+if (Platform.OS === "android" && !("RN$Bridgeless" in global) && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
