@@ -90,7 +90,6 @@ const VID_THREAD_COLORS = ["#00BCD4", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"
 const QUICK_EMOJIS = ["🔥", "❤️", "😂", "😮", "👏", "💯", "🙌", "😍"];
 const SOCIAL_PLATFORMS = [
   { id: "whatsapp",  label: "WhatsApp",  icon: "logo-whatsapp",  color: "#25D366", scheme: (u: string) => `https://wa.me/?text=${encodeURIComponent(u)}` },
-  { id: "telegram",  label: "Telegram",  icon: "paper-plane",    color: "#0088CC", scheme: (u: string) => `https://t.me/share/url?url=${encodeURIComponent(u)}` },
   { id: "twitter",   label: "X",         icon: "logo-twitter",   color: "#000",    scheme: (u: string) => `https://x.com/intent/tweet?text=${encodeURIComponent(u)}` },
   { id: "facebook",  label: "Facebook",  icon: "logo-facebook",  color: "#1877F2", scheme: (u: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}` },
   { id: "instagram", label: "Instagram", icon: "logo-instagram", color: "#E1306C", scheme: (_: string) => `instagram://app` },

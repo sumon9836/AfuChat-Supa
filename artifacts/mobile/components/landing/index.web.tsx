@@ -8,12 +8,6 @@ import {
 export const TEAL = "#00BCD4";
 export const GOLD = "#D4A853";
 
-const TG_SVG = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-    <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.56 8.25-2.02 9.52c-.14.66-.54.82-1.08.51l-3-2.21-1.45 1.39c-.16.16-.3.3-.61.3l.21-3.05 5.56-5.02c.24-.21-.05-.33-.37-.12l-6.87 4.33-2.96-.92c-.64-.2-.66-.64.14-.95l11.57-4.46c.54-.2 1.01.13.88.7z"/>
-  </svg>
-);
-
 const WA_SVG = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
     <path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.49-.9-.8-1.5-1.78-1.68-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51-.17 0-.37-.02-.57-.02-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.47 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.27.49 1.7.63.72.23 1.37.2 1.88.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35z"/>
@@ -425,7 +419,6 @@ export function LandingFooter() {
           </div>
           <p className="lp-footer-tag">The super app built for Africa and the world — messaging, AI, payments, and community in one place.</p>
           <div className="lp-socials">
-            <a href="https://t.me/afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="Telegram">{TG_SVG}</a>
             <a href="https://whatsapp.com/channel/0029Vb7Rbpz0Vyc9y3S8H422" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="WhatsApp">{WA_SVG}</a>
             <a href="https://twitter.com/afuchat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="X / Twitter"><Twitter size={14} strokeWidth={1.8} /></a>
             <a href="https://instagram.com/afu.chat" target="_blank" rel="noopener noreferrer" className="lp-social" aria-label="Instagram"><Instagram size={14} strokeWidth={1.8} /></a>

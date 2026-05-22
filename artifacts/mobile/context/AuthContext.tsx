@@ -86,7 +86,6 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   patchProfile: (patch: Partial<Profile>) => void;
-  signInWithTelegram: (initData: string) => Promise<{ success: boolean; error?: string }>;
   addAccount: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   switchAccount: (userId: string) => Promise<{ success: boolean; error?: string }>;
   removeAccount: (userId: string) => Promise<void>;
@@ -104,7 +103,6 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   refreshProfile: async () => {},
   patchProfile: () => {},
-  signInWithTelegram: async () => ({ success: false }),
   addAccount: async () => ({ success: false }),
   switchAccount: async () => ({ success: false }),
   removeAccount: async () => {},
@@ -660,28 +658,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  const signInWithTelegram = useCallback(async (initData: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-      const res = await fetch(`${supabaseUrl}/functions/v1/telegram-auth`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: supabaseAnonKey ?? "" },
-        body: JSON.stringify({ initData }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.access_token) return { success: false, error: data.error ?? "Telegram sign-in failed" };
-      const { error } = await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-      });
-      if (error) return { success: false, error: error.message };
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message ?? "Telegram sign-in failed" };
-    }
-  }, []);
-
   const isPremium = !!subscription && subscription.is_active && new Date(subscription.expires_at) > new Date();
 
   const contextValue = useMemo(
@@ -696,13 +672,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       refreshProfile,
       patchProfile,
-      signInWithTelegram,
       addAccount,
       switchAccount,
       removeAccount: handleRemoveAccount,
       refreshLinkedAccounts,
     }),
-    [session, user, profile, subscription, isPremium, loading, linkedAccounts, signOut, signInWithTelegram]
+    [session, user, profile, subscription, isPremium, loading, linkedAccounts, signOut]
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

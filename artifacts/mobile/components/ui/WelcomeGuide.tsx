@@ -84,7 +84,7 @@ const SLIDES: SlideItem[] = [
     gradient: ["#00BCD4", "#006064"],
     title: "You're Part of the Family",
     subtitle: "A growing community of creators, learners, and connectors.",
-    features: ["Join our Telegram & WhatsApp groups", "Get support from the AfuChat team", "Help shape the future of the app"],
+    features: ["Join our WhatsApp community", "Get support from the AfuChat team", "Help shape the future of the app"],
     isLast: true,
   },
 ];

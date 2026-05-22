@@ -174,7 +174,7 @@ export const PLATFORM_FEATURES_GUIDE = `
 - **Stories** — disappear after 24 hours (like WhatsApp/Instagram stories)
 - **Moments/Shorts** — short vertical videos (like TikTok/Reels)
 - **Articles** — long-form written content
-- **Channels** — one-way broadcast feeds by creators or brands (like Telegram channels)
+- **Channels** — one-way broadcast feeds by creators or brands
 - **Communities** — group spaces with discussions and members
 
 ### Social Features
@@ -208,7 +208,7 @@ export const FOUNDER_AND_IDENTITY = `
 
 - **Platform**: AfuChat — Uganda's social super-app. Combines messaging, social networking, AI, digital wallet, freelance marketplace, e-commerce, mini-programs, and community tools in a single app.
 - **Founded in**: Uganda 🇺🇬 — built to serve Africa's social, payment, and communication needs.
-- **Founder & CEO**: **Amkaweesi** — the founder and CEO of AfuChat. AfuChat handle: @amkaweesi. Telegram: @amkaweesi (t.me/amkaweesi).
+- **Founder & CEO**: **Amkaweesi** — the founder and CEO of AfuChat. AfuChat handle: @amkaweesi.
   - To view the founder's profile use [ACTION:View @amkaweesi:/@amkaweesi]
   - Amkaweesi built AfuChat to give Africans a home-grown super-app that rivals WeChat, WhatsApp, and TikTok combined.
 `;

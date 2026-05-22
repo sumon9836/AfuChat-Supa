@@ -29,30 +29,6 @@ type Channel = {
 
 const CHANNELS: Channel[] = [
   {
-    label: "Telegram Channel",
-    sub: "t.me/afuchat",
-    url: "https://t.me/afuchat",
-    icon: "paper-plane",
-    iconColor: "#fff",
-    bg: "#0088CC",
-  },
-  {
-    label: "Founder",
-    sub: "t.me/amkaweesi",
-    url: "https://t.me/amkaweesi",
-    icon: "person-circle",
-    iconColor: "#fff",
-    bg: "#0088CC",
-  },
-  {
-    label: "Support Group",
-    sub: "t.me/afumeet",
-    url: "https://t.me/afumeet",
-    icon: "people",
-    iconColor: "#fff",
-    bg: "#229ED9",
-  },
-  {
     label: "WhatsApp Channel",
     sub: "Follow on WhatsApp",
     url: "https://whatsapp.com/channel/0029Vb7Rbpz0Vyc9y3S8H422",
@@ -148,7 +124,7 @@ export default function CommunityBanner({ userId }: { userId: string }) {
             </View>
             <Text style={styles.headerTitle}>Join Our Community</Text>
             <Text style={styles.headerSub}>
-              Stay connected with AfuChat on Telegram & WhatsApp
+              Stay connected with the AfuChat community on WhatsApp
             </Text>
 
             <TouchableOpacity style={styles.closeBtn} onPress={dismiss} hitSlop={12}>

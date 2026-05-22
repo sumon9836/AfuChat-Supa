@@ -224,9 +224,6 @@ export default function AboutScreen() {
         </View>
         <View style={[st.legalCard, { backgroundColor: colors.surface }]}>
           {[
-            { label: "Telegram Channel",  sub: "t.me/afuchat",          icon: "paper-plane",    iconBg: "#0088CC18", iconColor: "#0088CC", url: "https://t.me/afuchat" },
-            { label: "Founder",           sub: "t.me/amkaweesi",        icon: "person-circle",  iconBg: "#0088CC18", iconColor: "#0088CC", url: "https://t.me/amkaweesi" },
-            { label: "Support Group",     sub: "t.me/afumeet",          icon: "people",         iconBg: "#229ED918", iconColor: "#229ED9", url: "https://t.me/afumeet" },
             { label: "WhatsApp Channel",  sub: "Follow on WhatsApp",    icon: "logo-whatsapp",  iconBg: "#25D36618", iconColor: "#25D366", url: "https://whatsapp.com/channel/0029Vb7Rbpz0Vyc9y3S8H422" },
             { label: "GitHub Repository", sub: "github.com/afuchat1/afuchat-supa", icon: "logo-github", iconBg: "#17171718", iconColor: isDark ? "#fff" : "#171717", url: "https://github.com/afuchat1/afuchat-supa" },
           ].map((item, i) => (
