@@ -86,6 +86,7 @@ let _store: MMKVLike | null = null;
  * Detection uses multiple signals for robustness across Expo SDK versions:
  *   - appOwnership === "expo"          → Expo Go (all SDK versions, most reliable)
  *   - executionEnvironment === "storeClient" → Expo Go (SDK ≤ 49 primary signal)
+ *   - NativeModules.ExponentConstants → present only in Expo Go runtime
  *   - __expo global                    → set by the Expo Go runtime
  * Any one match is sufficient to bail out of MMKV.
  */
@@ -98,9 +99,30 @@ function isExpoGo(): boolean {
     ) {
       return true;
     }
-    // Belt-and-suspenders: Expo Go injects a __expo global in the JS runtime.
-    if (typeof (global as any).__expo !== "undefined") return true;
-    return false;
+  } catch {}
+
+  try {
+    // Expo Go exposes ExponentConstants in NativeModules; standalone builds do not.
+    const { NativeModules } = require("react-native");
+    if (NativeModules?.ExponentConstants?.appOwnership === "expo") return true;
+  } catch {}
+
+  // Belt-and-suspenders: Expo Go injects a __expo global in the JS runtime.
+  if (typeof (global as any).__expo !== "undefined") return true;
+
+  return false;
+}
+
+/**
+ * Returns true if react-native-nitro-modules (required by MMKV v4) has its
+ * native proxy registered in the TurboModule registry. This is the definitive
+ * check — if the proxy isn't there, loading MMKV causes a fatal native crash.
+ */
+function isNitroAvailable(): boolean {
+  try {
+    const { TurboModuleRegistry } = require("react-native");
+    if (typeof TurboModuleRegistry?.get !== "function") return false;
+    return TurboModuleRegistry.get("NitroModulesProxy") !== null;
   } catch {
     return false;
   }
@@ -108,7 +130,7 @@ function isExpoGo(): boolean {
 
 function getStore(): MMKVLike {
   if (_store) return _store;
-  if (Platform.OS === "web" || isExpoGo()) {
+  if (Platform.OS === "web" || isExpoGo() || !isNitroAvailable()) {
     _store = createWebStore();
   } else {
     try {

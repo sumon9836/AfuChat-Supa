@@ -280,63 +280,6 @@ async function runMigrations(db: DB) {
     await db.runAsync("UPDATE schema_version SET version = 7");
   }
 
-  // ── v9: Local call history ───────────────────────────────────────────────
-  // Stores every call record on device for fully-offline call history.
-  // Denormalizes caller/callee display info so the list renders without
-  // a network fetch.
-  if (currentVersion < 9) {
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS call_history (
-        id TEXT PRIMARY KEY,
-        room_id TEXT NOT NULL DEFAULT '',
-        caller_id TEXT NOT NULL,
-        callee_id TEXT NOT NULL,
-        call_type TEXT NOT NULL DEFAULT 'voice',
-        status TEXT NOT NULL DEFAULT 'ended',
-        started_at TEXT NOT NULL,
-        answered_at TEXT,
-        ended_at TEXT,
-        duration_seconds INTEGER,
-        chat_id TEXT,
-        caller_display_name TEXT,
-        caller_avatar_url TEXT,
-        caller_handle TEXT,
-        callee_display_name TEXT,
-        callee_avatar_url TEXT,
-        callee_handle TEXT,
-        stored_at INTEGER NOT NULL DEFAULT 0
-      );
-      CREATE INDEX IF NOT EXISTS idx_call_history_caller ON call_history(caller_id, started_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_call_history_callee ON call_history(callee_id, started_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_call_history_missed ON call_history(callee_id, status) WHERE status = 'missed';
-    `);
-    await db.runAsync("UPDATE schema_version SET version = 9");
-  }
-
-  // ── v10: Add watched_at to video_registry ────────────────────────────────
-  // Separates "when did the user watch this?" from "when was it stored?".
-  // watched_at is set each time markVideoWatched is called (updates on re-watch).
-  // stored_at still records the first-download time (never updated after that).
-  if (currentVersion < 10) {
-    const safeAdd = async (sql: string) => { try { await db.execAsync(sql); } catch {} };
-    await safeAdd("ALTER TABLE video_registry ADD COLUMN watched_at INTEGER");
-    // Back-fill existing rows: treat stored_at as watched_at
-    await safeAdd("UPDATE video_registry SET watched_at = stored_at WHERE watched_at IS NULL");
-    await safeAdd(
-      "CREATE INDEX IF NOT EXISTS idx_video_watched ON video_registry(watched_at DESC)",
-    );
-    await db.runAsync("UPDATE schema_version SET version = 10");
-  }
-
-  // ── v11: Drop notifications table — in-app notification feature removed ──
-  if (currentVersion < 11) {
-    const safe = async (sql: string) => { try { await db.execAsync(sql); } catch {} };
-    await safe("DROP TABLE IF EXISTS notifications");
-    await safe("DROP INDEX IF EXISTS idx_notif_created");
-    await safe("DROP INDEX IF EXISTS idx_notif_unread");
-    await db.runAsync("UPDATE schema_version SET version = 11");
-  }
-
   // ── v8: Own profile + full user settings on device ───────────────────────
   // user_profiles: the logged-in user's own profile (one row per account).
   // user_settings: all privacy/notification/chat settings stored permanently.
@@ -410,4 +353,62 @@ async function runMigrations(db: DB) {
     `);
     await db.runAsync("UPDATE schema_version SET version = 8");
   }
+
+  // ── v9: Local call history ───────────────────────────────────────────────
+  // Stores every call record on device for fully-offline call history.
+  // Denormalizes caller/callee display info so the list renders without
+  // a network fetch.
+  if (currentVersion < 9) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS call_history (
+        id TEXT PRIMARY KEY,
+        room_id TEXT NOT NULL DEFAULT '',
+        caller_id TEXT NOT NULL,
+        callee_id TEXT NOT NULL,
+        call_type TEXT NOT NULL DEFAULT 'voice',
+        status TEXT NOT NULL DEFAULT 'ended',
+        started_at TEXT NOT NULL,
+        answered_at TEXT,
+        ended_at TEXT,
+        duration_seconds INTEGER,
+        chat_id TEXT,
+        caller_display_name TEXT,
+        caller_avatar_url TEXT,
+        caller_handle TEXT,
+        callee_display_name TEXT,
+        callee_avatar_url TEXT,
+        callee_handle TEXT,
+        stored_at INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_call_history_caller ON call_history(caller_id, started_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_call_history_callee ON call_history(callee_id, started_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_call_history_missed ON call_history(callee_id, status) WHERE status = 'missed';
+    `);
+    await db.runAsync("UPDATE schema_version SET version = 9");
+  }
+
+  // ── v10: Add watched_at to video_registry ────────────────────────────────
+  // Separates "when did the user watch this?" from "when was it stored?".
+  // watched_at is set each time markVideoWatched is called (updates on re-watch).
+  // stored_at still records the first-download time (never updated after that).
+  if (currentVersion < 10) {
+    const safeAdd = async (sql: string) => { try { await db.execAsync(sql); } catch {} };
+    await safeAdd("ALTER TABLE video_registry ADD COLUMN watched_at INTEGER");
+    // Back-fill existing rows: treat stored_at as watched_at
+    await safeAdd("UPDATE video_registry SET watched_at = stored_at WHERE watched_at IS NULL");
+    await safeAdd(
+      "CREATE INDEX IF NOT EXISTS idx_video_watched ON video_registry(watched_at DESC)",
+    );
+    await db.runAsync("UPDATE schema_version SET version = 10");
+  }
+
+  // ── v11: Drop notifications table — in-app notification feature removed ──
+  if (currentVersion < 11) {
+    const safe = async (sql: string) => { try { await db.execAsync(sql); } catch {} };
+    await safe("DROP TABLE IF EXISTS notifications");
+    await safe("DROP INDEX IF EXISTS idx_notif_created");
+    await safe("DROP INDEX IF EXISTS idx_notif_unread");
+    await db.runAsync("UPDATE schema_version SET version = 11");
+  }
+
 }
