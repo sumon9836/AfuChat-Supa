@@ -114,15 +114,34 @@ function isExpoGo(): boolean {
 }
 
 /**
- * Returns true if react-native-nitro-modules (required by MMKV v4) has its
- * native proxy registered in the TurboModule registry. This is the definitive
- * check — if the proxy isn't there, loading MMKV causes a fatal native crash.
+ * Returns true if react-native-nitro-modules has been successfully initialized.
+ *
+ * How Nitro initializes (NativeNitroModules.ts):
+ *   1. Native TurboModule "NitroModules" (NOT "NitroModulesProxy") is loaded via
+ *      TurboModuleRegistry.getEnforcing("NitroModules") — throws if absent.
+ *   2. turboModule.install() is called, which injects NitroModulesProxy into
+ *      the JS `global` object.
+ *   3. global.NitroModulesProxy is now set.
+ *
+ * In Expo Go, the "NitroModules" native library is not bundled, so step 1
+ * would throw a ModuleNotFoundError. We must NEVER call require("react-native-mmkv")
+ * when Nitro is absent because that triggers this fatal throw at module level.
+ *
+ * Primary signal: global.NitroModulesProxy — set only after successful native init.
+ * Secondary signal: TurboModuleRegistry.get("NitroModules") using get() (not
+ * getEnforcing) to safely return null instead of throwing.
  */
 function isNitroAvailable(): boolean {
+  // Primary: NitroModulesProxy is injected into global only after nitro installs.
+  // This is the most reliable signal — present in real builds, absent in Expo Go.
+  if (typeof (global as any).NitroModulesProxy !== "undefined") return true;
+
+  // Secondary: check if the TurboModule is registered using the CORRECT spec name
+  // "NitroModules". Use get() NOT getEnforcing() — getEnforcing throws on missing modules.
   try {
     const { TurboModuleRegistry } = require("react-native");
     if (typeof TurboModuleRegistry?.get !== "function") return false;
-    return TurboModuleRegistry.get("NitroModulesProxy") !== null;
+    return TurboModuleRegistry.get("NitroModules") !== null;
   } catch {
     return false;
   }
