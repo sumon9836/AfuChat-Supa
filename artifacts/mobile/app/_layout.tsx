@@ -29,6 +29,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
+import { TrustpilotReviewPrompt } from "@/components/TrustpilotReviewPrompt";
 import { initConnectivityToasts } from "@/lib/toast";
 import { initActivityTracker } from "@/lib/activityTracker";
 
@@ -103,6 +104,7 @@ export default function RootLayout() {
               <AuthProvider>
                 <ActivityTrackerSync />
                 <PushNotificationManager />
+                <TrustpilotReviewPrompt />
                 <LanguageProvider>
                   <AdvancedFeaturesProvider>
                     <ChatPreferencesProvider>

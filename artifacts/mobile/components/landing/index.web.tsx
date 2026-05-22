@@ -437,6 +437,11 @@ export function LandingFooter() {
           <ul className="lp-flinks">
             <li><a href="/privacy"><ShieldCheck size={13} strokeWidth={1.8} />Privacy Policy</a></li>
             <li><a href="/terms"><FileText size={13} strokeWidth={1.8} />Terms of Service</a></li>
+            <li>
+              <a href="https://www.trustpilot.com/review/afuchat.com" target="_blank" rel="noopener noreferrer">
+                <span style={{ color: "#00B67A", fontSize: 13 }}>★</span> Trustpilot
+              </a>
+            </li>
           </ul>
         </div>
       </div>

@@ -793,6 +793,9 @@ footer{
       <a href="/terms">Terms of Service</a>
       <a href="mailto:support@afuchat.com">Support</a>
       <a href="mailto:press@afuchat.com">Press</a>
+      <a href="https://www.trustpilot.com/review/afuchat.com" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;">
+        <span style="color:#00B67A;font-size:14px">★</span> Trustpilot
+      </a>
     </nav>
     <div class="footer-divider"></div>
     <p class="footer-copy">

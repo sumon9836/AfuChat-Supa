@@ -922,6 +922,31 @@ function DesktopShell() {
             ))}
           </div>
 
+          {/* Trustpilot review link */}
+          <a
+            href="https://www.trustpilot.com/review/afuchat.com?stars=5"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "7px 14px",
+              fontSize: 12,
+              fontWeight: 600,
+              color: "var(--txt3)",
+              textDecoration: "none",
+              borderBottom: "1px solid var(--bdr)",
+              transition: "color .13s",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = "#00B67A")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = "var(--txt3)")}
+          >
+            <span style={{ color: "#00B67A", fontSize: 14, lineHeight: 1 }}>★</span>
+            Rate us on Trustpilot
+          </a>
+
           {/* User footer card */}
           <div
             className="dt-ucard"
