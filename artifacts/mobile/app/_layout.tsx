@@ -54,12 +54,13 @@ function ActivityTrackerSync() {
 }
 
 function ThemedStatusBar() {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   return (
     <StatusBar
       style={isDark ? "light" : "dark"}
       translucent
-      backgroundColor="transparent"
+      backgroundColor={isDark ? "#0F0F0F" : "#F5F0E8"}
+      animated
     />
   );
 }
