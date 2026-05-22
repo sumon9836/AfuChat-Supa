@@ -1559,7 +1559,6 @@ function ChatScreen() {
   const [recLocked, setRecLocked] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingTenths, setRecordingTenths] = useState(0);
-  const [waveformLevels, setWaveformLevels] = useState<number[]>([]);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recordingActiveRef = useRef(false);
   const recordingTimer = useRef<any>(null);
@@ -4066,7 +4065,6 @@ STRICT RULES:
       setRecLocked(false);
       setRecordingDuration(0);
       setRecordingTenths(0);
-      setWaveformLevels([]);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       Animated.loop(
         Animated.sequence([
@@ -4083,15 +4081,6 @@ STRICT RULES:
           return t + 1;
         });
       }, 100);
-      // Pseudo-metering: animate waveform based on time since no native metering API in expo-audio 1.x
-      meterInterval.current = setInterval(() => {
-        if (!recordingActiveRef.current) return;
-        const level = Math.max(0.08, Math.min(1, 0.3 + Math.random() * 0.55));
-        setWaveformLevels((prev) => {
-          const next = [...prev, level];
-          return next.length > 48 ? next.slice(-48) : next;
-        });
-      }, 80);
     } catch (err) {
       clearTimeout(safetyTimer);
       recPressActiveSV.value = false;
@@ -4122,19 +4111,10 @@ STRICT RULES:
       setRecLocked(true);
       setRecordingDuration(0);
       setRecordingTenths(0);
-      setWaveformLevels([]);
       recordingTimer.current = setInterval(() => {
         setRecordingTenths((t) => {
           if (t >= 9) { setRecordingDuration((d) => d + 1); return 0; }
           return t + 1;
-        });
-      }, 100);
-      meterInterval.current = setInterval(() => {
-        if (!recordingActiveRef.current) return;
-        const level = Math.max(0.05, Math.min(1, 0.3 + Math.random() * 0.55));
-        setWaveformLevels((prev) => {
-          const next = [...prev, level];
-          return next.length > 40 ? next.slice(-40) : next;
         });
       }, 100);
     } catch {
@@ -4162,7 +4142,6 @@ STRICT RULES:
     recCancelledSV.value = false;
     setRecordingDuration(0);
     setRecordingTenths(0);
-    setWaveformLevels([]);
     slideX.value = withSpring(0, MIC_SPRING_SNAP);
     slideY.value = withSpring(0, MIC_SPRING_SNAP);
     micScale.value = withSpring(1, MIC_SPRING_CONFIG);
@@ -4259,7 +4238,6 @@ STRICT RULES:
     recCancelledSV.value = false;
     setRecordingDuration(0);
     setRecordingTenths(0);
-    setWaveformLevels([]);
     slideX.value = withSpring(0, MIC_SPRING_SNAP);
     slideY.value = withSpring(0, MIC_SPRING_SNAP);
     micScale.value = withSpring(1, MIC_SPRING_CONFIG);
@@ -4866,51 +4844,21 @@ STRICT RULES:
           </View>
         ) : isRecording && recLocked ? (
           <View style={[st.inputFloatOuter, { paddingBottom: 8 }]}>
-            {true ? (
-              <View style={[st.inputGlassPill, { backgroundColor: colors.surface, borderColor: colors.border + "60" }]}>
-                <View style={st.recLockedInner}>
-                  <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={12} style={st.recLockedTrash}>
-                    <Ionicons name="trash" size={20} color="#FF3B30" />
-                  </TouchableOpacity>
-                  <View style={st.recLockedWaveWrap}>
-                    {waveformLevels.map((level, i) => (
-                      <View key={i} style={[st.waveformBar, { height: Math.max(4, level * 28), backgroundColor: BRAND, opacity: 0.45 + level * 0.55 }]} />
-                    ))}
-                  </View>
-                  <View style={st.recLockedTime}>
-                    <Animated.View style={[st.recordingDot, { opacity: pulseAnim }]} />
-                    <Text style={[st.recordingText, { color: colors.text }]}>
-                      {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")},{recordingTenths}
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={stopVoiceRecording} style={[st.sendBtn, { backgroundColor: BRAND }]}>
-                    <Ionicons name="send" size={18} color="#fff" />
-                  </TouchableOpacity>
-                </View>
+            <View style={[st.inputGlassPill, { backgroundColor: colors.surface, borderColor: colors.border + "60" }]}>
+              <View style={st.recLockedInner}>
+                <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={12} style={st.recLockedTrash}>
+                  <Ionicons name="trash" size={20} color="#FF3B30" />
+                </TouchableOpacity>
+                <Animated.View style={[st.recordingDot, { opacity: pulseAnim, marginLeft: 6 }]} />
+                <Text style={[st.recordingText, { color: "#FF3B30", marginLeft: 8 }]}>
+                  {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")}
+                </Text>
+                <View style={{ flex: 1 }} />
+                <TouchableOpacity onPress={stopVoiceRecording} style={[st.sendBtn, { backgroundColor: BRAND }]}>
+                  <Ionicons name="send" size={18} color="#fff" />
+                </TouchableOpacity>
               </View>
-            ) : (
-              <View style={[st.inputGlassPill, { backgroundColor: colors.surface, borderColor: colors.border + "60" }]}>
-                <View style={st.recLockedInner}>
-                  <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={12} style={st.recLockedTrash}>
-                    <Ionicons name="trash" size={20} color="#FF3B30" />
-                  </TouchableOpacity>
-                  <View style={st.recLockedWaveWrap}>
-                    {waveformLevels.map((level, i) => (
-                      <View key={i} style={[st.waveformBar, { height: Math.max(4, level * 28), backgroundColor: BRAND, opacity: 0.45 + level * 0.55 }]} />
-                    ))}
-                  </View>
-                  <View style={st.recLockedTime}>
-                    <Animated.View style={[st.recordingDot, { opacity: pulseAnim }]} />
-                    <Text style={[st.recordingText, { color: colors.text }]}>
-                      {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")},{recordingTenths}
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={stopVoiceRecording} style={[st.sendBtn, { backgroundColor: BRAND }]}>
-                    <Ionicons name="send" size={18} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+            </View>
           </View>
         ) : (
           <>
@@ -6654,9 +6602,6 @@ const st = StyleSheet.create({
   recLockPill: { width: 32, borderRadius: 16, paddingVertical: 6, alignItems: "center", justifyContent: "center", elevation: 2, ...Platform.select({ web: { boxShadow: "0 1px 3px rgba(0,0,0,0.1)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 } }) },
   recLockedInner: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 8, gap: 8, minHeight: 56 },
   recLockedTrash: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,59,48,0.12)", alignItems: "center", justifyContent: "center" },
-  recLockedWaveWrap: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 2, height: 30, overflow: "hidden" },
-  recLockedTime: { flexDirection: "row", alignItems: "center", gap: 6, paddingRight: 2 },
-  waveformBar: { width: 3, borderRadius: 1.5, minHeight: 4 },
   recordingDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: "#FF3B30" },
   recordingText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
 

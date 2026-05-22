@@ -38,12 +38,44 @@ function buildWaveBars(bars: number): number[] {
 
 const WAVE_SHAPE = buildWaveBars(BARS);
 
-export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: AudioPlayerProps) {
-  const player = useAudioPlayer({ uri }, { updateInterval: 80 });
+// Shown before the user taps play — no audio loaded, no network request.
+function AudioPlayerIdle({
+  onPlay,
+  tintColor,
+  waveColor,
+}: {
+  onPlay: () => void;
+  tintColor: string;
+  waveColor?: string;
+}) {
+  const barColor = waveColor || tintColor;
+  return (
+    <View style={s.row}>
+      <TouchableOpacity onPress={onPlay} hitSlop={8}>
+        <Ionicons name="play" size={24} color={tintColor} />
+      </TouchableOpacity>
+      <View style={s.waveContainer}>
+        {WAVE_SHAPE.map((h, i) => (
+          <View
+            key={i}
+            style={[s.bar, { height: `${h * 100}%`, backgroundColor: `${barColor}40` }]}
+          />
+        ))}
+      </View>
+      <Text style={[s.speed, { color: tintColor, opacity: 0.45 }]}>1×</Text>
+      <Text style={[s.time, { color: tintColor, opacity: 0.55 }]}>-:--</Text>
+    </View>
+  );
+}
+
+// Created only when the user taps play — loads + auto-plays the audio.
+function AudioPlayerActive({ uri, tintColor = "#FFFFFF", waveColor }: AudioPlayerProps) {
+  const player = useAudioPlayer({ uri }, 80);
   const status = useAudioPlayerStatus(player);
   const [speed, setSpeed] = useState<Speed>(1);
   const trackWidth = useRef(0);
   const barColor = waveColor || tintColor;
+  const hasAutoPlayed = useRef(false);
 
   useEffect(() => {
     if (Platform.OS !== "web") {
@@ -55,6 +87,14 @@ export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: A
     }
   }, []);
 
+  // Auto-play once the audio is loaded
+  useEffect(() => {
+    if (!hasAutoPlayed.current && status.isLoaded && !status.playing) {
+      hasAutoPlayed.current = true;
+      player.play();
+    }
+  }, [status.isLoaded]);
+
   useEffect(() => {
     if (status.didJustFinish) {
       player.seekTo(0).catch(() => {});
@@ -65,7 +105,6 @@ export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: A
   const positionMs = (status.currentTime ?? 0) * 1000;
   const isPlaying = status.playing ?? false;
   const isLoaded = status.isLoaded ?? false;
-  const isBuffering = !isLoaded;
 
   const progress = durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
   const filled = Math.round(progress * BARS);
@@ -92,23 +131,27 @@ export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: A
     player.setPlaybackRate(next);
   }, [speed, isLoaded, player]);
 
-  const seekFromTouch = useCallback((e: GestureResponderEvent) => {
-    if (!isLoaded || durationMs === 0) return;
-    const { locationX } = e.nativeEvent;
-    const ratio = Math.max(0, Math.min(1, locationX / (trackWidth.current || 1)));
-    player.seekTo(ratio * (status.duration ?? 0)).catch(() => {});
-  }, [isLoaded, durationMs, status.duration, player]);
+  const seekFromTouch = useCallback(
+    (e: GestureResponderEvent) => {
+      if (!isLoaded || durationMs === 0) return;
+      const { locationX } = e.nativeEvent;
+      const ratio = Math.max(0, Math.min(1, locationX / (trackWidth.current || 1)));
+      player.seekTo(ratio * (status.duration ?? 0)).catch(() => {});
+    },
+    [isLoaded, durationMs, status.duration, player]
+  );
 
   const onTrackLayout = useCallback((e: LayoutChangeEvent) => {
     trackWidth.current = e.nativeEvent.layout.width;
   }, []);
 
-  const displayTime = (isPlaying || positionMs > 0) ? formatTime(positionMs) : formatTime(durationMs);
+  const displayTime =
+    isPlaying || positionMs > 0 ? formatTime(positionMs) : formatTime(durationMs);
 
   return (
     <View style={s.row}>
-      <TouchableOpacity onPress={togglePlay} hitSlop={8} disabled={isBuffering}>
-        {isBuffering ? (
+      <TouchableOpacity onPress={togglePlay} hitSlop={8} disabled={!isLoaded}>
+        {!isLoaded ? (
           <Ionicons name="ellipsis-horizontal" size={24} color={tintColor} style={{ opacity: 0.5 }} />
         ) : (
           <Ionicons name={isPlaying ? "pause" : "play"} size={24} color={tintColor} />
@@ -116,7 +159,7 @@ export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: A
       </TouchableOpacity>
 
       <TouchableOpacity
-        activeOpacity={0.9}
+        activeOpacity={0.85}
         style={s.waveContainer}
         onPress={seekFromTouch}
         onLayout={onTrackLayout}
@@ -128,15 +171,15 @@ export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: A
               s.bar,
               {
                 height: `${h * 100}%`,
-                backgroundColor: i < filled ? barColor : `${barColor}38`,
+                backgroundColor: i < filled ? barColor : `${barColor}40`,
               },
             ]}
           />
         ))}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={cycleSpeed} hitSlop={8} disabled={isBuffering}>
-        <Text style={[s.speed, { color: tintColor, opacity: isBuffering ? 0.4 : 1 }]}>
+      <TouchableOpacity onPress={cycleSpeed} hitSlop={8} disabled={!isLoaded}>
+        <Text style={[s.speed, { color: tintColor, opacity: isLoaded ? 1 : 0.4 }]}>
           {speed}×
         </Text>
       </TouchableOpacity>
@@ -144,6 +187,23 @@ export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: A
       <Text style={[s.time, { color: tintColor }]}>{displayTime}</Text>
     </View>
   );
+}
+
+// Public component: idle until the user taps play
+export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: AudioPlayerProps) {
+  const [active, setActive] = useState(false);
+
+  if (!active) {
+    return (
+      <AudioPlayerIdle
+        onPlay={() => setActive(true)}
+        tintColor={tintColor}
+        waveColor={waveColor}
+      />
+    );
+  }
+
+  return <AudioPlayerActive uri={uri} tintColor={tintColor} waveColor={waveColor} />;
 }
 
 const s = StyleSheet.create({
