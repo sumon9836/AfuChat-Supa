@@ -40,7 +40,12 @@ import MediaGalleryPicker, { type GalleryAsset } from "@/components/MediaGallery
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
-import { Video, ResizeMode, Audio } from "expo-av";
+import { Video, ResizeMode } from "expo-av";
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+} from "expo-audio";
 import * as Speech from "expo-speech";
 import * as Clipboard from "expo-clipboard";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -82,10 +87,7 @@ import { useDataMode } from "@/context/DataModeContext";
 import { markChatVisited, setActiveChatId, clearActiveChatId } from "@/lib/chatVisited";
 import { askAi, aiSuggestReply, transcribeAudio, getEdgeFnBase, edgeHeaders } from "@/lib/aiHelper";
 import { buildNavigationContext, ACTION_ROUTES_GUIDE, detectVoiceNavCommand, pickNavConfirmation } from "@/lib/platformKnowledge";
-import {
-  playNotificationSound as playMgrSound,
-  resetToPlaybackMode,
-} from "@/lib/soundManager";
+import { playNotificationSound as playMgrSound } from "@/lib/soundManager";
 import { AFUAI_BOT_ID } from "@/lib/afuAiBot";
 import { getDailyUsage, recordDailyUsage } from "@/lib/featureUsage";
 import EmojiStickerPicker from "@/components/chat/EmojiStickerPicker";
@@ -1558,7 +1560,8 @@ function ChatScreen() {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingTenths, setRecordingTenths] = useState(0);
   const [waveformLevels, setWaveformLevels] = useState<number[]>([]);
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recordingActiveRef = useRef(false);
   const recordingTimer = useRef<any>(null);
   const meterInterval = useRef<any>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -2143,10 +2146,9 @@ function ChatScreen() {
     return () => {
       clearInterval(recordingTimer.current);
       clearInterval(meterInterval.current);
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => {});
-        recordingRef.current = null;
-        resetToPlaybackMode().catch(() => {});
+      if (recordingActiveRef.current) {
+        recordingActiveRef.current = false;
+        recorder.stop().catch(() => {});
       }
     };
   }, []);
@@ -4027,7 +4029,7 @@ STRICT RULES:
   }
 
   async function startVoiceRecordingHold() {
-    if (recordingRef.current) return;
+    if (recordingActiveRef.current) return;
     const safetyTimer = setTimeout(() => {
       if (!recStartedSV.value && recPressActiveSV.value) {
         recPressActiveSV.value = false;
@@ -4038,32 +4040,24 @@ STRICT RULES:
       }
     }, 5000);
     try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== "granted") {
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
         clearTimeout(safetyTimer);
         recPressActiveSV.value = false;
         showAlert("Microphone permission needed", "Go to Settings and allow AfuChat to access your microphone.");
         return;
       }
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-      });
-      const { recording } = await Audio.Recording.createAsync({
-        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-        isMeteringEnabled: true,
-      });
-      recordingRef.current = recording;
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      recordingActiveRef.current = true;
       recStartedSV.value = true;
       clearTimeout(safetyTimer);
 
       if (!recPressActiveSV.value && !recLockedSV.value) {
         try {
-          await recording.stopAndUnloadAsync();
-          await resetToPlaybackMode();
+          await recorder.stop();
         } catch (_) {}
-        recordingRef.current = null;
+        recordingActiveRef.current = false;
         recStartedSV.value = false;
         return;
       }
@@ -4089,19 +4083,14 @@ STRICT RULES:
           return t + 1;
         });
       }, 100);
-      meterInterval.current = setInterval(async () => {
-        if (!recordingRef.current) return;
-        try {
-          const s = await recordingRef.current.getStatusAsync();
-          if (s.isRecording && s.metering !== undefined) {
-            const db = s.metering;
-            const normalized = Math.max(0.08, Math.min(1, (db + 55) / 50));
-            setWaveformLevels((prev) => {
-              const next = [...prev, normalized];
-              return next.length > 48 ? next.slice(-48) : next;
-            });
-          }
-        } catch (_) {}
+      // Pseudo-metering: animate waveform based on time since no native metering API in expo-audio 1.x
+      meterInterval.current = setInterval(() => {
+        if (!recordingActiveRef.current) return;
+        const level = Math.max(0.08, Math.min(1, 0.3 + Math.random() * 0.55));
+        setWaveformLevels((prev) => {
+          const next = [...prev, level];
+          return next.length > 48 ? next.slice(-48) : next;
+        });
       }, 80);
     } catch (err) {
       clearTimeout(safetyTimer);
@@ -4109,31 +4098,24 @@ STRICT RULES:
       recStartedSV.value = false;
       recCancelledSV.value = false;
       recLockedSV.value = false;
+      recordingActiveRef.current = false;
       setIsRecording(false);
       setRecLocked(false);
-      await resetToPlaybackMode().catch(() => {});
       showAlert("Error", "Could not start recording.");
     }
   }
 
   async function startVoiceRecordingWeb() {
-    if (recordingRef.current) return;
+    if (recordingActiveRef.current) return;
     try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== "granted") {
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
         showAlert("Microphone permission needed", "Please allow access to your microphone.");
         return;
       }
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-      });
-      const { recording } = await Audio.Recording.createAsync({
-        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-        isMeteringEnabled: true,
-      });
-      recordingRef.current = recording;
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      recordingActiveRef.current = true;
       recStartedSV.value = true;
       recLockedSV.value = true;
       setIsRecording(true);
@@ -4147,32 +4129,26 @@ STRICT RULES:
           return t + 1;
         });
       }, 100);
-      meterInterval.current = setInterval(async () => {
-        if (!recordingRef.current) return;
-        try {
-          const s = await recordingRef.current.getStatusAsync();
-          if (s.isRecording && s.metering !== undefined) {
-            const db = s.metering;
-            const normalized = Math.max(0.05, Math.min(1, (db + 60) / 55));
-            setWaveformLevels((prev) => {
-              const next = [...prev, normalized];
-              return next.length > 40 ? next.slice(-40) : next;
-            });
-          }
-        } catch (_) {}
+      meterInterval.current = setInterval(() => {
+        if (!recordingActiveRef.current) return;
+        const level = Math.max(0.05, Math.min(1, 0.3 + Math.random() * 0.55));
+        setWaveformLevels((prev) => {
+          const next = [...prev, level];
+          return next.length > 40 ? next.slice(-40) : next;
+        });
       }, 100);
     } catch {
       recStartedSV.value = false;
       recLockedSV.value = false;
+      recordingActiveRef.current = false;
       setIsRecording(false);
       setRecLocked(false);
-      await resetToPlaybackMode().catch(() => {});
       showAlert("Error", "Could not start recording.");
     }
   }
 
   async function stopVoiceRecording() {
-    if (!recordingRef.current) return;
+    if (!recordingActiveRef.current) return;
     const capturedDuration = recordingDuration;
     clearInterval(recordingTimer.current);
     clearInterval(meterInterval.current);
@@ -4197,18 +4173,16 @@ STRICT RULES:
 
     if (capturedDuration < 1) {
       try {
-        await recordingRef.current.stopAndUnloadAsync();
-        await resetToPlaybackMode();
+        await recorder.stop();
       } catch (_) {}
-      recordingRef.current = null;
+      recordingActiveRef.current = false;
       return;
     }
 
     try {
-      await recordingRef.current.stopAndUnloadAsync();
-      const uri = recordingRef.current.getURI();
-      await resetToPlaybackMode();
-      recordingRef.current = null;
+      await recorder.stop();
+      const uri = recorder.uri;
+      recordingActiveRef.current = false;
 
       if (!uri || !user) return;
 
@@ -4266,7 +4240,7 @@ STRICT RULES:
       setSending(false);
     } catch (err: any) {
       console.warn("[Voice] Error:", err?.message || err);
-      recordingRef.current = null;
+      recordingActiveRef.current = false;
       setSending(false);
       showAlert("Error", "Failed to send voice message.");
     }
@@ -4293,12 +4267,11 @@ STRICT RULES:
     cancelProgress.value = withTiming(0, { duration: 150 });
     lockProgress.value = withTiming(0, { duration: 150 });
     directionLock.value = "none";
-    if (recordingRef.current) {
+    if (recordingActiveRef.current) {
       try {
-        await recordingRef.current.stopAndUnloadAsync();
-        await resetToPlaybackMode();
+        await recorder.stop();
       } catch (_) {}
-      recordingRef.current = null;
+      recordingActiveRef.current = false;
     }
   }
 
