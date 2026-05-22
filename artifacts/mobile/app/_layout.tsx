@@ -31,6 +31,7 @@ import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
 import { TrustpilotReviewPrompt } from "@/components/TrustpilotReviewPrompt";
+import UpdatePrompt from "@/components/UpdatePrompt";
 import { initConnectivityToasts } from "@/lib/toast";
 import { initActivityTracker } from "@/lib/activityTracker";
 
@@ -115,6 +116,7 @@ export default function RootLayout() {
                 <ActivityTrackerSync />
                 <PushNotificationManager />
                 <TrustpilotReviewPrompt />
+                <UpdatePrompt />
                 <LanguageProvider>
                   <AdvancedFeaturesProvider>
                     <ChatPreferencesProvider>

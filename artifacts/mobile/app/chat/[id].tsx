@@ -36,6 +36,7 @@ import { ImageViewer, useImageViewer } from "@/components/ImageViewer";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as MediaLibrary from "expo-media-library";
+import MediaGalleryPicker, { type GalleryAsset } from "@/components/MediaGalleryPicker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
@@ -1720,6 +1721,7 @@ function ChatScreen() {
   }));
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showAttachPanel, setShowAttachPanel] = useState(false);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [attachTab, setAttachTab] = useState<"Gallery" | "Wallet" | "File" | "Poll" | "Contact">("Gallery");
   const [galleryAssets, setGalleryAssets] = useState<MediaLibrary.Asset[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
@@ -5239,26 +5241,11 @@ STRICT RULES:
                   {/* Browse all button — works in Expo Go where media library is limited */}
                   <TouchableOpacity
                     activeOpacity={0.75}
-                    onPress={async () => {
-                      setShowAttachPanel(false);
-                      try {
-                        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                        if (status !== "granted") { showAlert("Permission needed", "Please allow photo & video access in your device settings."); return; }
-                        const result = await ImagePicker.launchImageLibraryAsync({
-                          mediaTypes: ["images", "videos"],
-                          quality: pickerQuality,
-                          allowsEditing: false,
-                        });
-                        if (!result.canceled && result.assets?.[0]) {
-                          const asset = result.assets[0];
-                          setAttachmentPreview({ uri: asset.uri, type: asset.type === "video" ? "video" : "image" });
-                        }
-                      } catch { /* ignore */ }
-                    }}
+                    onPress={() => setShowMediaPicker(true)}
                     style={{ flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 6, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.inputBg }}
                   >
                     <Ionicons name="albums-outline" size={18} color={colors.accent} />
-                    <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.accent }}>Browse all photos & videos</Text>
+                    <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.accent }}>Browse all photos, videos & audio</Text>
                   </TouchableOpacity>
                   <FlatList
                     data={thumbData}
@@ -5921,6 +5908,25 @@ STRICT RULES:
 
       {/* legacy showAttachMenu kept so TypeScript is happy; panel is now inline */}
       {showAttachMenu && null}
+
+      <MediaGalleryPicker
+        visible={showMediaPicker}
+        onClose={() => setShowMediaPicker(false)}
+        title="Select Media"
+        maxSelection={1}
+        onSelect={(assets: GalleryAsset[]) => {
+          const asset = assets[0];
+          if (!asset) return;
+          const isVideo = asset.mediaType === MediaLibrary.MediaType.video;
+          const isAudio = asset.mediaType === MediaLibrary.MediaType.audio;
+          setAttachmentPreview({
+            uri: asset.uri,
+            type: isVideo ? "video" : isAudio ? "file" : "image",
+            name: isAudio ? asset.filename : undefined,
+            mimeType: isAudio ? "audio/mpeg" : isVideo ? "video/mp4" : "image/jpeg",
+          });
+        }}
+      />
 
       <BottomSheet visible={showGifPicker} onClose={() => { setShowGifPicker(false); setGifSearch(""); }}>
         <Text style={[st.sheetTitle, { color: colors.text }]}>Send GIF</Text>

@@ -20,6 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "@/lib/haptics";
+import MediaGalleryPicker, { type GalleryAsset } from "@/components/MediaGalleryPicker";
 import { Video, ResizeMode } from "expo-av";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -63,6 +64,7 @@ export default function CreateStoryScreen() {
   const [starting, setStarting] = useState(false);
   const [privacy, setPrivacy] = useState<Privacy>("everyone");
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
   const [showColors, setShowColors] = useState(false);
   const [tintColor, setTintColor] = useState<string | null>(null);
@@ -81,27 +83,17 @@ export default function CreateStoryScreen() {
   const previewW = screenW - previewMargin * 2;
   const previewH = Math.min(screenH * 0.65, previewW * 1.6);
 
-  async function pickMedia() {
-    try {
-      const libPerm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (libPerm.status !== "granted") {
-        showAlert("Permission needed", "Allow photo & video access to pick media for your story.");
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images", "videos"],
-        quality: 0.8,
-        videoMaxDuration: 60,
-      });
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        setMediaUri(asset.uri);
-        setMediaType(asset.type === "video" ? "video" : "image");
-        setMediaMimeType(asset.mimeType || null);
-      }
-    } catch (e: any) {
-      showAlert("Error", e?.message || "Could not open media picker.");
-    }
+  function pickMedia() {
+    setShowMediaPicker(true);
+  }
+
+  function handleGallerySelect(assets: GalleryAsset[]) {
+    const asset = assets[0];
+    if (!asset) return;
+    setMediaUri(asset.uri);
+    const isVideo = asset.mediaType === "video";
+    setMediaType(isVideo ? "video" : "image");
+    setMediaMimeType(isVideo ? "video/mp4" : "image/jpeg");
   }
 
   async function publish() {
@@ -512,6 +504,14 @@ export default function CreateStoryScreen() {
           </Pressable>
         </Pressable>
       )}
+      <MediaGalleryPicker
+        visible={showMediaPicker}
+        onClose={() => setShowMediaPicker(false)}
+        title="Pick Story Media"
+        initialTab="all"
+        maxSelection={1}
+        onSelect={handleGallerySelect}
+      />
     </View>
   );
 }

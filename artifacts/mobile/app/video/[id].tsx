@@ -234,7 +234,10 @@ function TapHandler({
 
   return (
     <GestureDetector gesture={composed}>
-      <View style={StyleSheet.absoluteFill} />
+      {/* Exclude the right 80 px where the action-rail buttons live.
+          On Android the GestureDetector claims the entire touch area of its
+          child view, which would swallow taps on Like / Comment / etc. */}
+      <View style={[StyleSheet.absoluteFill, { right: 80 }]} />
     </GestureDetector>
   );
 }
