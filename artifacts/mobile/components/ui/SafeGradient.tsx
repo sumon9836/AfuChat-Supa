@@ -2,10 +2,27 @@ import React from "react";
 import { View } from "react-native";
 import type { ViewStyle } from "react-native";
 
+// ─── Expo Go detection ────────────────────────────────────────────────────────
+// expo-linear-gradient's JS module loads fine in Expo Go, but its native view
+// manager (ViewManagerAdapter_ExpoLinearGradient) is NOT registered. React
+// Native throws during the native commit phase — after rendering — which means
+// a React ErrorBoundary CANNOT catch it. We must skip the require entirely in
+// Expo Go so NativeLinearGradient stays null and we fall back to a plain View.
+function isExpoGo(): boolean {
+  try {
+    const Constants = require("expo-constants").default;
+    return Constants?.executionEnvironment === "storeClient";
+  } catch {
+    return false;
+  }
+}
+
 let NativeLinearGradient: React.ComponentType<any> | null = null;
-try {
-  NativeLinearGradient = require("expo-linear-gradient").LinearGradient;
-} catch (_) {}
+if (!isExpoGo()) {
+  try {
+    NativeLinearGradient = require("expo-linear-gradient").LinearGradient;
+  } catch (_) {}
+}
 
 type Props = {
   colors: readonly (string | number)[];
@@ -16,28 +33,6 @@ type Props = {
   children?: React.ReactNode;
   [key: string]: any;
 };
-
-type BoundaryState = { failed: boolean };
-type BoundaryProps = {
-  fallback: string;
-  style?: any;
-  children: React.ReactNode;
-};
-
-class GradientBoundary extends React.Component<BoundaryProps, BoundaryState> {
-  state: BoundaryState = { failed: false };
-  static getDerivedStateFromError(): BoundaryState {
-    return { failed: true };
-  }
-  render() {
-    if (this.state.failed) {
-      return (
-        <View style={[this.props.style, { backgroundColor: this.props.fallback }]} />
-      );
-    }
-    return this.props.children as React.ReactElement;
-  }
-}
 
 export function LinearGradient({ colors, style, children, ...rest }: Props) {
   const fallback = typeof colors[0] === "string" ? (colors[0] as string) : "#00BCD4";
@@ -52,10 +47,8 @@ export function LinearGradient({ colors, style, children, ...rest }: Props) {
 
   const Grad = NativeLinearGradient;
   return (
-    <GradientBoundary fallback={fallback} style={style}>
-      <Grad colors={colors} style={style} {...rest}>
-        {children}
-      </Grad>
-    </GradientBoundary>
+    <Grad colors={colors} style={style} {...rest}>
+      {children}
+    </Grad>
   );
 }
