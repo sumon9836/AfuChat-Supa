@@ -58,6 +58,7 @@ router.get("/", async (_req, res) => {
 <meta name="twitter:image:alt" content="AfuChat — The Social Super App"/>
 <meta name="theme-color" content="${BRAND}"/>
 <link rel="icon" type="image/png" href="/logo.png"/>
+<script type="text/javascript" src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async></script>
 <script type="application/ld+json">${JSON.stringify({
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -395,6 +396,20 @@ footer{
   background:var(--bg2);border-top:1px solid var(--border);
   padding:40px 20px 28px;
 }
+/* Trustpilot badge */
+.tp-badge-wrap{margin-bottom:20px}
+.tp-static-badge{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:10px 18px;border-radius:12px;
+  border:1.5px solid #00B67A;
+  text-decoration:none;
+  background:rgba(0,182,122,.06);
+  transition:background .15s;
+}
+.tp-static-badge:hover{background:rgba(0,182,122,.12)}
+.tp-star-row{color:#00B67A;font-size:18px;letter-spacing:2px;line-height:1}
+.tp-badge-text{font-size:13px;color:var(--t2)}
+.tp-badge-text strong{color:var(--t);font-weight:700}
 .footer-top{display:flex;align-items:center;gap:10px;margin-bottom:20px}
 .footer-top img{width:30px;height:30px;border-radius:9px}
 .footer-top strong{font-size:15px;font-weight:800;color:var(--t)}
@@ -793,11 +808,26 @@ footer{
       <a href="/terms">Terms of Service</a>
       <a href="mailto:support@afuchat.com">Support</a>
       <a href="mailto:press@afuchat.com">Press</a>
-      <a href="https://www.trustpilot.com/review/afuchat.com" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;">
-        <span style="color:#00B67A;font-size:14px">★</span> Trustpilot
-      </a>
     </nav>
     <div class="footer-divider"></div>
+    <div class="tp-badge-wrap">
+      ${process.env.TRUSTPILOT_BUSINESS_UNIT_ID
+        ? `<div class="trustpilot-widget"
+              data-locale="en-US"
+              data-template-id="53aa8807dec7e10d38f59f32"
+              data-businessunit-id="${process.env.TRUSTPILOT_BUSINESS_UNIT_ID}"
+              data-style-height="120px"
+              data-style-width="100%"
+              data-theme="light"
+              data-stars="4,5">
+             <a href="https://www.trustpilot.com/review/afuchat.com" target="_blank" rel="noopener">Trustpilot</a>
+           </div>`
+        : `<a href="https://www.trustpilot.com/review/afuchat.com" target="_blank" rel="noopener" class="tp-static-badge">
+             <span class="tp-star-row">★★★★★</span>
+             <span class="tp-badge-text">Rated on <strong>Trustpilot</strong></span>
+           </a>`
+      }
+    </div>
     <p class="footer-copy">
       © ${new Date().getFullYear()} ${COMPANY}. All rights reserved.<br>
       AfuChat® is a registered trademark of ${COMPANY}. Kampala, Uganda.

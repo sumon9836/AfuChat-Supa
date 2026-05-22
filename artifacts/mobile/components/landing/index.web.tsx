@@ -396,8 +396,25 @@ export function LandingNav({ active }: { active?: string }) {
 }
 
 const YEAR = new Date().getFullYear();
+const TP_BIZ_ID = process.env.EXPO_PUBLIC_TRUSTPILOT_BUSINESS_UNIT_ID ?? "";
 
 export function LandingFooter() {
+  useEffect(() => {
+    if (!TP_BIZ_ID) return;
+    try {
+      const tp = (window as any).Trustpilot;
+      if (tp) {
+        const el = document.querySelector(".trustpilot-widget");
+        if (el) tp.loadFromElement(el, true);
+      } else {
+        const s = document.createElement("script");
+        s.src = "//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js";
+        s.async = true;
+        document.head.appendChild(s);
+      }
+    } catch {}
+  }, []);
+
   return (
     <footer className="lp-footer">
       <div className="lp-footer-main">
@@ -437,14 +454,54 @@ export function LandingFooter() {
           <ul className="lp-flinks">
             <li><a href="/privacy"><ShieldCheck size={13} strokeWidth={1.8} />Privacy Policy</a></li>
             <li><a href="/terms"><FileText size={13} strokeWidth={1.8} />Terms of Service</a></li>
-            <li>
-              <a href="https://www.trustpilot.com/review/afuchat.com" target="_blank" rel="noopener noreferrer">
-                <span style={{ color: "#00B67A", fontSize: 13 }}>★</span> Trustpilot
-              </a>
-            </li>
           </ul>
         </div>
       </div>
+
+      {/* ── Trustpilot trust row ── */}
+      <div style={{
+        borderTop: "1px solid var(--lp-bdr,#e5e7eb)",
+        paddingTop: 20,
+        marginBottom: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+        {TP_BIZ_ID ? (
+          <div
+            className="trustpilot-widget"
+            data-locale="en-US"
+            data-template-id="53aa8807dec7e10d38f59f32"
+            data-businessunit-id={TP_BIZ_ID}
+            data-style-height="80px"
+            data-style-width="100%"
+            data-theme="light"
+            data-stars="4,5"
+          >
+            <a href="https://www.trustpilot.com/review/afuchat.com" target="_blank" rel="noopener noreferrer">
+              Trustpilot
+            </a>
+          </div>
+        ) : (
+          <a
+            href="https://www.trustpilot.com/review/afuchat.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 10,
+              padding: "10px 20px", borderRadius: 12,
+              border: "1.5px solid #00B67A",
+              background: "rgba(0,182,122,0.05)",
+              textDecoration: "none",
+              color: "inherit",
+            }}
+          >
+            <span style={{ color: "#00B67A", fontSize: 20, letterSpacing: 2, lineHeight: 1 }}>★★★★★</span>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>Rated 5 stars on <strong style={{ color: "#00B67A" }}>Trustpilot</strong></span>
+          </a>
+        )}
+      </div>
+
       <div className="lp-footer-bottom">
         <div>
           <div className="lp-footer-copy">© {YEAR} AfuChat Technologies Limited. All rights reserved.</div>
