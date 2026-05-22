@@ -82,13 +82,25 @@ let _store: MMKVLike | null = null;
  * NOT bundled in Expo Go — attempting to require it throws a fatal Hermes
  * error that bypasses JavaScript try/catch. We detect this environment first
  * so we can skip MMKV entirely and use the in-memory/localStorage fallback.
+ *
+ * Detection uses multiple signals for robustness across Expo SDK versions:
+ *   - appOwnership === "expo"          → Expo Go (all SDK versions, most reliable)
+ *   - executionEnvironment === "storeClient" → Expo Go (SDK ≤ 49 primary signal)
+ *   - __expo global                    → set by the Expo Go runtime
+ * Any one match is sufficient to bail out of MMKV.
  */
 function isExpoGo(): boolean {
   try {
-    // expo-constants is always available in Expo projects.
-    // executionEnvironment is "storeClient" in Expo Go and "bare" in builds.
     const Constants = require("expo-constants").default;
-    return Constants?.executionEnvironment === "storeClient";
+    if (
+      Constants?.appOwnership === "expo" ||
+      Constants?.executionEnvironment === "storeClient"
+    ) {
+      return true;
+    }
+    // Belt-and-suspenders: Expo Go injects a __expo global in the JS runtime.
+    if (typeof (global as any).__expo !== "undefined") return true;
+    return false;
   } catch {
     return false;
   }
