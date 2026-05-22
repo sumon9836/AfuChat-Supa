@@ -78,8 +78,10 @@ export default function CreatePostScreen() {
 
   async function pickImage() {
     const { getImageQuality } = await import("@/lib/networkQuality");
+    const libPerm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (libPerm.status !== "granted") return;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "images",
+      mediaTypes: ["images", "videos"],
       quality: getImageQuality(),
       allowsMultipleSelection: true,
       selectionLimit: 9 - images.length,
@@ -227,7 +229,7 @@ export default function CreatePostScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.root, { backgroundColor: colors.background }]}
-      behavior="padding"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
       <GlassHeader

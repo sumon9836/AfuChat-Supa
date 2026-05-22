@@ -3824,36 +3824,51 @@ STRICT RULES:
 
   async function pickFromCamera() {
     setShowAttachMenu(false);
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") { showAlert("Permission needed", "Camera access is required to take photos."); return; }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: pickerQuality });
+    const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+    if (camPerm.status !== "granted") { showAlert("Permission needed", "Camera access is required to take photos and videos."); return; }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images", "videos"],
+      quality: pickerQuality,
+      videoMaxDuration: 120,
+    });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
-      setAttachmentPreview({ uri: asset.uri, type: "image", mimeType: asset.mimeType || "image/jpeg" });
+      const isVideo = asset.type === "video";
+      setAttachmentPreview({ uri: asset.uri, type: isVideo ? "video" : "image", mimeType: asset.mimeType || (isVideo ? "video/mp4" : "image/jpeg") });
     }
   }
 
   async function pickFromGallery() {
     setShowAttachMenu(false);
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") { showAlert("Permission needed", "Gallery access is required."); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: pickerQuality, allowsMultipleSelection: false });
+    const libPerm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (libPerm.status !== "granted") { showAlert("Permission needed", "Gallery access is required to pick photos and videos."); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      quality: pickerQuality,
+      allowsMultipleSelection: false,
+      videoMaxDuration: 120,
+    });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
-      setAttachmentPreview({ uri: asset.uri, type: "image", mimeType: asset.mimeType || "image/jpeg" });
+      const isVideo = asset.type === "video";
+      setAttachmentPreview({ uri: asset.uri, type: isVideo ? "video" : "image", mimeType: asset.mimeType || (isVideo ? "video/mp4" : "image/jpeg") });
     }
   }
 
   async function pickDocument() {
     setShowAttachMenu(false);
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: "*/*", copyToCacheDirectory: true });
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
       if (!result.canceled && result.assets && result.assets[0]) {
         const doc = result.assets[0];
-        setAttachmentPreview({ uri: doc.uri, type: "file", name: doc.name });
+        setAttachmentPreview({ uri: doc.uri, type: "file", name: doc.name, mimeType: doc.mimeType });
       }
     } catch {
-      showAlert("Error", "Could not pick document");
+      showAlert("Error", "Could not open file picker.");
     }
   }
 

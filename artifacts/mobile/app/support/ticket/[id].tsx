@@ -200,7 +200,7 @@ export default function TicketDetail() {
 
       {/* Messages */}
       <KeyboardAvoidingView
-        behavior="padding"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 52 : 0}
       >

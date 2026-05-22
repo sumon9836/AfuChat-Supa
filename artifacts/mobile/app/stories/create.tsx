@@ -83,9 +83,15 @@ export default function CreateStoryScreen() {
 
   async function pickMedia() {
     try {
+      const libPerm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (libPerm.status !== "granted") {
+        showAlert("Permission needed", "Allow photo & video access to pick media for your story.");
+        return;
+      }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images", "videos"],
         quality: 0.8,
+        videoMaxDuration: 60,
       });
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
@@ -259,7 +265,7 @@ export default function CreateStoryScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior="padding"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
         <View style={styles.previewContainer}>

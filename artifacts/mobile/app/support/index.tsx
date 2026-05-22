@@ -262,7 +262,7 @@ export default function SupportCenter() {
 
       {/* New Ticket tab */}
       {tab === "new" && (
-        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <ScrollView
             style={st.scroll}
             contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 100 }}

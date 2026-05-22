@@ -475,7 +475,7 @@ export default function OrderDetailScreen() {
           </View>
         </ScrollView>
       ) : (
-        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }} keyboardVerticalOffset={0}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }} keyboardVerticalOffset={0}>
           <ScrollView
             ref={scrollRef}
             showsVerticalScrollIndicator={false}

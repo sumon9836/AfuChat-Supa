@@ -502,7 +502,7 @@ function ScanScreenMobile() {
       )}
 
       <Modal visible={showModal} animationType="slide" transparent>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
               <View style={styles.dragHandle} />

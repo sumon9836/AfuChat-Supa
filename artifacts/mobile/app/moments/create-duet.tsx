@@ -384,7 +384,7 @@ export default function CreateDuetScreen() {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
           contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 40 }]}
           keyboardShouldPersistTaps="handled"
