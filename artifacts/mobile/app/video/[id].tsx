@@ -1417,6 +1417,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
     const currentUser = userRef.current;
     let followingIds: string[] = [];
+
+    try {
     if (tab === "following" && currentUser) {
       const { data: followData } = await supabase.from("follows").select("following_id").eq("follower_id", currentUser.id);
       followingIds = (followData || []).map((f: any) => f.following_id);
@@ -1452,7 +1454,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     }
 
     const { data, error: qErr } = await query;
-    if (qErr) console.error("[VideoFeed] query error:", qErr.message, qErr.details);
+    if (qErr) console.warn("[VideoFeed] query error:", qErr.message);
 
     if (data && data.length > 0) {
       const postIds = data.map((p: any) => p.id);
@@ -1600,6 +1602,13 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
     if (isLoadMore) { loadingMoreRef.current = false; setLoadingMore(false); }
     else setLoading(false);
+    } catch (networkErr: any) {
+      // Network unavailable (offline) — keep whatever is already shown.
+      // If nothing is loaded yet, loading will resolve to the empty state.
+      console.warn("[VideoFeed] offline or network error:", networkErr?.message ?? networkErr);
+      if (isLoadMore) { loadingMoreRef.current = false; setLoadingMore(false); }
+      else setLoading(false);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]); // user intentionally omitted — read via userRef so auth refreshes never reset the feed
 
@@ -1927,8 +1936,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
   if (loading) {
     return (
-      <View style={[mStyles.root, { backgroundColor: colors.background }, isEmbedded && Platform.OS === "web" ? { position: "relative" as any, zIndex: undefined } : undefined]}>
-        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
+      <View style={[mStyles.root, isEmbedded && Platform.OS === "web" ? { position: "relative" as any, zIndex: undefined } : undefined]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <ShortsFeedSkeleton dark={isDark} />
         {/* Render the real header on top so navigation chrome is visible during load */}
         <View style={[mStyles.headerRow, { paddingTop: insets.top + 6 }]}>
@@ -1959,8 +1968,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   }
 
   return (
-    <View style={[mStyles.root, { backgroundColor: colors.background }, isEmbedded && Platform.OS === "web" ? { position: "relative" as any, zIndex: undefined } : undefined]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
+    <View style={[mStyles.root, isEmbedded && Platform.OS === "web" ? { position: "relative" as any, zIndex: undefined } : undefined]}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* Fixed header */}
       <View style={[mStyles.headerRow, { paddingTop: insets.top + 6 }]}>
@@ -2006,7 +2015,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
           style={{
             height: SCREEN_H, width: SCREEN_W,
             overflowY: "scroll", scrollSnapType: "y mandatory",
-            scrollbarWidth: "none", backgroundColor: colors.background,
+            scrollbarWidth: "none", backgroundColor: "#000",
             touchAction: "pan-y",
           } as React.CSSProperties}
         >
@@ -2031,7 +2040,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
             </div>
           ))}
           {loadingMore && (
-            <div style={{ height: SCREEN_H, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: colors.background, scrollSnapAlign: "start" } as React.CSSProperties}>
+            <div style={{ height: SCREEN_H, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#000", scrollSnapAlign: "start" } as React.CSSProperties}>
               <ActivityIndicator color="rgba(255,255,255,0.6)" size="small" />
             </div>
           )}
@@ -2070,9 +2079,9 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
           onLayout={onListLayout}
           // Misc
           decelerationRate="fast"
-          style={{ flex: 1, backgroundColor: colors.background }}
+          style={{ flex: 1, backgroundColor: "#000" }}
           ListFooterComponent={loadingMore ? (
-            <View style={{ width: SCREEN_W, height: listHeight, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
+            <View style={{ width: SCREEN_W, height: listHeight, alignItems: "center", justifyContent: "center", backgroundColor: "#000" }}>
               <ActivityIndicator color="rgba(255,255,255,0.6)" size="small" />
             </View>
           ) : null}
