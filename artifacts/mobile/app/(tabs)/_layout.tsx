@@ -281,8 +281,9 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
         headerShown: false,
         lazy: false,
         freezeOnBlur: true,
-        ...(({ contentStyle: { backgroundColor: colors.background } }) as any),
-        tabBarStyle: { display: "none" },
+        sceneStyle: { backgroundColor: colors.background },
+        tabBarStyle: { display: "none", backgroundColor: "transparent", elevation: 0, shadowOpacity: 0, borderTopWidth: 0 },
+        tabBarBackground: () => null,
       }}
     >
       <Tabs.Screen name="index"       options={{ href: null }} />

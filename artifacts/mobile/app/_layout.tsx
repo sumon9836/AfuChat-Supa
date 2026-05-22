@@ -9,6 +9,7 @@ import { Linking, Platform, StyleSheet, Text, TextInput } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Font from "expo-font";
+import { useTheme } from "@/hooks/useTheme";
 import * as SplashScreen from "expo-splash-screen";
 import { handleIncomingUrl } from "@/lib/deepLinkHandler";
 import {
@@ -49,6 +50,17 @@ function ActivityTrackerSync() {
   const { user } = useAuth();
   useEffect(() => { initActivityTracker(user?.id ?? null); }, [user?.id]);
   return null;
+}
+
+function ThemedStatusBar() {
+  const { isDark } = useTheme();
+  return (
+    <StatusBar
+      style={isDark ? "light" : "dark"}
+      translucent
+      backgroundColor="transparent"
+    />
+  );
 }
 
 export default function RootLayout() {
@@ -95,11 +107,9 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.root}>
-        {/* Translucent status bar — lets content draw edge-to-edge on Android.
-            Style is "auto" so it flips between light/dark with the theme. */}
-        <StatusBar style="auto" translucent backgroundColor="transparent" />
         <ThemeProvider>
           <AppAccentProvider>
+            <ThemedStatusBar />
             <DataModeProvider>
               <AuthProvider>
                 <ActivityTrackerSync />

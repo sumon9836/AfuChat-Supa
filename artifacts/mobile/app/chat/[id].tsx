@@ -4031,7 +4031,6 @@ STRICT RULES:
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
         staysActiveInBackground: false,
       });
       const { recording } = await Audio.Recording.createAsync({
@@ -4111,7 +4110,6 @@ STRICT RULES:
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
         staysActiveInBackground: false,
       });
       const { recording } = await Audio.Recording.createAsync({
