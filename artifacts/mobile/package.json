@@ -87,7 +87,7 @@
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "libphonenumber-js": "^1.12.42",
-    "lucide-react": "catalog:",
+    "lucide-react": "0.545.0",
     "react-native-mmkv": "^4.3.1",
     "react-native-nitro-modules": "^0.35.6",
     "react-native-play-install-referrer": "^1.1.9",
