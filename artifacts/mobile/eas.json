@@ -7,6 +7,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "prebuildCommand": "bash ../../scripts/prebuild-clean.sh",
       "env": {
         "EXPO_PUBLIC_EAS_PROJECT_ID": "363a3c64-5a90-4aae-86b5-aa54014921ef",
         "EXPO_PUBLIC_SUPABASE_URL": "https://rhnsjqqtdzlkvqazfcbg.supabase.co",
@@ -19,6 +20,7 @@
       },
       "distribution": "internal",
       "autoIncrement": true,
+      "prebuildCommand": "bash ../../scripts/prebuild-clean.sh",
       "env": {
         "EXPO_PUBLIC_EAS_PROJECT_ID": "363a3c64-5a90-4aae-86b5-aa54014921ef",
         "EXPO_PUBLIC_SUPABASE_URL": "https://rhnsjqqtdzlkvqazfcbg.supabase.co",
@@ -31,6 +33,7 @@
         "buildType": "app-bundle"
       },
       "autoIncrement": true,
+      "prebuildCommand": "bash ../../scripts/prebuild-clean.sh",
       "env": {
         "EXPO_PUBLIC_EAS_PROJECT_ID": "363a3c64-5a90-4aae-86b5-aa54014921ef",
         "EXPO_PUBLIC_SUPABASE_URL": "https://rhnsjqqtdzlkvqazfcbg.supabase.co",
