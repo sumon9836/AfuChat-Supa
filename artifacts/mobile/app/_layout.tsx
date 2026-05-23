@@ -59,7 +59,7 @@ function ThemedStatusBar() {
     <StatusBar
       style={isDark ? "light" : "dark"}
       translucent
-      backgroundColor={isDark ? "#0F0F0F" : "#F5F0E8"}
+      backgroundColor="transparent"
       animated
     />
   );

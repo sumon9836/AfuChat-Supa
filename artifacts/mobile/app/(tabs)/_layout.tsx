@@ -281,7 +281,7 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
         headerShown: false,
         lazy: false,
         freezeOnBlur: true,
-        sceneStyle: { backgroundColor: colors.background },
+        sceneStyle: { backgroundColor: "transparent" },
         tabBarStyle: { display: "none", backgroundColor: "transparent", elevation: 0, shadowOpacity: 0, borderTopWidth: 0 },
         tabBarBackground: () => null,
       }}
