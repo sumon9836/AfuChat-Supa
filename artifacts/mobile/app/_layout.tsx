@@ -34,6 +34,7 @@ import { TrustpilotReviewPrompt } from "@/components/TrustpilotReviewPrompt";
 import UpdatePrompt from "@/components/UpdatePrompt";
 import { initConnectivityToasts } from "@/lib/toast";
 import { initActivityTracker } from "@/lib/activityTracker";
+import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
 
 // Keep the native splash visible until fonts are ready so we never flash
 // a blank screen between the system launch image and the app UI.
@@ -121,27 +122,25 @@ export default function RootLayout() {
                 <LanguageProvider>
                   <AdvancedFeaturesProvider>
                     <ChatPreferencesProvider>
-                      <Stack
-                        screenOptions={{
-                          headerShown: false,
-                          // Android uses a slide transition; iOS uses the native
-                          // push animation. Both feel platform-correct.
-                          animation: Platform.OS === "android"
-                            ? "slide_from_right"
-                            : "ios_from_right",
-                          // Transparent so each screen's own background shows —
-                          // prevents the cyan flash visible between navigations.
-                          contentStyle: { backgroundColor: "transparent" },
-                          freezeOnBlur: true,
-                        }}
-                      >
-                        <Stack.Screen name="index" options={{ animation: "none", contentStyle: { backgroundColor: "#ffffff" } }} />
-                        <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
-                        <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
-                        <Stack.Screen name="+not-found" />
-                      </Stack>
-                      <ToastContainer />
-                      <AlertModal />
+                      <MiniAppRuntimeProvider>
+                        <Stack
+                          screenOptions={{
+                            headerShown: false,
+                            animation: Platform.OS === "android"
+                              ? "slide_from_right"
+                              : "ios_from_right",
+                            contentStyle: { backgroundColor: "transparent" },
+                            freezeOnBlur: true,
+                          }}
+                        >
+                          <Stack.Screen name="index" options={{ animation: "none", contentStyle: { backgroundColor: "#ffffff" } }} />
+                          <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
+                          <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
+                          <Stack.Screen name="+not-found" />
+                        </Stack>
+                        <ToastContainer />
+                        <AlertModal />
+                      </MiniAppRuntimeProvider>
                     </ChatPreferencesProvider>
                   </AdvancedFeaturesProvider>
                 </LanguageProvider>

@@ -1,0 +1,182 @@
+Build AfuChat as a TRUE native Super App using React Native + Expo architecture similar to WeChat and Binance.
+
+IMPORTANT:
+- Use React Native + Expo only
+- Do NOT use web-based mini apps
+- Do NOT use PWAs
+- Do NOT use browser-style modules
+- Everything must remain native inside AfuChat
+- Every mini app must feel like a real standalone app
+- UI/UX must be fully native and ultra smooth
+
+MAIN GOAL:
+Create a modular native Super App system where AfuChat can host multiple independent mini apps inside one application while keeping native performance and native UX.
+
+TECH STACK:
+- React Native
+- Expo SDK
+- Expo Router
+- React Navigation
+- Expo Dev Client
+- Expo Updates
+- Dynamic Imports
+- Zustand or Redux
+- Reanimated
+- Gesture Handler
+- Native Stack Navigation
+- Expo Modules API
+
+IMPORTANT:
+Use Expo prebuild/eject only where native Android features are required such as:
+- separate Android tasks
+- taskAffinity
+- custom activities
+- advanced lifecycle handling
+
+CORE ARCHITECTURE:
+Create:
+1. AfuChat Core App
+2. Native Mini App Runtime
+3. Dynamic Module Loader
+4. Module Registry
+5. Independent Navigation Runtime
+6. Shared SDK Layer
+7. Native Android Task Manager
+
+MINI APP SYSTEM:
+Mini apps must:
+- behave like real native apps
+- have independent navigation stacks
+- preserve state independently
+- restore state after reopen
+- load dynamically
+- unload from memory when inactive
+- support deep linking
+- support background persistence
+
+DO NOT:
+- use tabs as fake mini apps
+- use web wrappers
+- use iframe-like systems
+- use heavy WebViews
+
+EXAMPLE MINI APPS:
+- AfuAI
+- AfuPay
+- AfuMarket
+- AfuMusic
+- AfuChannel
+- AfuGames
+- AfuBusiness
+
+MODULE MANIFEST SYSTEM:
+{
+  "id": "afupay",
+  "name": "AfuPay",
+  "version": "1.0.0",
+  "entry": "modules/afupay/index.tsx",
+  "native": true,
+  "separateTask": true,
+  "keepAlive": true
+}
+
+ANDROID TASK SYSTEM:
+Implement native Android task separation.
+
+Goal:
+When user opens AfuChannel:
+- it behaves like an independent app
+- it appears independently in Android recent apps
+- reopening restores exact module state
+- still runs under AfuChat internally
+
+Use:
+- custom Android activities
+- taskAffinity
+- singleTask
+- documentLaunchMode="always"
+
+Since Expo Go cannot support this:
+- use Expo Dev Client
+- use prebuild workflow
+- create custom native Android configuration
+
+NAVIGATION:
+Each mini app must:
+- have isolated navigation container
+- maintain independent route history
+- preserve screen state
+- support deep linking
+- restore navigation after reopen
+
+PERFORMANCE REQUIREMENTS:
+- ultra smooth animations
+- no white flash screens
+- native transitions
+- lazy load modules
+- dynamic imports
+- code splitting
+- optimized memory management
+- minimize APK size
+- reduce startup time
+- destroy inactive modules intelligently
+
+STATE MANAGEMENT:
+Each mini app should:
+- have isolated state
+- optionally share global SDK state
+- persist independently
+- avoid unnecessary rerenders
+
+Use:
+- Zustand or Redux Toolkit
+- MMKV or AsyncStorage
+- React Query where needed
+
+SHARED SDK/APIs:
+Provide controlled APIs:
+- authentication
+- wallet/payments
+- messaging
+- notifications
+- AI access
+- uploads
+- camera/media
+- analytics
+
+through internal native SDK layer.
+
+UI/UX REQUIREMENTS:
+The experience must feel:
+- premium
+- modern
+- fast
+- native
+- fluid
+- independent
+- app-like
+
+Animations should match:
+- Telegram
+- WeChat
+- Binance
+- TikTok quality
+
+SECURITY:
+- sandbox mini apps
+- validate manifests
+- isolate module permissions
+- secure native bridges
+- prevent unauthorized access
+
+FUTURE SCALABILITY:
+Design the architecture for:
+- downloadable native modules
+- third-party mini apps
+- plugin ecosystem
+- app marketplace inside AfuChat
+- OTA module updates using Expo Updates
+
+IMPORTANT FINAL NOTE:
+This is NOT a normal React Native app.
+This is a native modular Super App ecosystem built with React Native + Expo where mini apps behave like real standalone apps while staying inside AfuChat.

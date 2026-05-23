@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "@/lib/haptics";
+import { useSuperApp } from "@/lib/superapp/MiniAppRuntime";
 import { useTheme } from "@/hooks/useTheme";
 import OfflineBanner from "@/components/ui/OfflineBanner";
 import { useAuth } from "@/context/AuthContext";
@@ -35,6 +36,7 @@ type AppItem = {
   featuredSub?: string;
   adminOnly?: boolean;
   comingSoon?: boolean;
+  miniApp?: boolean;
 };
 
 type Category = {
@@ -45,18 +47,83 @@ type Category = {
 
 const CATEGORIES: Category[] = [
   {
-    id: "ai",
-    title: "Intelligence",
+    id: "super",
+    title: "Super Apps",
     apps: [
       {
         id: "afuai",
-        label: "AfuAi",
+        label: "AfuAI",
         icon: "sparkles",
         gradient: ["#00BCD4", "#0097A7"],
         route: "/ai",
         badge: "AI",
-        featuredSub: "Your intelligent assistant. Ask anything, do everything.",
+        miniApp: true,
+        featuredSub: "Your intelligent AI assistant. Ask anything, do everything.",
       },
+      {
+        id: "afupay",
+        label: "AfuPay",
+        icon: "wallet",
+        gradient: ["#34C759", "#00C781"],
+        route: "/wallet",
+        miniApp: true,
+        featuredSub: "Send, receive and manage your ACoins & Nexa.",
+      },
+      {
+        id: "afumarket",
+        label: "AfuMarket",
+        icon: "storefront",
+        gradient: ["#AF52DE", "#BF5AF2"],
+        route: "/store",
+        badge: "NEW",
+        miniApp: true,
+        featuredSub: "Shop from verified stores and sellers.",
+      },
+      {
+        id: "afuchannel",
+        label: "AfuChannel",
+        icon: "radio",
+        gradient: ["#FF9500", "#FF6B00"],
+        route: "/channels",
+        miniApp: true,
+        featuredSub: "Discover and follow broadcast channels.",
+      },
+      {
+        id: "afumusic",
+        label: "AfuMusic",
+        icon: "musical-notes",
+        gradient: ["#5856D6", "#7B79E8"],
+        route: "/music",
+        badge: "BETA",
+        miniApp: true,
+        featuredSub: "Stream music and podcasts inside AfuChat.",
+      },
+      {
+        id: "afubusiness",
+        label: "AfuBusiness",
+        icon: "briefcase",
+        gradient: ["#1C1C1E", "#3A3A3C"],
+        route: "/business",
+        miniApp: true,
+        featuredSub: "Tools and analytics for your business.",
+      },
+      {
+        id: "afugames",
+        label: "AfuGames",
+        icon: "game-controller",
+        gradient: ["#FF3B30", "#FF6B35"],
+        route: "/games",
+        badge: "SOON",
+        miniApp: true,
+        comingSoon: true,
+        featuredSub: "Play mini games and compete with friends.",
+      },
+    ],
+  },
+  {
+    id: "ai",
+    title: "Intelligence",
+    apps: [
       {
         id: "search",
         label: "Search",
@@ -239,6 +306,7 @@ function AppTile({
   onTap: (id: string) => void;
 }) {
   const { colors, accent } = useTheme();
+  const { openApp } = useSuperApp();
   const scale = useRef(new Animated.Value(1)).current;
 
   function handlePressIn() {
@@ -254,7 +322,11 @@ function AppTile({
       return;
     }
     onTap(app.id);
-    router.push(app.route as any);
+    if (app.miniApp) {
+      openApp(app.id);
+    } else {
+      router.push(app.route as any);
+    }
   }
 
   return (
@@ -326,6 +398,7 @@ function AppGrid({
 
 function FeaturedBanner({ app, onTap }: { app: AppItem; onTap: (id: string) => void }) {
   const { colors, accent } = useTheme();
+  const { openApp } = useSuperApp();
 
   function handlePress() {
     Haptics.selectionAsync();
@@ -334,7 +407,11 @@ function FeaturedBanner({ app, onTap }: { app: AppItem; onTap: (id: string) => v
       return;
     }
     onTap(app.id);
-    router.push(app.route as any);
+    if (app.miniApp) {
+      openApp(app.id);
+    } else {
+      router.push(app.route as any);
+    }
   }
 
   return (
