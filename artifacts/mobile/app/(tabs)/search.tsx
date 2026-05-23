@@ -474,7 +474,8 @@ export default function SearchScreen() {
             ? (() => {
                 let pq = supabase.from("profiles")
                   .select("id, handle, display_name, avatar_url, bio, is_verified, is_organization_verified, current_grade, country, xp")
-                  .or(`handle.ilike.${pat},display_name.ilike.${pat},bio.ilike.${pat}`);
+                  .or(`handle.ilike.${pat},display_name.ilike.${pat},bio.ilike.${pat}`)
+                  .or("hide_from_search.is.null,hide_from_search.eq.false");
                 if (vOnly) pq = pq.eq("is_verified", true);
                 pq = pq.order("xp", { ascending: false });
                 return pq.limit(all ? 5 : 25);

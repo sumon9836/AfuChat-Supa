@@ -45,6 +45,7 @@ export default function FollowersScreen() {
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [filtered, setFiltered] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listHidden, setListHidden] = useState(false);
   const [search, setSearch] = useState("");
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [myFollowerIds, setMyFollowerIds] = useState<Set<string>>(new Set());
@@ -80,6 +81,23 @@ export default function FollowersScreen() {
     const isReset = page === 0;
     if (isReset) { setLoading(true); setUsers([]); }
     try {
+      // Enforce visibility privacy: if the list owner has hidden this list, block non-owners
+      if (isReset && !isOwnProfile && userId) {
+        const { data: privData } = await supabase
+          .from("profiles")
+          .select("hide_followers_list, hide_following_list")
+          .eq("id", userId)
+          .single();
+        const fieldName = type === "followers" ? "hide_followers_list" : "hide_following_list";
+        if (privData?.[fieldName]) {
+          setListHidden(true);
+          setLoading(false);
+          return;
+        } else {
+          setListHidden(false);
+        }
+      }
+
       const followCol = type === "followers" ? "following_id" : "follower_id";
       const joinCol = type === "followers" ? "follower_id" : "following_id";
       const profileKey = type === "followers" ? "follower" : "following";
@@ -279,6 +297,14 @@ export default function FollowersScreen() {
       {loading ? (
         <View style={{ padding: 8, gap: 2 }}>
           {[1,2,3,4,5,6,7,8].map(i => <ContactRowSkeleton key={i} />)}
+        </View>
+      ) : listHidden ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="lock-closed" size={48} color={colors.textMuted} />
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>This list is private</Text>
+          <Text style={[styles.emptyDesc, { color: colors.textMuted }]}>
+            This account has chosen to keep their {title.toLowerCase()} list hidden.
+          </Text>
         </View>
       ) : (
         <>

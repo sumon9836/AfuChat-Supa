@@ -912,7 +912,7 @@ export default function DiscoverScreen() {
     const fySelect = `
       id, author_id, content, image_url, created_at, view_count, visibility, language_code,
       post_type, article_title, article_body, video_url,
-      profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified, country, interests),
+      profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified, country, interests, hide_posts_non_followers),
       post_images(image_url, display_order),
       video_assets!posts_video_asset_id_fkey(duration_seconds)
     `;
@@ -1061,6 +1061,15 @@ export default function DiscoverScreen() {
 
       const followingSet = new Set((followingData || []).map((f: any) => f.following_id));
 
+      // Enforce hide_posts_non_followers: remove posts from authors who restrict
+      // visibility to their followers only, when the current viewer doesn't follow them.
+      const visibleData = data.filter((p: any) => {
+        if (p.profiles?.hide_posts_non_followers && p.author_id !== user?.id && !followingSet.has(p.author_id)) {
+          return false;
+        }
+        return true;
+      });
+
       const authorInteractionMap: Record<string, number> = {};
       for (const al of (myAuthorLikes || [])) {
         const authorId = (al as any).posts?.author_id;
@@ -1072,7 +1081,7 @@ export default function DiscoverScreen() {
       }
 
       const authorPostCount: Record<string, number> = {};
-      for (const p of data) {
+      for (const p of visibleData) {
         const aid = (p as any).author_id;
         authorPostCount[aid] = (authorPostCount[aid] || 0) + 1;
       }
@@ -1080,7 +1089,7 @@ export default function DiscoverScreen() {
       // Load seen post IDs in parallel with scoring (already have data at this point)
       const seenPostIds = await getSeenPostIds();
 
-      const scored = data.map((p: any) => {
+      const scored = visibleData.map((p: any) => {
         const likeCount = likeMap[p.id] || 0;
         const replyCount = replyMap[p.id] || 0;
         const hasImages = (p.post_images?.length > 0) || !!p.image_url;

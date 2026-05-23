@@ -65,6 +65,8 @@ type Profile = {
   last_seen: string | null;
   show_online_status: boolean;
   acoin: number;
+  hide_followers_list?: boolean;
+  hide_following_list?: boolean;
 };
 
 type UserPost = {
@@ -258,7 +260,7 @@ export default function ContactProfileScreen() {
     if (!hasFreshCache) {
       supabase
         .from("profiles")
-        .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, is_business_mode, xp, current_grade, website_url, country, created_at, last_seen, show_online_status, acoin")
+        .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, is_business_mode, xp, current_grade, website_url, country, created_at, last_seen, show_online_status, acoin, hide_followers_list, hide_following_list")
         .eq("id", id)
         .single()
         .then(({ data }) => {
@@ -555,13 +557,27 @@ export default function ContactProfileScreen() {
             <Text style={[st.statNum, { color: colors.text }]}>{fmtNum(postCount)}</Text>
             <Text style={[st.statLabel, { color: colors.textSecondary }]}>Posts</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={st.statCell} activeOpacity={0.6} onPress={() => router.push({ pathname: "/followers", params: { userId: id, type: "followers", ownerHandle: profile?.handle } })}>
-            <Text style={[st.statNum, { color: colors.text }]}>{fmtNum(followerCount)}</Text>
-            <Text style={[st.statLabel, { color: colors.textSecondary }]}>Followers</Text>
+          <TouchableOpacity
+            style={st.statCell}
+            activeOpacity={profile?.hide_followers_list ? 1 : 0.6}
+            onPress={profile?.hide_followers_list ? undefined : () => router.push({ pathname: "/followers", params: { userId: id, type: "followers", ownerHandle: profile?.handle } })}
+          >
+            <Text style={[st.statNum, { color: colors.text }]}>{profile?.hide_followers_list ? "—" : fmtNum(followerCount)}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+              {profile?.hide_followers_list && <Ionicons name="lock-closed" size={10} color={colors.textMuted} />}
+              <Text style={[st.statLabel, { color: colors.textSecondary }]}>Followers</Text>
+            </View>
           </TouchableOpacity>
-          <TouchableOpacity style={st.statCell} activeOpacity={0.6} onPress={() => router.push({ pathname: "/followers", params: { userId: id, type: "following", ownerHandle: profile?.handle } })}>
-            <Text style={[st.statNum, { color: colors.text }]}>{fmtNum(followingCount)}</Text>
-            <Text style={[st.statLabel, { color: colors.textSecondary }]}>Following</Text>
+          <TouchableOpacity
+            style={st.statCell}
+            activeOpacity={profile?.hide_following_list ? 1 : 0.6}
+            onPress={profile?.hide_following_list ? undefined : () => router.push({ pathname: "/followers", params: { userId: id, type: "following", ownerHandle: profile?.handle } })}
+          >
+            <Text style={[st.statNum, { color: colors.text }]}>{profile?.hide_following_list ? "—" : fmtNum(followingCount)}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+              {profile?.hide_following_list && <Ionicons name="lock-closed" size={10} color={colors.textMuted} />}
+              <Text style={[st.statLabel, { color: colors.textSecondary }]}>Following</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
