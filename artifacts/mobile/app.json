@@ -143,7 +143,8 @@
         {
           "photosPermission": "AfuChat uses your photo library to let you save and share media.",
           "savePhotosPermission": "AfuChat saves media to your photo library.",
-          "isAccessMediaLocationEnabled": true
+          "isAccessMediaLocationEnabled": true,
+          "audioPermission": "AfuChat uses your audio library to let you save and share audio files."
         }
       ]
     ],
