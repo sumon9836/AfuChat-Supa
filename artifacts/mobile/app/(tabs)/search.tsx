@@ -77,16 +77,8 @@ const TABS: { id: SearchTab; label: string; icon: string }[] = [
   { id: "market",   label: "Market",   icon: "storefront" },
 ];
 
-const CATEGORIES = [
-  { id: "people",   label: "People",   icon: "people",        gradient: [BRAND,  "#0097A7"]   as [string,string] },
-  { id: "posts",    label: "Posts",    icon: "document-text", gradient: ["#007AFF","#5AC8FA"] as [string,string] },
-  { id: "videos",   label: "Videos",   icon: "play-circle",   gradient: [RED,    "#FF6B6B"]   as [string,string] },
-  { id: "channels", label: "Channels", icon: "megaphone",     gradient: [PURPLE, "#A855F7"]   as [string,string] },
-  { id: "events",   label: "Events",   icon: "calendar",      gradient: [WARN,   "#FFCC00"]   as [string,string] },
-  { id: "jobs",     label: "Jobs",     icon: "briefcase",     gradient: [SUCCESS,"#30D158"]   as [string,string] },
-  { id: "gifts",    label: "Gifts",    icon: "gift",          gradient: [GOLD,   "#F59E0B"]   as [string,string] },
-  { id: "market",   label: "Market",   icon: "storefront",    gradient: [INDIGO, "#7986CB"]   as [string,string] },
-];
+// CATEGORIES is computed inside SearchScreen so gradients pick up the
+// dynamic accent. See the `const CATEGORIES = …` declaration inside the component.
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -283,6 +275,21 @@ function RowSkeleton({ bg }: { bg: string }) {
 export default function SearchScreen() {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  // Shadow the module-level BRAND constant so every reference inside this
+  // component (and all its inner functions) uses the user's chosen accent.
+  const BRAND = colors.accent;
+
+  const CATEGORIES = [
+    { id: "people",   label: "People",   icon: "people",        gradient: [BRAND,  "#0097A7"]   as [string,string] },
+    { id: "posts",    label: "Posts",    icon: "document-text", gradient: ["#007AFF","#5AC8FA"] as [string,string] },
+    { id: "videos",   label: "Videos",   icon: "play-circle",   gradient: [RED,    "#FF6B6B"]   as [string,string] },
+    { id: "channels", label: "Channels", icon: "megaphone",     gradient: [PURPLE, "#A855F7"]   as [string,string] },
+    { id: "events",   label: "Events",   icon: "calendar",      gradient: [WARN,   "#FFCC00"]   as [string,string] },
+    { id: "jobs",     label: "Jobs",     icon: "briefcase",     gradient: [SUCCESS,"#30D158"]   as [string,string] },
+    { id: "gifts",    label: "Gifts",    icon: "gift",          gradient: [GOLD,   "#F59E0B"]   as [string,string] },
+    { id: "market",   label: "Market",   icon: "storefront",    gradient: [INDIGO, "#7986CB"]   as [string,string] },
+  ];
+
   const insets = useSafeAreaInsets();
   const { width: SW } = useWindowDimensions();
   const { tag: incomingTag, q: incomingQ } = useLocalSearchParams<{ tag?: string; q?: string }>();
