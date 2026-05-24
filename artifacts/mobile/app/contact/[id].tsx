@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useOpenLink } from "@/lib/useOpenLink";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "@/lib/haptics";
@@ -254,6 +254,35 @@ export default function ContactProfileScreen() {
     }
   }, [profile?.handle, user]);
 
+  // Fetch live follow/block state from Supabase.
+  // Extracted so it can be called on mount AND on screen focus.
+  const fetchFollowState = useCallback(async () => {
+    if (!id || !user) return;
+    const [followRes, theyRes, blockRes] = await Promise.all([
+      supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", id).maybeSingle(),
+      supabase.from("follows").select("id").eq("follower_id", id).eq("following_id", user.id).maybeSingle(),
+      supabase.from("blocked_users").select("id").eq("blocker_id", user.id).eq("blocked_id", id).maybeSingle(),
+    ]);
+    setIsFollowing(!!followRes.data);
+    setTheyFollowMe(!!theyRes.data);
+    setIsBlocked(!!blockRes.data);
+    // Also refresh the counts so they stay in sync with the actual DB rows
+    const [fcRes, fgRes] = await Promise.all([
+      supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", id),
+      supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", id),
+    ]);
+    setFollowerCount(fcRes.count ?? 0);
+    setFollowingCount(fgRes.count ?? 0);
+  }, [id, user]);
+
+  // Re-sync follow state every time the screen comes back into focus
+  // (handles the "leave page → come back" case without a full remount).
+  useFocusEffect(
+    useCallback(() => {
+      fetchFollowState();
+    }, [fetchFollowState])
+  );
+
   useEffect(() => {
     if (!id) return;
     const hasFreshCache = !!getProfileCache(id as string);
@@ -283,13 +312,7 @@ export default function ContactProfileScreen() {
 
     supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", id).in("visibility", ["public", "followers"]).then(({ count }) => setPostCount(count || 0));
 
-    if (user) {
-      supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", id).maybeSingle().then(({ data }) => setIsFollowing(!!data));
-      supabase.from("follows").select("id").eq("follower_id", id).eq("following_id", user.id).maybeSingle().then(({ data }) => setTheyFollowMe(!!data));
-      supabase.from("blocked_users").select("id").eq("blocker_id", user.id).eq("blocked_id", id).maybeSingle().then(({ data }) => setIsBlocked(!!data));
-    }
-    supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", id).then(({ count }) => setFollowerCount(count || 0));
-    supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", id).then(({ count }) => setFollowingCount(count || 0));
+    fetchFollowState();
     if (user) {
       supabase.rpc("get_mutual_followers_count", { user_a: user.id, user_b: id }).then(({ data }) => setMutualCount(data || 0), () => {});
 
@@ -434,21 +457,47 @@ export default function ContactProfileScreen() {
     if (!id) return;
     if (!user) { router.push("/(auth)/login"); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // Snapshot current state so we can roll back on error
+    const prevFollowing = isFollowing;
+    const prevCount = followerCount;
+
+    // Optimistic update — feels instant to the user
     if (isFollowing) {
-      const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", id);
-      if (!error) {
-        setIsFollowing(false);
-        setFollowerCount((c) => Math.max(0, c - 1));
+      setIsFollowing(false);
+      setFollowerCount((c) => Math.max(0, c - 1));
+      const { error } = await supabase
+        .from("follows")
+        .delete()
+        .eq("follower_id", user.id)
+        .eq("following_id", id);
+      if (error) {
+        // Roll back — the unfollow didn't persist
+        setIsFollowing(prevFollowing);
+        setFollowerCount(prevCount);
+        showAlert("Error", "Could not unfollow. Please try again.");
+        console.error("[toggleFollow] unfollow error:", error);
       }
     } else {
-      const { error } = await supabase.from("follows").insert({ follower_id: user.id, following_id: id });
-      if (!error) {
-        setIsFollowing(true);
-        setFollowerCount((c) => c + 1);
+      setIsFollowing(true);
+      setFollowerCount((c) => c + 1);
+      const { error } = await supabase
+        .from("follows")
+        .insert({ follower_id: user.id, following_id: id });
+      if (error) {
+        // Roll back — the follow didn't persist
+        setIsFollowing(prevFollowing);
+        setFollowerCount(prevCount);
+        showAlert("Error", "Could not follow. Please try again.");
+        console.error("[toggleFollow] follow error:", error);
+      } else {
         notifyNewFollow({ targetUserId: id as string, followerName: myProfile?.display_name || "Someone", followerUserId: user.id });
         try { const { rewardXp } = await import("../../lib/rewardXp"); rewardXp("follow_user"); } catch (_) {}
       }
     }
+
+    // Always re-sync from DB after the write so local state matches reality
+    fetchFollowState();
   }
 
   function toggleBlock() {
