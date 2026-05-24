@@ -6,7 +6,8 @@ enableScreens(true);
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Linking, Platform, StyleSheet, Text, TextInput, View } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
+import { setCurrentPage, resolvePageInfo } from "@/lib/pageTracker";
 import { StatusBar } from "expo-status-bar";
 import * as Font from "expo-font";
 import { useTheme } from "@/hooks/useTheme";
@@ -51,6 +52,19 @@ if (Platform.OS !== "web") {
 function ActivityTrackerSync() {
   const { user } = useAuth();
   useEffect(() => { initActivityTracker(user?.id ?? null); }, [user?.id]);
+  return null;
+}
+
+/**
+ * Watches the active Expo Router pathname and writes it to the module-level
+ * PageTracker store so mini apps (which are always-mounted) can always read
+ * the most recent main-app route without needing their own usePathname() hook.
+ */
+function PageWatcher() {
+  const pathname = usePathname();
+  useEffect(() => {
+    setCurrentPage(resolvePageInfo(pathname));
+  }, [pathname]);
   return null;
 }
 
@@ -126,6 +140,7 @@ export default function RootLayout() {
             <DataModeProvider>
               <AuthProvider>
                 <ActivityTrackerSync />
+                <PageWatcher />
                 <PushNotificationManager />
                 <TrustpilotReviewPrompt />
                 <UpdatePrompt />

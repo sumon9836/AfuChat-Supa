@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -20,6 +20,8 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getEdgeFnBase, edgeHeaders } from "@/lib/aiHelper";
 import { buildNavigationContext, ACTION_ROUTES_GUIDE } from "@/lib/platformKnowledge";
+import { useSuperApp } from "@/lib/superapp/SuperAppContext";
+import { getCurrentPage, type PageInfo } from "@/lib/pageTracker";
 
 type Role = "user" | "assistant" | "system";
 
@@ -31,7 +33,10 @@ type ChatMessage = {
   suggestions?: string[];
   actions?: { label: string; route: string }[];
   isThinking?: boolean;
+  isPageNotice?: boolean;
 };
+
+const HOME_PATHNAME = "/";
 
 const WELCOME: ChatMessage = {
   id: "welcome",
@@ -47,14 +52,19 @@ const WELCOME: ChatMessage = {
   ],
 };
 
-function buildSystemPrompt(userCtx: string): string {
+function buildSystemPrompt(userCtx: string, page: PageInfo): string {
   const platform = buildNavigationContext();
+
+  const pageCtx = page.pathname !== HOME_PATHNAME
+    ? `\nCURRENT PAGE CONTEXT:\nThe user is currently viewing the "${page.name}" screen.\n${page.summary}\nIf the user asks "what is this page?", "what can I do here?", "tell me about this page", or any similar question, answer using this context.\n`
+    : "";
+
   return `You are AfuAI, a capable and professional AI assistant built into AfuChat — a social super-app from Uganda. You can help with anything: writing, coding, math, advice, research, creative work, translations, general questions, and more.
 
 You have access to the user's AfuChat account data below. Only reference it when the user asks about their account, balance, transactions, followers, or anything platform-related.
 
 ${userCtx}
-
+${pageCtx}
 PLATFORM KNOWLEDGE — use this to answer any question about how the app works, where to find features, or how to navigate:
 ${platform}
 
@@ -91,7 +101,6 @@ function parseTags(raw: string): { text: string; suggestions: string[]; actions:
     if (t && suggestions.length < 3) suggestions.push(t);
     return "";
   });
-  // Strip any leftover [EXEC:...] or unknown tags
   text = text.replace(/\[[A-Z]+:[^\]]*\]/g, "").trim();
 
   return { text, suggestions, actions };
@@ -123,23 +132,65 @@ export default function AfuAIApp() {
   const { colors, accent } = useTheme();
   const { user, profile } = useAuth();
   const insets = useSafeAreaInsets();
+  const { activeAppId } = useSuperApp();
 
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Page tracking
+  const [activePage, setActivePage] = useState<PageInfo>(() => getCurrentPage());
+  const prevPathnameRef = useRef<string>("");
+
   const listRef = useRef<FlatList>(null);
   const userCtxRef = useRef<string>("");
-  const systemPromptRef = useRef<string>("");
 
   const scrollToEnd = useCallback((animated = true) => {
     setTimeout(() => listRef.current?.scrollToEnd({ animated }), 100);
   }, []);
 
+  // ── Page tracking: fire when this mini app becomes active ─────────────────
+  useEffect(() => {
+    if (activeAppId !== "afuai") return;
+
+    const page = getCurrentPage();
+    setActivePage(page);
+
+    // If user navigated to a different page while AI was minimised, inject
+    // a friendly page-notice message into the chat.
+    if (
+      prevPathnameRef.current &&
+      prevPathnameRef.current !== page.pathname &&
+      page.pathname !== HOME_PATHNAME
+    ) {
+      const notice: ChatMessage = {
+        id: `${Date.now()}-nav`,
+        role: "assistant",
+        content: `📍 You're now on **${page.name}**.\n${page.summary}`,
+        ts: Date.now(),
+        isPageNotice: true,
+        suggestions: [
+          `What can I do on this page?`,
+          `Tell me more about ${page.name}`,
+        ],
+      };
+      setMessages((prev) => [...prev, notice]);
+      setTimeout(() => scrollToEnd(), 150);
+    }
+
+    prevPathnameRef.current = page.pathname;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAppId]);
+
+  // ── Send message ──────────────────────────────────────────────────────────
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || loading) return;
       setInput("");
+
+      const page = getCurrentPage();
+      setActivePage(page);
 
       const userMsg: ChatMessage = {
         id: `${Date.now()}-user`,
@@ -161,22 +212,19 @@ export default function AfuAIApp() {
       scrollToEnd();
 
       try {
-        // Build user context once per session
         if (!userCtxRef.current && user && profile) {
           userCtxRef.current = await buildUserContext(user.id, profile);
         }
-        if (!systemPromptRef.current) {
-          systemPromptRef.current = buildSystemPrompt(userCtxRef.current);
-        }
 
-        // Build conversation history — last 10 user/assistant turns for context
+        // Rebuild system prompt each send so page context is always fresh
+        const systemPrompt = buildSystemPrompt(userCtxRef.current, page);
+
         setMessages((prev) => {
           const history = prev
-            .filter((m) => !m.isThinking && m.id !== "welcome" && (m.role === "user" || m.role === "assistant"))
+            .filter((m) => !m.isThinking && m.id !== "welcome" && !m.isPageNotice && (m.role === "user" || m.role === "assistant"))
             .slice(-10)
             .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
-          // Fire the fetch inside the state setter so we have the latest history
           (async () => {
             try {
               const res = await fetch(`${getEdgeFnBase()}/afu-ai-reply`, {
@@ -184,7 +232,7 @@ export default function AfuAIApp() {
                 headers: edgeHeaders(),
                 body: JSON.stringify({
                   messages: [
-                    { role: "system", content: systemPromptRef.current },
+                    { role: "system", content: systemPrompt },
                     ...history,
                     { role: "user", content: trimmed },
                   ],
@@ -246,13 +294,39 @@ export default function AfuAIApp() {
   const clearHistory = useCallback(() => {
     setMessages([WELCOME]);
     userCtxRef.current = "";
-    systemPromptRef.current = "";
   }, []);
 
   const renderItem = useCallback(
     ({ item }: { item: ChatMessage }) => {
       const isUser = item.role === "user";
       if (item.isThinking) return <ThinkingBubble colors={colors} accent={accent} />;
+
+      // Page-notice pill — a compact contextual announcement, not a full bubble
+      if (item.isPageNotice) {
+        return (
+          <View style={[styles.pageNoticePill, { borderLeftColor: accent, backgroundColor: accent + "0D" }]}>
+            <Ionicons name="location-outline" size={12} color={accent} />
+            <View style={{ flex: 1 }}>
+              <SimpleMarkdown text={item.content} color={colors.text} />
+            </View>
+            {item.suggestions && item.suggestions.length > 0 && (
+              <View style={[styles.suggestionRow, { marginTop: 8 }]}>
+                {item.suggestions.map((s) => (
+                  <Pressable
+                    key={s}
+                    onPress={() => sendMessage(s)}
+                    style={[styles.suggestionChip, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
+                  >
+                    <Ionicons name="sparkles-outline" size={11} color={accent} />
+                    <Text style={[styles.suggestionText, { color: colors.text }]}>{s}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+        );
+      }
+
       return (
         <View style={styles.bubbleWrap}>
           <View
@@ -278,7 +352,6 @@ export default function AfuAIApp() {
             </View>
           </View>
 
-          {/* Suggestion chips */}
           {item.suggestions && item.suggestions.length > 0 && (
             <View style={styles.suggestionRow}>
               {item.suggestions.map((s) => (
@@ -294,7 +367,6 @@ export default function AfuAIApp() {
             </View>
           )}
 
-          {/* Action buttons */}
           {item.actions && item.actions.length > 0 && (
             <View style={styles.actionRow}>
               {item.actions.map((a) => (
@@ -315,6 +387,8 @@ export default function AfuAIApp() {
     [colors, accent, sendMessage]
   );
 
+  const isOnPage = activePage.pathname !== HOME_PATHNAME;
+
   return (
     <KeyboardAvoidingView
       style={[styles.root, { backgroundColor: colors.background }]}
@@ -333,10 +407,32 @@ export default function AfuAIApp() {
         </LinearGradient>
         <View style={{ flex: 1 }}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>AfuAI</Text>
-          <Text style={[styles.headerSub, { color: colors.textMuted }]}>
-            {loading ? "Thinking…" : "Your intelligent assistant"}
-          </Text>
+          {isOnPage ? (
+            <View style={styles.pageTagRow}>
+              <Ionicons name="location-outline" size={10} color={accent} />
+              <Text style={[styles.pageTag, { color: accent }]} numberOfLines={1}>
+                {activePage.name}
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.headerSub, { color: colors.textMuted }]}>
+              {loading ? "Thinking…" : "Your intelligent assistant"}
+            </Text>
+          )}
         </View>
+
+        {/* "What's on this page?" quick button — only shown when on a non-home page */}
+        {isOnPage && (
+          <Pressable
+            onPress={() => sendMessage(`What can I do on the ${activePage.name} page?`)}
+            style={[styles.pageBtn, { backgroundColor: accent + "18", borderColor: accent + "40" }]}
+            hitSlop={6}
+          >
+            <Ionicons name="help-circle-outline" size={13} color={accent} />
+            <Text style={[styles.pageBtnText, { color: accent }]}>This page</Text>
+          </Pressable>
+        )}
+
         <Pressable
           onPress={clearHistory}
           style={[styles.clearBtn, { backgroundColor: colors.backgroundSecondary }]}
@@ -374,7 +470,7 @@ export default function AfuAIApp() {
             styles.input,
             { backgroundColor: colors.backgroundSecondary, color: colors.text },
           ]}
-          placeholder="Ask AfuAI anything…"
+          placeholder={isOnPage ? `Ask about ${activePage.name}…` : "Ask AfuAI anything…"}
           placeholderTextColor={colors.textMuted}
           value={input}
           onChangeText={setInput}
@@ -403,6 +499,8 @@ export default function AfuAIApp() {
   );
 }
 
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
 function ThinkingBubble({ colors, accent }: { colors: any; accent: string }) {
   return (
     <View style={styles.bubbleWrap}>
@@ -425,92 +523,53 @@ function ThinkingBubble({ colors, accent }: { colors: any; accent: string }) {
   );
 }
 
-// Minimal markdown renderer — handles **bold**, *italic*, ## headings, - bullets
 function SimpleMarkdown({ text, color }: { text: string; color: string }) {
   const lines = text.split("\n");
   return (
     <View style={{ gap: 2 }}>
       {lines.map((line, li) => {
-        if (line.startsWith("## ")) {
-          return (
-            <Text key={li} style={[styles.mdH2, { color }]}>
-              {line.slice(3)}
-            </Text>
-          );
-        }
-        if (line.startsWith("### ")) {
-          return (
-            <Text key={li} style={[styles.mdH3, { color }]}>
-              {line.slice(4)}
-            </Text>
-          );
-        }
-        if (line.startsWith("- ") || line.startsWith("• ")) {
+        if (line.startsWith("## "))
+          return <Text key={li} style={[styles.mdH2, { color }]}>{line.slice(3)}</Text>;
+        if (line.startsWith("### "))
+          return <Text key={li} style={[styles.mdH3, { color }]}>{line.slice(4)}</Text>;
+        if (line.startsWith("- ") || line.startsWith("• "))
           return (
             <View key={li} style={styles.mdBulletRow}>
               <Text style={[styles.mdBulletDot, { color }]}>•</Text>
-              <Text style={[styles.mdBody, { color, flex: 1 }]}>
-                {inlineFormat(line.slice(2), color)}
-              </Text>
+              <Text style={[styles.mdBody, { color, flex: 1 }]}>{inlineFormat(line.slice(2), color)}</Text>
             </View>
           );
-        }
         if (/^\d+\.\s/.test(line)) {
-          const numMatch = line.match(/^(\d+)\.\s(.*)/);
-          if (numMatch) {
+          const m = line.match(/^(\d+)\.\s(.*)/);
+          if (m)
             return (
               <View key={li} style={styles.mdBulletRow}>
-                <Text style={[styles.mdBulletDot, { color }]}>{numMatch[1]}.</Text>
-                <Text style={[styles.mdBody, { color, flex: 1 }]}>
-                  {inlineFormat(numMatch[2], color)}
-                </Text>
+                <Text style={[styles.mdBulletDot, { color }]}>{m[1]}.</Text>
+                <Text style={[styles.mdBody, { color, flex: 1 }]}>{inlineFormat(m[2], color)}</Text>
               </View>
             );
-          }
         }
         if (line.trim() === "") return <View key={li} style={{ height: 4 }} />;
-        return (
-          <Text key={li} style={[styles.mdBody, { color }]}>
-            {inlineFormat(line, color)}
-          </Text>
-        );
+        return <Text key={li} style={[styles.mdBody, { color }]}>{inlineFormat(line, color)}</Text>;
       })}
     </View>
   );
 }
 
 function inlineFormat(text: string, color: string): React.ReactNode {
-  // Split on **bold**, *italic*, `code`
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
   return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return (
-        <Text key={i} style={{ fontFamily: "Inter_700Bold", color }}>
-          {part.slice(2, -2)}
-        </Text>
-      );
-    }
-    if (part.startsWith("*") && part.endsWith("*")) {
-      return (
-        <Text key={i} style={{ fontFamily: "Inter_400Regular", fontStyle: "italic", color }}>
-          {part.slice(1, -1)}
-        </Text>
-      );
-    }
-    if (part.startsWith("`") && part.endsWith("`")) {
-      return (
-        <Text key={i} style={[styles.inlineCode, { color }]}>
-          {part.slice(1, -1)}
-        </Text>
-      );
-    }
-    return (
-      <Text key={i} style={{ fontFamily: "Inter_400Regular", color }}>
-        {part}
-      </Text>
-    );
+    if (part.startsWith("**") && part.endsWith("**"))
+      return <Text key={i} style={{ fontFamily: "Inter_700Bold", color }}>{part.slice(2, -2)}</Text>;
+    if (part.startsWith("*") && part.endsWith("*"))
+      return <Text key={i} style={{ fontFamily: "Inter_400Regular", fontStyle: "italic", color }}>{part.slice(1, -1)}</Text>;
+    if (part.startsWith("`") && part.endsWith("`"))
+      return <Text key={i} style={[styles.inlineCode, { color }]}>{part.slice(1, -1)}</Text>;
+    return <Text key={i} style={{ fontFamily: "Inter_400Regular", color }}>{part}</Text>;
   });
 }
+
+// ── Styles ─────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
@@ -528,11 +587,33 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 16, fontFamily: "Inter_700Bold" },
   headerSub: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
+  pageTagRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
+  pageTag: { fontSize: 11, fontFamily: "Inter_600SemiBold", flexShrink: 1 },
+  pageBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    borderWidth: 1, borderRadius: 12,
+    paddingHorizontal: 8, paddingVertical: 5,
+  },
+  pageBtnText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
   clearBtn: {
     width: 32, height: 32, borderRadius: 16,
     alignItems: "center", justifyContent: "center",
   },
+
   list: { padding: 12, gap: 4 },
+
+  pageNoticePill: {
+    flexDirection: "column",
+    gap: 4,
+    marginHorizontal: 12,
+    marginVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderLeftWidth: 3,
+    backgroundColor: "transparent",
+  },
+
   bubbleWrap: { marginBottom: 6 },
   bubble: {
     maxWidth: "85%",
@@ -587,7 +668,6 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     alignItems: "center", justifyContent: "center",
   },
-  // Markdown styles
   mdH2: { fontSize: 16, fontFamily: "Inter_700Bold", lineHeight: 22, marginTop: 4 },
   mdH3: { fontSize: 14, fontFamily: "Inter_700Bold", lineHeight: 20, marginTop: 2 },
   mdBody: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },

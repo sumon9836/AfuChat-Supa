@@ -685,41 +685,10 @@ export default function LabScreen() {
                 <Text style={styles.actionBtnPrimaryText}>Scan Again</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.actionBtn, { flex: 1 }]}
-                onPress={async () => {
-                  if (!result) return;
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  hideSheet();
-                  try {
-                    await AsyncStorage.setItem(
-                      "afuai_lens_context",
-                      JSON.stringify({
-                        title:       result.title,
-                        description: result.description,
-                        category:    result.category,
-                        confidence:  result.confidence,
-                        facts:       result.facts || [],
-                        answer:      result.answer || "",
-                        history:     lensHistory,
-                        imagePreview: preview ?? undefined,
-                        searchQuery: result.searchQuery,
-                        expiresAt:   Date.now() + 30 * 60 * 1000,
-                      })
-                    );
-                  } catch {}
-                  router.push({
-                    pathname: "/ai",
-                    params: { lensIntro: "true" },
-                  } as any);
-                }}
-                activeOpacity={0.85}
-              >
+              <View style={[styles.actionBtn, { flex: 1, opacity: 0.45 }]}>
                 <Ionicons name="sparkles-outline" size={16} color={BRAND} />
-                <Text style={[styles.actionBtnText, { color: BRAND }]}>
-                  {lensHistory.length > 0 ? "Continue in AfuAI" : "Ask AfuAI"}
-                </Text>
-              </TouchableOpacity>
+                <Text style={[styles.actionBtnText, { color: BRAND }]}>Coming Soon</Text>
+              </View>
             </View>
           </ScrollView>
         </RNAnimated.View>
