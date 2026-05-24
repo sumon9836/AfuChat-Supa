@@ -435,15 +435,19 @@ export default function ContactProfileScreen() {
     if (!user) { router.push("/(auth)/login"); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isFollowing) {
-      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", id);
-      setIsFollowing(false);
-      setFollowerCount((c) => Math.max(0, c - 1));
+      const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", id);
+      if (!error) {
+        setIsFollowing(false);
+        setFollowerCount((c) => Math.max(0, c - 1));
+      }
     } else {
-      await supabase.from("follows").insert({ follower_id: user.id, following_id: id });
-      setIsFollowing(true);
-      setFollowerCount((c) => c + 1);
-      notifyNewFollow({ targetUserId: id as string, followerName: myProfile?.display_name || "Someone", followerUserId: user.id });
-      try { const { rewardXp } = await import("../../lib/rewardXp"); rewardXp("follow_user"); } catch (_) {}
+      const { error } = await supabase.from("follows").insert({ follower_id: user.id, following_id: id });
+      if (!error) {
+        setIsFollowing(true);
+        setFollowerCount((c) => c + 1);
+        notifyNewFollow({ targetUserId: id as string, followerName: myProfile?.display_name || "Someone", followerUserId: user.id });
+        try { const { rewardXp } = await import("../../lib/rewardXp"); rewardXp("follow_user"); } catch (_) {}
+      }
     }
   }
 

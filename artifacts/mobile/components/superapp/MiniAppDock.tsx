@@ -32,7 +32,9 @@ export default function MiniAppDock({ openApps, activeAppId, onOpen, onClose }: 
 
   // Only show dock entries for apps that are background (minimized)
   const dockApps = openApps.filter((a) => a.state === "background");
-  const visible = dockApps.length > 0;
+  // Hide dock entirely when another app is active — its Modal would sit on top
+  // of the active app's Modal and intercept touches, blocking interaction.
+  const visible = dockApps.length > 0 && activeAppId === null;
 
   const translateY = useSharedValue(80);
   const opacity = useSharedValue(0);
@@ -52,7 +54,8 @@ export default function MiniAppDock({ openApps, activeAppId, onOpen, onClose }: 
     opacity: opacity.value,
   }));
 
-  if (dockApps.length === 0) return null;
+  // Don't render at all if no minimized apps or another app is currently active
+  if (dockApps.length === 0 || activeAppId !== null) return null;
 
   return (
     <Modal

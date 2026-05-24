@@ -225,12 +225,22 @@ async function _saveToDeviceLibrary(
   urlHash: string,
 ): Promise<void> {
   if (Platform.OS === "web") return;
-  if (!["image", "gif", "audio", "story_reply"].includes(type)) return;
+  // Skip audio — Android requires READ_MEDIA_AUDIO in AndroidManifest which is
+  // not declared, causing a hard crash when MediaLibrary checks permissions.
+  if (!["image", "gif", "story_reply"].includes(type)) return;
   try {
     const ML = await import("expo-media-library");
 
     // Check permission WITHOUT requesting — no dialog during background download
-    const { status } = await ML.getPermissionsAsync();
+    let status: string;
+    try {
+      const perm = await ML.getPermissionsAsync();
+      status = perm.status;
+    } catch {
+      // Permission check itself can throw on Android if the manifest doesn't
+      // declare the required permission for the media type. Bail out silently.
+      return;
+    }
     if (status !== "granted") return;
 
     const asset = await ML.createAssetAsync(localPath);
