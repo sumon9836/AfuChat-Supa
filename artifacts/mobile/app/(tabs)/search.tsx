@@ -330,12 +330,6 @@ export default function SearchScreen() {
   const [aiLoading, setAiLoading] = useState(false);
   const [insightExpanded, setInsightExpanded] = useState(false);
 
-  // On native: open the search mini app and return to prev screen
-  useEffect(() => {
-    if (Platform.OS !== "web") {
-      openApp("afusearch");
-    }
-  }, []);
 
   useEffect(() => {
     if (incomingTag && incomingTag !== handledTagRef.current) {
