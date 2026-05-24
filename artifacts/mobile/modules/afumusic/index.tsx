@@ -51,7 +51,23 @@ function trackArtist(asset: MediaLibrary.Asset): string {
 export default function AfuMusicApp() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const [permission, requestPermission] = MediaLibrary.usePermissions();
+  // usePermissions() calls getPermissionsAsync() immediately, which crashes on
+  // Android in Expo Go when READ_MEDIA_AUDIO is not in AndroidManifest.
+  // We manage permission state manually so every native call is in a try/catch.
+  const [permGranted, setPermGranted] = useState(false);
+  const [permDenied, setPermDenied] = useState(false);
+  // Alias so the rest of the component can reference `permission` unchanged
+  const permission = permGranted ? { granted: true } : null;
+  const requestPermission = useCallback(async () => {
+    try {
+      const result = await MediaLibrary.requestPermissionsAsync();
+      setPermGranted(result.granted);
+      if (!result.granted) setPermDenied(true);
+    } catch {
+      // READ_MEDIA_AUDIO not in AndroidManifest — feature unavailable
+      setPermDenied(true);
+    }
+  }, []);
   const [tracks, setTracks] = useState<MediaLibrary.Asset[]>([]);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<AppView>("library");
@@ -89,6 +105,21 @@ export default function AfuMusicApp() {
       setTracks(allAssets);
     } catch (_) {}
     setLoading(false);
+  }, []);
+
+  // Check permission on mount without crashing — getPermissionsAsync alone
+  // does NOT prompt the user, so this is safe even on Expo Go/Android.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { granted } = await MediaLibrary.getPermissionsAsync();
+        if (granted) setPermGranted(true);
+        else setPermDenied(false); // show the "Allow Access" button
+      } catch {
+        // AUDIO permission not in manifest on Expo Go — show Allow Access UI
+        setPermDenied(true);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -241,7 +272,8 @@ export default function AfuMusicApp() {
   const progress = duration > 0 ? position / duration : 0;
   const accentColor = currentTrack ? colorForTrack(currentTrack.filename) : "#5856D6";
 
-  if (!permission) {
+  // Still checking (neither granted nor denied yet) — show a brief spinner
+  if (!permGranted && !permDenied) {
     return (
       <View style={[s.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator color="#5856D6" />
@@ -249,7 +281,7 @@ export default function AfuMusicApp() {
     );
   }
 
-  if (!permission.granted) {
+  if (!permGranted) {
     return (
       <View style={[s.center, { backgroundColor: colors.background, padding: 32 }]}>
         <LinearGradient colors={["#5856D6", "#7B79E8"]} style={s.permIcon}>

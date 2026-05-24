@@ -138,6 +138,15 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
     <SuperAppContext.Provider value={value}>
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         {children}
+
+        {/* Dock lives INSIDE the root View so it is a plain absolutely-positioned
+            sibling of the content — no Modal, no touch-blocking overlay. */}
+        <MiniAppDock
+          openApps={openApps}
+          activeAppId={activeAppId}
+          onOpen={openApp}
+          onClose={closeApp}
+        />
       </View>
 
       {/* Mini App windows — each in its own Modal, stacks above tab bar */}
@@ -155,14 +164,6 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
           </MiniAppWindow>
         );
       })}
-
-      {/* Floating dock — shows minimized app icons above the tab bar */}
-      <MiniAppDock
-        openApps={openApps}
-        activeAppId={activeAppId}
-        onOpen={openApp}
-        onClose={closeApp}
-      />
     </SuperAppContext.Provider>
   );
 }

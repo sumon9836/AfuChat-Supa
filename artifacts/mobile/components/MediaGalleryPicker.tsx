@@ -78,8 +78,10 @@ export default function MediaGalleryPicker({
     switch (t) {
       case "photos": return [MediaLibrary.MediaType.photo];
       case "videos": return [MediaLibrary.MediaType.video];
+      // audio requires READ_MEDIA_AUDIO which is not declared in AndroidManifest
+      // — exclude it from "all" and handle the audio tab separately.
       case "audio":  return [MediaLibrary.MediaType.audio];
-      default:       return [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video, MediaLibrary.MediaType.audio];
+      default:       return [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video];
     }
   }, []);
 
@@ -88,8 +90,16 @@ export default function MediaGalleryPicker({
     if (reset) loadingMoreRef.current = false;
     setLoading(true);
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== "granted") { setPermission("denied"); return; }
+      let permStatus: string;
+      try {
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        permStatus = status;
+      } catch {
+        // READ_MEDIA_AUDIO not in AndroidManifest — treat as denied for audio
+        setPermission("denied");
+        return;
+      }
+      if (permStatus !== "granted") { setPermission("denied"); return; }
       setPermission("granted");
       const result = await MediaLibrary.getAssetsAsync({
         mediaType: mediaTypesForTab(tab),
