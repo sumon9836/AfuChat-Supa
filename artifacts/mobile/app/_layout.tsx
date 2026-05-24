@@ -5,7 +5,7 @@ enableScreens(true);
 
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Linking, Platform, StyleSheet, Text, TextInput } from "react-native";
+import { Linking, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Font from "expo-font";
@@ -55,7 +55,7 @@ function ActivityTrackerSync() {
 }
 
 function ThemedStatusBar() {
-  const { isDark, colors } = useTheme();
+  const { isDark } = useTheme();
   return (
     <StatusBar
       style={isDark ? "light" : "dark"}
@@ -63,6 +63,15 @@ function ThemedStatusBar() {
       backgroundColor="transparent"
       animated
     />
+  );
+}
+
+function ThemedRoot({ children }: { children: React.ReactNode }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {children}
+    </View>
   );
 }
 
@@ -111,6 +120,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.root}>
         <ThemeProvider>
+          <ThemedRoot>
           <AppAccentProvider>
             <ThemedStatusBar />
             <DataModeProvider>
@@ -147,6 +157,7 @@ export default function RootLayout() {
               </AuthProvider>
             </DataModeProvider>
           </AppAccentProvider>
+          </ThemedRoot>
         </ThemeProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

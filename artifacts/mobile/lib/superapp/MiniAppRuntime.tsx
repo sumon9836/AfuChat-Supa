@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import { BackHandler, StyleSheet, View } from "react-native";
+import { useTheme } from "@/hooks/useTheme";
 
 import type { AppLifecycleState, OpenApp, SuperAppContextValue } from "./types";
 import { findModule, SUPER_APP_ID_SET } from "./registry";
@@ -49,6 +50,7 @@ export function useSuperApp(): SuperAppContextValue {
 }
 
 export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode }) {
+  const { colors } = useTheme();
   const [openApps, setOpenApps] = useState<OpenApp[]>([]);
   const [activeAppId, setActiveAppId] = useState<string | null>(null);
 
@@ -121,7 +123,7 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
 
   return (
     <SuperAppContext.Provider value={value}>
-      <View style={styles.root}>
+      <View style={[styles.root, { backgroundColor: colors.background }]}>
         {children}
         {openApps.length > 0 && (
           <View

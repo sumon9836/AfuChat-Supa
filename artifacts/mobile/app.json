@@ -2,14 +2,14 @@
   "expo": {
     "name": "AfuChat",
     "slug": "afuchat",
-    "version": "2.0.74",
+    "version": "2.0.75",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "afuchat",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "jsEngine": "hermes",
-    "backgroundColor": "#00BCD4",
+    "backgroundColor": "#000000",
     "notification": {
       "icon": "./assets/images/notification-icon-white.png",
       "color": "#00BCD4",
@@ -29,6 +29,7 @@
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
       "edgeToEdgeEnabled": false,
+      "navigationBarColor": "#000000",
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
