@@ -113,7 +113,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(function ShareCa
             <Text style={[s.badgeText, { color: accent }]}>
               {post.post_type === "article" ? "Article" : "Video"}
             </Text>
-            {readTime && <Text style={s.readTime}>{readTime} min read</Text>}
+            {readTime != null && readTime > 0 ? <Text style={s.readTime}>{readTime} min read</Text> : null}
           </View>
         </View>
       )}
