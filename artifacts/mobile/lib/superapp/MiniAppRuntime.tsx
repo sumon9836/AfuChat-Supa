@@ -20,17 +20,37 @@ import AfuChannelApp from "@/modules/afuchannel";
 import AfuGamesApp from "@/modules/afugames";
 import AfuMusicApp from "@/modules/afumusic";
 import AfuBusinessApp from "@/modules/afubusiness";
+import AfuSearchApp from "@/modules/afusearch";
+import AfuIDApp from "@/modules/afuid";
+import AfuQRApp from "@/modules/afuqr";
+import AfuSavedApp from "@/modules/afusaved";
+import AfuReferralApp from "@/modules/afureferral";
+import AfuServicesApp from "@/modules/afuservices";
+import AfuFreelanceApp from "@/modules/afufreelance";
+import AfuCollectionsApp from "@/modules/afucollections";
+import AfuEventsApp from "@/modules/afuevents";
+import AfuUsernamesApp from "@/modules/afuusernames";
 
 function getMiniAppComponent(id: string): React.ComponentType | null {
   switch (id) {
-    case "afuai":       return AfuAIApp;
-    case "afupay":      return AfuPayApp;
-    case "afumarket":   return AfuMarketApp;
-    case "afuchannel":  return AfuChannelApp;
-    case "afugames":    return AfuGamesApp;
-    case "afumusic":    return AfuMusicApp;
-    case "afubusiness": return AfuBusinessApp;
-    default:            return null;
+    case "afuai":          return AfuAIApp;
+    case "afupay":         return AfuPayApp;
+    case "afumarket":      return AfuMarketApp;
+    case "afuchannel":     return AfuChannelApp;
+    case "afugames":       return AfuGamesApp;
+    case "afumusic":       return AfuMusicApp;
+    case "afubusiness":    return AfuBusinessApp;
+    case "afusearch":      return AfuSearchApp;
+    case "afuid":          return AfuIDApp;
+    case "afuqr":          return AfuQRApp;
+    case "afusaved":       return AfuSavedApp;
+    case "afureferral":    return AfuReferralApp;
+    case "afuservices":    return AfuServicesApp;
+    case "afufreelance":   return AfuFreelanceApp;
+    case "afucollections": return AfuCollectionsApp;
+    case "afuevents":      return AfuEventsApp;
+    case "afuusernames":   return AfuUsernamesApp;
+    default:               return null;
   }
 }
 
@@ -104,7 +124,6 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
 
   const isSuperAppId = useCallback((id: string) => SUPER_APP_ID_SET.has(id), []);
 
-  // Android hardware back: dismiss active mini app
   useEffect(() => {
     if (!activeAppId) return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -119,41 +138,29 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
     [openApps, activeAppId, openApp, closeApp, minimizeApp, isSuperAppId]
   );
 
-  const hasActiveApp = openApps.some((a) => a.state === "active");
-
   return (
     <SuperAppContext.Provider value={value}>
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         {children}
-        {openApps.length > 0 && (
-          <View
-            style={[styles.overlay, { pointerEvents: hasActiveApp ? "auto" : "none" } as any]}
-          >
-            {openApps.map((app) => {
-              const AppComponent = getMiniAppComponent(app.manifest.id);
-              if (!AppComponent) return null;
-              return (
-                <MiniAppWindow
-                  key={app.manifest.id}
-                  app={app}
-                  onClose={() => closeApp(app.manifest.id)}
-                  onMinimize={() => minimizeApp(app.manifest.id)}
-                >
-                  <AppComponent />
-                </MiniAppWindow>
-              );
-            })}
-          </View>
-        )}
       </View>
+      {openApps.map((app) => {
+        const AppComponent = getMiniAppComponent(app.manifest.id);
+        if (!AppComponent) return null;
+        return (
+          <MiniAppWindow
+            key={app.manifest.id}
+            app={app}
+            onClose={() => closeApp(app.manifest.id)}
+            onMinimize={() => minimizeApp(app.manifest.id)}
+          >
+            <AppComponent />
+          </MiniAppWindow>
+        );
+      })}
     </SuperAppContext.Provider>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 9999,
-  },
 });

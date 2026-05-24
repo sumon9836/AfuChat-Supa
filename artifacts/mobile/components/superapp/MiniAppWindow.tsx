@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import {
   Dimensions,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -19,7 +20,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import type { OpenApp } from "@/lib/superapp/types";
 
-const SCREEN_HEIGHT = Dimensions.get("screen").height;
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface Props {
   app: OpenApp;
@@ -35,6 +36,7 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
   const backdropOpacity = useSharedValue(0);
 
   const isActive = app.state === "active";
+  const isVisible = app.state !== "closed";
 
   useEffect(() => {
     if (isActive) {
@@ -54,26 +56,33 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
   }));
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: backdropOpacity.value * 0.45,
+    opacity: backdropOpacity.value * 0.55,
   }));
 
+  if (!isVisible) return null;
+
   return (
-    <>
-      <Animated.View
-        style={[styles.backdrop, backdropStyle]}
-        pointerEvents={isActive ? "auto" : "none"}
-      />
-      <Animated.View
-        style={[styles.window, windowStyle]}
-        pointerEvents={isActive ? "auto" : "none"}
-      >
-        <View style={[styles.inner, { backgroundColor: colors.background }]}>
-          {/* ── Header ─────────────────────────────────────────────── */}
+    <Modal
+      visible={isVisible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={styles.container} pointerEvents="box-none">
+        <Animated.View style={[styles.backdrop, backdropStyle]} pointerEvents={isActive ? "auto" : "none"}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onMinimize} />
+        </Animated.View>
+
+        <Animated.View
+          style={[styles.window, windowStyle, { backgroundColor: colors.background }]}
+          pointerEvents={isActive ? "auto" : "none"}
+        >
           <View
             style={[
               styles.header,
               {
-                paddingTop: insets.top + 4,
+                paddingTop: insets.top + 6,
                 backgroundColor: colors.surface,
                 borderBottomColor: colors.border,
               },
@@ -120,23 +129,28 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
             </View>
           </View>
 
-          {/* ── Content ───────────────────────────────────────────── */}
           <View style={styles.content}>{children}</View>
-        </View>
-      </Animated.View>
-    </>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000",
   },
   window: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  inner: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
