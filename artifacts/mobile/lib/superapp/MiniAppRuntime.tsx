@@ -5,7 +5,7 @@ import React, {
   useState,
 } from "react";
 import { BackHandler, Platform, StyleSheet, View } from "react-native";
-import { router } from "expo-router";
+import { safeRouter } from "@/lib/navUtils";
 import { useTheme } from "@/hooks/useTheme";
 
 import type { AppLifecycleState, OpenApp, SuperAppContextValue } from "./types";
@@ -110,12 +110,14 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
   const navigateOutside = useCallback(
     (route: string, params?: Record<string, string>) => {
       if (activeAppId) minimizeApp(activeAppId);
+      // Small delay lets the modal slide down before the route changes,
+      // then safeRouter applies the global nav lock.
       setTimeout(() => {
         try {
           if (params && Object.keys(params).length > 0) {
-            router.push({ pathname: route as any, params } as any);
+            safeRouter.push({ pathname: route as any, params } as any);
           } else {
-            router.push(route as any);
+            safeRouter.push(route as any);
           }
         } catch {}
       }, 80);

@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { router, usePathname } from "expo-router";
+import { safeRouter } from "@/lib/navUtils";
 import type { Session } from "@supabase/supabase-js";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -113,6 +114,20 @@ function CompactTabBar({
   const ripple = { color: colors.accent + "22", borderless: false } as const;
 
   function handleTabPress(route: typeof TABS[number]["route"]) {
+    // Shorts double-tap refreshes the feed — handle before the nav lock
+    // so a quick re-tap on the active Shorts tab still works.
+    if (route === "/(tabs)/shorts" && active === "/(tabs)/shorts") {
+      const now = Date.now();
+      if (now - lastShortsTapRef.current < 400) {
+        emitShortsRefresh();
+        lastShortsTapRef.current = 0;
+        return;
+      }
+      lastShortsTapRef.current = now;
+    }
+
+    // Global nav lock — silently drop any tap that arrives while a
+    // navigation from a previous tap is still in the cooldown window.
     if (Platform.OS !== "web") {
       Haptics.impactAsync(
         isAndroid
@@ -120,16 +135,7 @@ function CompactTabBar({
           : Haptics.ImpactFeedbackStyle.Rigid,
       ).catch(() => {});
     }
-    if (route === "/(tabs)/shorts") {
-      const now = Date.now();
-      if (active === "/(tabs)/shorts" && now - lastShortsTapRef.current < 400) {
-        emitShortsRefresh();
-        lastShortsTapRef.current = 0;
-        return;
-      }
-      lastShortsTapRef.current = now;
-    }
-    router.navigate(route as any);
+    safeRouter.navigate(route as any);
   }
 
   return (

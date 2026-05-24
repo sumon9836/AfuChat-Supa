@@ -3,13 +3,13 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { useTheme } from "@/hooks/useTheme";
+import { SafeTouchableOpacity } from "@/components/ui/SafePressable";
 import type { OpenApp } from "@/lib/superapp/types";
 
 interface Props {
@@ -25,14 +25,9 @@ export default function MiniAppDock({ openApps, activeAppId, onOpen, onClose }: 
 
   const dockApps = openApps.filter((a) => a.state === "background");
 
-  // Don't render when no minimized apps or another app is active.
-  // When an app is active its own Modal covers everything — the dock
-  // must not render at all so it cannot intercept touches.
   if (dockApps.length === 0 || activeAppId !== null) return null;
 
   return (
-    // pointerEvents="box-none" on the full-screen wrapper means the wrapper
-    // itself passes all touches through; only the dock pill captures events.
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <View
         pointerEvents="box-none"
@@ -46,7 +41,9 @@ export default function MiniAppDock({ openApps, activeAppId, onOpen, onClose }: 
         >
           {dockApps.map((app) => (
             <View key={app.manifest.id} style={styles.dockItem}>
-              <TouchableOpacity
+              {/* SafeTouchableOpacity uses the global nav lock — prevents
+                  opening the same mini-app twice on a rapid double-tap. */}
+              <SafeTouchableOpacity
                 style={styles.dockBtn}
                 onPress={() => onOpen(app.manifest.id)}
                 activeOpacity={0.75}
@@ -65,8 +62,10 @@ export default function MiniAppDock({ openApps, activeAppId, onOpen, onClose }: 
                 >
                   {app.manifest.name.replace("Afu", "").replace(" App", "")}
                 </Text>
-              </TouchableOpacity>
+              </SafeTouchableOpacity>
 
+              {/* Close button — lightweight local Pressable; closing a docked
+                  app is a UI removal, not a navigation event. */}
               <Pressable
                 style={styles.dockClose}
                 onPress={() => onClose(app.manifest.id)}

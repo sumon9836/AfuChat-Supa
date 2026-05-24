@@ -8,7 +8,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { safeRouter } from "@/lib/navUtils";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -45,7 +45,7 @@ export function GlassHeader({
 
   function handleBack() {
     if (onBack) { onBack(); return; }
-    if (router.canGoBack()) router.back();
+    safeRouter.back();
   }
 
   // Circular ripple for the back button on Android.

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Modal,
@@ -23,6 +23,8 @@ import type { OpenApp } from "@/lib/superapp/types";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
+const BUTTON_COOLDOWN_MS = 500;
+
 interface Props {
   app: OpenApp;
   onClose: () => void;
@@ -37,36 +39,45 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
   const backdropOpacity = useSharedValue(0);
   const isActive = app.state === "active";
 
-  // Controls whether the Modal is mounted. We delay hiding it until the
-  // slide-down animation finishes so the close feels smooth.
   const [showing, setShowing] = useState(false);
+
+  // Per-button refs prevent rapid double-taps on minimize / close
+  // without touching the global navigation lock (these are UI actions,
+  // not route transitions).
+  const minimizeBusy = useRef(false);
+  const closeBusy    = useRef(false);
+
+  const handleMinimize = useCallback(() => {
+    if (minimizeBusy.current) return;
+    minimizeBusy.current = true;
+    setTimeout(() => { minimizeBusy.current = false; }, BUTTON_COOLDOWN_MS);
+    onMinimize();
+  }, [onMinimize]);
+
+  const handleClose = useCallback(() => {
+    if (closeBusy.current) return;
+    closeBusy.current = true;
+    setTimeout(() => { closeBusy.current = false; }, BUTTON_COOLDOWN_MS);
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
     if (isActive) {
-      // Show immediately then animate open
       setShowing(true);
       translateY.value = withSpring(0, { damping: 26, stiffness: 260, mass: 0.9 });
       backdropOpacity.value = withTiming(1, { duration: 200 });
     } else {
-      // Animate out, then hide the Modal so it can't freeze the UI
       translateY.value = withTiming(
         SCREEN_HEIGHT,
         { duration: 260, easing: Easing.out(Easing.cubic) },
-        (finished) => {
-          if (finished) runOnJS(setShowing)(false);
-        }
+        (finished) => { if (finished) runOnJS(setShowing)(false); }
       );
       backdropOpacity.value = withTiming(0, { duration: 220 });
     }
   }, [isActive]);
 
-  const windowStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: backdropOpacity.value * 0.55,
-  }));
+  const windowStyle  = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value * 0.55 }));
 
   if (!showing && !isActive) return null;
 
@@ -76,11 +87,11 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
       transparent
       animationType="none"
       statusBarTranslucent
-      onRequestClose={onMinimize}
+      onRequestClose={handleMinimize}
     >
       <View style={styles.container}>
         <Animated.View style={[styles.backdrop, backdropStyle]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onMinimize} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={handleMinimize} />
         </Animated.View>
 
         <Animated.View
@@ -119,14 +130,14 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
 
             <View style={styles.headerRight}>
               <Pressable
-                onPress={onMinimize}
+                onPress={handleMinimize}
                 hitSlop={14}
                 style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.55 }]}
               >
                 <Ionicons name="remove" size={22} color={colors.textSecondary} />
               </Pressable>
               <Pressable
-                onPress={onClose}
+                onPress={handleClose}
                 hitSlop={14}
                 style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.55 }]}
               >
