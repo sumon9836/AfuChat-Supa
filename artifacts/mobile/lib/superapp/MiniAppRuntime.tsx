@@ -35,10 +35,17 @@ function getMiniAppComponent(id: string): React.ComponentType | null {
 
 const SuperAppContext = createContext<SuperAppContextValue | null>(null);
 
+const NOOP_CTX: SuperAppContextValue = {
+  openApps: [],
+  activeAppId: null,
+  openApp: () => {},
+  closeApp: () => {},
+  minimizeApp: () => {},
+  isSuperAppId: () => false,
+};
+
 export function useSuperApp(): SuperAppContextValue {
-  const ctx = useContext(SuperAppContext);
-  if (!ctx) throw new Error("useSuperApp must be used within MiniAppRuntimeProvider");
-  return ctx;
+  return useContext(SuperAppContext) ?? NOOP_CTX;
 }
 
 export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode }) {

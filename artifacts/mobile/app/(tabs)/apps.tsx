@@ -299,14 +299,15 @@ function AppTile({
   tileWidth,
   usageCount,
   onTap,
+  openApp,
 }: {
   app: AppItem;
   tileWidth: number;
   usageCount?: number;
   onTap: (id: string) => void;
+  openApp: (id: string) => void;
 }) {
   const { colors, accent } = useTheme();
-  const { openApp } = useSuperApp();
   const scale = useRef(new Animated.Value(1)).current;
 
   function handlePressIn() {
@@ -371,11 +372,13 @@ function AppGrid({
   tileWidth,
   usageCounts,
   onTap,
+  openApp,
 }: {
   apps: AppItem[];
   tileWidth: number;
   usageCounts: Record<string, number>;
   onTap: (id: string) => void;
+  openApp: (id: string) => void;
 }) {
   const padCount = apps.length % COLS === 0 ? 0 : COLS - (apps.length % COLS);
   return (
@@ -387,6 +390,7 @@ function AppGrid({
           tileWidth={tileWidth}
           usageCount={usageCounts[app.id]}
           onTap={onTap}
+          openApp={openApp}
         />
       ))}
       {Array.from({ length: padCount }).map((_, i) => (
@@ -396,9 +400,16 @@ function AppGrid({
   );
 }
 
-function FeaturedBanner({ app, onTap }: { app: AppItem; onTap: (id: string) => void }) {
+function FeaturedBanner({
+  app,
+  onTap,
+  openApp,
+}: {
+  app: AppItem;
+  onTap: (id: string) => void;
+  openApp: (id: string) => void;
+}) {
   const { colors, accent } = useTheme();
-  const { openApp } = useSuperApp();
 
   function handlePress() {
     Haptics.selectionAsync();
@@ -454,12 +465,14 @@ function TrendingSection({
   tileWidth,
   usageCounts,
   onTap,
+  openApp,
   colors,
 }: {
   apps: AppItem[];
   tileWidth: number;
   usageCounts: Record<string, number>;
   onTap: (id: string) => void;
+  openApp: (id: string) => void;
   colors: any;
 }) {
   if (apps.length === 0) return null;
@@ -470,7 +483,7 @@ function TrendingSection({
         <Text style={{ fontSize: 14 }}>{"🔥"}</Text>
       </View>
       <GlassCard style={[styles.categoryCard, { marginHorizontal: H_PAD }]} variant="medium">
-        <AppGrid apps={apps} tileWidth={tileWidth} usageCounts={usageCounts} onTap={onTap} />
+        <AppGrid apps={apps} tileWidth={tileWidth} usageCounts={usageCounts} onTap={onTap} openApp={openApp} />
       </GlassCard>
     </View>
   );
@@ -483,6 +496,7 @@ export default function AppsScreen() {
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
   const { isPremium, profile } = useAuth();
   const isAdmin = !!profile?.is_admin;
+  const { openApp } = useSuperApp();
 
   const tileWidth = Math.floor((SW - H_PAD * 2 - CARD_PAD * 2) / COLS);
 
@@ -542,13 +556,14 @@ export default function AppsScreen() {
           ) : null}
         </View>
 
-        {featuredApp ? <FeaturedBanner app={featuredApp} onTap={trackTap} /> : null}
+        {featuredApp ? <FeaturedBanner app={featuredApp} onTap={trackTap} openApp={openApp} /> : null}
 
         <TrendingSection
           apps={trendingApps}
           tileWidth={tileWidth}
           usageCounts={usageCounts}
           onTap={trackTap}
+          openApp={openApp}
           colors={colors}
         />
 
@@ -563,6 +578,7 @@ export default function AppsScreen() {
                 tileWidth={tileWidth}
                 usageCounts={usageCounts}
                 onTap={trackTap}
+                openApp={openApp}
               />
             </GlassCard>
           </View>
