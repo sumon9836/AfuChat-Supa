@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Clipboard,
   Linking,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -10,197 +10,220 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { CameraView, useCameraPermissions, BarcodeScanningResult } from "expo-camera";
 import { useTheme } from "@/hooks/useTheme";
 import { showAlert } from "@/lib/alert";
+import * as Haptics from "@/lib/haptics";
 import Colors from "@/constants/colors";
 
-let CameraView: any = null;
-let useCameraPermissions: any = null;
-if (Platform.OS !== "web") {
-  try {
-    const cam = require("expo-camera");
-    CameraView = cam.CameraView;
-    useCameraPermissions = cam.useCameraPermissions;
-  } catch (_) {}
-}
+type ScanResult = {
+  data: string;
+  type: string;
+};
 
-function WebQRPlaceholder({ onResult }: { onResult: (data: string) => void }) {
-  const { colors } = useTheme();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [active, setActive] = useState(false);
-
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    let interval: ReturnType<typeof setInterval> | null = null;
-
-    async function start() {
-      try {
-        stream = await (navigator.mediaDevices as any).getUserMedia({ video: { facingMode: "environment" } });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-          setActive(true);
-        }
-        let BDClass: any = (window as any).BarcodeDetector;
-        if (!BDClass) {
-          try { const m = await import("https://cdn.jsdelivr.net/npm/barcode-detector@3/dist/es/pure.min.js" as any); BDClass = m.BarcodeDetector; } catch (_) {}
-        }
-        if (BDClass && videoRef.current) {
-          const detector = new BDClass({ formats: ["qr_code"] });
-          interval = setInterval(async () => {
-            try {
-              const barcodes = await detector.detect(videoRef.current!);
-              if (barcodes.length > 0) { onResult(barcodes[0].rawValue); }
-            } catch (_) {}
-          }, 600);
-        }
-      } catch (_) { setActive(false); }
-    }
-    start();
-    return () => {
-      stream?.getTracks().forEach(t => t.stop());
-      if (interval) clearInterval(interval);
-    };
-  }, [onResult]);
-
-  if (Platform.OS !== "web") return null;
-  return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <video ref={videoRef as any} style={{ width: "100%", height: "100%", objectFit: "cover" }} playsInline muted />
-    </View>
-  );
+function detectType(data: string): { label: string; icon: React.ComponentProps<typeof Ionicons>["name"] } {
+  if (/^https?:\/\//i.test(data)) return { label: "Website URL", icon: "globe" };
+  if (/^afupay:/i.test(data)) return { label: "AfuPay Transfer", icon: "wallet" };
+  if (/^tel:/i.test(data)) return { label: "Phone Number", icon: "call" };
+  if (/^mailto:/i.test(data)) return { label: "Email Address", icon: "mail" };
+  if (/^WIFI:/i.test(data)) return { label: "Wi-Fi Network", icon: "wifi" };
+  if (/^BEGIN:VCARD/i.test(data)) return { label: "Contact Card", icon: "person" };
+  if (/^geo:/i.test(data)) return { label: "Location", icon: "location" };
+  return { label: "Text", icon: "text" };
 }
 
 export default function AfuQRApp() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const [permission, requestPermission] = useCameraPermissions();
+  const [result, setResult] = useState<ScanResult | null>(null);
   const [scanned, setScanned] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  const [torchOn, setTorchOn] = useState(false);
+  const cooldown = useRef(false);
 
-  const [permission, requestPermission] = useCameraPermissions
-    ? (useCameraPermissions as () => [any, () => Promise<any>])()
-    : [{ granted: false }, async () => {}];
-
-  function handleScanned(data: string) {
-    if (scanned) return;
+  function handleBarcode(scanning: BarcodeScanningResult) {
+    if (scanned || cooldown.current) return;
+    cooldown.current = true;
     setScanned(true);
-    setResult(data);
+    setResult({ data: scanning.data, type: scanning.type });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
-  async function handleResult() {
+  function reset() {
+    setResult(null);
+    setScanned(false);
+    setTimeout(() => { cooldown.current = false; }, 600);
+  }
+
+  async function handleAction() {
     if (!result) return;
-    if (result.startsWith("http://") || result.startsWith("https://")) {
-      try { await Linking.openURL(result); } catch { showAlert("Error", "Could not open URL."); }
+    const { data } = result;
+    if (/^https?:\/\//i.test(data)) {
+      await Linking.openURL(data).catch(() => showAlert("Error", "Could not open URL."));
+    } else if (/^tel:/i.test(data)) {
+      await Linking.openURL(data).catch(() => showAlert("Error", "Could not open phone."));
+    } else if (/^mailto:/i.test(data)) {
+      await Linking.openURL(data).catch(() => showAlert("Error", "Could not open email."));
     } else {
-      showAlert("QR Code", result);
+      showAlert("Scanned Data", data, [{ text: "OK" }]);
     }
   }
 
-  function reset() { setScanned(false); setResult(null); }
+  function handleCopy() {
+    if (!result) return;
+    (Clipboard as any).setString(result.data);
+    showAlert("Copied", "Text copied to clipboard.");
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
 
-  if (!CameraView || !permission) {
+  if (!permission) {
     return (
-      <View style={[s.root, { backgroundColor: colors.background }]}>
-        <View style={s.placeholderWrap}>
-          <Ionicons name="qr-code" size={80} color={colors.textMuted} />
-          <Text style={[s.title, { color: colors.text }]}>QR Scanner</Text>
-          <Text style={[s.sub, { color: colors.textMuted }]}>Camera not available in this environment.</Text>
-          {Platform.OS === "web" && <WebQRPlaceholder onResult={handleScanned} />}
-        </View>
+      <View style={[s.center, { backgroundColor: colors.background }]}>
+        <Ionicons name="camera" size={40} color={colors.textMuted} />
       </View>
     );
   }
 
   if (!permission.granted) {
     return (
-      <View style={[s.root, { backgroundColor: colors.background }]}>
-        <View style={s.placeholderWrap}>
-          <Ionicons name="camera" size={60} color={colors.textMuted} />
-          <Text style={[s.title, { color: colors.text }]}>Camera Permission</Text>
-          <Text style={[s.sub, { color: colors.textMuted }]}>AfuQR needs camera access to scan QR codes.</Text>
-          <TouchableOpacity style={[s.permBtn, { backgroundColor: Colors.brand }]} onPress={requestPermission}>
-            <Text style={s.permBtnText}>Allow Camera</Text>
-          </TouchableOpacity>
+      <View style={[s.center, { backgroundColor: colors.background, padding: 36 }]}>
+        <View style={[s.permIconWrap, { backgroundColor: "#1C1C1E" }]}>
+          <Ionicons name="qr-code" size={48} color="#fff" />
         </View>
+        <Text style={[s.permTitle, { color: colors.text }]}>Camera Access</Text>
+        <Text style={[s.permSub, { color: colors.textMuted }]}>
+          AfuQR needs access to your camera to scan QR codes and barcodes.
+        </Text>
+        <TouchableOpacity
+          style={[s.permBtn, { backgroundColor: Colors.brand }]}
+          onPress={requestPermission}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="camera" size={18} color="#fff" />
+          <Text style={s.permBtnText}>Allow Camera</Text>
+        </TouchableOpacity>
       </View>
     );
   }
+
+  const typeInfo = result ? detectType(result.data) : null;
+  const isUrl = result && /^https?:\/\//i.test(result.data);
 
   return (
     <View style={[s.root, { backgroundColor: "#000" }]}>
       <CameraView
         style={StyleSheet.absoluteFill}
         facing="back"
-        onBarcodeScanned={scanned ? undefined : ({ data }: { data: string }) => handleScanned(data)}
-        barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+        enableTorch={torchOn}
+        onBarcodeScanned={scanned ? undefined : handleBarcode}
+        barcodeScannerSettings={{ barcodeTypes: ["qr", "pdf417", "ean13", "ean8", "code128", "code39", "aztec", "datamatrix"] }}
       />
 
-      <View style={s.overlay} pointerEvents="none">
-        <View style={[s.topMask, { backgroundColor: "rgba(0,0,0,0.5)" }]} />
-        <View style={s.scanRow}>
-          <View style={[s.sideMask, { backgroundColor: "rgba(0,0,0,0.5)" }]} />
-          <View style={s.frame}>
-            <View style={[s.corner, s.tl, { borderColor: Colors.brand }]} />
-            <View style={[s.corner, s.tr, { borderColor: Colors.brand }]} />
-            <View style={[s.corner, s.bl, { borderColor: Colors.brand }]} />
-            <View style={[s.corner, s.br, { borderColor: Colors.brand }]} />
+      <View style={[s.overlay, { pointerEvents: "box-none" } as any]}>
+        <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity style={s.topBtn} onPress={() => setTorchOn(!torchOn)}>
+            <Ionicons name={torchOn ? "flashlight" : "flashlight-outline"} size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.topTitle}>
+            <Text style={s.topTitleText}>QR Scanner</Text>
           </View>
-          <View style={[s.sideMask, { backgroundColor: "rgba(0,0,0,0.5)" }]} />
+          <View style={{ width: 40 }} />
         </View>
-        <View style={[s.bottomMask, { backgroundColor: "rgba(0,0,0,0.5)" }]} />
+
+        <View style={[s.scanArea, { pointerEvents: "none" } as any]}>
+          <View style={[s.topMask, { backgroundColor: "rgba(0,0,0,0.55)" }]} />
+          <View style={s.scanRow}>
+            <View style={[s.sideMask, { backgroundColor: "rgba(0,0,0,0.55)" }]} />
+            <View style={s.frame}>
+              <View style={[s.corner, s.tl, { borderColor: Colors.brand }]} />
+              <View style={[s.corner, s.tr, { borderColor: Colors.brand }]} />
+              <View style={[s.corner, s.bl, { borderColor: Colors.brand }]} />
+              <View style={[s.corner, s.br, { borderColor: Colors.brand }]} />
+              {scanned && (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.brand + "28", borderRadius: 4 }]} />
+              )}
+            </View>
+            <View style={[s.sideMask, { backgroundColor: "rgba(0,0,0,0.55)" }]} />
+          </View>
+          <View style={[s.bottomMask, { backgroundColor: "rgba(0,0,0,0.55)" }]} />
+        </View>
+
+        {!result && (
+          <View style={[s.hintWrap, { bottom: insets.bottom + 60, pointerEvents: "none" } as any]}>
+            <Text style={s.hintText}>Point at any QR code or barcode</Text>
+          </View>
+        )}
+
+        {result && typeInfo && (
+          <View
+            style={[s.resultCard, { bottom: insets.bottom + 16, backgroundColor: colors.surface }]}
+          >
+            <View style={s.resultTop}>
+              <View style={[s.resultIconWrap, { backgroundColor: Colors.brand + "18" }]}>
+                <Ionicons name={typeInfo.icon} size={20} color={Colors.brand} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.resultType, { color: colors.textMuted }]}>{typeInfo.label}</Text>
+                <Text style={[s.resultData, { color: colors.text }]} numberOfLines={3}>{result.data}</Text>
+              </View>
+            </View>
+
+            <View style={s.resultActions}>
+              {isUrl && (
+                <TouchableOpacity style={[s.actionBtn, { backgroundColor: Colors.brand }]} onPress={handleAction}>
+                  <Ionicons name="open-outline" size={16} color="#fff" />
+                  <Text style={s.actionBtnText}>Open</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={[s.actionBtn, { backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.border }]} onPress={handleCopy}>
+                <Ionicons name="copy-outline" size={16} color={colors.text} />
+                <Text style={[s.actionBtnText, { color: colors.text }]}>Copy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.actionBtn, { backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.border }]} onPress={reset}>
+                <Ionicons name="scan" size={16} color={colors.text} />
+                <Text style={[s.actionBtnText, { color: colors.text }]}>Scan Again</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
-
-      {!scanned && (
-        <View style={[s.hint, { bottom: insets.bottom + 60 }]}>
-          <Text style={s.hintText}>Point camera at a QR code</Text>
-        </View>
-      )}
-
-      {result && (
-        <View style={[s.resultCard, { bottom: insets.bottom + 20, backgroundColor: colors.surface }]}>
-          <Text style={[s.resultLabel, { color: colors.textMuted }]}>SCANNED</Text>
-          <Text style={[s.resultText, { color: colors.text }]} numberOfLines={3}>{result}</Text>
-          <View style={s.resultBtns}>
-            <TouchableOpacity style={[s.resultBtn, { backgroundColor: Colors.brand }]} onPress={handleResult}>
-              <Ionicons name="open-outline" size={16} color="#fff" />
-              <Text style={s.resultBtnText}>Open</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.resultBtn, { backgroundColor: colors.inputBg }]} onPress={reset}>
-              <Ionicons name="scan" size={16} color={colors.text} />
-              <Text style={[s.resultBtnText, { color: colors.text }]}>Scan Again</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
     </View>
   );
 }
 
-const FRAME = 220;
+const FRAME = 240;
 const s = StyleSheet.create({
   root: { flex: 1 },
-  placeholderWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
-  title: { fontSize: 20, fontFamily: "Inter_700Bold" },
-  sub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" },
-  permBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 8 },
-  permBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  overlay: { ...StyleSheet.absoluteFillObject },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  permIconWrap: { width: 88, height: 88, borderRadius: 24, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  permTitle: { fontSize: 22, fontFamily: "Inter_700Bold", marginBottom: 8 },
+  permSub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 21, marginBottom: 16 },
+  permBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14 },
+  permBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  overlay: { ...StyleSheet.absoluteFillObject, flexDirection: "column" },
+  topBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 10 },
+  topBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.4)", borderRadius: 20 },
+  topTitle: { flex: 1, alignItems: "center" },
+  topTitleText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  scanArea: { flex: 1 },
   topMask: { flex: 1 },
   scanRow: { flexDirection: "row", height: FRAME },
   sideMask: { flex: 1 },
-  frame: { width: FRAME, height: FRAME },
-  corner: { position: "absolute", width: 28, height: 28, borderWidth: 3 },
-  tl: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 6 },
-  tr: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 6 },
-  bl: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 6 },
-  br: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 6 },
+  frame: { width: FRAME, height: FRAME, position: "relative" },
+  corner: { position: "absolute", width: 32, height: 32, borderWidth: 3.5 },
+  tl: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 8 },
+  tr: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 8 },
+  bl: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 8 },
+  br: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 8 },
   bottomMask: { flex: 1 },
-  hint: { position: "absolute", left: 0, right: 0, alignItems: "center" },
-  hintText: { color: "rgba(255,255,255,0.8)", fontFamily: "Inter_500Medium", fontSize: 14, backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  resultCard: { position: "absolute", left: 16, right: 16, borderRadius: 20, padding: 16, gap: 8, shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 12, elevation: 10 },
-  resultLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5 },
-  resultText: { fontSize: 15, fontFamily: "Inter_400Regular" },
-  resultBtns: { flexDirection: "row", gap: 10, marginTop: 4 },
-  resultBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: 10 },
-  resultBtnText: { color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  hintWrap: { position: "absolute", left: 0, right: 0, alignItems: "center" },
+  hintText: { color: "rgba(255,255,255,0.85)", fontFamily: "Inter_500Medium", fontSize: 14, backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 18, paddingVertical: 9, borderRadius: 22 },
+  resultCard: { position: "absolute", left: 12, right: 12, borderRadius: 22, padding: 16, gap: 14, shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 16, elevation: 12 },
+  resultTop: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  resultIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  resultType: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, marginBottom: 3 },
+  resultData: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  resultActions: { flexDirection: "row", gap: 8 },
+  actionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 10, borderRadius: 12 },
+  actionBtnText: { color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 13 },
 });

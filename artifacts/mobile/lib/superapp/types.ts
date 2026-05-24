@@ -11,6 +11,7 @@ export type ModuleManifest = {
   keepAlive: boolean;
   badge?: string;
   comingSoon?: boolean;
+  nativeOnly?: boolean;
 };
 
 export type AppLifecycleState = "active" | "background" | "closed";

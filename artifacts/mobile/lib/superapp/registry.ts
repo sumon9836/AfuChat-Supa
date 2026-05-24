@@ -53,12 +53,12 @@ export const SUPER_APP_REGISTRY: ModuleManifest[] = [
   {
     id: "afumusic",
     name: "AfuMusic",
-    description: "Stream music and podcasts.",
-    version: "1.0.0",
+    description: "Play music from your device library — offline, always.",
+    version: "2.0.0",
     icon: "musical-notes",
     gradient: ["#5856D6", "#7B79E8"] as const,
     keepAlive: true,
-    badge: "BETA",
+    nativeOnly: true,
   },
   {
     id: "afubusiness",
@@ -88,6 +88,7 @@ export const SUPER_APP_REGISTRY: ModuleManifest[] = [
     keepAlive: false,
     badge: "SOON",
     comingSoon: true,
+    nativeOnly: true,
   },
   {
     id: "afuservices",
@@ -137,6 +138,7 @@ export const SUPER_APP_REGISTRY: ModuleManifest[] = [
     icon: "qr-code",
     gradient: ["#1C1C1E", "#3A3A3C"] as const,
     keepAlive: false,
+    nativeOnly: true,
   },
   {
     id: "afusaved",

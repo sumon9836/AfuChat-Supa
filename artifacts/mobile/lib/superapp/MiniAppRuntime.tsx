@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { BackHandler, StyleSheet, View } from "react-native";
+import { BackHandler, Platform, StyleSheet, View } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
 
 import type { AppLifecycleState, OpenApp, SuperAppContextValue } from "./types";
@@ -77,6 +77,7 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
   const openApp = useCallback((id: string) => {
     const manifest = findModule(id);
     if (!manifest || manifest.comingSoon) return;
+    if (manifest.nativeOnly && Platform.OS === "web") return;
 
     setOpenApps((prev) => {
       const existing = prev.find((a) => a.manifest.id === id);

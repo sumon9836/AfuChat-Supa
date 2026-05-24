@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -37,6 +38,7 @@ type AppItem = {
   adminOnly?: boolean;
   comingSoon?: boolean;
   miniApp?: boolean;
+  nativeOnly?: boolean;
 };
 
 type Category = {
@@ -90,6 +92,7 @@ const CATEGORIES: Category[] = [
       },
       {
         id: "afumusic",
+        nativeOnly: true,
         label: "AfuMusic",
         icon: "musical-notes",
         gradient: ["#5856D6", "#7B79E8"],
@@ -141,6 +144,7 @@ const CATEGORIES: Category[] = [
         route: "/lab",
         badge: "SOON",
         miniApp: true,
+        nativeOnly: true,
         featuredSub: "Point your camera at anything and get instant AI-powered answers.",
         comingSoon: true,
       },
@@ -188,17 +192,6 @@ const CATEGORIES: Category[] = [
         featuredSub: "Send animated gifts to people you love.",
         comingSoon: true,
       },
-      {
-        id: "afumarket",
-        label: "Marketplace",
-        icon: "storefront",
-        gradient: ["#AF52DE", "#BF5AF2"],
-        route: "/store",
-        badge: "NEW",
-        miniApp: true,
-        featuredSub: "Shop from verified organization stores.",
-        adminOnly: true,
-      },
     ],
   },
   {
@@ -222,6 +215,7 @@ const CATEGORIES: Category[] = [
         gradient: ["#1C1C1E", "#3A3A3C"],
         route: "/qr-scanner",
         miniApp: true,
+        nativeOnly: true,
         featuredSub: "Scan any QR code — links, Wi-Fi, contacts and more.",
       },
       {
@@ -524,11 +518,18 @@ export default function AppsScreen() {
     });
   }
 
-  const visibleApps = ALL_APPS.filter((a) => !a.adminOnly || isAdmin);
+  const isWeb = Platform.OS === "web";
+  function isVisible(a: AppItem) {
+    if (a.nativeOnly && isWeb) return false;
+    if (a.adminOnly && !isAdmin) return false;
+    return true;
+  }
+
+  const visibleApps = ALL_APPS.filter(isVisible);
 
   const visibleCategories = CATEGORIES.map((cat) => ({
     ...cat,
-    apps: cat.apps.filter((a) => !a.adminOnly || isAdmin),
+    apps: cat.apps.filter(isVisible),
   })).filter((cat) => cat.apps.length > 0);
 
   const trendingApps = [...visibleApps]
