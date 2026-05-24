@@ -12,6 +12,7 @@ import { useTheme } from "@/hooks/useTheme";
 import type { AppLifecycleState, OpenApp, SuperAppContextValue } from "./types";
 import { findModule, SUPER_APP_ID_SET } from "./registry";
 import MiniAppWindow from "@/components/superapp/MiniAppWindow";
+import MiniAppDock from "@/components/superapp/MiniAppDock";
 
 import AfuAIApp from "@/modules/afuai";
 import AfuPayApp from "@/modules/afupay";
@@ -82,12 +83,14 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
     setOpenApps((prev) => {
       const existing = prev.find((a) => a.manifest.id === id);
       if (existing) {
+        // Reactivate from dock
         return prev.map((a) =>
           a.manifest.id === id
             ? { ...a, state: "active" as AppLifecycleState }
             : { ...a, state: "background" as AppLifecycleState }
         );
       }
+      // Background any currently active app, then add new one
       return [
         ...prev.map((a) => ({ ...a, state: "background" as AppLifecycleState })),
         { manifest, state: "active" as AppLifecycleState, openedAt: Date.now() },
@@ -96,22 +99,13 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
     setActiveAppId(id);
   }, []);
 
+  // Close always fully removes the app from the list (no keepAlive zombie state)
   const closeApp = useCallback((id: string) => {
-    setOpenApps((prev) => {
-      const app = prev.find((a) => a.manifest.id === id);
-      if (!app) return prev;
-      if (app.manifest.keepAlive) {
-        return prev.map((a) =>
-          a.manifest.id === id
-            ? { ...a, state: "closed" as AppLifecycleState }
-            : a
-        );
-      }
-      return prev.filter((a) => a.manifest.id !== id);
-    });
-    setActiveAppId(null);
+    setOpenApps((prev) => prev.filter((a) => a.manifest.id !== id));
+    setActiveAppId((cur) => (cur === id ? null : cur));
   }, []);
 
+  // Minimize sends the app to the dock (background) without fully closing it
   const minimizeApp = useCallback((id: string) => {
     setOpenApps((prev) =>
       prev.map((a) =>
@@ -120,19 +114,20 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
           : a
       )
     );
-    setActiveAppId(null);
+    setActiveAppId((cur) => (cur === id ? null : cur));
   }, []);
 
   const isSuperAppId = useCallback((id: string) => SUPER_APP_ID_SET.has(id), []);
 
+  // Android hardware back = minimize active app (not close)
   useEffect(() => {
     if (!activeAppId) return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      closeApp(activeAppId);
+      minimizeApp(activeAppId);
       return true;
     });
     return () => sub.remove();
-  }, [activeAppId, closeApp]);
+  }, [activeAppId, minimizeApp]);
 
   const value = useMemo<SuperAppContextValue>(
     () => ({ openApps, activeAppId, openApp, closeApp, minimizeApp, isSuperAppId }),
@@ -144,6 +139,8 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         {children}
       </View>
+
+      {/* Mini App windows — each in its own Modal, stacks above tab bar */}
       {openApps.map((app) => {
         const AppComponent = getMiniAppComponent(app.manifest.id);
         if (!AppComponent) return null;
@@ -158,6 +155,14 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
           </MiniAppWindow>
         );
       })}
+
+      {/* Floating dock — shows minimized app icons above the tab bar */}
+      <MiniAppDock
+        openApps={openApps}
+        activeAppId={activeAppId}
+        onOpen={openApp}
+        onClose={closeApp}
+      />
     </SuperAppContext.Provider>
   );
 }

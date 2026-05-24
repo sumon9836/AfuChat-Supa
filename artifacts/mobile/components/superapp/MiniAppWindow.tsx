@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dimensions,
   Modal,
@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import Animated, {
   Easing,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -34,19 +35,27 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const backdropOpacity = useSharedValue(0);
-
   const isActive = app.state === "active";
-  const isVisible = app.state !== "closed";
+
+  // Controls whether the Modal is mounted. We delay hiding it until the
+  // slide-down animation finishes so the close feels smooth.
+  const [showing, setShowing] = useState(false);
 
   useEffect(() => {
     if (isActive) {
+      // Show immediately then animate open
+      setShowing(true);
       translateY.value = withSpring(0, { damping: 26, stiffness: 260, mass: 0.9 });
       backdropOpacity.value = withTiming(1, { duration: 200 });
     } else {
-      translateY.value = withTiming(SCREEN_HEIGHT, {
-        duration: 260,
-        easing: Easing.out(Easing.cubic),
-      });
+      // Animate out, then hide the Modal so it can't freeze the UI
+      translateY.value = withTiming(
+        SCREEN_HEIGHT,
+        { duration: 260, easing: Easing.out(Easing.cubic) },
+        (finished) => {
+          if (finished) runOnJS(setShowing)(false);
+        }
+      );
       backdropOpacity.value = withTiming(0, { duration: 220 });
     }
   }, [isActive]);
@@ -59,24 +68,23 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
     opacity: backdropOpacity.value * 0.55,
   }));
 
-  if (!isVisible) return null;
+  if (!showing && !isActive) return null;
 
   return (
     <Modal
-      visible={isVisible}
+      visible={showing}
       transparent
       animationType="none"
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={onMinimize}
     >
-      <View style={styles.container} pointerEvents="box-none">
-        <Animated.View style={[styles.backdrop, backdropStyle]} pointerEvents={isActive ? "auto" : "none"}>
+      <View style={styles.container}>
+        <Animated.View style={[styles.backdrop, backdropStyle]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onMinimize} />
         </Animated.View>
 
         <Animated.View
           style={[styles.window, windowStyle, { backgroundColor: colors.background }]}
-          pointerEvents={isActive ? "auto" : "none"}
         >
           <View
             style={[
@@ -137,9 +145,7 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000",
