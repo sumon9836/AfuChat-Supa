@@ -8,6 +8,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -160,6 +161,26 @@ export default function AfuFreelanceApp() {
     ]);
   }
 
+  async function shareGig(gig: Gig) {
+    const url = `https://afuchat.com/freelance/${gig.id}`;
+    try {
+      if (Platform.OS === "web") {
+        if (navigator.share) {
+          await navigator.share({ title: gig.title, url });
+        } else {
+          await navigator.clipboard.writeText(url);
+          showAlert("Link copied!", url);
+        }
+      } else {
+        await Share.share({
+          message: `Check out "${gig.title}" on AfuFreelance 💼\n${url}`,
+          url,
+          title: gig.title,
+        });
+      }
+    } catch { /* user cancelled */ }
+  }
+
   async function submitGig() {
     if (!user || !fTitle.trim()) return;
     const price = parseInt(fPrice); if (!price || price < 1) { showAlert("Invalid", "Enter a valid price."); return; }
@@ -263,7 +284,9 @@ export default function AfuFreelanceApp() {
             <Ionicons name="chevron-back" size={22} color={colors.text} />
           </Pressable>
           <Text style={[s.subTitle, { color: colors.text }]} numberOfLines={1}>{g.title}</Text>
-          <View style={{ width: 34 }} />
+          <Pressable onPress={() => shareGig(g)} hitSlop={12} style={s.backBtn}>
+            <Ionicons name="share-outline" size={20} color={colors.text} />
+          </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>

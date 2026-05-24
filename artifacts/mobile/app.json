@@ -85,6 +85,13 @@
         }
       ]
     },
+    "ios": {
+      "bundleIdentifier": "com.afuchat.app",
+      "associatedDomains": [
+        "applinks:afuchat.com",
+        "applinks:www.afuchat.com"
+      ]
+    },
     "web": {
       "favicon": "./assets/images/logo.png",
       "bundler": "metro",
