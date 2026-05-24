@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,11 +18,24 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getEdgeFnBase, edgeHeaders } from "@/lib/aiHelper";
-import { buildNavigationContext, ACTION_ROUTES_GUIDE } from "@/lib/platformKnowledge";
+import { buildNavigationContext, ACTION_ROUTES_GUIDE, NAV_INTENT_MAP } from "@/lib/platformKnowledge";
 import { useSuperApp } from "@/lib/superapp/SuperAppContext";
 import { getCurrentPage, type PageInfo } from "@/lib/pageTracker";
+import { safeRouter } from "@/lib/navUtils";
+import {
+  AFUAI_BOT_ID,
+  AFUAI_CONV_ID,
+  loadAIHistory,
+  saveAIMessage,
+  updateAILastMessage,
+  clearAIHistory,
+  clearAIUnread,
+  ensureAIChatExists,
+} from "@/lib/aiChatStore";
 
-type Role = "user" | "assistant" | "system";
+type Role = "user" | "assistant";
+
+type ActionButton = { label: string; route: string };
 
 type ChatMessage = {
   id: string;
@@ -31,7 +43,7 @@ type ChatMessage = {
   content: string;
   ts: number;
   suggestions?: string[];
-  actions?: { label: string; route: string }[];
+  actions?: ActionButton[];
   isThinking?: boolean;
   isPageNotice?: boolean;
 };
@@ -42,91 +54,147 @@ const WELCOME: ChatMessage = {
   id: "welcome",
   role: "assistant",
   content:
-    "Hi! I'm **AfuAI** — your intelligent assistant inside AfuChat.\n\nI can help with writing, coding, math, translations, research, creative work, wallet questions, and anything AfuChat-related.\n\nWhat can I help you with?",
+    "Hi! I'm **AfuAI** — your intelligent assistant inside AfuChat.\n\nI can help with anything: writing, coding, math, research, translations, and everything AfuChat-related.\n\nI can also **take actions** — tap any action button I suggest to navigate, open features, or do things inside the app instantly.\n\nWhat can I help you with?",
   ts: Date.now(),
   suggestions: [
-    "Write a caption for my post",
+    "What's on the current page?",
     "What is my Nexa balance?",
-    "How do I send ACoin?",
-    "Translate to French",
+    "How do I send ACoins?",
+    "Write a caption for my post",
   ],
 };
 
-function buildSystemPrompt(userCtx: string, page: PageInfo): string {
+// ─── System prompt ────────────────────────────────────────────────────────────
+
+function buildSystemPrompt(userCtx: string, page: PageInfo, recentHistory: string): string {
   const platform = buildNavigationContext();
 
   const pageCtx = page.pathname !== HOME_PATHNAME
-    ? `\nCURRENT PAGE CONTEXT:\nThe user is currently viewing the "${page.name}" screen.\n${page.summary}\nIf the user asks "what is this page?", "what can I do here?", "tell me about this page", or any similar question, answer using this context.\n`
+    ? `
+CURRENT PAGE — THE USER IS LOOKING AT THIS RIGHT NOW:
+• Page name: "${page.name}"
+• What it does: ${page.summary}
+${page.actions && page.actions.length > 0
+  ? `• Available actions on this page:\n${page.actions.map(a => `  - ${a}`).join("\n")}`
+  : ""}
+
+If the user asks "what is this page?", "what can I do here?", "explain this screen", or anything similar,
+give a helpful breakdown using the above context. You know exactly what screen they are on.
+`
     : "";
 
-  return `You are AfuAI, a capable and professional AI assistant built into AfuChat — a social super-app from Uganda. You can help with anything: writing, coding, math, advice, research, creative work, translations, general questions, and more.
+  return `You are AfuAI — a highly capable, accurate AI assistant built directly into AfuChat, a social super-app from Uganda.
 
-You have access to the user's AfuChat account data below. Only reference it when the user asks about their account, balance, transactions, followers, or anything platform-related.
+You are NOT just a chatbot. You can take real in-app actions for the user by outputting [ACTION] buttons. When the user wants to navigate, open a feature, or do something in the app, ALWAYS provide the matching [ACTION] button — they are tappable and will immediately take the user there.
 
-${userCtx}
-${pageCtx}
-PLATFORM KNOWLEDGE — use this to answer any question about how the app works, where to find features, or how to navigate:
+═══ USER ACCOUNT DATA (reference only when user asks) ═══
+${userCtx || "Not loaded yet — user has not asked about their account."}
+
+═══ CURRENT SCREEN ═══
+${pageCtx || "User is on the Home Feed."}
+
+═══ PLATFORM KNOWLEDGE ═══
 ${platform}
 
 ${ACTION_ROUTES_GUIDE}
 
-FORMATTING — you can use rich text in your responses:
-- **bold**, *italic*
-- ## Heading, ### Subheading
-- - bullet list items
-- 1. numbered list items
+═══ HOW TO USE ACTIONS ═══
+• ALWAYS add [ACTION:Go to Wallet:/wallet] if the user asks about balance, ACoins, payments
+• ALWAYS add [ACTION:Top Up:/wallet/topup] if user wants to add credits
+• ALWAYS add [ACTION:New Message:/chat/new] if user wants to message someone
+• ALWAYS add [ACTION:Search:/search] if user wants to find people or content
+• ALWAYS add [ACTION:Edit Profile:/profile/edit] if user wants to change their profile
+• ALWAYS add [ACTION:Post:/moments/create] if user wants to create content
+• ALWAYS add [ACTION:View Profile:/@{handle}] when mentioning a specific user
+• For any navigation request, provide the matching [ACTION] button — never just describe where to go
+• You can include up to 3 action buttons per response
 
-SPECIAL TAGS — append these at the end of your response when relevant:
-- [SUGGEST:Follow-up question] — add up to 3 natural follow-up suggestions
-- [ACTION:Button label:/route] — add a tappable in-app navigation button
+═══ FORMATTING ═══
+Use rich text for structured answers:
+• **bold** for emphasis, *italic* for secondary, ## Heading, ### Subheading
+• - bullet lists, 1. numbered lists, \`inline code\`
+Keep conversational answers as plain prose. Use formatting only when it genuinely helps.
 
-STRICT RULES:
-- NEVER write raw route paths in your text body. If navigation is needed, use [ACTION:...] tags only.
-- Answer like a knowledgeable professional — direct, clear, and genuinely helpful.
-- Use formatting for structured answers. Keep conversational replies as plain prose.
-- Keep your tone professional and warm. Never be dismissive or overly promotional.`;
+═══ SPECIAL RESPONSE TAGS (append at end, never mid-text) ═══
+• [SUGGEST:Follow-up question] — up to 3 natural follow-ups (never the same as what was just asked)
+• [ACTION:Button Label:/route] — tappable in-app navigation/action buttons
+
+═══ RULES ═══
+1. NEVER write raw route paths (/wallet, /chat/new) in your prose — use [ACTION] tags only
+2. Be direct, accurate, and genuinely helpful. Never be vague or evasive.
+3. If the user asks about a page, feature, or how to do something — give a specific, actionable answer
+4. Use the platform knowledge to give accurate answers about AfuChat features
+5. You can tell the user about specific costs, features, and how things work
+6. Always be warm and professional — you represent AfuChat`;
 }
 
-function parseTags(raw: string): { text: string; suggestions: string[]; actions: { label: string; route: string }[] } {
+// ─── Response parser ──────────────────────────────────────────────────────────
+
+function parseResponse(raw: string): {
+  text: string;
+  suggestions: string[];
+  actions: ActionButton[];
+  autoNav?: string;
+} {
   let text = raw;
   const suggestions: string[] = [];
-  const actions: { label: string; route: string }[] = [];
+  const actions: ActionButton[] = [];
+  let autoNav: string | undefined;
 
+  // Parse [ACTION:Label:/route]
   text = text.replace(/\[ACTION:([^\]:]+):([^\]]+)\]/g, (_, label, route) => {
-    actions.push({ label: label.trim(), route: route.trim() });
+    const trimmedRoute = route.trim();
+    if (actions.length < 3) actions.push({ label: label.trim(), route: trimmedRoute });
     return "";
   });
+
+  // Parse [SUGGEST:text]
   text = text.replace(/\[SUGGEST:([^\]]+)\]/g, (_, s) => {
     const t = s.trim();
     if (t && suggestions.length < 3) suggestions.push(t);
     return "";
   });
-  text = text.replace(/\[[A-Z]+:[^\]]*\]/g, "").trim();
 
-  return { text, suggestions, actions };
+  // Parse [NAV:/route] for instant auto-navigation (no button, just navigate)
+  text = text.replace(/\[NAV:([^\]]+)\]/g, (_, route) => {
+    if (!autoNav) autoNav = route.trim();
+    return "";
+  });
+
+  // Strip any unknown tags
+  text = text.replace(/\[[A-Z_]+:[^\]]*\]/g, "").trim();
+
+  return { text, suggestions, actions, autoNav };
 }
+
+// ─── User context builder ─────────────────────────────────────────────────────
 
 async function buildUserContext(userId: string, profile: any): Promise<string> {
   if (!userId || !profile) return "";
   try {
-    const [fcRes, fgRes, postsRes] = await Promise.all([
+    const [fcRes, fgRes, postsRes, walletRes] = await Promise.all([
       supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
       supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
       supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", userId),
+      supabase.from("wallets").select("acoin_balance, xp").eq("user_id", userId).maybeSingle(),
     ]);
+    const wallet = walletRes.data;
     return [
-      `USER CONTEXT:`,
-      `- Name: ${profile.display_name}`,
-      `- Handle: @${profile.handle}`,
-      `- Nexa (XP): ${profile.xp || 0}`,
-      `- ACoin: ${profile.acoin || 0}`,
-      `- Grade: ${profile.current_grade || "Newcomer"}`,
-      `- Followers: ${fcRes.count || 0}, Following: ${fgRes.count || 0}, Posts: ${postsRes.count || 0}`,
-    ].join("\n");
+      `Name: ${profile.display_name}`,
+      `Handle: @${profile.handle}`,
+      `Nexa (XP): ${wallet?.xp ?? profile.xp ?? 0}`,
+      `ACoin Balance: ${wallet?.acoin_balance ?? profile.acoin ?? 0}`,
+      `Grade: ${profile.current_grade || "Newcomer"}`,
+      `Followers: ${fcRes.count ?? 0}`,
+      `Following: ${fgRes.count ?? 0}`,
+      `Total Posts: ${postsRes.count ?? 0}`,
+    ].join(" | ");
   } catch {
-    return `USER CONTEXT:\n- Name: ${profile.display_name}\n- Handle: @${profile.handle}`;
+    return `Name: ${profile.display_name} | Handle: @${profile.handle}`;
   }
 }
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function AfuAIApp() {
   const { colors, accent } = useTheme();
@@ -137,6 +205,7 @@ export default function AfuAIApp() {
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   // Page tracking
   const [activePage, setActivePage] = useState<PageInfo>(() => getCurrentPage());
@@ -146,32 +215,50 @@ export default function AfuAIApp() {
   const userCtxRef = useRef<string>("");
 
   const scrollToEnd = useCallback((animated = true) => {
-    setTimeout(() => listRef.current?.scrollToEnd({ animated }), 100);
+    setTimeout(() => listRef.current?.scrollToEnd({ animated }), 80);
   }, []);
 
-  // ── Page tracking: fire when this mini app becomes active ─────────────────
+  // ── Load history from SQLite on first mount ───────────────────────────────
+  useEffect(() => {
+    if (historyLoaded || !user) return;
+    (async () => {
+      const history = await loadAIHistory(80);
+      if (history.length > 0) {
+        const loaded: ChatMessage[] = history.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          ts: new Date(m.sent_at).getTime(),
+        }));
+        setMessages([WELCOME, ...loaded]);
+      }
+      setHistoryLoaded(true);
+    })();
+  }, [user, historyLoaded]);
+
+  // ── Page tracking: fires when this mini app becomes active ─────────────────
   useEffect(() => {
     if (activeAppId !== "afuai") return;
 
     const page = getCurrentPage();
     setActivePage(page);
+    clearAIUnread().catch(() => {});
 
-    // If user navigated to a different page while AI was minimised, inject
-    // a friendly page-notice message into the chat.
     if (
       prevPathnameRef.current &&
       prevPathnameRef.current !== page.pathname &&
       page.pathname !== HOME_PATHNAME
     ) {
+      const noticeId = `${Date.now()}-nav`;
       const notice: ChatMessage = {
-        id: `${Date.now()}-nav`,
+        id: noticeId,
         role: "assistant",
         content: `📍 You're now on **${page.name}**.\n${page.summary}`,
         ts: Date.now(),
         isPageNotice: true,
         suggestions: [
-          `What can I do on this page?`,
-          `Tell me more about ${page.name}`,
+          `What can I do on ${page.name}?`,
+          `Help me with something on this page`,
         ],
       };
       setMessages((prev) => [...prev, notice]);
@@ -179,8 +266,7 @@ export default function AfuAIApp() {
     }
 
     prevPathnameRef.current = page.pathname;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeAppId]);
+  }, [activeAppId, scrollToEnd]);
 
   // ── Send message ──────────────────────────────────────────────────────────
   const sendMessage = useCallback(
@@ -192,13 +278,16 @@ export default function AfuAIApp() {
       const page = getCurrentPage();
       setActivePage(page);
 
+      const now = new Date().toISOString();
+      const userMsgId = `${Date.now()}-user`;
+      const thinkingId = `${Date.now()}-thinking`;
+
       const userMsg: ChatMessage = {
-        id: `${Date.now()}-user`,
+        id: userMsgId,
         role: "user",
         content: trimmed,
         ts: Date.now(),
       };
-      const thinkingId = `${Date.now()}-thinking`;
       const thinkingMsg: ChatMessage = {
         id: thinkingId,
         role: "assistant",
@@ -211,89 +300,109 @@ export default function AfuAIApp() {
       setLoading(true);
       scrollToEnd();
 
-      try {
-        if (!userCtxRef.current && user && profile) {
-          userCtxRef.current = await buildUserContext(user.id, profile);
-        }
+      // Save user message to SQLite
+      if (user) {
+        saveAIMessage({ id: userMsgId, role: "user", content: trimmed, sentAt: now, userId: user.id }).catch(() => {});
+        updateAILastMessage(trimmed, now, true).catch(() => {});
+      }
 
-        // Rebuild system prompt each send so page context is always fresh
-        const systemPrompt = buildSystemPrompt(userCtxRef.current, page);
+      // Build user context if not loaded
+      if (!userCtxRef.current && user && profile) {
+        userCtxRef.current = await buildUserContext(user.id, profile);
+      }
 
-        setMessages((prev) => {
-          const history = prev
-            .filter((m) => !m.isThinking && m.id !== "welcome" && !m.isPageNotice && (m.role === "user" || m.role === "assistant"))
-            .slice(-10)
-            .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+      // Build system prompt fresh with current page context
+      const systemPrompt = buildSystemPrompt(userCtxRef.current, page, "");
 
-          (async () => {
-            try {
-              const res = await fetch(`${getEdgeFnBase()}/afu-ai-reply`, {
-                method: "POST",
-                headers: edgeHeaders(),
-                body: JSON.stringify({
-                  messages: [
-                    { role: "system", content: systemPrompt },
-                    ...history,
-                    { role: "user", content: trimmed },
-                  ],
-                  max_tokens: 800,
-                }),
-              });
+      // Collect conversation history for the API (last 12 exchanges)
+      setMessages((prev) => {
+        const history = prev
+          .filter((m) => !m.isThinking && m.id !== "welcome" && !m.isPageNotice)
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .slice(-12)
+          .map((m) => ({ role: m.role, content: m.content }));
 
-              const rawReply: string = res.ok
-                ? ((await res.json()).reply || "Sorry, I couldn't process that. Please try again.").trim()
-                : "Sorry, I couldn't connect to AfuAI right now. Please try again.";
+        (async () => {
+          try {
+            const res = await fetch(`${getEdgeFnBase()}/afu-ai-reply`, {
+              method: "POST",
+              headers: edgeHeaders(),
+              body: JSON.stringify({
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  ...history,
+                  { role: "user", content: trimmed },
+                ],
+                max_tokens: 900,
+              }),
+            });
 
-              const parsed = parseTags(rawReply);
+            const rawReply: string = res.ok
+              ? ((await res.json()).reply || "Sorry, I had trouble processing that. Please try again.").trim()
+              : "I couldn't connect right now. Please check your connection and try again.";
 
-              const aiMsg: ChatMessage = {
-                id: `${Date.now()}-ai`,
+            const parsed = parseResponse(rawReply);
+            const aiMsgId = `${Date.now()}-ai`;
+            const aiSentAt = new Date().toISOString();
+
+            const aiMsg: ChatMessage = {
+              id: aiMsgId,
+              role: "assistant",
+              content: parsed.text,
+              ts: Date.now(),
+              suggestions: parsed.suggestions,
+              actions: parsed.actions,
+            };
+
+            setMessages((p) => [...p.filter((m) => m.id !== thinkingId), aiMsg]);
+
+            // Save AI response to SQLite
+            if (user) {
+              saveAIMessage({
+                id: aiMsgId,
                 role: "assistant",
                 content: parsed.text,
-                ts: Date.now(),
-                suggestions: parsed.suggestions,
-                actions: parsed.actions,
-              };
-
-              setMessages((p) => [...p.filter((m) => m.id !== thinkingId), aiMsg]);
-            } catch {
-              setMessages((p) => [
-                ...p.filter((m) => m.id !== thinkingId),
-                {
-                  id: `${Date.now()}-err`,
-                  role: "assistant",
-                  content: "Something went wrong. Please check your connection and try again.",
-                  ts: Date.now(),
-                },
-              ]);
-            } finally {
-              setLoading(false);
-              scrollToEnd();
+                sentAt: aiSentAt,
+                userId: user.id,
+              }).catch(() => {});
+              updateAILastMessage(parsed.text, aiSentAt, false).catch(() => {});
             }
-          })();
 
-          return prev;
-        });
-      } catch {
-        setMessages((prev) => [
-          ...prev.filter((m) => m.id !== thinkingId),
-          {
-            id: `${Date.now()}-err`,
-            role: "assistant",
-            content: "Something went wrong. Please try again.",
-            ts: Date.now(),
-          },
-        ]);
-        setLoading(false);
-        scrollToEnd();
-      }
+            // Auto-navigate if the AI returned a [NAV:] tag
+            if (parsed.autoNav) {
+              setTimeout(() => safeRouter.navigate(parsed.autoNav as any), 300);
+            }
+          } catch {
+            setMessages((p) => [
+              ...p.filter((m) => m.id !== thinkingId),
+              {
+                id: `${Date.now()}-err`,
+                role: "assistant",
+                content: "Something went wrong. Please check your connection and try again.",
+                ts: Date.now(),
+              },
+            ]);
+          } finally {
+            setLoading(false);
+            scrollToEnd();
+          }
+        })();
+
+        return prev;
+      });
     },
     [loading, user, profile, scrollToEnd]
   );
 
-  const clearHistory = useCallback(() => {
+  // ── Handle action button tap ──────────────────────────────────────────────
+  const handleAction = useCallback((action: ActionButton) => {
+    safeRouter.navigate(action.route as any);
+  }, []);
+
+  const clearHistory = useCallback(async () => {
     setMessages([WELCOME]);
     userCtxRef.current = "";
+    await clearAIHistory();
   }, []);
 
   const renderItem = useCallback(
@@ -301,11 +410,9 @@ export default function AfuAIApp() {
       const isUser = item.role === "user";
       if (item.isThinking) return <ThinkingBubble colors={colors} accent={accent} />;
 
-      // Page-notice pill — a compact contextual announcement, not a full bubble
       if (item.isPageNotice) {
         return (
           <View style={[styles.pageNoticePill, { borderLeftColor: accent, backgroundColor: accent + "0D" }]}>
-            <Ionicons name="location-outline" size={12} color={accent} />
             <View style={{ flex: 1 }}>
               <SimpleMarkdown text={item.content} color={colors.text} />
             </View>
@@ -352,7 +459,8 @@ export default function AfuAIApp() {
             </View>
           </View>
 
-          {item.suggestions && item.suggestions.length > 0 && (
+          {/* Suggestion chips */}
+          {!isUser && item.suggestions && item.suggestions.length > 0 && (
             <View style={styles.suggestionRow}>
               {item.suggestions.map((s) => (
                 <Pressable
@@ -367,15 +475,17 @@ export default function AfuAIApp() {
             </View>
           )}
 
-          {item.actions && item.actions.length > 0 && (
+          {/* Action buttons — these actually navigate */}
+          {!isUser && item.actions && item.actions.length > 0 && (
             <View style={styles.actionRow}>
               {item.actions.map((a) => (
                 <TouchableOpacity
                   key={a.label}
+                  onPress={() => handleAction(a)}
                   style={[styles.actionBtn, { backgroundColor: accent + "18", borderColor: accent + "55" }]}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="arrow-forward-circle-outline" size={13} color={accent} />
+                  <Ionicons name="arrow-forward-circle" size={13} color={accent} />
                   <Text style={[styles.actionBtnText, { color: accent }]}>{a.label}</Text>
                 </TouchableOpacity>
               ))}
@@ -384,7 +494,7 @@ export default function AfuAIApp() {
         </View>
       );
     },
-    [colors, accent, sendMessage]
+    [colors, accent, sendMessage, handleAction]
   );
 
   const isOnPage = activePage.pathname !== HOME_PATHNAME;
@@ -421,7 +531,7 @@ export default function AfuAIApp() {
           )}
         </View>
 
-        {/* "What's on this page?" quick button — only shown when on a non-home page */}
+        {/* "This page" quick button */}
         {isOnPage && (
           <Pressable
             onPress={() => sendMessage(`What can I do on the ${activePage.name} page?`)}
@@ -499,7 +609,7 @@ export default function AfuAIApp() {
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ─── Sub-components ─────────────────────────────────────────────────────────────
 
 function ThinkingBubble({ colors, accent }: { colors: any; accent: string }) {
   return (
@@ -569,7 +679,7 @@ function inlineFormat(text: string, color: string): React.ReactNode {
   });
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────────
+// ─── Styles ─────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
@@ -599,21 +709,13 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16,
     alignItems: "center", justifyContent: "center",
   },
-
   list: { padding: 12, gap: 4 },
-
   pageNoticePill: {
-    flexDirection: "column",
-    gap: 4,
-    marginHorizontal: 12,
-    marginVertical: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderLeftWidth: 3,
-    backgroundColor: "transparent",
+    flexDirection: "column", gap: 4,
+    marginHorizontal: 4, marginVertical: 6,
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderRadius: 14, borderLeftWidth: 3,
   },
-
   bubbleWrap: { marginBottom: 6 },
   bubble: {
     maxWidth: "85%",
@@ -624,7 +726,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   bubbleUser: { alignSelf: "flex-end", borderBottomRightRadius: 4 },
-  bubbleAI: { alignSelf: "flex-start", borderBottomLeftRadius: 4 },
+  bubbleAI:  { alignSelf: "flex-start", borderBottomLeftRadius: 4 },
   bubbleBody: { flex: 1 },
   aiBadge: {
     width: 18, height: 18, borderRadius: 9,
@@ -636,10 +738,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4, paddingHorizontal: 2,
   },
   dot: { width: 7, height: 7, borderRadius: 4 },
-  suggestionRow: {
-    flexDirection: "row", flexWrap: "wrap", gap: 6,
-    marginTop: 6, paddingLeft: 4,
-  },
+  suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6, paddingLeft: 4 },
   suggestionChip: {
     flexDirection: "row", alignItems: "center", gap: 4,
     borderWidth: 1, borderRadius: 16,
@@ -650,9 +749,9 @@ const styles = StyleSheet.create({
   actionBtn: {
     flexDirection: "row", alignItems: "center", gap: 5,
     borderWidth: 1, borderRadius: 12,
-    paddingHorizontal: 10, paddingVertical: 6,
+    paddingHorizontal: 10, paddingVertical: 7,
   },
-  actionBtnText: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  actionBtnText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
   inputRow: {
     flexDirection: "row", alignItems: "flex-end",
     gap: 10, paddingHorizontal: 12, paddingTop: 10,
@@ -675,7 +774,7 @@ const styles = StyleSheet.create({
   mdBulletDot: { fontSize: 15, fontFamily: "Inter_400Regular", marginTop: 1, width: 14 },
   inlineCode: {
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
-    fontSize: 13, backgroundColor: "#00000010", borderRadius: 4,
-    paddingHorizontal: 4,
+    fontSize: 13, backgroundColor: "#00000010",
+    borderRadius: 4, paddingHorizontal: 4,
   },
 });

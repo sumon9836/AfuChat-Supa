@@ -44,6 +44,8 @@ import { HomeBanner } from "@/components/ui/HomeBanner";
 import { SuggestedUsers } from "@/components/ui/SuggestedUsers";
 import { isOnline } from "@/lib/offlineStore";
 import { getLocalConversations, saveConversations, hasLocalConversations, deleteLocalConversation, pruneConversations } from "@/lib/storage/localConversations";
+import { AFUAI_CONV_ID, AFUAI_BOT_ID, getAIChatSnapshot } from "@/lib/aiChatStore";
+import { useSuperApp } from "@/lib/superapp/MiniAppRuntime";
 import { addOnlineListener, preloadConversationMessages } from "@/lib/offlineSync";
 import { wasChatRecentlyVisited, clearChatVisited, getActiveChatId } from "@/lib/chatVisited";
 import { showAlert, confirmAlert } from "@/lib/alert";
