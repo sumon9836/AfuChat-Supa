@@ -26,6 +26,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useOpenLink } from "@/lib/useOpenLink";
 import { supabase } from "@/lib/supabase";
 import { getEdgeFnBase, edgeHeaders } from "@/lib/aiHelper";
+import { useSuperApp } from "@/lib/superapp/MiniAppRuntime";
 import { detectNavIntent, PLATFORM_NAV_MAP, PLATFORM_FEATURES_GUIDE } from "@/lib/platformKnowledge";
 import {
   getSearchHistory,
@@ -273,6 +274,7 @@ function RowSkeleton({ bg }: { bg: string }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function SearchScreen() {
+  const { openApp } = useSuperApp();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   // Shadow the module-level BRAND constant so every reference inside this
@@ -327,6 +329,13 @@ export default function SearchScreen() {
   const [aiInsight, setAiInsight] = useState<AiInsight | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [insightExpanded, setInsightExpanded] = useState(false);
+
+  // On native: open the search mini app and return to prev screen
+  useEffect(() => {
+    if (Platform.OS !== "web") {
+      openApp("afusearch");
+    }
+  }, []);
 
   useEffect(() => {
     if (incomingTag && incomingTag !== handledTagRef.current) {
@@ -1739,6 +1748,8 @@ export default function SearchScreen() {
   }
 
   // ─── Main render ──────────────────────────────────────────────────────────────
+  // On native the mini app handles search — render nothing here
+  if (Platform.OS !== "web") return null;
 
   return (
     <View style={[ss.root, { backgroundColor: colors.backgroundSecondary }]}>

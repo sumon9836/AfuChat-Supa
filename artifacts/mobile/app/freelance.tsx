@@ -5,7 +5,7 @@ import {
   FlatList,
   Image,
   KeyboardAvoidingView,
-  Modal,
+
   Platform,
   RefreshControl,
   ScrollView,
@@ -173,6 +173,7 @@ export default function FreelanceScreen() {
   const [viewL, setViewL] = useState<Listing | null>(null);
   const [viewO, setViewO] = useState<Order | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [flScreen, setFlScreen] = useState<"main" | "listing" | "order" | "create">("main");
   const [editTarget, setEditTarget] = useState<Listing | null>(null);
   const [showDeliver, setShowDeliver] = useState(false);
 
@@ -276,7 +277,7 @@ export default function FreelanceScreen() {
         if (res.success) {
           await supabase.from("freelance_orders").insert({ listing_id: l.id, buyer_id: user.id, seller_id: l.seller_id, price_paid: l.price, status: "pending", max_revisions: 1 });
           await supabase.from("freelance_listings").update({ orders_count: l.orders_count + 1 }).eq("id", l.id);
-          refreshProfile(); setViewL(null);
+          refreshProfile(); setViewL(null); setFlScreen("main");
           showAlert("Ordered!", "Your order has been placed. The seller will begin soon.");
           reload();
         } else showAlert("Failed", res.error || "Payment could not be processed.");
@@ -292,7 +293,7 @@ export default function FreelanceScreen() {
   function startEdit(l: Listing) {
     setEditTarget(l); setFEmoji(l.emoji); setFTitle(l.title); setFDesc(l.description);
     setFPrice(String(l.price)); setFDays(String(l.delivery_days)); setFCat(l.category);
-    setFReqs(l.requirements); setFTags(l.tags.join(", ")); setShowCreate(true);
+    setFReqs(l.requirements); setFTags(l.tags.join(", ")); setShowCreate(true); setFlScreen("create");
   }
   async function saveListing() {
     if (!user) return;
@@ -318,7 +319,7 @@ export default function FreelanceScreen() {
     showAlert("Delete", `Remove "${l.title}"?`, [
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: async () => {
-        await supabase.from("freelance_listings").delete().eq("id", l.id); setViewL(null); reload();
+        await supabase.from("freelance_listings").delete().eq("id", l.id); setViewL(null); setFlScreen("main"); reload();
       }},
     ]);
   }
@@ -338,7 +339,7 @@ export default function FreelanceScreen() {
         await supabase.from("acoin_transactions").insert({ user_id: o.buyer_id, amount: o.price_paid, transaction_type: "freelance_refund", metadata: { order_id: o.id } });
       }
     }
-    setActioning(false); setViewO(null); setShowDeliver(false); setDelivMsg(""); reload(); refreshProfile();
+    setActioning(false); setViewO(null); setShowDeliver(false); setDelivMsg(""); setFlScreen("main"); reload(); refreshProfile();
   }
   async function submitReview(o: Order) {
     if (!user || !connected) return;
@@ -349,7 +350,7 @@ export default function FreelanceScreen() {
       const avg = all.reduce((s: number, r: any) => s + r.rating, 0) / all.length;
       await supabase.from("freelance_listings").update({ rating: Math.round(avg * 100) / 100, review_count: all.length }).eq("id", o.listing_id);
     }
-    setActioning(false); setRevStars(5); setRevText(""); setViewO(null);
+    setActioning(false); setRevStars(5); setRevText(""); setViewO(null); setFlScreen("main");
     showAlert("Thanks!", "Review submitted."); reload();
   }
 
@@ -359,7 +360,7 @@ export default function FreelanceScreen() {
   /* ─── Listing card ───────────────────────────────────────────────────────  */
   const ListingCard = ({ item: l }: { item: Listing }) => (
     <TouchableOpacity style={[g.card, { backgroundColor: colors.surface }]}
-      onPress={() => { setViewL(l); fetchReviews(l.id); }} activeOpacity={0.75}>
+      onPress={() => { setViewL(l); fetchReviews(l.id); setFlScreen("listing"); }} activeOpacity={0.75}>
       {/* top row */}
       <View style={g.cardTop}>
         <View style={[g.emojiBox, { backgroundColor: colors.accent + "12" }]}>
@@ -406,7 +407,7 @@ export default function FreelanceScreen() {
     const sm = S[o.status] ?? S.pending;
     return (
       <TouchableOpacity style={[g.card, { backgroundColor: colors.surface }]}
-        onPress={() => setViewO(o)} activeOpacity={0.75}>
+        onPress={() => { setViewO(o); setFlScreen("order"); }} activeOpacity={0.75}>
         <View style={g.cardTop}>
           <View style={[g.emojiBox, { backgroundColor: sm.c + "12", width: 42, height: 42 }]}>
             <Text style={{ fontSize: 20 }}>{o.listing_emoji}</Text>
@@ -485,7 +486,7 @@ export default function FreelanceScreen() {
             <Text style={[g.emptySub, { color: colors.textMuted }]}>{q ? "Try different keywords" : "List your service to get started"}</Text>
             {!q && (
               <TouchableOpacity style={[g.btn, { backgroundColor: colors.accent }]}
-                onPress={() => { resetForm(); setShowCreate(true); }}>
+                onPress={() => { resetForm(); setShowCreate(true); setFlScreen("create"); }}>
                 <Ionicons name="add" size={16} color="#fff" />
                 <Text style={g.btnText}>List a Service</Text>
               </TouchableOpacity>
@@ -555,7 +556,7 @@ export default function FreelanceScreen() {
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Text style={[g.secHead, { color: colors.text }]}>My Services</Text>
         <TouchableOpacity style={[g.smallBtn, { backgroundColor: colors.accent }]}
-          onPress={() => { resetForm(); setShowCreate(true); }}>
+          onPress={() => { resetForm(); setShowCreate(true); setFlScreen("create"); }}>
           <Ionicons name="add" size={15} color="#fff" />
           <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>New</Text>
         </TouchableOpacity>
@@ -567,7 +568,7 @@ export default function FreelanceScreen() {
           <Text style={[g.emptyTitle, { color: colors.text }]}>No services yet</Text>
           <Text style={[g.emptySub, { color: colors.textMuted }]}>Start earning by offering your skills</Text>
           <TouchableOpacity style={[g.btn, { backgroundColor: colors.accent, marginTop: 8 }]}
-            onPress={() => { resetForm(); setShowCreate(true); }}>
+            onPress={() => { resetForm(); setShowCreate(true); setFlScreen("create"); }}>
             <Ionicons name="add" size={15} color="#fff" />
             <Text style={g.btnText}>Create Service</Text>
           </TouchableOpacity>
@@ -575,7 +576,7 @@ export default function FreelanceScreen() {
       ) : myListings.map(l => (
         <View key={l.id} style={[g.card, { backgroundColor: colors.surface, padding: 0, overflow: "hidden" }]}>
           <TouchableOpacity style={{ padding: 14 }}
-            onPress={() => { setViewL(l); fetchReviews(l.id); }} activeOpacity={0.75}>
+            onPress={() => { setViewL(l); fetchReviews(l.id); setFlScreen("listing"); }} activeOpacity={0.75}>
             <View style={g.cardTop}>
               <Text style={{ fontSize: 22 }}>{l.emoji}</Text>
               <View style={{ flex: 1 }}>
@@ -606,22 +607,21 @@ export default function FreelanceScreen() {
     </ScrollView>
   );
 
-  /* ─── Listing Modal ──────────────────────────────────────────────────────  */
+  /* ─── Listing Screen ─────────────────────────────────────────────────────  */
   const ListingModal = () => {
     if (!viewL) return null;
     const l = viewL;
     const own = l.seller_id === user?.id;
     return (
-      <Modal visible animationType="slide" onRequestClose={() => setViewL(null)}>
-        <View style={[g.modal, { backgroundColor: colors.backgroundSecondary, paddingTop: insets.top }]}>
+      <View style={[g.modal, { backgroundColor: colors.backgroundSecondary, paddingTop: insets.top }]}>
           {/* nav */}
           <View style={[g.modalNav, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={() => setViewL(null)} hitSlop={12}>
+            <TouchableOpacity onPress={() => { setViewL(null); setFlScreen("main"); }} hitSlop={12}>
               <Ionicons name="arrow-back" size={22} color={colors.text} />
             </TouchableOpacity>
             <Text style={[g.modalNavTitle, { color: colors.text }]} numberOfLines={1}>{l.title}</Text>
             {own
-              ? <TouchableOpacity onPress={() => { setViewL(null); startEdit(l); }} hitSlop={12}>
+              ? <TouchableOpacity onPress={() => { setViewL(null); setFlScreen("main"); startEdit(l); }} hitSlop={12}>
                   <Ionicons name="create-outline" size={20} color={colors.accent} />
                 </TouchableOpacity>
               : <View style={{ width: 22 }} />}
@@ -634,7 +634,7 @@ export default function FreelanceScreen() {
                 <Text style={{ fontSize: 44 }}>{l.emoji}</Text>
               </View>
               <Text style={[g.heroTitle, { color: colors.text }]}>{l.title}</Text>
-              <TouchableOpacity onPress={() => { setViewL(null); router.push({ pathname: "/contact/[id]", params: { id: l.seller_id } }); }}>
+              <TouchableOpacity onPress={() => { setViewL(null); setFlScreen("main"); router.push({ pathname: "/contact/[id]", params: { id: l.seller_id } }); }}>
                 <Text style={[g.handle, { color: colors.accent, fontSize: 14, textAlign: "center" }]}>@{l.seller_handle}</Text>
               </TouchableOpacity>
               <View style={g.heroStats}>
@@ -720,11 +720,10 @@ export default function FreelanceScreen() {
             </View>
           )}
         </View>
-      </Modal>
     );
   };
 
-  /* ─── Order Modal ────────────────────────────────────────────────────────  */
+  /* ─── Order Screen ───────────────────────────────────────────────────────  */
   const OrderModal = () => {
     if (!viewO) return null;
     const o = viewO;
@@ -732,11 +731,10 @@ export default function FreelanceScreen() {
     const sm = S[o.status] ?? S.pending;
     const done = ["completed","cancelled"].includes(o.status);
     return (
-      <Modal visible animationType="slide" onRequestClose={() => { setViewO(null); setShowDeliver(false); }}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={[g.modal, { backgroundColor: colors.backgroundSecondary, paddingTop: insets.top }]}>
             <View style={[g.modalNav, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-              <TouchableOpacity onPress={() => { setViewO(null); setShowDeliver(false); }} hitSlop={12}>
+              <TouchableOpacity onPress={() => { setViewO(null); setShowDeliver(false); setFlScreen("main"); }} hitSlop={12}>
                 <Ionicons name="arrow-back" size={22} color={colors.text} />
               </TouchableOpacity>
               <Text style={[g.modalNavTitle, { color: colors.text }]}>Order</Text>
@@ -764,7 +762,7 @@ export default function FreelanceScreen() {
                   <View key={i} style={[g.infoRow, { borderBottomColor: colors.border }]}>
                     <Text style={[g.tiny, { color: colors.textMuted, fontSize: 13 }]}>{row.label}</Text>
                     {row.link
-                      ? <TouchableOpacity onPress={() => { setViewO(null); router.push({ pathname: "/contact/[id]", params: { id: row.link as string } }); }}>
+                      ? <TouchableOpacity onPress={() => { setViewO(null); setFlScreen("main"); router.push({ pathname: "/contact/[id]", params: { id: row.link as string } }); }}>
                           <Text style={[g.tiny, { color: row.c || colors.text, fontWeight: "600", fontSize: 13 }]}>{row.val}</Text>
                         </TouchableOpacity>
                       : <Text style={[g.tiny, { color: row.c || colors.text, fontWeight: "600", fontSize: 13 }]}>{row.val}</Text>
@@ -848,17 +846,15 @@ export default function FreelanceScreen() {
             )}
           </View>
         </KeyboardAvoidingView>
-      </Modal>
     );
   };
 
-  /* ─── Create Modal ───────────────────────────────────────────────────────  */
+  /* ─── Create Screen ───────────────────────────────────────────────────────  */
   const CreateModal = () => (
-    <Modal visible={showCreate} animationType="slide" onRequestClose={() => { setShowCreate(false); resetForm(); }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={[g.modal, { backgroundColor: colors.backgroundSecondary, paddingTop: insets.top }]}>
           <View style={[g.modalNav, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={() => { setShowCreate(false); resetForm(); }} hitSlop={12}>
+            <TouchableOpacity onPress={() => { setShowCreate(false); resetForm(); setFlScreen("main"); }} hitSlop={12}>
               <Ionicons name="close" size={22} color={colors.text} />
             </TouchableOpacity>
             <Text style={[g.modalNavTitle, { color: colors.text }]}>{editTarget ? "Edit Service" : "New Service"}</Text>
@@ -936,10 +932,13 @@ export default function FreelanceScreen() {
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
-    </Modal>
   );
 
   /* ─── Root Render ────────────────────────────────────────────────────────  */
+  if (flScreen === "listing" && viewL) return <ListingModal />;
+  if (flScreen === "order" && viewO) return <OrderModal />;
+  if (flScreen === "create") return <CreateModal />;
+
   return (
     <View style={[g.root, { backgroundColor: colors.backgroundSecondary, paddingTop: insets.top }]}>
 
@@ -952,7 +951,7 @@ export default function FreelanceScreen() {
           <Text style={[g.navTitle, { color: colors.text }]}>Freelance</Text>
           <Text style={[g.tiny, { color: colors.textMuted }]}>@afuchat</Text>
         </View>
-        <TouchableOpacity onPress={() => { resetForm(); setShowCreate(true); }} hitSlop={12}>
+        <TouchableOpacity onPress={() => { resetForm(); setShowCreate(true); setFlScreen("create"); }} hitSlop={12}>
           <Ionicons name="add-circle" size={24} color={colors.accent} />
         </TouchableOpacity>
       </View>
@@ -994,9 +993,6 @@ export default function FreelanceScreen() {
         : tab === "orders"  ? <OrdersView />
         : <SellerView />}
 
-      <ListingModal />
-      <OrderModal />
-      <CreateModal />
     </View>
   );
 }
