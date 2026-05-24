@@ -29,4 +29,6 @@ export type SuperAppContextValue = {
   closeApp: (id: string) => void;
   minimizeApp: (id: string) => void;
   isSuperAppId: (id: string) => boolean;
+  /** Navigate to a main-app route while auto-minimizing the active mini app. */
+  navigateOutside: (route: string, params?: Record<string, string>) => void;
 };

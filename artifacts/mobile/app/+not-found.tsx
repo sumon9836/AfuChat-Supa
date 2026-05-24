@@ -79,7 +79,7 @@ export default function NotFoundScreen() {
           <View style={styles.suggestionRow}>
             {[
               { label: "Chats", icon: "chatbubble-outline" as const, path: "/(tabs)/chats" as const },
-              { label: "Shorts", icon: "play-circle-outline" as const, path: "/shorts" as const },
+              { label: "Apps", icon: "grid-outline" as const, path: "/(tabs)/apps" as const },
               { label: "Moments", icon: "images-outline" as const, path: "/moments" as const },
               { label: "Search", icon: "search-outline" as const, path: "/(tabs)/search" as const },
             ].map((s) => (

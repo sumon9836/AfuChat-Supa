@@ -1,27 +1,27 @@
 import React, {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
 import { BackHandler, Platform, StyleSheet, View } from "react-native";
+import { router } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 
 import type { AppLifecycleState, OpenApp, SuperAppContextValue } from "./types";
 import { findModule, SUPER_APP_ID_SET } from "./registry";
+import { SuperAppContext } from "./SuperAppContext";
 import MiniAppWindow from "@/components/superapp/MiniAppWindow";
 import MiniAppDock from "@/components/superapp/MiniAppDock";
 
 import AfuAIApp from "@/modules/afuai";
 import AfuPayApp from "@/modules/afupay";
 import AfuMarketApp from "@/modules/afumarket";
-import AfuChannelApp from "@/modules/afuchannel";
 import AfuGamesApp from "@/modules/afugames";
 import AfuMusicApp from "@/modules/afumusic";
 import AfuBusinessApp from "@/modules/afubusiness";
 import AfuSearchApp from "@/modules/afusearch";
+import AfuLensApp from "@/modules/afulens";
 import AfuIDApp from "@/modules/afuid";
 import AfuQRApp from "@/modules/afuqr";
 import AfuSavedApp from "@/modules/afusaved";
@@ -37,11 +37,11 @@ function getMiniAppComponent(id: string): React.ComponentType | null {
     case "afuai":          return AfuAIApp;
     case "afupay":         return AfuPayApp;
     case "afumarket":      return AfuMarketApp;
-    case "afuchannel":     return AfuChannelApp;
     case "afugames":       return AfuGamesApp;
     case "afumusic":       return AfuMusicApp;
     case "afubusiness":    return AfuBusinessApp;
     case "afusearch":      return AfuSearchApp;
+    case "afulens":        return AfuLensApp;
     case "afuid":          return AfuIDApp;
     case "afuqr":          return AfuQRApp;
     case "afusaved":       return AfuSavedApp;
@@ -55,20 +55,8 @@ function getMiniAppComponent(id: string): React.ComponentType | null {
   }
 }
 
-const SuperAppContext = createContext<SuperAppContextValue | null>(null);
-
-const NOOP_CTX: SuperAppContextValue = {
-  openApps: [],
-  activeAppId: null,
-  openApp: () => {},
-  closeApp: () => {},
-  minimizeApp: () => {},
-  isSuperAppId: () => false,
-};
-
-export function useSuperApp(): SuperAppContextValue {
-  return useContext(SuperAppContext) ?? NOOP_CTX;
-}
+/** Re-export so callers can import from either location. */
+export { useSuperApp } from "./SuperAppContext";
 
 export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -83,14 +71,12 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
     setOpenApps((prev) => {
       const existing = prev.find((a) => a.manifest.id === id);
       if (existing) {
-        // Reactivate from dock
         return prev.map((a) =>
           a.manifest.id === id
             ? { ...a, state: "active" as AppLifecycleState }
             : { ...a, state: "background" as AppLifecycleState }
         );
       }
-      // Background any currently active app, then add new one
       return [
         ...prev.map((a) => ({ ...a, state: "background" as AppLifecycleState })),
         { manifest, state: "active" as AppLifecycleState, openedAt: Date.now() },
@@ -99,13 +85,11 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
     setActiveAppId(id);
   }, []);
 
-  // Close always fully removes the app from the list (no keepAlive zombie state)
   const closeApp = useCallback((id: string) => {
     setOpenApps((prev) => prev.filter((a) => a.manifest.id !== id));
     setActiveAppId((cur) => (cur === id ? null : cur));
   }, []);
 
-  // Minimize sends the app to the dock (background) without fully closing it
   const minimizeApp = useCallback((id: string) => {
     setOpenApps((prev) =>
       prev.map((a) =>
@@ -119,7 +103,26 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
 
   const isSuperAppId = useCallback((id: string) => SUPER_APP_ID_SET.has(id), []);
 
-  // Android hardware back = minimize active app (not close)
+  /**
+   * Navigate to a main-app route while auto-minimizing the currently active
+   * mini app so the destination screen is reachable in milliseconds.
+   */
+  const navigateOutside = useCallback(
+    (route: string, params?: Record<string, string>) => {
+      if (activeAppId) minimizeApp(activeAppId);
+      setTimeout(() => {
+        try {
+          if (params && Object.keys(params).length > 0) {
+            router.push({ pathname: route as any, params } as any);
+          } else {
+            router.push(route as any);
+          }
+        } catch {}
+      }, 80);
+    },
+    [activeAppId, minimizeApp]
+  );
+
   useEffect(() => {
     if (!activeAppId) return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -130,8 +133,8 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
   }, [activeAppId, minimizeApp]);
 
   const value = useMemo<SuperAppContextValue>(
-    () => ({ openApps, activeAppId, openApp, closeApp, minimizeApp, isSuperAppId }),
-    [openApps, activeAppId, openApp, closeApp, minimizeApp, isSuperAppId]
+    () => ({ openApps, activeAppId, openApp, closeApp, minimizeApp, isSuperAppId, navigateOutside }),
+    [openApps, activeAppId, openApp, closeApp, minimizeApp, isSuperAppId, navigateOutside]
   );
 
   return (
@@ -139,8 +142,6 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         {children}
 
-        {/* Dock lives INSIDE the root View so it is a plain absolutely-positioned
-            sibling of the content — no Modal, no touch-blocking overlay. */}
         <MiniAppDock
           openApps={openApps}
           activeAppId={activeAppId}
@@ -149,7 +150,6 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
         />
       </View>
 
-      {/* Mini App windows — each in its own Modal, stacks above tab bar */}
       {openApps.map((app) => {
         const AppComponent = getMiniAppComponent(app.manifest.id);
         if (!AppComponent) return null;
