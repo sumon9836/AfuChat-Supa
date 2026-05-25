@@ -194,22 +194,37 @@ function ResultSheet({
   const [resolving, setResolving] = useState(false);
   const openLink = useOpenLink();
 
-  async function handleAfuChatId() {
+  const [resolvedProfile, setResolvedProfile] = useState<{ id: string } | null>(null);
+
+  async function resolveAfuChatId() {
     const rawAfuId = result.raw.replace("afuchat://id/", "").replace(/\s/g, "");
     const afuId = rawAfuId.padStart(8, "0");
-    if (!/^\d{8}$/.test(afuId)) { showAlert("Invalid QR", "Not a valid AfuChat ID."); return; }
-    if (!user) { router.push("/(auth)/login" as any); return; }
+    if (!/^\d{8}$/.test(afuId)) { showAlert("Invalid QR", "Not a valid AfuChat ID."); return null; }
+    if (!user) { router.push("/(auth)/login" as any); return null; }
     setResolving(true);
     const { data } = await supabase.rpc("lookup_profile_by_afu_id", { p_afu_id: afuId });
-    const profile = data?.[0];
-    if (!profile) { showAlert("Not Found", "No user found with this AfuChat ID."); setResolving(false); return; }
     setResolving(false);
+    const profile = data?.[0];
+    if (!profile) { showAlert("Not Found", "No user found with this AfuChat ID."); return null; }
+    setResolvedProfile(profile);
+    return { afuId, profile };
+  }
+
+  async function handleViewProfile() {
+    const res = await resolveAfuChatId();
+    if (!res) return;
     onClose();
-    router.push({ pathname: "/wallet/scan" as any, params: { prefill_afu_id: afuId } });
+    router.push({ pathname: "/contact/[id]", params: { id: res.profile.id } } as any);
+  }
+
+  async function handleSendMoney() {
+    const res = await resolveAfuChatId();
+    if (!res) return;
+    onClose();
+    router.push({ pathname: "/wallet/scan" as any, params: { prefill_afu_id: res.afuId } });
   }
 
   async function handleAfuChatUrl() {
-    // Extract handle from afuchat.com URL
     try {
       const url = new URL(result.raw);
       const path = url.pathname.replace(/^\//, "");
@@ -218,9 +233,7 @@ function ResultSheet({
     onClose();
   }
 
-  function handleOpenUrl() {
-    openLink(result.raw);
-  }
+  function handleOpenUrl() { openLink(result.raw); }
 
   async function copyToClipboard(text: string) {
     await Clipboard.setStringAsync(text);
@@ -228,12 +241,27 @@ function ResultSheet({
     showAlert("Copied", "Copied to clipboard.");
   }
 
+  async function saveContact() {
+    if (Platform.OS === "web") { copyToClipboard(result.raw); return; }
+    try {
+      const Contacts = await import("expo-contacts");
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== "granted") { showAlert("Permission needed", "Allow contacts access to save this person."); return; }
+      const name = (result.raw.match(/FN:(.+)/) || [])[1]?.trim() || "Contact";
+      const email = (result.raw.match(/EMAIL[^:]*:(.+)/) || [])[1]?.trim();
+      const phone = (result.raw.match(/TEL[^:]*:(.+)/) || [])[1]?.trim();
+      const contact: any = { [Contacts.Fields.FirstName]: name };
+      if (email) contact[Contacts.Fields.Emails] = [{ email, label: "work" }];
+      if (phone) contact[Contacts.Fields.PhoneNumbers] = [{ number: phone, label: "mobile" }];
+      await Contacts.addContactAsync(contact);
+      showAlert("Saved", "Contact saved to your phone.");
+    } catch { copyToClipboard(result.raw); }
+  }
+
   return (
     <View style={[sheet.container, { backgroundColor: colors.surface }]}>
-      {/* Handle bar */}
       <View style={[sheet.handle, { backgroundColor: colors.border }]} />
 
-      {/* Icon */}
       <View style={[sheet.iconWrap, { backgroundColor: result.color + "15" }]}>
         <Ionicons name={result.icon} size={32} color={result.color} />
       </View>
@@ -255,7 +283,7 @@ function ResultSheet({
           {result.parsed.password ? (
             <View style={sheet.detailRow}>
               <Text style={[sheet.detailLabel, { color: colors.textMuted }]}>Password</Text>
-              <Text style={[sheet.detailValue, { color: colors.text }]}>{result.parsed.password}</Text>
+              <Text style={[sheet.detailValue, { color: colors.text }]} selectable>{result.parsed.password}</Text>
             </View>
           ) : null}
           <View style={sheet.detailRow}>
@@ -267,35 +295,50 @@ function ResultSheet({
 
       {/* Action buttons */}
       <View style={sheet.actions}>
+        {/* AfuChat ID: two separate buttons */}
         {result.type === "afuchat_id" && (
-          <TouchableOpacity
-            style={[sheet.actionBtn, { backgroundColor: Colors.brand }]}
-            onPress={handleAfuChatId}
-            disabled={resolving}
-          >
-            {resolving
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <><Ionicons name="person-circle" size={18} color="#fff" /><Text style={sheet.actionBtnText}>View Profile / Pay</Text></>}
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={[sheet.actionBtn, { backgroundColor: Colors.brand }]}
+              onPress={handleViewProfile}
+              disabled={resolving}
+            >
+              {resolving
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <><Ionicons name="person-circle" size={18} color="#fff" /><Text style={sheet.actionBtnText}>View Profile</Text></>}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[sheet.actionBtn, { backgroundColor: "#34C759" }]}
+              onPress={handleSendMoney}
+              disabled={resolving}
+            >
+              <Ionicons name="wallet" size={18} color="#fff" />
+              <Text style={sheet.actionBtnText}>Send Money</Text>
+            </TouchableOpacity>
+          </>
         )}
+
         {result.type === "afuchat_url" && (
           <TouchableOpacity style={[sheet.actionBtn, { backgroundColor: Colors.brand }]} onPress={handleAfuChatUrl}>
             <Ionicons name="open-outline" size={18} color="#fff" />
             <Text style={sheet.actionBtnText}>Open in AfuChat</Text>
           </TouchableOpacity>
         )}
+
         {result.type === "url" && (
           <TouchableOpacity style={[sheet.actionBtn, { backgroundColor: "#5856D6" }]} onPress={handleOpenUrl}>
             <Ionicons name="globe" size={18} color="#fff" />
             <Text style={sheet.actionBtnText}>Open in Browser</Text>
           </TouchableOpacity>
         )}
+
         {result.type === "email" && (
           <TouchableOpacity style={[sheet.actionBtn, { backgroundColor: "#FF9500" }]} onPress={() => Linking.openURL(`mailto:${result.raw.replace("mailto:", "")}`)}>
             <Ionicons name="mail" size={18} color="#fff" />
             <Text style={sheet.actionBtnText}>Send Email</Text>
           </TouchableOpacity>
         )}
+
         {result.type === "phone" && (
           <TouchableOpacity style={[sheet.actionBtn, { backgroundColor: "#34C759" }]} onPress={() => Linking.openURL(`tel:${result.raw.replace("tel:", "")}`)}>
             <Ionicons name="call" size={18} color="#fff" />
@@ -303,7 +346,33 @@ function ResultSheet({
           </TouchableOpacity>
         )}
 
-        {/* Copy raw value */}
+        {/* Wi-Fi: copy SSID + copy password */}
+        {result.type === "wifi" && result.parsed && (
+          <>
+            {result.parsed.ssid && (
+              <TouchableOpacity style={[sheet.actionBtn, { backgroundColor: "#007AFF" }]} onPress={() => copyToClipboard(result.parsed!.ssid)}>
+                <Ionicons name="wifi" size={18} color="#fff" />
+                <Text style={sheet.actionBtnText}>Copy Network Name</Text>
+              </TouchableOpacity>
+            )}
+            {result.parsed.password && (
+              <TouchableOpacity style={[sheet.actionBtn, { backgroundColor: "#5856D6" }]} onPress={() => copyToClipboard(result.parsed!.password)}>
+                <Ionicons name="key" size={18} color="#fff" />
+                <Text style={sheet.actionBtnText}>Copy Password</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+
+        {/* Contact: save to phone */}
+        {result.type === "contact" && (
+          <TouchableOpacity style={[sheet.actionBtn, { backgroundColor: "#34C759" }]} onPress={saveContact}>
+            <Ionicons name="person-add" size={18} color="#fff" />
+            <Text style={sheet.actionBtnText}>{Platform.OS === "web" ? "Copy Contact" : "Save to Phone"}</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Copy raw */}
         <TouchableOpacity
           style={[sheet.actionBtn, sheet.actionBtnSecondary, { borderColor: colors.border }]}
           onPress={() => copyToClipboard(result.raw)}

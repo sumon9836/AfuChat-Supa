@@ -483,9 +483,9 @@ export default function ContactProfileScreen() {
       setFollowerCount((c) => c + 1);
       const { error } = await supabase
         .from("follows")
-        .insert({ follower_id: user.id, following_id: id });
-      if (error) {
-        // Roll back — the follow didn't persist
+        .upsert({ follower_id: user.id, following_id: id }, { onConflict: "follower_id,following_id", ignoreDuplicates: true });
+      if (error && error.code !== "23505") {
+        // Roll back — the follow didn't persist (ignore unique-violation, treat as already-followed)
         setIsFollowing(prevFollowing);
         setFollowerCount(prevCount);
         showAlert("Error", "Could not follow. Please try again.");
