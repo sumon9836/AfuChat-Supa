@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -241,6 +243,7 @@ export default function SecuritySettingsScreen() {
 
       {/* ── Change Password modal ──────────────────────────────────────── */}
       <Modal visible={showChangePwd} animationType="slide" transparent>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <GlassCard style={styles.modalSheet} variant="strong">
             <View style={styles.dragHandle} />
@@ -261,10 +264,12 @@ export default function SecuritySettingsScreen() {
             </TouchableOpacity>
           </GlassCard>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Delete Account modal ───────────────────────────────────────── */}
       <Modal visible={showDeleteModal} animationType="slide" transparent>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <GlassCard style={styles.modalSheet} variant="strong">
             <View style={styles.dragHandle} />
@@ -293,6 +298,7 @@ export default function SecuritySettingsScreen() {
             </TouchableOpacity>
           </GlassCard>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

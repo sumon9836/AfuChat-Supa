@@ -331,7 +331,7 @@ export default function RegisterScreen() {
       >
         <Ionicons name="chevron-back" size={20} color={colors.accent} />
       </TouchableOpacity>
-      <KeyboardAvoidingView behavior={undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={[mobSt.scroll, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={mobSt.logoArea}>
             <Image source={afuSymbol} style={mobSt.logo} tintColor={accent} resizeMode="contain" />

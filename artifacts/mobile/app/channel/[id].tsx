@@ -457,7 +457,7 @@ export default function ChannelDetailScreen() {
   return (
     <KeyboardAvoidingView
       style={[st.root, { backgroundColor: colors.background }]}
-      behavior={undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
       {/* Header */}

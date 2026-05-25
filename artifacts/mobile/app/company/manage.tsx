@@ -348,7 +348,7 @@ export default function ManageCompanyPageScreen() {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 60, gap: 12 }}
           showsVerticalScrollIndicator={false}
