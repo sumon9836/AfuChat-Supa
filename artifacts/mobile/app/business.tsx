@@ -2,18 +2,18 @@ import { useEffect } from "react";
 import { Platform, View } from "react-native";
 import { router } from "expo-router";
 import { useSuperApp } from "@/lib/superapp/MiniAppRuntime";
-import AfuCollectionsApp from "@/modules/afucollections";
+import AfuBusinessApp from "@/modules/afubusiness";
 
-export default function CollectionsPage() {
+export default function BusinessPage() {
   const { openApp } = useSuperApp();
 
   useEffect(() => {
     if (Platform.OS !== "web") {
-      openApp("afucollections");
+      openApp("afubusiness");
       router.replace("/(tabs)/apps");
     }
   }, []);
 
   if (Platform.OS !== "web") return <View style={{ flex: 1 }} />;
-  return <AfuCollectionsApp />;
+  return <AfuBusinessApp />;
 }

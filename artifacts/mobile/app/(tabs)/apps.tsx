@@ -312,7 +312,7 @@ function AppTile({
       return;
     }
     onTap(app.id);
-    if (app.miniApp) {
+    if (app.miniApp && Platform.OS !== "web") {
       openApp(app.id);
     } else {
       router.push(app.route as any);
@@ -407,7 +407,7 @@ function FeaturedBanner({
       return;
     }
     onTap(app.id);
-    if (app.miniApp) {
+    if (app.miniApp && Platform.OS !== "web") {
       openApp(app.id);
     } else {
       router.push(app.route as any);

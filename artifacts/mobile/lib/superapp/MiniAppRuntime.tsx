@@ -64,6 +64,7 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
   const [activeAppId, setActiveAppId] = useState<string | null>(null);
 
   const openApp = useCallback((id: string) => {
+    if (Platform.OS === "web") return;
     const manifest = findModule(id);
     if (!manifest || manifest.comingSoon) return;
     if (manifest.nativeOnly && Platform.OS === "web") return;
@@ -144,27 +145,31 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         {children}
 
-        <MiniAppDock
-          openApps={openApps}
-          activeAppId={activeAppId}
-          onOpen={openApp}
-          onClose={closeApp}
-        />
+        {Platform.OS !== "web" && (
+          <>
+            <MiniAppDock
+              openApps={openApps}
+              activeAppId={activeAppId}
+              onOpen={openApp}
+              onClose={closeApp}
+            />
 
-        {openApps.map((app) => {
-          const AppComponent = getMiniAppComponent(app.manifest.id);
-          if (!AppComponent) return null;
-          return (
-            <MiniAppWindow
-              key={app.manifest.id}
-              app={app}
-              onClose={() => closeApp(app.manifest.id)}
-              onMinimize={() => minimizeApp(app.manifest.id)}
-            >
-              <AppComponent />
-            </MiniAppWindow>
-          );
-        })}
+            {openApps.map((app) => {
+              const AppComponent = getMiniAppComponent(app.manifest.id);
+              if (!AppComponent) return null;
+              return (
+                <MiniAppWindow
+                  key={app.manifest.id}
+                  app={app}
+                  onClose={() => closeApp(app.manifest.id)}
+                  onMinimize={() => minimizeApp(app.manifest.id)}
+                >
+                  <AppComponent />
+                </MiniAppWindow>
+              );
+            })}
+          </>
+        )}
       </View>
     </SuperAppContext.Provider>
   );

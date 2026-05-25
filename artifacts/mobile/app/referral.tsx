@@ -1,13 +1,19 @@
 import { useEffect } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { router } from "expo-router";
 import { useSuperApp } from "@/lib/superapp/MiniAppRuntime";
+import AfuReferralApp from "@/modules/afureferral";
 
-export default function ReferralLauncher() {
+export default function ReferralPage() {
   const { openApp } = useSuperApp();
+
   useEffect(() => {
-    openApp("afureferral");
-    router.replace("/(tabs)/apps");
+    if (Platform.OS !== "web") {
+      openApp("afureferral");
+      router.replace("/(tabs)/apps");
+    }
   }, []);
-  return <View style={{ flex: 1 }} />;
+
+  if (Platform.OS !== "web") return <View style={{ flex: 1 }} />;
+  return <AfuReferralApp />;
 }
