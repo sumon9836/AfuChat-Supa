@@ -813,12 +813,16 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
         .in("id", chatIds)
         .order("updated_at", { ascending: false })
         .limit(200),
+      // Fetch with a generous limit — one very active chat (e.g. AfuAI) can
+      // consume many rows and crowd out quieter ones. We take the larger of
+      // (chatIds.length * 15) or 300, capped at 1000, so every conversation
+      // is almost certain to get at least one message row in this batch.
       supabase
         .from("messages")
         .select("id, chat_id, encrypted_content, sent_at, attachment_type, sender_id")
         .in("chat_id", chatIds)
         .order("sent_at", { ascending: false })
-        .limit(Math.min(Math.max(chatIds.length * 2, 50), 100)),
+        .limit(Math.min(Math.max(chatIds.length * 15, 300), 1000)),
       unreadCheckIds.length > 0
         ? supabase
             .from("messages")
@@ -834,19 +838,51 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
     if (!chatRows) { setLoading(false); setRefreshing(false); return; }
 
     const lastMsgMap: Record<string, { lastMessage: string; lastMessageAt: string; isFromMe: boolean; lastMsgId: string }> = {};
-    for (const m of (lastMsgsResult.data || [])) {
-      if (!lastMsgMap[m.chat_id]) {
-        let preview = m.encrypted_content || "";
-        if (m.attachment_type === "story_reply") {
-          if (preview.startsWith("storyUserId:")) {
-            const pipeIdx = preview.indexOf("|");
-            preview = pipeIdx >= 0 ? preview.slice(pipeIdx + 1) : "Shared a story";
-          }
-          preview = `📸 ${preview || "Story"}`;
-        } else {
-          preview = stripMdPreview(preview);
+
+    function applyMsgRow(m: { id: string; chat_id: string; encrypted_content: string | null; sent_at: string; attachment_type: string | null; sender_id: string }) {
+      if (lastMsgMap[m.chat_id]) return;
+      let preview = m.encrypted_content || "";
+      if (m.attachment_type === "story_reply") {
+        if (preview.startsWith("storyUserId:")) {
+          const pipeIdx = preview.indexOf("|");
+          preview = pipeIdx >= 0 ? preview.slice(pipeIdx + 1) : "Shared a story";
         }
-        lastMsgMap[m.chat_id] = { lastMessage: preview, lastMessageAt: m.sent_at, isFromMe: m.sender_id === user.id, lastMsgId: m.id };
+        preview = `📸 ${preview || "Story"}`;
+      } else if (m.attachment_type === "image") {
+        preview = preview ? `📷 ${stripMdPreview(preview)}` : "📷 Photo";
+      } else if (m.attachment_type === "video") {
+        preview = "🎥 Video";
+      } else if (m.attachment_type === "audio") {
+        preview = "🎤 Voice message";
+      } else if (m.attachment_type === "file") {
+        preview = preview ? `📎 ${stripMdPreview(preview)}` : "📎 File";
+      } else {
+        preview = stripMdPreview(preview);
+      }
+      lastMsgMap[m.chat_id] = { lastMessage: preview, lastMessageAt: m.sent_at, isFromMe: m.sender_id === user.id, lastMsgId: m.id };
+    }
+
+    for (const m of (lastMsgsResult.data || [])) {
+      applyMsgRow(m);
+    }
+
+    // Phase 2: any chat still missing a preview after the batch query gets its
+    // own targeted fetch. This handles edge cases where one very active chat
+    // exhausts the batch limit and crowds out quieter conversations.
+    const uncoveredIds = chatIds.filter((id) => !lastMsgMap[id]);
+    if (uncoveredIds.length > 0) {
+      const fallbacks = await Promise.all(
+        uncoveredIds.map((id) =>
+          supabase
+            .from("messages")
+            .select("id, chat_id, encrypted_content, sent_at, attachment_type, sender_id")
+            .eq("chat_id", id)
+            .order("sent_at", { ascending: false })
+            .limit(1)
+        )
+      );
+      for (const r of fallbacks) {
+        if (r.data?.[0]) applyMsgRow(r.data[0]);
       }
     }
 
