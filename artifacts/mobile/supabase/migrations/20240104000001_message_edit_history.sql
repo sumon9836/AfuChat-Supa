@@ -17,9 +17,9 @@ create policy "participants can read edit history"
     exists (
       select 1
       from public.messages m
-      join public.chat_participants cp on cp.chat_id = m.chat_id
+      join public.chat_members cm on cm.chat_id = m.chat_id
       where m.id = message_edit_history.message_id
-        and cp.user_id = auth.uid()
+        and cm.user_id = auth.uid()
     )
   );
 
