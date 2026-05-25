@@ -21,7 +21,6 @@ import { getEdgeFnBase, edgeHeaders } from "@/lib/aiHelper";
 import { buildNavigationContext, ACTION_ROUTES_GUIDE, NAV_INTENT_MAP } from "@/lib/platformKnowledge";
 import { useSuperApp } from "@/lib/superapp/SuperAppContext";
 import { getCurrentPage, type PageInfo } from "@/lib/pageTracker";
-import { safeRouter } from "@/lib/navUtils";
 import {
   AFUAI_BOT_ID,
   AFUAI_CONV_ID,
@@ -36,6 +35,7 @@ import {
 type Role = "user" | "assistant";
 
 type ActionButton = { label: string; route: string };
+type DoAction = { type: string; params: string[] };
 
 type ChatMessage = {
   id: string;
@@ -117,7 +117,12 @@ Keep conversational answers as plain prose. Use formatting only when it genuinel
 
 ═══ SPECIAL RESPONSE TAGS (append at end, never mid-text) ═══
 • [SUGGEST:Follow-up question] — up to 3 natural follow-ups (never the same as what was just asked)
-• [ACTION:Button Label:/route] — tappable in-app navigation/action buttons
+• [ACTION:Button Label:/route] — tappable in-app navigation button (minimizes this mini app, opens the route)
+• [NAV:/route] — instantly auto-navigate WITHOUT a button (use sparingly when user says "take me to…" or "open…")
+• [DO:follow:@handle] — follow a user on the user's behalf (only when user explicitly asks)
+• [DO:unfollow:@handle] — unfollow a user on the user's behalf
+• [DO:post:text content] — publish a text post as the user (only when user explicitly asks to post)
+• [DO:msg:@handle:message text] — open a DM to a user
 
 ═══ RULES ═══
 1. NEVER write raw route paths (/wallet, /chat/new) in your prose — use [ACTION] tags only
@@ -125,7 +130,10 @@ Keep conversational answers as plain prose. Use formatting only when it genuinel
 3. If the user asks about a page, feature, or how to do something — give a specific, actionable answer
 4. Use the platform knowledge to give accurate answers about AfuChat features
 5. You can tell the user about specific costs, features, and how things work
-6. Always be warm and professional — you represent AfuChat`;
+6. Always be warm and professional — you represent AfuChat
+7. [ACTION] buttons auto-minimize this panel and open the destination — always use them for in-app navigation
+8. Only emit [DO] tags when the user EXPLICITLY asks you to perform that action — never speculatively act
+9. When using a [DO] tag, tell the user in your response text what action you are performing`;
 }
 
 // ─── Response parser ──────────────────────────────────────────────────────────
@@ -135,10 +143,12 @@ function parseResponse(raw: string): {
   suggestions: string[];
   actions: ActionButton[];
   autoNav?: string;
+  doActions: DoAction[];
 } {
   let text = raw;
   const suggestions: string[] = [];
   const actions: ActionButton[] = [];
+  const doActions: DoAction[] = [];
   let autoNav: string | undefined;
 
   // Parse [ACTION:Label:/route]
@@ -161,10 +171,65 @@ function parseResponse(raw: string): {
     return "";
   });
 
+  // Parse [DO:type:params] for write actions (follow, post, message, etc.)
+  text = text.replace(/\[DO:([^\]:]+):([^\]]*)\]/g, (_, type, rest) => {
+    const colonIdx = rest.indexOf(":");
+    const params = colonIdx >= 0
+      ? [rest.slice(0, colonIdx).trim(), rest.slice(colonIdx + 1).trim()]
+      : [rest.trim()];
+    doActions.push({ type: type.trim().toLowerCase(), params });
+    return "";
+  });
+
   // Strip any unknown tags
   text = text.replace(/\[[A-Z_]+:[^\]]*\]/g, "").trim();
 
-  return { text, suggestions, actions, autoNav };
+  return { text, suggestions, actions, autoNav, doActions };
+}
+
+// ─── Write action executor ─────────────────────────────────────────────────────
+
+async function handleDoAction(
+  da: DoAction,
+  userId: string,
+  navOutside: (route: string, params?: Record<string, string>) => void,
+): Promise<void> {
+  const { type, params } = da;
+
+  if (type === "follow" || type === "unfollow") {
+    const handle = (params[0] || "").replace(/^@/, "").trim();
+    if (!handle) return;
+    const { data: target } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("handle", handle)
+      .maybeSingle();
+    if (!target) return;
+    if (type === "follow") {
+      await supabase.from("follows").upsert(
+        { follower_id: userId, following_id: target.id },
+        { onConflict: "follower_id,following_id" },
+      );
+    } else {
+      await supabase.from("follows")
+        .delete()
+        .eq("follower_id", userId)
+        .eq("following_id", target.id);
+    }
+    return;
+  }
+
+  if (type === "post") {
+    const content = params.join(":").trim();
+    if (!content) return;
+    await supabase.from("posts").insert({ author_id: userId, content, type: "text" });
+    return;
+  }
+
+  if (type === "msg" || type === "message") {
+    navOutside("/chat/new");
+    return;
+  }
 }
 
 // ─── User context builder ─────────────────────────────────────────────────────
@@ -200,7 +265,7 @@ export default function AfuAIApp() {
   const { colors, accent } = useTheme();
   const { user, profile } = useAuth();
   const insets = useSafeAreaInsets();
-  const { activeAppId } = useSuperApp();
+  const { activeAppId, navigateOutside } = useSuperApp();
 
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [input, setInput] = useState("");
@@ -368,9 +433,16 @@ export default function AfuAIApp() {
               updateAILastMessage(parsed.text, aiSentAt, false).catch(() => {});
             }
 
-            // Auto-navigate if the AI returned a [NAV:] tag
+            // Auto-navigate if the AI returned a [NAV:] tag — minimize mini app first
             if (parsed.autoNav) {
-              setTimeout(() => safeRouter.navigate(parsed.autoNav as any), 300);
+              navigateOutside(parsed.autoNav);
+            }
+
+            // Execute any write actions the AI returned
+            if (parsed.doActions && parsed.doActions.length > 0 && user) {
+              for (const da of parsed.doActions) {
+                handleDoAction(da, user.id, navigateOutside).catch(() => {});
+              }
             }
           } catch {
             setMessages((p) => [
@@ -391,13 +463,13 @@ export default function AfuAIApp() {
         return prev;
       });
     },
-    [loading, user, profile, scrollToEnd]
+    [loading, user, profile, scrollToEnd, navigateOutside]
   );
 
-  // ── Handle action button tap ──────────────────────────────────────────────
+  // ── Handle action button tap — minimize mini app first, then navigate ────
   const handleAction = useCallback((action: ActionButton) => {
-    safeRouter.navigate(action.route as any);
-  }, []);
+    navigateOutside(action.route);
+  }, [navigateOutside]);
 
   const clearHistory = useCallback(async () => {
     setMessages([WELCOME]);

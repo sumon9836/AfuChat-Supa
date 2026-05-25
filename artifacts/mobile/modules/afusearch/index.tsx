@@ -14,11 +14,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { addToHistory, clearHistory, getSearchHistory } from "@/lib/searchStore";
+import { useSuperApp } from "@/lib/superapp/SuperAppContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SearchTab = "all" | "people" | "posts" | "videos" | "channels" | "events" | "jobs" | "gifts" | "market";
@@ -92,6 +92,7 @@ export default function AfuSearchApp() {
   const { colors, accent } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { navigateOutside } = useSuperApp();
 
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<SearchTab>("all");
@@ -313,7 +314,7 @@ export default function AfuSearchApp() {
   function renderPerson(item: PersonResult) {
     return (
       <TouchableOpacity key={item.id} style={[s.row, { borderBottomColor: colors.border }]}
-        onPress={() => router.push({ pathname: "/contact/[id]", params: { id: item.id } })}>
+        onPress={() => navigateOutside("/contact/[id]", { id: item.id })}>
         {item.avatar_url
           ? <Image source={{ uri: item.avatar_url }} style={s.avatar} />
           : <AvatarFallback name={item.display_name} size={44} color={accent} />}
@@ -349,7 +350,7 @@ export default function AfuSearchApp() {
   function renderVideo(item: VideoResult) {
     return (
       <TouchableOpacity key={item.id} style={[s.row, { borderBottomColor: colors.border }]}
-        onPress={() => router.push({ pathname: "/video/[id]", params: { id: item.id } })}>
+        onPress={() => navigateOutside("/video/[id]", { id: item.id })}>
         <View style={[s.videoCover, { backgroundColor: "#00000022" }]}>
           {item.image_url
             ? <Image source={{ uri: item.image_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
@@ -371,7 +372,7 @@ export default function AfuSearchApp() {
   function renderChannel(item: ChannelResult) {
     return (
       <TouchableOpacity key={item.id} style={[s.row, { borderBottomColor: colors.border }]}
-        onPress={() => router.push({ pathname: "/channel/[id]", params: { id: item.id } })}>
+        onPress={() => navigateOutside("/channel/[id]", { id: item.id })}>
         {item.avatar_url
           ? <Image source={{ uri: item.avatar_url }} style={[s.avatar, { borderRadius: 10 }]} />
           : <AvatarFallback name={item.name} size={44} color="#8B5CF6" />}
@@ -390,7 +391,7 @@ export default function AfuSearchApp() {
     const dateStr = dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     return (
       <TouchableOpacity key={item.id} style={[s.row, { borderBottomColor: colors.border }]}
-        onPress={() => router.push("/digital-events" as any)}>
+        onPress={() => navigateOutside("/digital-events")}>
         <View style={[s.emojiBox, { backgroundColor: "#FF950022" }]}>
           <Text style={{ fontSize: 22 }}>{item.emoji}</Text>
         </View>
@@ -429,7 +430,7 @@ export default function AfuSearchApp() {
   function renderMarket(item: MarketResult) {
     return (
       <TouchableOpacity key={item.id} style={[s.row, { borderBottomColor: colors.border }]}
-        onPress={() => router.push(item.route as any)}>
+        onPress={() => navigateOutside(item.route)}>
         <View style={[s.emojiBox, { backgroundColor: accent + "22" }]}>
           <Text style={{ fontSize: 22 }}>{item.emoji || "📦"}</Text>
         </View>

@@ -17,13 +17,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { transferAcoin } from "@/lib/monetize";
 import { showAlert } from "@/lib/alert";
+import { useSuperApp } from "@/lib/superapp/SuperAppContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Seller = { display_name: string | null; handle: string | null; avatar_url: string | null; is_verified: boolean };
@@ -76,6 +76,7 @@ export default function AfuFreelanceApp() {
   const { colors, accent } = useTheme();
   const { user, profile } = useAuth();
   const insets = useSafeAreaInsets();
+  const { navigateOutside } = useSuperApp();
 
   const [screen, setScreen] = useState<Screen>("browse");
   const [cat, setCat] = useState("All");
@@ -139,7 +140,7 @@ export default function AfuFreelanceApp() {
     if (selectedGig.seller_id === user.id) { showAlert("Oops", "You can't order your own service."); return; }
     if ((profile.acoin || 0) < selectedGig.price) {
       showAlert("Not enough ACoin", `Need ${selectedGig.price} ACoin, you have ${profile.acoin || 0}.`, [
-        { text: "Top Up", onPress: () => router.push("/wallet/topup" as any) }, { text: "Cancel" },
+        { text: "Top Up", onPress: () => navigateOutside("/wallet/topup") }, { text: "Cancel" },
       ]); return;
     }
     showAlert("Confirm Order", `Pay ${selectedGig.price} ACoin to @${selectedGig.seller?.handle}?`, [
@@ -321,7 +322,7 @@ export default function AfuFreelanceApp() {
             <View style={[s.sec, { backgroundColor: colors.surface }]}>
               <Text style={[s.secHead, { color: colors.textSecondary }]}>Seller</Text>
               <TouchableOpacity style={s.sellerRow}
-                onPress={() => router.push({ pathname: "/contact/[id]", params: { id: g.seller_id } })}>
+                onPress={() => navigateOutside("/contact/[id]", { id: g.seller_id })}>
                 {g.seller.avatar_url
                   ? <Image source={{ uri: g.seller.avatar_url }} style={s.sellerAvatar} />
                   : <View style={[s.sellerAvatarFallback, { backgroundColor: accent + "22" }]}><Ionicons name="person" size={20} color={accent} /></View>}
