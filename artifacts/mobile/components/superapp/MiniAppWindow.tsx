@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
-  Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -21,8 +21,6 @@ import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import type { OpenApp } from "@/lib/superapp/types";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-
 const BUTTON_COOLDOWN_MS = 500;
 
 interface Props {
@@ -35,15 +33,13 @@ interface Props {
 export default function MiniAppWindow({ app, onClose, onMinimize, children }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const translateY = useSharedValue(SCREEN_HEIGHT);
-  const backdropOpacity = useSharedValue(0);
   const isActive = app.state === "active";
-
   const [showing, setShowing] = useState(false);
 
-  // Per-button refs prevent rapid double-taps on minimize / close
-  // without touching the global navigation lock (these are UI actions,
-  // not route transitions).
+  const screenHeight = Dimensions.get("window").height;
+  const translateY = useSharedValue(screenHeight);
+  const backdropOpacity = useSharedValue(0);
+
   const minimizeBusy = useRef(false);
   const closeBusy    = useRef(false);
 
@@ -68,7 +64,7 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
       backdropOpacity.value = withTiming(1, { duration: 200 });
     } else {
       translateY.value = withTiming(
-        SCREEN_HEIGHT,
+        screenHeight,
         { duration: 260, easing: Easing.out(Easing.cubic) },
         (finished) => { if (finished) runOnJS(setShowing)(false); }
       );
@@ -76,87 +72,86 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
     }
   }, [isActive]);
 
-  const windowStyle  = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+  const windowStyle   = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value * 0.55 }));
 
   if (!showing && !isActive) return null;
 
   return (
-    <Modal
-      visible={showing}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={handleMinimize}
-    >
-      <View style={styles.container}>
-        <Animated.View style={[styles.backdrop, backdropStyle]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleMinimize} />
-        </Animated.View>
+    <View style={styles.container} pointerEvents={showing ? "box-none" : "none"}>
+      {/* Backdrop */}
+      <Animated.View style={[styles.backdrop, backdropStyle]} pointerEvents="box-none">
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleMinimize} />
+      </Animated.View>
 
-        <Animated.View
-          style={[styles.window, windowStyle, { backgroundColor: colors.background }]}
+      {/* Sliding window */}
+      <Animated.View
+        style={[styles.window, windowStyle, { backgroundColor: colors.background }]}
+      >
+        {/* Header */}
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 6,
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
         >
-          <View
-            style={[
-              styles.header,
-              {
-                paddingTop: insets.top + 6,
-                backgroundColor: colors.surface,
-                borderBottomColor: colors.border,
-              },
-            ]}
-          >
-            <View style={styles.headerLeft}>
-              <LinearGradient
-                colors={app.manifest.gradient as [string, string]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.appIcon}
-              >
-                <Ionicons name={app.manifest.icon as any} size={14} color="#fff" />
-              </LinearGradient>
-              <Text style={[styles.appName, { color: colors.text }]}>
-                {app.manifest.name}
-              </Text>
-              {app.manifest.badge ? (
-                <View style={[styles.badge, { backgroundColor: colors.accent + "20" }]}>
-                  <Text style={[styles.badgeText, { color: colors.accent }]}>
-                    {app.manifest.badge}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-
-            <View style={styles.headerRight}>
-              <Pressable
-                onPress={handleMinimize}
-                hitSlop={14}
-                style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.55 }]}
-              >
-                <Ionicons name="remove" size={22} color={colors.textSecondary} />
-              </Pressable>
-              <Pressable
-                onPress={handleClose}
-                hitSlop={14}
-                style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.55 }]}
-              >
-                <View style={[styles.closeCircle, { backgroundColor: colors.backgroundSecondary }]}>
-                  <Ionicons name="close" size={15} color={colors.text} />
-                </View>
-              </Pressable>
-            </View>
+          <View style={styles.headerLeft}>
+            <LinearGradient
+              colors={app.manifest.gradient as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.appIcon}
+            >
+              <Ionicons name={app.manifest.icon as any} size={14} color="#fff" />
+            </LinearGradient>
+            <Text style={[styles.appName, { color: colors.text }]}>
+              {app.manifest.name}
+            </Text>
+            {app.manifest.badge ? (
+              <View style={[styles.badge, { backgroundColor: colors.accent + "20" }]}>
+                <Text style={[styles.badgeText, { color: colors.accent }]}>
+                  {app.manifest.badge}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
-          <View style={styles.content}>{children}</View>
-        </Animated.View>
-      </View>
-    </Modal>
+          <View style={styles.headerRight}>
+            <Pressable
+              onPress={handleMinimize}
+              hitSlop={14}
+              style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.55 }]}
+            >
+              <Ionicons name="remove" size={22} color={colors.textSecondary} />
+            </Pressable>
+            <Pressable
+              onPress={handleClose}
+              hitSlop={14}
+              style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.55 }]}
+            >
+              <View style={[styles.closeCircle, { backgroundColor: colors.backgroundSecondary }]}>
+                <Ionicons name="close" size={15} color={colors.text} />
+              </View>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.content}>{children}</View>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000",

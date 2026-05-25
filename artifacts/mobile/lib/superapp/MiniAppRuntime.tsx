@@ -150,22 +150,22 @@ export function MiniAppRuntimeProvider({ children }: { children: React.ReactNode
           onOpen={openApp}
           onClose={closeApp}
         />
-      </View>
 
-      {openApps.map((app) => {
-        const AppComponent = getMiniAppComponent(app.manifest.id);
-        if (!AppComponent) return null;
-        return (
-          <MiniAppWindow
-            key={app.manifest.id}
-            app={app}
-            onClose={() => closeApp(app.manifest.id)}
-            onMinimize={() => minimizeApp(app.manifest.id)}
-          >
-            <AppComponent />
-          </MiniAppWindow>
-        );
-      })}
+        {openApps.map((app) => {
+          const AppComponent = getMiniAppComponent(app.manifest.id);
+          if (!AppComponent) return null;
+          return (
+            <MiniAppWindow
+              key={app.manifest.id}
+              app={app}
+              onClose={() => closeApp(app.manifest.id)}
+              onMinimize={() => minimizeApp(app.manifest.id)}
+            >
+              <AppComponent />
+            </MiniAppWindow>
+          );
+        })}
+      </View>
     </SuperAppContext.Provider>
   );
 }
