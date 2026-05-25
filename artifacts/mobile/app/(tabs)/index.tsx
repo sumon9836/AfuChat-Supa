@@ -97,6 +97,23 @@ function stripMdPreview(s: string): string {
     .trim();
 }
 
+function buildMsgPreview(encrypted_content: string | null, attachment_type: string | null): string {
+  const raw = encrypted_content || "";
+  if (attachment_type === "story_reply") {
+    let preview = raw;
+    if (preview.startsWith("storyUserId:")) {
+      const pipeIdx = preview.indexOf("|");
+      preview = pipeIdx >= 0 ? preview.slice(pipeIdx + 1) : "Shared a story";
+    }
+    return `📸 ${preview || "Story"}`;
+  }
+  if (attachment_type === "image") return raw ? `📷 ${stripMdPreview(raw)}` : "📷 Photo";
+  if (attachment_type === "video") return "🎥 Video";
+  if (attachment_type === "audio") return "🎤 Voice message";
+  if (attachment_type === "file") return raw ? `📎 ${stripMdPreview(raw)}` : "📎 File";
+  return stripMdPreview(raw);
+}
+
 type ChatItem = {
   id: string;
   name: string | null;
@@ -225,21 +242,6 @@ function ChatRow({
   const avatar = item.kind === "notes" ? null : item.is_group || item.is_channel ? item.avatar_url : item.other_avatar;
   const hasUnread = item.unread_count > 0 && !wasChatRecentlyVisited(item.id);
   const isOnlineDot = !item.is_group && !item.is_channel && isUserOnline(item.other_last_seen, item.other_show_online);
-  const pulse = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    if (hasUnread) {
-      const anim = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulse, { toValue: 1.28, duration: 650, useNativeDriver: true }),
-          Animated.timing(pulse, { toValue: 1, duration: 650, useNativeDriver: true }),
-        ])
-      );
-      anim.start();
-      return () => anim.stop();
-    } else {
-      pulse.setValue(1);
-    }
-  }, [hasUnread]);
 
   return (
     <View {...bind}>
@@ -330,11 +332,11 @@ function ChatRow({
           </Text>
           )}
           {hasUnread && (
-            <Animated.View style={[styles.unreadBadge, { backgroundColor: colors.accent, transform: [{ scale: pulse }] }]}>
+            <View style={[styles.unreadBadge, { backgroundColor: colors.accent }]}>
               <Text style={styles.unreadBadgeText}>
                 {item.unread_count > 99 ? "99+" : item.unread_count}
               </Text>
-            </Animated.View>
+            </View>
           )}
         </View>
       </View>
@@ -694,6 +696,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
   const [tabFilter, setTabFilter] = useState<ChatTabKey>("all");
   const [typingChatIds, setTypingChatIds] = useState<Record<string, boolean>>({});
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const realtimeReconcileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { prefs: chatPrefs } = useChatPreferences();
   const { features: advancedFeatures } = useAdvancedFeatures();
   const { width: windowWidth } = useWindowDimensions();
@@ -841,25 +844,12 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
 
     function applyMsgRow(m: { id: string; chat_id: string; encrypted_content: string | null; sent_at: string; attachment_type: string | null; sender_id: string }) {
       if (lastMsgMap[m.chat_id]) return;
-      let preview = m.encrypted_content || "";
-      if (m.attachment_type === "story_reply") {
-        if (preview.startsWith("storyUserId:")) {
-          const pipeIdx = preview.indexOf("|");
-          preview = pipeIdx >= 0 ? preview.slice(pipeIdx + 1) : "Shared a story";
-        }
-        preview = `📸 ${preview || "Story"}`;
-      } else if (m.attachment_type === "image") {
-        preview = preview ? `📷 ${stripMdPreview(preview)}` : "📷 Photo";
-      } else if (m.attachment_type === "video") {
-        preview = "🎥 Video";
-      } else if (m.attachment_type === "audio") {
-        preview = "🎤 Voice message";
-      } else if (m.attachment_type === "file") {
-        preview = preview ? `📎 ${stripMdPreview(preview)}` : "📎 File";
-      } else {
-        preview = stripMdPreview(preview);
-      }
-      lastMsgMap[m.chat_id] = { lastMessage: preview, lastMessageAt: m.sent_at, isFromMe: m.sender_id === user.id, lastMsgId: m.id };
+      lastMsgMap[m.chat_id] = {
+        lastMessage: buildMsgPreview(m.encrypted_content, m.attachment_type),
+        lastMessageAt: m.sent_at,
+        isFromMe: m.sender_id === user.id,
+        lastMsgId: m.id,
+      };
     }
 
     for (const m of (lastMsgsResult.data || [])) {
@@ -1289,7 +1279,60 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
       msgChannel.on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
-        () => loadChats(true)
+        (payload: any) => {
+          const msg = payload.new as {
+            id: string;
+            chat_id: string;
+            encrypted_content: string | null;
+            sent_at: string;
+            attachment_type: string | null;
+            sender_id: string;
+          } | null;
+
+          if (msg?.chat_id) {
+            const preview = buildMsgPreview(msg.encrypted_content, msg.attachment_type);
+            const isFromMe = msg.sender_id === user.id;
+            const activeChatId = getActiveChatId();
+
+            // Instantly patch the matching conversation in state — no network call needed.
+            setChats((prev) => {
+              const updated = prev.map((c) => {
+                if (c.id !== msg.chat_id) return c;
+                return {
+                  ...c,
+                  last_message: preview,
+                  last_message_at: msg.sent_at,
+                  last_message_is_mine: isFromMe,
+                  // Increment unread only when the message is from someone else
+                  // and this chat isn't the one currently open.
+                  unread_count:
+                    !isFromMe && msg.chat_id !== activeChatId && !wasChatRecentlyVisited(msg.chat_id)
+                      ? c.unread_count + 1
+                      : c.unread_count,
+                };
+              });
+
+              // Re-sort: pinned first, then archived last, then by latest message.
+              // My Notes (kind === "notes") always stays at index 0.
+              const notes = updated.filter((c) => c.kind === "notes");
+              const rest  = updated.filter((c) => c.kind !== "notes");
+              rest.sort((a, b) => {
+                if (a.is_pinned && !b.is_pinned) return -1;
+                if (!a.is_pinned && b.is_pinned) return 1;
+                if (a.is_archived && !b.is_archived) return 1;
+                if (!a.is_archived && b.is_archived) return -1;
+                if (!a.last_message_at && b.last_message_at) return 1;
+                if (a.last_message_at && !b.last_message_at) return -1;
+                return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
+              });
+              return [...notes, ...rest];
+            });
+          }
+
+          // Debounced full reconciliation (unread counts, read receipts, deleted messages, etc.)
+          if (realtimeReconcileTimer.current) clearTimeout(realtimeReconcileTimer.current);
+          realtimeReconcileTimer.current = setTimeout(() => loadChats(true), 2000);
+        }
       );
     });
     msgChannel.subscribe();
