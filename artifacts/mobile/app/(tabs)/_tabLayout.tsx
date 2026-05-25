@@ -27,19 +27,21 @@ import { emitShortsRefresh } from "@/lib/shortsRefresh";
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
 const TABS = [
-  { route: "/(tabs)/chats",    label: "Chats",    mdOn: "chatbubble",   mdOff: "chatbubble-outline"  },
-  { route: "/(tabs)/discover", label: "Discover", mdOn: "compass",      mdOff: "compass-outline"     },
-  { route: "/(tabs)/shorts",   label: "Shorts",   mdOn: "play-circle",  mdOff: "play-circle-outline" },
-  { route: "/(tabs)/apps",     label: "Apps",     mdOn: "grid",         mdOff: "grid-outline"        },
-  { route: "/(tabs)/me",       label: "Profile",  mdOn: "person",       mdOff: "person-outline"      },
+  { route: "/(tabs)/chats",         label: "Chats",    mdOn: "chatbubble",       mdOff: "chatbubble-outline"       },
+  { route: "/(tabs)/discover",      label: "Discover", mdOn: "compass",          mdOff: "compass-outline"          },
+  { route: "/(tabs)/shorts",        label: "Shorts",   mdOn: "play-circle",      mdOff: "play-circle-outline"      },
+  { route: "/(tabs)/notifications", label: "Inbox",    mdOn: "notifications",    mdOff: "notifications-outline"    },
+  { route: "/(tabs)/apps",          label: "Apps",     mdOn: "grid",             mdOff: "grid-outline"             },
+  { route: "/(tabs)/me",            label: "Profile",  mdOn: "person",           mdOff: "person-outline"           },
 ] as const;
 
 function normalizeTabPath(p: string): string {
   if (p === "/" || p === "/(tabs)" || p === "/(tabs)/index" || p === "/chats" || p === "/(tabs)/chats") return "/(tabs)/chats";
-  if (p === "/discover"  || p === "/(tabs)/discover")  return "/(tabs)/discover";
-  if (p === "/shorts"    || p === "/(tabs)/shorts")    return "/(tabs)/shorts";
-  if (p === "/apps"      || p === "/(tabs)/apps")      return "/(tabs)/apps";
-  if (p === "/me"        || p === "/(tabs)/me")        return "/(tabs)/me";
+  if (p === "/discover"       || p === "/(tabs)/discover")       return "/(tabs)/discover";
+  if (p === "/shorts"         || p === "/(tabs)/shorts")         return "/(tabs)/shorts";
+  if (p === "/notifications"  || p === "/(tabs)/notifications")  return "/(tabs)/notifications";
+  if (p === "/apps"           || p === "/(tabs)/apps")           return "/(tabs)/apps";
+  if (p === "/me"             || p === "/(tabs)/me")             return "/(tabs)/me";
   return p;
 }
 
@@ -68,6 +70,22 @@ function useTotalUnread(userId: string | undefined): number {
   return total;
 }
 
+function useUnreadNotifCount(userId: string | undefined): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("read", false).then(({ count: c }) => { setCount(c ?? 0); });
+    const ch = supabase.channel("notif-badge")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => setCount((c) => c + 1))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => {
+        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("read", false).then(({ count: c }) => setCount(c ?? 0));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [userId]);
+  return count;
+}
+
 function CompactTabBar({
   userId,
   avatarUrl,
@@ -79,14 +97,15 @@ function CompactTabBar({
   const insets          = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const totalUnread     = useTotalUnread(userId);
+  const unreadNotifs    = useUnreadNotifCount(userId);
   const active          = normalizeTabPath(pathname);
   const isAndroid       = Platform.OS === "android";
 
   const lastShortsTapRef = useRef<number>(0);
 
   // ── Sliding pill highlight ──────────────────────────────────────────────────
-  const ITEM_W  = 54;
-  const PILL_W  = 44;
+  const ITEM_W  = 48;
+  const PILL_W  = 40;
   const PILL_H  = 30;
   const BAR_PAD = 5;
 
@@ -196,6 +215,7 @@ function CompactTabBar({
           const isChats   = tab.route === "/(tabs)/chats";
           const isProfile = tab.route === "/(tabs)/me";
 
+          const isNotifs = tab.route === "/(tabs)/notifications";
           return (
             <View key={tab.route} style={bar.item}>
               <Pressable
@@ -223,14 +243,14 @@ function CompactTabBar({
                   ) : isChats ? (
                     <Image
                       source={afuSymbol}
-                      style={{ width: 44, height: 44 }}
+                      style={{ width: 40, height: 40 }}
                       resizeMode="contain"
                       tintColor={iconColor}
                     />
                   ) : (
                     <Ionicons
                       name={(focused ? tab.mdOn : tab.mdOff) as any}
-                      size={24}
+                      size={22}
                       color={iconColor}
                     />
                   )}
@@ -244,6 +264,13 @@ function CompactTabBar({
                 <View style={[bar.badge, { backgroundColor: colors.accent }]}>
                   <Text style={bar.badgeText} numberOfLines={1}>
                     {totalUnread > 99 ? "99+" : String(totalUnread)}
+                  </Text>
+                </View>
+              )}
+              {isNotifs && unreadNotifs > 0 && (
+                <View style={[bar.badge, { backgroundColor: "#FF3B30" }]}>
+                  <Text style={bar.badgeText} numberOfLines={1}>
+                    {unreadNotifs > 99 ? "99+" : String(unreadNotifs)}
                   </Text>
                 </View>
               )}
@@ -280,7 +307,7 @@ const bar = StyleSheet.create({
   item: {
     alignItems: "center",
     justifyContent: "center",
-    width: 54,
+    width: 48,
     zIndex: 1,
   },
   pressable: {
@@ -288,12 +315,12 @@ const bar = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 999,
     paddingVertical: 2,
-    width: 54,
+    width: 48,
   },
   iconChip: {
-    width: 54,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -342,15 +369,16 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
         tabBarBackground: () => null,
       }}
     >
-      <Tabs.Screen name="index"       options={{ href: null }} />
-      <Tabs.Screen name="chats"       options={{ href: isLoggedIn ? undefined : null }} />
-      <Tabs.Screen name="discover"    options={{ href: isLoggedIn ? undefined : null }} />
-      <Tabs.Screen name="shorts"      options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
-      <Tabs.Screen name="search"      options={{ href: null }} />
-      <Tabs.Screen name="contacts"    options={{ href: null }} />
-      <Tabs.Screen name="communities" options={{ href: null }} />
-      <Tabs.Screen name="apps"        options={{ href: isLoggedIn ? undefined : null }} />
-      <Tabs.Screen name="me"          options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="index"         options={{ href: null }} />
+      <Tabs.Screen name="chats"         options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="discover"      options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="shorts"        options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
+      <Tabs.Screen name="notifications" options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="search"        options={{ href: null }} />
+      <Tabs.Screen name="contacts"      options={{ href: null }} />
+      <Tabs.Screen name="communities"   options={{ href: null }} />
+      <Tabs.Screen name="apps"          options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="me"            options={{ href: isLoggedIn ? undefined : null }} />
     </Tabs>
   );
 }

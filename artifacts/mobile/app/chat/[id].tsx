@@ -866,6 +866,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   ).current;
 
   const isSpecial =
+    msg.attachment_type === "payment" ||
     msg.encrypted_content?.startsWith("🧧") ||
     msg.encrypted_content?.startsWith("🎁") ||
     ["📷 Photo", "🎥 Video", "GIF"].includes(msg.encrypted_content ?? "");
@@ -1171,6 +1172,44 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                       {storyDisplayText}
                     </Text>
                   ) : null}
+                </TouchableOpacity>
+              );
+            })()
+          ) : msg.attachment_type === "payment" ? (
+            (() => {
+              let pay: { currency?: string; amount?: number; note?: string; sender_handle?: string; recipient_handle?: string; recipient_name?: string } = {};
+              try { pay = JSON.parse(msg.encrypted_content ?? "{}"); } catch {}
+              const isSender = isMe;
+              const accentColor = pay.currency === "nexa" ? "#FF9500" : "#10B981";
+              const coinLabel = pay.currency === "nexa" ? "Nexa" : "ACoin";
+              return (
+                <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={300} activeOpacity={0.85}>
+                  <View style={{ minWidth: 200, gap: 10 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: accentColor + "25", alignItems: "center", justifyContent: "center" }}>
+                        <Ionicons name={pay.currency === "nexa" ? "flash" : "cash"} size={20} color={accentColor} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: isMe ? "rgba(255,255,255,0.7)" : colors.textMuted, textTransform: "uppercase", letterSpacing: 0.6 }}>
+                          {isSender ? "You sent" : "Payment received"}
+                        </Text>
+                        <Text style={{ fontSize: 20, fontFamily: "Inter_700Bold", color: isMe ? "#fff" : accentColor, lineHeight: 26 }}>
+                          {(pay.amount ?? 0).toLocaleString()} {coinLabel}
+                        </Text>
+                      </View>
+                    </View>
+                    {pay.note ? (
+                      <View style={{ paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, backgroundColor: isMe ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.05)" }}>
+                        <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: isMe ? "rgba(255,255,255,0.9)" : colors.text }} numberOfLines={3}>{pay.note}</Text>
+                      </View>
+                    ) : null}
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                      <Ionicons name="checkmark-circle" size={13} color={isMe ? "rgba(255,255,255,0.55)" : "#10B981"} />
+                      <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: isMe ? "rgba(255,255,255,0.55)" : colors.textMuted }}>
+                        {isSender ? `To @${pay.recipient_handle}` : `From @${pay.sender_handle}`}
+                      </Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
               );
             })()
@@ -1526,6 +1565,10 @@ function ChatScreen() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [showGiftPicker, setShowGiftPicker] = useState(false);
   const [giftSending, setGiftSending] = useState(false);
+  const [walletCurrency, setWalletCurrency] = useState<"acoin" | "nexa">("acoin");
+  const [walletAmount, setWalletAmount] = useState("");
+  const [walletNote, setWalletNote] = useState("");
+  const [walletSending, setWalletSending] = useState(false);
   const [giftReveal, setGiftReveal] = useState<{ content: string; isReceiver: boolean } | null>(null);
   const [envReveal, setEnvReveal] = useState<{
     amount: number | null;
@@ -3548,6 +3591,54 @@ STRICT RULES:
     return chatId;
   }
 
+  async function handleInlineSendMoney() {
+    if (!user || !profile || !chatInfo?.other_id || walletSending) return;
+    const amt = parseInt(walletAmount, 10);
+    if (isNaN(amt) || amt <= 0) { showAlert("Invalid amount", "Please enter a valid amount greater than zero."); return; }
+    const currentBalance = walletCurrency === "acoin" ? (profile.acoin ?? 0) : (profile.xp ?? 0);
+    const coinLabel = walletCurrency === "acoin" ? "ACoin" : "Nexa";
+    if (amt > currentBalance) { showAlert("Insufficient balance", `You only have ${currentBalance.toLocaleString()} ${coinLabel}.`); return; }
+    setWalletSending(true);
+    try {
+      const { data: recipient } = await supabase.from("profiles").select("id,display_name,handle,acoin,xp").eq("id", chatInfo.other_id).single();
+      if (!recipient) { showAlert("Error", "Recipient not found."); setWalletSending(false); return; }
+      const noteText = walletNote.trim() || null;
+      if (walletCurrency === "nexa") {
+        const { error: deductErr } = await supabase.from("profiles").update({ xp: (profile.xp || 0) - amt }).eq("id", user.id);
+        if (deductErr) { showAlert("Error", "Could not deduct Nexa. Please try again."); setWalletSending(false); return; }
+        await supabase.from("profiles").update({ xp: (recipient.xp || 0) + amt }).eq("id", recipient.id);
+        await supabase.from("xp_transfers").insert({ sender_id: user.id, receiver_id: recipient.id, amount: amt, message: noteText }).catch(() => {});
+      } else {
+        const { error: deductErr } = await supabase.from("profiles").update({ acoin: (profile.acoin || 0) - amt }).eq("id", user.id);
+        if (deductErr) { showAlert("Error", "Could not deduct ACoin. Please try again."); setWalletSending(false); return; }
+        await supabase.from("profiles").update({ acoin: (recipient.acoin || 0) + amt }).eq("id", recipient.id);
+        await Promise.all([
+          supabase.from("acoin_transactions").insert({ user_id: user.id, amount: -amt, transaction_type: "acoin_transfer_sent", metadata: { to_user_id: recipient.id, to_handle: recipient.handle, message: noteText } }),
+          supabase.from("acoin_transactions").insert({ user_id: recipient.id, amount: amt, transaction_type: "acoin_transfer_received", metadata: { from_user_id: user.id, from_handle: profile.handle, message: noteText } }),
+        ]);
+      }
+      const activeChatId = await getOrCreateChatId();
+      if (activeChatId) {
+        const payloadStr = JSON.stringify({ currency: walletCurrency, amount: amt, note: noteText, sender_handle: profile.handle, recipient_handle: recipient.handle, recipient_name: recipient.display_name });
+        const msgResult = await supabase.from("messages").insert({ chat_id: activeChatId, sender_id: user.id, encrypted_content: payloadStr, attachment_type: "payment" }).select("id, chat_id, sender_id, encrypted_content, sent_at, attachment_type").single();
+        if (msgResult.data) {
+          const newMsg: Message = { ...msgResult.data, sender: { display_name: profile.display_name || "You", avatar_url: profile.avatar_url || null, handle: profile.handle || "" }, reactions: [], status: "sent" };
+          setMessages((prev) => [newMsg, ...prev]);
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }
+      }
+      refreshProfile?.();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setWalletAmount("");
+      setWalletNote("");
+      setShowAttachPanel(false);
+      showAlert("Sent!", `${amt.toLocaleString()} ${coinLabel} sent to ${recipient.display_name}.`);
+    } catch {
+      showAlert("Error", "Payment failed. Please try again.");
+    }
+    setWalletSending(false);
+  }
+
   async function sendMessage(directText?: string) {
     const text = (directText ?? input).trim();
     if (!text || !user || sending) return;
@@ -5417,21 +5508,112 @@ STRICT RULES:
             }
 
             if (attachTab === "Wallet") {
-              return (
-                <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 32 }}>
-                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#10B98120", alignItems: "center", justifyContent: "center" }}>
-                    <Ionicons name="wallet" size={32} color="#10B981" />
+              const isGroup = chatInfo?.is_group || chatInfo?.is_channel;
+              if (isGroup) {
+                return (
+                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 }}>
+                    <Ionicons name="wallet-outline" size={40} color={colors.textMuted} />
+                    <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.textMuted, textAlign: "center" }}>Payments are only available in direct messages.</Text>
                   </View>
-                  <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text }}>Send Money</Text>
-                  <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.textMuted, textAlign: "center" }}>
-                    Send Nexa, ACoin, or make a payment directly in chat.
-                  </Text>
+                );
+              }
+              const acoinBal = profile?.acoin ?? 0;
+              const nexaBal = profile?.xp ?? 0;
+              const currentBal = walletCurrency === "acoin" ? acoinBal : nexaBal;
+              const recipientName = chatInfo?.other_name || "this person";
+              return (
+                <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 8 }}>
+                  {/* Header */}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#10B98120", alignItems: "center", justifyContent: "center" }}>
+                      <Ionicons name="wallet" size={22} color="#10B981" />
+                    </View>
+                    <View>
+                      <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.text }}>Send to {recipientName}</Text>
+                      <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.textMuted }}>Payment will appear in chat</Text>
+                    </View>
+                  </View>
+
+                  {/* Currency selector */}
+                  <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+                    {(["acoin", "nexa"] as const).map((cur) => {
+                      const active = walletCurrency === cur;
+                      const color = cur === "acoin" ? "#10B981" : "#FF9500";
+                      const bal = cur === "acoin" ? acoinBal : nexaBal;
+                      return (
+                        <TouchableOpacity
+                          key={cur}
+                          activeOpacity={0.75}
+                          onPress={() => setWalletCurrency(cur)}
+                          style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1.5, borderColor: active ? color : colors.border, backgroundColor: active ? color + "12" : colors.inputBg, gap: 4 }}
+                        >
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                            <Ionicons name={cur === "acoin" ? "cash" : "flash"} size={16} color={color} />
+                            <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: active ? color : colors.text }}>{cur === "acoin" ? "ACoin" : "Nexa"}</Text>
+                            {active && <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: color, marginLeft: "auto" }} />}
+                          </View>
+                          <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: colors.textMuted }}>Balance: {bal.toLocaleString()}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Amount input */}
+                  <View style={{ marginBottom: 12 }}>
+                    <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Amount</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, height: 48, borderRadius: 14, backgroundColor: colors.inputBg, borderWidth: 1, borderColor: walletAmount && parseInt(walletAmount) > currentBal ? "#FF3B30" : colors.border }}>
+                      <Ionicons name={walletCurrency === "acoin" ? "cash-outline" : "flash-outline"} size={18} color={colors.textMuted} />
+                      <TextInput
+                        value={walletAmount}
+                        onChangeText={(v) => setWalletAmount(v.replace(/[^0-9]/g, ""))}
+                        placeholder="0"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="number-pad"
+                        style={{ flex: 1, fontSize: 17, fontFamily: "Inter_600SemiBold", color: colors.text, outlineStyle: "none" as any }}
+                      />
+                      {walletAmount !== "" && (
+                        <TouchableOpacity onPress={() => setWalletAmount("")} hitSlop={8}>
+                          <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {walletAmount !== "" && parseInt(walletAmount) > currentBal ? (
+                      <Text style={{ fontSize: 11, color: "#FF3B30", fontFamily: "Inter_400Regular", marginTop: 4 }}>Exceeds your balance of {currentBal.toLocaleString()}</Text>
+                    ) : null}
+                  </View>
+
+                  {/* Note input */}
+                  <View style={{ marginBottom: 18 }}>
+                    <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Note (optional)</Text>
+                    <View style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.border }}>
+                      <TextInput
+                        value={walletNote}
+                        onChangeText={setWalletNote}
+                        placeholder="Add a note…"
+                        placeholderTextColor={colors.textMuted}
+                        maxLength={120}
+                        style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.text, outlineStyle: "none" as any }}
+                      />
+                    </View>
+                  </View>
+
+                  {/* Send button */}
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => { setShowAttachPanel(false); router.push("/wallet" as any); }}
-                    style={{ backgroundColor: "#10B981", paddingHorizontal: 32, paddingVertical: 13, borderRadius: 24 }}
+                    onPress={handleInlineSendMoney}
+                    disabled={walletSending || !walletAmount || parseInt(walletAmount) <= 0 || parseInt(walletAmount) > currentBal}
+                    style={{ backgroundColor: (walletSending || !walletAmount || parseInt(walletAmount) <= 0 || parseInt(walletAmount) > currentBal) ? colors.border : "#10B981", height: 50, borderRadius: 25, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 }}
                   >
-                    <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 15 }}>Open Wallet</Text>
+                    {walletSending ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="send" size={16} color="#fff" />
+                        <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 15 }}>
+                          Send {walletAmount ? `${parseInt(walletAmount).toLocaleString()} ${walletCurrency === "acoin" ? "ACoin" : "Nexa"}` : ""}
+                        </Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 </View>
               );
