@@ -212,6 +212,13 @@ export default function SettingsScreen() {
               />
             </>
           )}
+          <GlassMenuSeparator />
+          <GlassMenuItem
+            icon="flash-outline"
+            label="Advanced Features"
+            subtitle="Colour theme, presence, chat and power settings"
+            onPress={() => router.push("/advanced-features" as any)}
+          />
         </GlassMenuSection>
 
         {/* ── PRIVACY & SECURITY ──────────────────────────────────────── */}
