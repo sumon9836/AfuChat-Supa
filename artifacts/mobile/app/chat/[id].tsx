@@ -181,6 +181,7 @@ if (Platform.OS === "android" && !("RN$Bridgeless" in global) && UIManager.setLa
 }
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+const REACTION_EMOJIS_ADVANCED = ["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "👏", "😍", "🤔", "😭", "🥳", "💯", "🎉", "😎", "✨"];
 const BRAND_FALLBACK = Colors.brand;
 const MIC_SPRING_CONFIG = { damping: 18, stiffness: 200, mass: 0.8 };
 const MIC_SPRING_SNAP = { damping: 20, stiffness: 180 };
@@ -783,6 +784,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   const BRAND = colors.accent;
   const { preferredLang, voiceToText, textToSpeech } = useLanguage();
   const { themeColors: chatTheme, bubbleRadius: chatRadius, prefs: chatPrefsLocal } = useChatPreferences();
+  const { features: msgBubbleFeatures } = useAdvancedFeatures();
   const [translated, setTranslated] = useState<string | null>(null);
   const [translating, setTranslating] = useState(false);
   const [showTranslated, setShowTranslated] = useState(false);
@@ -1223,7 +1225,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                 ? <AiRichContent content={displayText} colors={colors} isUser={isMe} />
                 : <RichText style={[st.bubbleText, { color: textColor, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND} selectable={Platform.OS === "web"}>{stripMd(displayText)}</RichText>
               }
-              {!msg._isAi && !isSpecial && chatPrefsLocal?.link_previews !== false && (
+              {!msg._isAi && !isSpecial && chatPrefsLocal?.link_previews !== false && msgBubbleFeatures.interactive_link_preview && (
                 <LinkPreview text={displayText} isMe={isMe} />
               )}
             </TouchableOpacity>
@@ -1431,6 +1433,10 @@ function ChatScreen() {
   const { textToSpeech: ttsEnabled } = useLanguage();
   const { prefs: chatPrefs, themeColors: chatThemeColors, bubbleRadius: chatBubbleRadius } = useChatPreferences();
   const { features: advancedFeatures } = useAdvancedFeatures();
+  const advancedFeaturesRef = useRef(advancedFeatures);
+  advancedFeaturesRef.current = advancedFeatures;
+  const chatInfoStateRef = useRef(chatInfo);
+  chatInfoStateRef.current = chatInfo;
   const { isLowData: chatIsLowData } = useDataMode();
   const { statsMap, getDynamicPrice } = useGiftPrices();
   const pickerQuality = (() => {
@@ -1495,6 +1501,8 @@ function ChatScreen() {
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [showReactions, setShowReactions] = useState<Message | null>(null);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; handle: string; display_name: string; avatar_url: string | null }[]>([]);
   const [showRedEnvelope, setShowRedEnvelope] = useState(false);
   const [envelopeAmount, setEnvelopeAmount] = useState("");
   const [envelopeMsg, setEnvelopeMsg] = useState("");
@@ -2285,6 +2293,15 @@ function ChatScreen() {
           const newMsg = payload.new as any;
           if (newMsg.sender_id === user?.id) return;
           if (newMsg.sender_id === AFUAI_BOT_ID) return;
+
+          // ── Content filter — drop messages with blocked keywords ──────────
+          const kf = advancedFeaturesRef.current;
+          if (kf.content_filter_topics && kf.content_filter_keywords && newMsg.encrypted_content) {
+            const blocked = kf.content_filter_keywords.split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+            const msgLower = (newMsg.encrypted_content as string).toLowerCase();
+            if (blocked.length > 0 && blocked.some((b: string) => msgLower.includes(b))) return;
+          }
+
           const { data: senderProfile } = await supabase.from("profiles").select("display_name, avatar_url, handle").eq("id", newMsg.sender_id).single();
           setMessages((prev) => [{ ...newMsg, sender: senderProfile as any, reactions: [], status: undefined }, ...prev]);
           // Auto-download images/gifs/audio on incoming messages (NOT files — user must tap)
@@ -2293,6 +2310,58 @@ function ChatScreen() {
             ensureChatAttachmentDownloaded(newMsg.attachment_url, newMsg.attachment_type).catch(() => {});
           }
           playNotificationSound();
+
+          // ── Keyword alerts — notify when a watched word appears ──────────
+          if (kf.keyword_alerts && kf.keyword_alerts_list && newMsg.encrypted_content) {
+            const keywords = kf.keyword_alerts_list.split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+            const msgLower = (newMsg.encrypted_content as string).toLowerCase();
+            const hit = keywords.find((kw: string) => msgLower.includes(kw));
+            if (hit && Platform.OS !== "web") {
+              try {
+                const Notifications = await import("expo-notifications");
+                const { status } = await Notifications.getPermissionsAsync();
+                if (status === "granted") {
+                  await Notifications.scheduleNotificationAsync({
+                    content: {
+                      title: `🔔 Keyword alert: "${hit}"`,
+                      body: (newMsg.encrypted_content as string).slice(0, 100),
+                      data: { chatId: id, type: "keyword_alert" },
+                    },
+                    trigger: null,
+                  });
+                }
+              } catch {}
+            }
+          }
+
+          // ── Auto-reply — respond automatically for DMs ───────────────────
+          const currentChatInfo = chatInfoStateRef.current;
+          if (
+            kf.auto_reply_enabled &&
+            kf.auto_reply_message &&
+            !currentChatInfo?.is_group &&
+            !currentChatInfo?.is_channel &&
+            user
+          ) {
+            const autoReplyText = kf.auto_reply_message;
+            const activeChatId = id;
+            try {
+              const { data: autoMsg } = await supabase
+                .from("messages")
+                .insert({ chat_id: activeChatId, sender_id: user.id, encrypted_content: autoReplyText })
+                .select("id, chat_id, sender_id, encrypted_content, sent_at, attachment_type")
+                .single();
+              if (autoMsg) {
+                const autoMsgFull = {
+                  ...autoMsg,
+                  sender: { display_name: profile?.display_name || "You", avatar_url: profile?.avatar_url || null, handle: profile?.handle || "" },
+                  reactions: [],
+                  status: "sent" as const,
+                };
+                setMessages((prev) => [autoMsgFull, ...prev]);
+              }
+            } catch {}
+          }
           if (showScrollBtnRef.current) {
             setNewMsgCount((c) => c + 1);
           }
@@ -2902,6 +2971,18 @@ function ChatScreen() {
     }
   }, [id, realChatId, isDraft, user?.id, chatInfo?.other_id]);
 
+  useEffect(() => {
+    if (!chatInfo || chatInfo.is_group || chatInfo.is_channel) return;
+    if (!advancedFeatures.temp_chat_enabled) return;
+    const chatId = isDraft ? realChatId : id;
+    if (!chatId || disappearingEnabled) return;
+    const secs = (advancedFeatures.temp_chat_default_minutes || 60) * 60;
+    setDisappearingEnabled(true);
+    setDisappearingTimer(secs);
+    AsyncStorage.setItem(`afu_disappearing_${chatId}`, "1").catch(() => {});
+    AsyncStorage.setItem(`afu_disappearing_timer_${chatId}`, String(secs)).catch(() => {});
+  }, [advancedFeatures.temp_chat_enabled, chatInfo?.is_group, chatInfo?.is_channel]);
+
   async function handleMuteToggle() {
     const chatId = isDraft ? realChatId : id;
     if (!chatId) return;
@@ -3417,6 +3498,110 @@ STRICT RULES:
       setAiResult("Could not translate. Please try again.");
     } finally {
       setTranslatingLang(false);
+    }
+  }
+
+  async function fetchMentionSuggestions(query: string) {
+    if (!chatInfo) return;
+    const memberIds = chatInfo.member_ids || (chatInfo.other_id ? [chatInfo.other_id] : []);
+    if (memberIds.length === 0) return;
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, handle, display_name, avatar_url")
+        .in("id", memberIds)
+        .ilike("handle", `${query}%`)
+        .limit(6);
+      setMentionSuggestions(data || []);
+    } catch {}
+  }
+
+  async function handleChatSummaryFull() {
+    setShowChatOptions(false);
+    const recent = [...messages].slice(0, 30).reverse();
+    const usable = recent.filter(
+      (m) =>
+        m.encrypted_content &&
+        !m.encrypted_content.startsWith("🎁") &&
+        !m.encrypted_content.startsWith("🧧") &&
+        !["📷 Photo", "🎥 Video", "GIF"].includes(m.encrypted_content)
+    );
+    if (usable.length < 3) {
+      showAlert("Too few messages", "There aren't enough text messages to summarize yet.");
+      return;
+    }
+    const formatted = usable
+      .map((m) => `${m.sender?.display_name || "User"}: ${m.encrypted_content}`)
+      .join("\n");
+    try {
+      const result = await askAi(
+        `Summarize this conversation in 3-5 bullet points. Focus on the key topics and what was agreed:\n\n${formatted}`,
+        "You are a concise chat summarizer. Return ONLY bullet points, no intro or outro.",
+        { fast: true, maxTokens: 250 }
+      );
+      showAlert("Chat Summary", result);
+    } catch {
+      showAlert("Error", "Could not summarize the chat. Please try again.");
+    }
+  }
+
+  async function handleExportChat() {
+    setShowChatOptions(false);
+    const fmt = advancedFeatures.chat_export_format || "txt";
+    const sorted = [...messages].reverse();
+    if (sorted.length === 0) {
+      showAlert("Nothing to export", "This chat has no messages yet.");
+      return;
+    }
+    if (Platform.OS === "web") {
+      try {
+        let content: string;
+        let filename: string;
+        if (fmt === "json") {
+          content = JSON.stringify(
+            sorted.map((m) => ({
+              sender: m.sender?.display_name,
+              handle: m.sender?.handle,
+              text: m.encrypted_content,
+              time: m.sent_at,
+              attachment: m.attachment_type || null,
+            })),
+            null,
+            2
+          );
+          filename = `chat_export_${Date.now()}.json`;
+        } else {
+          content = sorted
+            .map(
+              (m) =>
+                `[${m.sent_at ? new Date(m.sent_at).toLocaleString() : ""}] ${m.sender?.display_name || "Unknown"}: ${m.encrypted_content || `[${m.attachment_type || "attachment"}]`}`
+            )
+            .join("\n");
+          filename = `chat_export_${Date.now()}.txt`;
+        }
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        showAlert("Error", "Could not export chat.");
+      }
+    } else {
+      try {
+        const { Share } = await import("react-native");
+        const lines = sorted
+          .map(
+            (m) =>
+              `[${m.sent_at ? new Date(m.sent_at).toLocaleString() : ""}] ${m.sender?.display_name || "Unknown"}: ${m.encrypted_content || `[${m.attachment_type || "attachment"}]`}`
+          )
+          .join("\n");
+        await Share.share({ message: lines, title: `Chat with ${headerTitle}` });
+      } catch {}
     }
   }
 
@@ -4637,7 +4822,7 @@ STRICT RULES:
             isMe={isMe}
             showTail={shouldShowTail(index)}
             showName={shouldShowName(index)}
-            onLongPress={(m) => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowReactions(m); }}
+            onLongPress={(m) => { if (!advancedFeatures.quick_action_menu) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowReactions(m); }}
             onReply={(m) => { setReplyTo(m); setTimeout(() => chatInputRef.current?.focus(), 50); }}
             replyPreview={getReplyPreview(item.reply_to_message_id)}
             onTapReply={item.reply_to_message_id ? () => scrollToMessage(item.reply_to_message_id!) : undefined}
@@ -4897,6 +5082,33 @@ STRICT RULES:
           </View>
         )}
 
+        {advancedFeatures.user_tagging && mentionQuery !== null && mentionSuggestions.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="always"
+            style={{ maxHeight: 52, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, backgroundColor: colors.surface }}
+            contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 7, gap: 8, flexDirection: "row" }}
+          >
+            {mentionSuggestions.map((s) => (
+              <TouchableOpacity
+                key={s.id}
+                onPress={() => {
+                  const replaced = input.replace(/@\w*$/, `@${s.handle} `);
+                  setInput(replaced);
+                  setMentionQuery(null);
+                  setMentionSuggestions([]);
+                }}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.inputBg, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 4 }}
+                activeOpacity={0.7}
+              >
+                <Avatar uri={s.avatar_url} name={s.display_name} size={22} />
+                <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.text }}>@{s.handle}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
         {replyTo && !editingMessage && (
           <View style={[st.replyBanner, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
             <View style={[st.replyBarAccent, { backgroundColor: BRAND }]} />
@@ -5012,7 +5224,21 @@ STRICT RULES:
                           placeholder={attachmentPreview ? "Add a caption..." : "Message"}
                           placeholderTextColor={colors.textMuted}
                           value={input}
-                          onChangeText={(t) => { setInput(t); handleTyping(); saveDraft(t); }}
+                          onChangeText={(t) => {
+                            setInput(t);
+                            handleTyping();
+                            saveDraft(t);
+                            if (advancedFeatures.user_tagging) {
+                              const atMatch = t.match(/@(\w*)$/);
+                              if (atMatch) {
+                                setMentionQuery(atMatch[1]);
+                                fetchMentionSuggestions(atMatch[1]);
+                              } else {
+                                setMentionQuery(null);
+                                setMentionSuggestions([]);
+                              }
+                            }
+                          }}
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
                           multiline
                           maxLength={4000}
@@ -5126,7 +5352,21 @@ STRICT RULES:
                           placeholder={attachmentPreview ? "Add a caption..." : "Message"}
                           placeholderTextColor={colors.textMuted}
                           value={input}
-                          onChangeText={(t) => { setInput(t); handleTyping(); saveDraft(t); }}
+                          onChangeText={(t) => {
+                            setInput(t);
+                            handleTyping();
+                            saveDraft(t);
+                            if (advancedFeatures.user_tagging) {
+                              const atMatch = t.match(/@(\w*)$/);
+                              if (atMatch) {
+                                setMentionQuery(atMatch[1]);
+                                fetchMentionSuggestions(atMatch[1]);
+                              } else {
+                                setMentionQuery(null);
+                                setMentionSuggestions([]);
+                              }
+                            }
+                          }}
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
                           multiline
                           maxLength={4000}
@@ -5715,8 +5955,8 @@ STRICT RULES:
         <View style={st.reactModalOverlay}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => { setShowReactions(null); setAiResult(null); setAiResultType(null); setAiReplies([]); }} />
           <View style={[st.reactModalContainer, { backgroundColor: colors.surface }]}>
-            <View style={st.reactModalEmojiRow}>
-              {REACTION_EMOJIS.map((emoji) => (
+            <View style={[st.reactModalEmojiRow, advancedFeatures.emoji_reactions_advanced ? { flexWrap: "wrap", justifyContent: "center" } : undefined]}>
+              {(advancedFeatures.emoji_reactions_advanced ? REACTION_EMOJIS_ADVANCED : REACTION_EMOJIS).map((emoji) => (
                 <TouchableOpacity
                   key={emoji}
                   style={[st.reactModalEmojiBtn, { backgroundColor: colors.inputBg }]}
@@ -5796,6 +6036,20 @@ STRICT RULES:
                 <Text style={[st.reactModalActionText, { color: colors.text }]}>Edit</Text>
               </TouchableOpacity>
             )}
+            {advancedFeatures.message_edit_history && showReactions && showReactions.edited_at && (
+              <TouchableOpacity
+                style={st.reactModalAction}
+                onPress={() => {
+                  showAlert(
+                    "Message Edited",
+                    `This message was last edited on ${new Date(showReactions.edited_at!).toLocaleString()}.\n\nEdit history storage coming soon.`
+                  );
+                }}
+              >
+                <Ionicons name="time-outline" size={20} color={colors.textMuted} />
+                <Text style={[st.reactModalActionText, { color: colors.text }]}>View Edit History</Text>
+              </TouchableOpacity>
+            )}
             {showReactions && showReactions.sender_id === user?.id && (
               <TouchableOpacity
                 style={st.reactModalAction}
@@ -5823,6 +6077,26 @@ STRICT RULES:
                 <Text style={[st.reactModalActionText, { color: colors.text }]}>Remind Me</Text>
               </TouchableOpacity>
             )}
+            {advancedFeatures.chat_to_post && showReactions && (() => {
+              const txt = showReactions.encrypted_content?.trim();
+              const isGift = !txt || txt.startsWith("🎁 ") || txt.startsWith("🧧") || txt.includes("|giftId:");
+              if (isGift) return null;
+              return (
+                <TouchableOpacity
+                  style={st.reactModalAction}
+                  onPress={() => {
+                    setShowReactions(null);
+                    setAiResult(null);
+                    setAiResultType(null);
+                    setAiReplies([]);
+                    router.push({ pathname: "/create-post", params: { prefill: txt } } as any);
+                  }}
+                >
+                  <Ionicons name="share-social-outline" size={20} color="#34C759" />
+                  <Text style={[st.reactModalActionText, { color: colors.text }]}>Share to Feed</Text>
+                </TouchableOpacity>
+              );
+            })()}
 
             {(chatInfo?.is_group || chatInfo?.is_channel) && (
               <>
@@ -6199,6 +6473,38 @@ STRICT RULES:
 
               {/* ── SECTION: Chat ───────────────────────────────────────── */}
               <Text style={[st.optionsSection, { color: colors.textMuted }]}>CHAT</Text>
+
+              {advancedFeatures.chat_summary && (
+                <TouchableOpacity
+                  style={[st.optionsRow, { borderBottomColor: colors.border }]}
+                  onPress={handleChatSummaryFull}
+                >
+                  <View style={[st.optionsIcon, { backgroundColor: colors.accent }]}>
+                    <Ionicons name="sparkles" size={16} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[st.optionsLabel, { color: colors.text }]}>Summarize Chat</Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>AI summary of recent messages</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+
+              {advancedFeatures.chat_export_format && (
+                <TouchableOpacity
+                  style={[st.optionsRow, { borderBottomColor: colors.border }]}
+                  onPress={handleExportChat}
+                >
+                  <View style={[st.optionsIcon, { backgroundColor: "#5856D6" }]}>
+                    <Ionicons name="download-outline" size={16} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[st.optionsLabel, { color: colors.text }]}>Export Chat</Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>Save as {(advancedFeatures.chat_export_format || "txt").toUpperCase()}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={[st.optionsRow, { borderBottomColor: colors.border }]}
