@@ -31,6 +31,12 @@ import {
   clearAIUnread,
   ensureAIChatExists,
 } from "@/lib/aiChatStore";
+import {
+  saveMemory,
+  loadMemories,
+  formatMemoriesForPrompt,
+  type AIMemory,
+} from "@/lib/aiMemory";
 
 type Role = "user" | "assistant";
 
@@ -54,7 +60,7 @@ const WELCOME: ChatMessage = {
   id: "welcome",
   role: "assistant",
   content:
-    "Hi! I'm **AfuAI** — your intelligent assistant inside AfuChat.\n\nI can help with anything: writing, coding, math, research, translations, and everything AfuChat-related.\n\nI can also **take actions** — tap any action button I suggest to navigate, open features, or do things inside the app instantly.\n\nWhat can I help you with?",
+    "Hi! I'm **AfuAI** — your intelligent assistant inside AfuChat.\n\nI can help with anything: writing, coding, math, research, translations, and everything AfuChat-related.\n\nI can also **take actions** — tap any action button I suggest to navigate, open features, or do things inside the app instantly.\n\nI also **remember things across sessions** — just say *\"remember I prefer dark themes\"* or *\"remember my shop is called X\"* and I'll keep it for all future chats.\n\nWhat can I help you with?",
   ts: Date.now(),
   suggestions: [
     "What's on the current page?",
@@ -66,7 +72,7 @@ const WELCOME: ChatMessage = {
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
-function buildSystemPrompt(userCtx: string, page: PageInfo, recentHistory: string): string {
+function buildSystemPrompt(userCtx: string, page: PageInfo, recentHistory: string, memoriesText?: string): string {
   const platform = buildNavigationContext();
 
   const pageCtx = page.pathname !== HOME_PATHNAME
@@ -83,13 +89,17 @@ give a helpful breakdown using the above context. You know exactly what screen t
 `
     : "";
 
+  const memoriesSection = memoriesText
+    ? `\n═══ USER LONG-TERM MEMORY (preferences & facts the user has asked you to remember) ═══\n${memoriesText}\nAlways apply these memories naturally — e.g. if the user said they prefer dark themes, lean that way in design suggestions. Never explicitly announce that you're using a memory unless the user asks.\n`
+    : "";
+
   return `You are AfuAI — a highly capable, accurate AI assistant built directly into AfuChat, a social super-app from Uganda.
 
 You are NOT just a chatbot. You can take real in-app actions for the user by outputting [ACTION] buttons. When the user wants to navigate, open a feature, or do something in the app, ALWAYS provide the matching [ACTION] button — they are tappable and will immediately take the user there.
 
 ═══ USER ACCOUNT DATA (reference only when user asks) ═══
 ${userCtx || "Not loaded yet — user has not asked about their account."}
-
+${memoriesSection}
 ═══ CURRENT SCREEN ═══
 ${pageCtx || "User is on the Home Feed."}
 
@@ -123,6 +133,7 @@ Keep conversational answers as plain prose. Use formatting only when it genuinel
 • [DO:unfollow:@handle] — unfollow a user on the user's behalf
 • [DO:post:text content] — publish a text post as the user (only when user explicitly asks to post)
 • [DO:msg:@handle:message text] — open a DM to a user
+• [MEMORY:key:value] — save a preference or fact to long-term memory ONLY when the user explicitly says "remember…" or "don't forget…" (e.g. "remember I prefer dark themes" → [MEMORY:theme preference:dark themes]; "remember my shop is called AfuTech" → [MEMORY:shop name:AfuTech]). Use a short descriptive key (max 50 chars). Never save memories speculatively.
 
 ═══ RULES ═══
 1. NEVER write raw route paths (/wallet, /chat/new) in your prose — use [ACTION] tags only
@@ -138,17 +149,21 @@ Keep conversational answers as plain prose. Use formatting only when it genuinel
 
 // ─── Response parser ──────────────────────────────────────────────────────────
 
+type MemoryTag = { key: string; value: string };
+
 function parseResponse(raw: string): {
   text: string;
   suggestions: string[];
   actions: ActionButton[];
   autoNav?: string;
   doActions: DoAction[];
+  memoryTags: MemoryTag[];
 } {
   let text = raw;
   const suggestions: string[] = [];
   const actions: ActionButton[] = [];
   const doActions: DoAction[] = [];
+  const memoryTags: MemoryTag[] = [];
   let autoNav: string | undefined;
 
   // Parse [ACTION:Label:/route]
@@ -181,10 +196,18 @@ function parseResponse(raw: string): {
     return "";
   });
 
+  // Parse [MEMORY:key:value] for long-term memory saves
+  text = text.replace(/\[MEMORY:([^\]:]{1,120}):([^\]]{1,500})\]/g, (_, key, value) => {
+    const k = key.trim();
+    const v = value.trim();
+    if (k && v) memoryTags.push({ key: k, value: v });
+    return "";
+  });
+
   // Strip any unknown tags
   text = text.replace(/\[[A-Z_]+:[^\]]*\]/g, "").trim();
 
-  return { text, suggestions, actions, autoNav, doActions };
+  return { text, suggestions, actions, autoNav, doActions, memoryTags };
 }
 
 // ─── Write action executor ─────────────────────────────────────────────────────
@@ -278,16 +301,20 @@ export default function AfuAIApp() {
 
   const listRef = useRef<FlatList>(null);
   const userCtxRef = useRef<string>("");
+  const memoriesRef = useRef<string>("");
 
   const scrollToEnd = useCallback((animated = true) => {
     setTimeout(() => listRef.current?.scrollToEnd({ animated }), 80);
   }, []);
 
-  // ── Load history from SQLite on first mount ───────────────────────────────
+  // ── Load history + memories from SQLite on first mount ───────────────────
   useEffect(() => {
     if (historyLoaded || !user) return;
     (async () => {
-      const history = await loadAIHistory(80);
+      const [history, memories] = await Promise.all([
+        loadAIHistory(80),
+        loadMemories(),
+      ]);
       if (history.length > 0) {
         const loaded: ChatMessage[] = history.map((m) => ({
           id: m.id,
@@ -297,6 +324,7 @@ export default function AfuAIApp() {
         }));
         setMessages([WELCOME, ...loaded]);
       }
+      memoriesRef.current = formatMemoriesForPrompt(memories);
       setHistoryLoaded(true);
     })();
   }, [user, historyLoaded]);
@@ -376,8 +404,8 @@ export default function AfuAIApp() {
         userCtxRef.current = await buildUserContext(user.id, profile);
       }
 
-      // Build system prompt fresh with current page context
-      const systemPrompt = buildSystemPrompt(userCtxRef.current, page, "");
+      // Build system prompt fresh with current page context + memories
+      const systemPrompt = buildSystemPrompt(userCtxRef.current, page, "", memoriesRef.current || undefined);
 
       // Collect conversation history for the API (last 12 exchanges)
       setMessages((prev) => {
@@ -438,6 +466,17 @@ export default function AfuAIApp() {
               navigateOutside(parsed.autoNav);
             }
 
+            // Persist any memories the AI emitted
+            if (parsed.memoryTags && parsed.memoryTags.length > 0) {
+              for (const { key, value } of parsed.memoryTags) {
+                saveMemory(key, value).catch(() => {});
+              }
+              // Refresh the in-memory cache so the next message sees the new memories
+              loadMemories().then((mems) => {
+                memoriesRef.current = formatMemoriesForPrompt(mems);
+              }).catch(() => {});
+            }
+
             // Execute any write actions the AI returned
             if (parsed.doActions && parsed.doActions.length > 0 && user) {
               for (const da of parsed.doActions) {
@@ -475,6 +514,8 @@ export default function AfuAIApp() {
     setMessages([WELCOME]);
     userCtxRef.current = "";
     await clearAIHistory();
+    // Note: memories are intentionally NOT cleared with chat history —
+    // they are long-term preferences that should survive conversation resets.
   }, []);
 
   const renderItem = useCallback(

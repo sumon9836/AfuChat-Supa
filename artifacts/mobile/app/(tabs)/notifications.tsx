@@ -179,13 +179,14 @@ export default function NotificationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeCategory, setActiveCategory] = useState<Category>("all");
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // ── Data loading ───────────────────────────────────────────────────────────
 
   const loadNotifications = useCallback(async (silent = false) => {
     if (!user) return;
-    if (!silent) setLoading(true);
+    if (!silent) { setLoading(true); setFetchError(null); }
 
     // 1. Fetch raw notification rows
     const { data: rows, error } = await supabase
@@ -195,20 +196,28 @@ export default function NotificationsScreen() {
       .order("created_at", { ascending: false })
       .limit(100);
 
-    if (error || !rows) {
-      if (!silent) setLoading(false);
+    if (error) {
+      console.error("[Notifications] query error:", error.message, error.details, error.hint);
+      if (!silent) { setFetchError(error.message ?? "Failed to load notifications"); setLoading(false); }
+      return;
+    }
+
+    if (!rows) {
+      if (!silent) { setFetchError("No data returned"); setLoading(false); }
       return;
     }
 
     // 2. Fetch actor profiles for all unique actor_ids in one round-trip
-    const actorIds = [...new Set(rows.map((r) => r.actor_id).filter(Boolean))] as string[];
+    const actorIds = [...new Set(rows.map((r: RawNotification) => r.actor_id).filter(Boolean))] as string[];
     let profileMap: Record<string, { display_name: string | null; handle: string | null; avatar_url: string | null }> = {};
 
     if (actorIds.length > 0) {
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profErr } = await supabase
         .from("profiles")
         .select("id, display_name, handle, avatar_url")
         .in("id", actorIds);
+
+      if (profErr) console.warn("[Notifications] profiles fetch error:", profErr.message);
 
       if (profiles) {
         for (const p of profiles) {
@@ -217,11 +226,12 @@ export default function NotificationsScreen() {
       }
     }
 
-    // 3. Merge profiles into notifications
+    // 3. Merge profiles into notifications (null-safe data field)
     const merged: Notification[] = rows.map((row: RawNotification) => {
       const profile = row.actor_id ? profileMap[row.actor_id] : null;
       return {
         ...row,
+        data: row.data ?? {},
         type: row.type as NotifType,
         actor_name: profile?.display_name ?? null,
         actor_handle: profile?.handle ?? null,
@@ -231,6 +241,7 @@ export default function NotificationsScreen() {
 
     setNotifications(merged);
     setUnreadCount(merged.filter((n) => !n.read).length);
+    setFetchError(null);
     if (!silent) setLoading(false);
   }, [user]);
 
@@ -423,6 +434,22 @@ export default function NotificationsScreen() {
       {loading ? (
         <View style={st.center}>
           <ActivityIndicator size="large" color={accent} />
+        </View>
+      ) : fetchError ? (
+        <View style={st.center}>
+          <View style={[st.emptyIconWrap, { backgroundColor: "#FF3B3012" }]}>
+            <Ionicons name="cloud-offline-outline" size={38} color="#FF3B30" />
+          </View>
+          <Text style={[st.emptyTitle, { color: colors.text }]}>Couldn't load notifications</Text>
+          <Text style={[st.emptySub, { color: colors.textMuted }]}>{fetchError}</Text>
+          <TouchableOpacity
+            onPress={() => loadNotifications()}
+            activeOpacity={0.75}
+            style={[st.retryBtn, { backgroundColor: accent }]}
+          >
+            <Ionicons name="refresh" size={14} color="#fff" />
+            <Text style={st.retryBtnText}>Try again</Text>
+          </TouchableOpacity>
         </View>
       ) : filtered.length === 0 ? (
         <View style={st.center}>
@@ -655,5 +682,19 @@ const st = StyleSheet.create({
     height: 9,
     borderRadius: 5,
     flexShrink: 0,
+  },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 4,
+  },
+  retryBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
 });

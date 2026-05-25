@@ -87,10 +87,10 @@ function CompactTabBar({
   const lastShortsTapRef = useRef<number>(0);
 
   // ── Sliding pill highlight ──────────────────────────────────────────────────
-  const ITEM_W  = 48;
-  const PILL_W  = 40;
-  const PILL_H  = 30;
-  const BAR_PAD = 5;
+  const ITEM_W  = 64;
+  const PILL_W  = 56;
+  const PILL_H  = 32;
+  const BAR_PAD = 6;
 
   const pillX        = useRef(new Animated.Value(0)).current;
   const didInitRef   = useRef(false);
@@ -282,7 +282,7 @@ const bar = StyleSheet.create({
   item: {
     alignItems: "center",
     justifyContent: "center",
-    width: 48,
+    width: 64,
     zIndex: 1,
   },
   pressable: {
@@ -290,10 +290,10 @@ const bar = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 999,
     paddingVertical: 2,
-    width: 48,
+    width: 64,
   },
   iconChip: {
-    width: 48,
+    width: 64,
     height: 34,
     borderRadius: 17,
     alignItems: "center",
