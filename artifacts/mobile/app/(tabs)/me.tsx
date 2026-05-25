@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import { RightRail } from "@/components/desktop/RightRail";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import {
@@ -37,13 +36,7 @@ function fmtCount(n: number): string {
   return String(n);
 }
 
-function fmtAcoin(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
-}
-
-// ─── Flat Menu Item ───────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 type MenuItemProps = {
   icon: string;
@@ -60,34 +53,22 @@ type MenuItemProps = {
 
 function MenuItem({ icon, iconColor, label, value, badge, badgeColor, onPress, showSeparator, colors, destructive }: MenuItemProps) {
   const scale = useRef(new Animated.Value(1)).current;
-
-  function onPressIn() {
-    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 60, bounciness: 0 }).start();
-  }
-  function onPressOut() {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 4 }).start();
-  }
-
   return (
     <>
       <Animated.View style={{ transform: [{ scale }] }}>
         <TouchableOpacity
           style={mi.row}
           onPress={() => { Haptics.selectionAsync(); onPress(); }}
-          onPressIn={onPressIn}
-          onPressOut={onPressOut}
+          onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 60, bounciness: 0 }).start()}
+          onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 4 }).start()}
           activeOpacity={1}
         >
           <View style={[mi.iconWrap, { backgroundColor: iconColor + "18" }]}>
             <Ionicons name={icon as any} size={19} color={iconColor} />
           </View>
-          <Text style={[mi.label, { color: destructive ? "#FF3B30" : colors.text }]} numberOfLines={1}>
-            {label}
-          </Text>
+          <Text style={[mi.label, { color: destructive ? "#FF3B30" : colors.text }]} numberOfLines={1}>{label}</Text>
           <View style={mi.right}>
-            {!!value && (
-              <Text style={[mi.value, { color: colors.textMuted }]} numberOfLines={1}>{value}</Text>
-            )}
+            {!!value && <Text style={[mi.value, { color: colors.textMuted }]} numberOfLines={1}>{value}</Text>}
             {!!badge && (
               <View style={[mi.badge, { backgroundColor: (badgeColor || colors.accent) + "20" }]}>
                 <Text style={[mi.badgeText, { color: badgeColor || colors.accent }]}>{badge}</Text>
@@ -103,7 +84,7 @@ function MenuItem({ icon, iconColor, label, value, badge, badgeColor, onPress, s
 }
 
 const mi = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 12 },
+  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 13, gap: 12 },
   iconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   label: { flex: 1, fontSize: 15, fontFamily: "Inter_500Medium" },
   right: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -113,18 +94,12 @@ const mi = StyleSheet.create({
   sep: { height: StyleSheet.hairlineWidth, marginLeft: 62 },
 });
 
-// ─── Section Label ────────────────────────────────────────────────────────────
-
 function SectionLabel({ label, colors }: { label: string; colors: any }) {
-  return (
-    <Text style={[sl.text, { color: colors.textMuted }]}>{label.toUpperCase()}</Text>
-  );
+  return <Text style={[sl.text, { color: colors.textMuted }]}>{label.toUpperCase()}</Text>;
 }
 const sl = StyleSheet.create({
   text: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8, marginBottom: 6, marginLeft: 4 },
 });
-
-// ─── Menu Card ────────────────────────────────────────────────────────────────
 
 function MenuCard({ children, colors }: { children: React.ReactNode; colors: any }) {
   return (
@@ -146,7 +121,6 @@ type ProfileFields = {
 
 function ProfileCompletionBar({ profile, isPremium, colors, accent }: { profile: ProfileFields | null; isPremium: boolean; colors: any; accent: string }) {
   const fillAnim = useRef(new Animated.Value(0)).current;
-
   const checks = [
     { label: "Photo",   done: !!profile?.avatar_url },
     { label: "Bio",     done: !!profile?.bio },
@@ -155,14 +129,11 @@ function ProfileCompletionBar({ profile, isPremium, colors, accent }: { profile:
     { label: "Premium", done: isPremium },
   ];
   const score = checks.filter((c) => c.done).length;
-  const pct   = score / checks.length;
-
+  const pct = score / checks.length;
   useEffect(() => {
     Animated.timing(fillAnim, { toValue: pct, duration: 900, delay: 400, useNativeDriver: false }).start();
   }, [pct]);
-
   if (score === checks.length) return null;
-
   return (
     <View>
       <SectionLabel label="Profile" colors={colors} />
@@ -212,27 +183,18 @@ const pc = StyleSheet.create({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function MeScreen() {
-  const { colors, isDark, accent } = useTheme();
-  const { isDesktop, width: screenW } = useIsDesktop();
+  const { colors, accent } = useTheme();
+  const { isDesktop } = useIsDesktop();
   const { profile, isPremium, subscription, loading, user } = useAuth();
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const [hasCompanyPage, setHasCompanyPage] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
-  const [verifyBannerDismissed, setVerifyBannerDismissed] = useState(true);
-  const [hasVerifApp, setHasVerifApp] = useState(false);
-  const [isOrgPageVerified, setIsOrgPageVerified] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [postCount, setPostCount] = useState(0);
   const isAdmin = !!profile?.is_admin;
   const insets = useSafeAreaInsets();
 
-  type PurchaseInfo = {
-    handle: string;
-    price: number;
-    purchasedAt: string;
-    sellerHandle: string | null;
-  };
+  type PurchaseInfo = { handle: string; price: number; purchasedAt: string; sellerHandle: string | null };
   const [purchasePopup, setPurchasePopup] = useState<PurchaseInfo | null>(null);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
 
@@ -246,9 +208,7 @@ export default function MeScreen() {
       .not("sold_to_id", "is", null)
       .maybeSingle();
     setPurchaseLoading(false);
-    if (!data) {
-      return;
-    }
+    if (!data) return;
     setPurchasePopup({
       handle,
       price: (data as any).price ?? 0,
@@ -262,16 +222,12 @@ export default function MeScreen() {
     return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   }
 
+  // ── Load stats ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     const STATS_KEY = `me_stats_${user.id}`;
     AsyncStorage.getItem(STATS_KEY).then((raw) => {
-      if (raw) {
-        try {
-          const { fc, fgc, pc } = JSON.parse(raw);
-          setFollowerCount(fc ?? 0); setFollowingCount(fgc ?? 0); setPostCount(pc ?? 0);
-        } catch {}
-      }
+      if (raw) { try { const { fc, fgc, pc } = JSON.parse(raw); setFollowerCount(fc ?? 0); setFollowingCount(fgc ?? 0); setPostCount(pc ?? 0); } catch {} }
     });
     Promise.all([
       supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id),
@@ -281,58 +237,33 @@ export default function MeScreen() {
       setFollowerCount(fc ?? 0); setFollowingCount(fgc ?? 0); setPostCount(pc ?? 0);
       AsyncStorage.setItem(STATS_KEY, JSON.stringify({ fc, fgc, pc })).catch(() => {});
     });
-    Promise.all([
-      supabase.from("organization_pages").select("id, is_verified", { count: "exact" }).eq("admin_id", user.id),
-      supabase.from("business_verification_requests").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-    ]).then(([{ data: pageData, count: pageCount }, { count: appCount }]) => {
-      setHasCompanyPage((pageCount ?? 0) > 0);
-      setHasVerifApp((appCount ?? 0) > 0);
-      setIsOrgPageVerified(!!(pageData && (pageData as any[]).some((p: any) => p.is_verified)));
-    });
-    AsyncStorage.getItem("afu_verify_business_banner_dismissed").then((val) => {
-      setVerifyBannerDismissed(val === "1");
-    });
   }, [user?.id]);
 
-  // Live follower / following / post counts
+  // ── Live stats via realtime ───────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     const STATS_KEY = `me_stats_${user.id}`;
-
-    function refreshFollowers() {
-      supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user!.id).then(({ count }) => {
-        setFollowerCount(count ?? 0);
-        AsyncStorage.getItem(STATS_KEY).then((raw) => {
-          try { const cur = raw ? JSON.parse(raw) : {}; AsyncStorage.setItem(STATS_KEY, JSON.stringify({ ...cur, fc: count ?? 0 })).catch(() => {}); } catch {}
-        });
+    function persist(patch: Record<string, number>) {
+      AsyncStorage.getItem(STATS_KEY).then((raw) => {
+        try { const cur = raw ? JSON.parse(raw) : {}; AsyncStorage.setItem(STATS_KEY, JSON.stringify({ ...cur, ...patch })).catch(() => {}); } catch {}
       });
     }
-    function refreshFollowing() {
-      supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user!.id).then(({ count }) => {
-        setFollowingCount(count ?? 0);
-        AsyncStorage.getItem(STATS_KEY).then((raw) => {
-          try { const cur = raw ? JSON.parse(raw) : {}; AsyncStorage.setItem(STATS_KEY, JSON.stringify({ ...cur, fgc: count ?? 0 })).catch(() => {}); } catch {}
-        });
-      });
-    }
-    function refreshPosts() {
-      supabase.from("posts").select("*", { count: "exact", head: true }).eq("author_id", user!.id).then(({ count }) => {
-        setPostCount(count ?? 0);
-        AsyncStorage.getItem(STATS_KEY).then((raw) => {
-          try { const cur = raw ? JSON.parse(raw) : {}; AsyncStorage.setItem(STATS_KEY, JSON.stringify({ ...cur, pc: count ?? 0 })).catch(() => {}); } catch {}
-        });
-      });
-    }
-
     const ch = supabase
       .channel(`me-stats:${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${user.id}` }, refreshFollowers)
-      .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` }, refreshFollowing)
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts",   filter: `author_id=eq.${user.id}` }, refreshPosts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${user.id}` }, () =>
+        supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id).then(({ count }) => { setFollowerCount(count ?? 0); persist({ fc: count ?? 0 }); })
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` }, () =>
+        supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id).then(({ count }) => { setFollowingCount(count ?? 0); persist({ fgc: count ?? 0 }); })
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts", filter: `author_id=eq.${user.id}` }, () =>
+        supabase.from("posts").select("*", { count: "exact", head: true }).eq("author_id", user.id).then(({ count }) => { setPostCount(count ?? 0); persist({ pc: count ?? 0 }); })
+      )
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id]);
 
+  // ── My Notes ─────────────────────────────────────────────────────────────
   async function openMyNotes() {
     if (!user || notesLoading) return;
     void Haptics.selectionAsync();
@@ -340,56 +271,25 @@ export default function MeScreen() {
     try {
       const CACHE_KEY = `notes_chat_id_${user.id}`;
       const NOTES_NAME = `notes:${user.id}`;
-
-      // Try cache first, but always verify it's still the right chat
       let notesId = await AsyncStorage.getItem(CACHE_KEY).catch(() => null);
-
       if (notesId) {
-        // Validate: confirm this chat is still a self-chat (name matches our marker)
-        const { data: existing } = await supabase
-          .from("chats")
-          .select("id, name")
-          .eq("id", notesId)
-          .eq("name", NOTES_NAME)
-          .maybeSingle();
-        if (!existing) notesId = null; // cache was stale — re-lookup
+        const { data: existing } = await supabase.from("chats").select("id, name").eq("id", notesId).eq("name", NOTES_NAME).maybeSingle();
+        if (!existing) notesId = null;
       }
-
       if (!notesId) {
-        // Look up by the unique name marker we set on creation
-        const { data: found } = await supabase
-          .from("chats")
-          .select("id")
-          .eq("name", NOTES_NAME)
-          .maybeSingle();
-
+        const { data: found } = await supabase.from("chats").select("id").eq("name", NOTES_NAME).maybeSingle();
         if (found) {
           notesId = found.id;
         } else {
-          // First time: create the notes chat with a unique name marker
           const { data: newChat, error: createErr } = await supabase
-            .from("chats")
-            .insert({
-              is_group: false,
-              is_channel: false,
-              name: NOTES_NAME,
-              created_by: user.id,
-              user_id: user.id,
-            })
-            .select("id")
-            .single();
+            .from("chats").insert({ is_group: false, is_channel: false, name: NOTES_NAME, created_by: user.id, user_id: user.id }).select("id").single();
           if (createErr || !newChat) throw new Error(createErr?.message || "Failed to create notes chat");
           await supabase.from("chat_members").insert({ chat_id: newChat.id, user_id: user.id });
           notesId = newChat.id;
         }
-
         await AsyncStorage.setItem(CACHE_KEY, notesId!).catch(() => {});
       }
-
-      router.push({
-        pathname: "/chat/[id]",
-        params: { id: notesId, otherId: user.id, otherName: "My Notes" },
-      } as any);
+      router.push({ pathname: "/chat/[id]", params: { id: notesId, otherId: user.id, otherName: "My Notes" } } as any);
     } catch (err: any) {
       Alert.alert("Error", err.message || "Could not open notes");
     } finally {
@@ -397,13 +297,7 @@ export default function MeScreen() {
     }
   }
 
-  const dismissVerifyBanner = useCallback(() => {
-    setVerifyBannerDismissed(true);
-    AsyncStorage.setItem("afu_verify_business_banner_dismissed", "1");
-  }, []);
-
   if (!loading && !profile) return <Redirect href="/discover" />;
-
   if (loading || !profile) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary, paddingTop: insets.top }}>
@@ -413,41 +307,33 @@ export default function MeScreen() {
   }
 
   const acoin = profile?.acoin || 0;
-  const showBusinessBanner = hasCompanyPage && !profile?.is_organization_verified && !isOrgPageVerified && !hasVerifApp && !verifyBannerDismissed;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
       <OfflineBanner />
 
-      <View style={{ flex: 1 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[s.content, {
+          paddingTop: isDesktop ? 20 : insets.top + 10,
+          paddingBottom: insets.bottom + 96,
+          maxWidth: isDesktop ? 720 : undefined,
+          alignSelf: "center",
+          width: "100%",
+        }]}
+        showsVerticalScrollIndicator={false}
+      >
 
-        {/* ── profile content column ── */}
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[s.content, {
-            paddingTop: isDesktop ? 20 : insets.top + 10,
-            paddingBottom: insets.bottom + 96,
-            maxWidth: isDesktop ? 720 : undefined,
-            alignSelf: "center",
-            width: "100%",
-          }]}
-          showsVerticalScrollIndicator={false}
-        >
-
-        {/* ── Profile Hero Card ──────────────────────────────────────── */}
+        {/* ── Hero Card ─────────────────────────────────────────────────── */}
         <View style={[s.heroCard, { backgroundColor: colors.surface, borderColor: colors.border, borderTopColor: accent }]}>
 
-          {/* Top row: avatar + info */}
-          <TouchableOpacity
-            style={s.heroTop}
-            onPress={() => router.push("/profile/edit")}
-            activeOpacity={0.85}
-          >
-            <TouchableOpacity activeOpacity={0.9} onPress={() => setAvatarOpen(true)} style={{ position: "relative" }}>
+          {/* Avatar row */}
+          <View style={s.heroTop}>
+            <TouchableOpacity activeOpacity={0.9} onPress={() => setAvatarOpen(true)}>
               <Avatar
                 uri={profile?.avatar_url}
                 name={profile?.display_name}
-                size={76}
+                size={72}
                 premium={isPremium}
                 square={!!(profile?.is_organization_verified || profile?.is_business_mode)}
               />
@@ -458,31 +344,23 @@ export default function MeScreen() {
               )}
             </TouchableOpacity>
 
-            <View style={{ flex: 1, gap: 2 }}>
+            <View style={{ flex: 1, gap: 3 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
                 <Text style={[s.heroName, { color: colors.text }]} numberOfLines={1} ellipsizeMode="tail">
                   {profile?.display_name || "User"}
                 </Text>
-                <VerifiedBadge
-                  isVerified={profile?.is_verified}
-                  isOrganizationVerified={profile?.is_organization_verified}
-                  size={17}
-                />
+                <VerifiedBadge isVerified={profile?.is_verified} isOrganizationVerified={profile?.is_organization_verified} size={17} />
               </View>
               <TouchableOpacity
                 onPress={() => profile?.handle && showHandlePurchase(profile.handle)}
                 activeOpacity={0.7}
                 style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
               >
-                {purchaseLoading
-                  ? <ActivityIndicator size="small" color={colors.textMuted} style={{ marginRight: 4 }} />
-                  : null}
+                {purchaseLoading && <ActivityIndicator size="small" color={colors.textMuted} style={{ marginRight: 4 }} />}
                 <Text style={[s.heroHandle, { color: colors.textMuted }]}>@{profile?.handle || "handle"}</Text>
                 <Ionicons name="information-circle-outline" size={13} color={colors.textMuted} style={{ opacity: 0.6 }} />
               </TouchableOpacity>
-              <View style={{ marginTop: 2 }}>
-                <PrestigeBadge acoin={acoin} size="sm" showLabel />
-              </View>
+              <PrestigeBadge acoin={acoin} size="sm" showLabel />
               {profile?.is_organization_verified && (
                 <View style={[s.businessChip, { backgroundColor: Colors.gold + "20" }]}>
                   <Ionicons name="briefcase" size={10} color={Colors.gold} />
@@ -490,7 +368,16 @@ export default function MeScreen() {
                 </View>
               )}
             </View>
-          </TouchableOpacity>
+
+            {/* Gear → Settings */}
+            <TouchableOpacity
+              style={[s.gearBtn, { backgroundColor: colors.backgroundSecondary }]}
+              onPress={() => router.push("/settings")}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="settings-outline" size={20} color={colors.icon} />
+            </TouchableOpacity>
+          </View>
 
           {/* Bio */}
           {!!profile?.bio && (
@@ -502,21 +389,21 @@ export default function MeScreen() {
           {/* ACoin bar */}
           <TouchableOpacity
             style={[s.acoinBar, { backgroundColor: Colors.gold + "12", borderTopColor: colors.border }]}
-            onPress={() => router.push("/wallet")}
+            onPress={() => router.push("/prestige")}
             activeOpacity={0.8}
           >
             <View style={[s.acoinIconWrap, { backgroundColor: Colors.gold + "22" }]}>
               <Text style={s.acoinEmoji}>🪙</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[s.acoinBalance, { color: Colors.gold }]}>{fmtAcoin(acoin)} ACoin</Text>
-              <Text style={[s.acoinSub, { color: colors.textMuted }]}>Tap to open wallet</Text>
+              <Text style={[s.acoinBalance, { color: Colors.gold }]}>{fmtCount(acoin)} ACoin</Text>
+              <Text style={[s.acoinSub, { color: colors.textMuted }]}>View Prestige & rewards</Text>
             </View>
             <Ionicons name="chevron-forward" size={15} color={Colors.gold + "80"} />
           </TouchableOpacity>
         </View>
 
-        {/* ── Stats Row ─────────────────────────────────────────────── */}
+        {/* ── Stats Row ─────────────────────────────────────────────────── */}
         <View style={[s.statsRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {[
             {
@@ -529,7 +416,7 @@ export default function MeScreen() {
             },
             {
               label: "Posts", count: postCount,
-              onPress: () => profile?.id && router.push({ pathname: "/contact/[id]", params: { id: profile.id, init_name: profile.display_name ?? "", init_handle: profile.handle ?? "", init_avatar: profile.avatar_url ?? "" } }),
+              onPress: () => router.push("/my-posts"),
             },
           ].map((stat, i) => (
             <React.Fragment key={stat.label}>
@@ -542,13 +429,14 @@ export default function MeScreen() {
           ))}
         </View>
 
-        {/* ── Quick Actions ─────────────────────────────────────────── */}
+        {/* ── Quick Actions ──────────────────────────────────────────────── */}
         <View style={[s.quickRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {[
             { icon: "person-circle-outline", label: "View Profile", color: accent,       onPress: () => profile?.id && router.push({ pathname: "/contact/[id]", params: { id: profile.id, init_name: profile.display_name ?? "", init_handle: profile.handle ?? "", init_avatar: profile.avatar_url ?? "" } }) },
-            { icon: "pencil-outline",        label: "Edit Profile", color: colors.icon, onPress: () => router.push("/profile/edit") },
-            { icon: "at-outline",            label: "Usernames",    color: colors.icon, onPress: () => router.push("/username-market") },
-          ].map((a, i) => (
+            { icon: "create-outline",        label: "Edit Profile", color: colors.icon, onPress: () => router.push("/profile/edit") },
+            { icon: "card-outline",          label: "Digital ID",   color: colors.icon, onPress: () => router.push("/digital-id" as any) },
+            { icon: "qr-code-outline",       label: "QR Code",      color: colors.icon, onPress: () => router.push("/qr-scanner" as any) },
+          ].map((a) => (
             <TouchableOpacity key={a.label} style={s.quickBtn} onPress={a.onPress} activeOpacity={0.75}>
               <View style={[s.quickIconWrap, { backgroundColor: a.color + "15" }]}>
                 <Ionicons name={a.icon as any} size={20} color={a.color} />
@@ -558,40 +446,11 @@ export default function MeScreen() {
           ))}
         </View>
 
-        {/* ── Profile Completion ─────────────────────────────────────── */}
+        {/* ── Profile Completion ─────────────────────────────────────────── */}
         <ProfileCompletionBar profile={profile} isPremium={isPremium} colors={colors} accent={accent} />
 
-        {/* ── Business Verify Banner ─────────────────────────────────── */}
-        {showBusinessBanner && (
-          <View>
-            <SectionLabel label="Business" colors={colors} />
-            <View style={[s.verifyBanner, { backgroundColor: colors.surface, borderColor: colors.border, borderLeftColor: Colors.gold }]}>
-              <View style={s.verifyLeft}>
-                <View style={[s.verifyIconWrap, { backgroundColor: Colors.gold + "18" }]}>
-                  <Ionicons name="shield-checkmark-outline" size={22} color={Colors.gold} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[s.verifyTitle, { color: Colors.gold }]}>Verify your business</Text>
-                  <Text style={[s.verifySub, { color: colors.textMuted }]}>Get the gold badge — builds trust with followers.</Text>
-                  <TouchableOpacity
-                    style={[s.verifyBtn, { backgroundColor: Colors.gold }]}
-                    onPress={() => router.push("/company" as any)}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="checkmark-circle-outline" size={13} color="#fff" />
-                    <Text style={s.verifyBtnText}>Company Pages</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <TouchableOpacity hitSlop={14} onPress={dismissVerifyBanner}>
-                <Ionicons name="close" size={18} color={colors.textMuted} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* ── Premium Banner ─────────────────────────────────────────── */}
-        {!isPremium && (
+        {/* ── Premium ────────────────────────────────────────────────────── */}
+        {!isPremium ? (
           <TouchableOpacity
             style={[s.premiumBanner, { backgroundColor: "#0f1923", borderColor: "#FFD60A30" }]}
             onPress={() => router.push("/premium")}
@@ -608,9 +467,7 @@ export default function MeScreen() {
               <Text style={s.premiumChipText}>Upgrade</Text>
             </View>
           </TouchableOpacity>
-        )}
-
-        {isPremium && (
+        ) : (
           <View>
             <SectionLabel label="Subscription" colors={colors} />
             <MenuCard colors={colors}>
@@ -626,26 +483,44 @@ export default function MeScreen() {
           </View>
         )}
 
-        {/* ── Analytics ──────────────────────────────────────────────── */}
+        {/* ── Content ────────────────────────────────────────────────────── */}
         <View>
-          <SectionLabel label="Creator Analytics" colors={colors} />
+          <SectionLabel label="Content" colors={colors} />
           <MenuCard colors={colors}>
-            <MenuItem icon="bar-chart" iconColor={accent} label="Creator Analytics" value={`${fmtCount(postCount)} posts`} onPress={() => router.push("/video-analytics" as any)} colors={colors} />
+            <MenuItem icon="grid-outline" iconColor={accent} label="My Posts" value={`${fmtCount(postCount)} posts`} onPress={() => router.push("/my-posts")} showSeparator colors={colors} />
+            <MenuItem icon="bookmark-outline" iconColor="#FF9F0A" label="Saved Posts" onPress={() => router.push("/saved-posts" as any)} showSeparator colors={colors} />
+            <MenuItem icon="bar-chart-outline" iconColor="#34C759" label="Creator Analytics" onPress={() => router.push("/video-analytics" as any)} colors={colors} />
           </MenuCard>
         </View>
 
-        {/* ── Growth & Social ────────────────────────────────────────── */}
+        {/* ── Tools ─────────────────────────────────────────────────────── */}
+        <View>
+          <SectionLabel label="Tools" colors={colors} />
+          <MenuCard colors={colors}>
+            <MenuItem
+              icon="document-text-outline"
+              iconColor={accent}
+              label="My Notes"
+              badge={notesLoading ? "…" : undefined}
+              onPress={openMyNotes}
+              showSeparator
+              colors={colors}
+            />
+            <MenuItem icon="at-outline" iconColor={colors.icon} label="Username Market" onPress={() => router.push("/username-market")} showSeparator colors={colors} />
+            <MenuItem icon="gift-outline" iconColor="#FF6B6B" label="Referral Program" onPress={() => router.push("/referral" as any)} colors={colors} />
+          </MenuCard>
+        </View>
+
+        {/* ── Growth ────────────────────────────────────────────────────── */}
         <View>
           <SectionLabel label="Growth" colors={colors} />
           <MenuCard colors={colors}>
-            <MenuItem icon="trophy" iconColor={Colors.gold} label="Prestige Status" badge="NEW" badgeColor={Colors.gold} onPress={() => router.push("/prestige")} showSeparator colors={colors} />
-            <MenuItem icon="business-outline" iconColor={accent} label="Company Pages" onPress={() => router.push("/company" as any)} showSeparator colors={colors} />
-            <MenuItem icon="people" iconColor={colors.icon} label="Find People" badge="NEW" badgeColor={accent} onPress={() => router.push("/user-discovery")} showSeparator colors={colors} />
-            <MenuItem icon="at" iconColor={colors.icon} label="Username Market" onPress={() => router.push("/username-market")} colors={colors} />
+            <MenuItem icon="trophy-outline" iconColor={Colors.gold} label="Prestige Status" badge="NEW" badgeColor={Colors.gold} onPress={() => router.push("/prestige")} showSeparator colors={colors} />
+            <MenuItem icon="people-outline" iconColor={accent} label="Find People" onPress={() => router.push("/user-discovery")} colors={colors} />
           </MenuCard>
         </View>
 
-        {/* ── Creator (admin only) ───────────────────────────────────── */}
+        {/* ── Creator (admin only) ───────────────────────────────────────── */}
         {isAdmin && (
           <View>
             <SectionLabel label="Creator" colors={colors} />
@@ -655,19 +530,7 @@ export default function MeScreen() {
           </View>
         )}
 
-        {/* ── Account ────────────────────────────────────────────────── */}
-        <View>
-          <SectionLabel label="Account" colors={colors} />
-          <MenuCard colors={colors}>
-            <MenuItem icon="bookmark-outline" iconColor={accent} label="My Notes" badge={notesLoading ? "…" : undefined} onPress={openMyNotes} showSeparator colors={colors} />
-            <MenuItem icon="sparkles-outline" iconColor={colors.icon} label="Advanced Features" onPress={() => router.push("/advanced-features")} showSeparator colors={colors} />
-            <MenuItem icon="settings-outline" iconColor={colors.icon} label="Settings" onPress={() => router.push("/settings")} showSeparator colors={colors} />
-            <MenuItem icon="help-buoy-outline" iconColor={colors.icon} label="Support Center" onPress={() => router.push("/support" as any)} showSeparator colors={colors} />
-            <MenuItem icon="information-circle-outline" iconColor={colors.icon} label="About AfuChat" onPress={() => router.push("/about" as any)} colors={colors} />
-          </MenuCard>
-        </View>
-
-        {/* ── Staff / Admin ──────────────────────────────────────────── */}
+        {/* ── Staff / Admin ──────────────────────────────────────────────── */}
         {(profile?.is_admin || profile?.is_support_staff) && (
           <View>
             <SectionLabel label="Staff" colors={colors} />
@@ -680,9 +543,7 @@ export default function MeScreen() {
           </View>
         )}
 
-        </ScrollView>
-
-      </View>
+      </ScrollView>
 
       <AvatarViewer
         visible={avatarOpen}
@@ -692,12 +553,7 @@ export default function MeScreen() {
       />
 
       {/* ── Username Purchase Details Modal ── */}
-      <Modal
-        visible={!!purchasePopup}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPurchasePopup(null)}
-      >
+      <Modal visible={!!purchasePopup} transparent animationType="fade" onRequestClose={() => setPurchasePopup(null)}>
         <TouchableOpacity
           style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}
           activeOpacity={1}
@@ -705,65 +561,39 @@ export default function MeScreen() {
         >
           <TouchableOpacity
             activeOpacity={1}
-            style={{
-              width: "82%",
-              backgroundColor: colors.surface,
-              borderRadius: 22,
-              padding: 24,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: colors.border,
-              gap: 16,
-            }}
+            style={{ width: "82%", backgroundColor: colors.surface, borderRadius: 22, padding: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, gap: 16 }}
           >
-            {/* Header */}
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={{ fontSize: 17, fontFamily: "Inter_700Bold", color: colors.text }}>
-                Username Details
-              </Text>
+              <Text style={{ fontSize: 17, fontFamily: "Inter_700Bold", color: colors.text }}>Username Details</Text>
               <TouchableOpacity onPress={() => setPurchasePopup(null)} hitSlop={10}>
                 <Ionicons name="close" size={22} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
-
-            {/* Handle pill */}
             <View style={{ alignItems: "center", paddingVertical: 8 }}>
               <View style={{ backgroundColor: accent + "18", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24 }}>
-                <Text style={{ fontSize: 26, fontFamily: "Inter_700Bold", color: accent }}>
-                  @{purchasePopup?.handle}
-                </Text>
+                <Text style={{ fontSize: 26, fontFamily: "Inter_700Bold", color: accent }}>@{purchasePopup?.handle}</Text>
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 }}>
                 <Ionicons name="storefront-outline" size={13} color="#34C759" />
-                <Text style={{ fontSize: 12, fontFamily: "Inter_500Medium", color: "#34C759" }}>
-                  Purchased from Marketplace
-                </Text>
+                <Text style={{ fontSize: 12, fontFamily: "Inter_500Medium", color: "#34C759" }}>Purchased from Marketplace</Text>
               </View>
             </View>
-
-            {/* Details */}
             <View style={{ gap: 12, backgroundColor: colors.backgroundSecondary, borderRadius: 14, padding: 14 }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                   <Ionicons name="cash-outline" size={16} color={colors.icon} />
                   <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.textSecondary }}>Price Paid</Text>
                 </View>
-                <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: "#FFD60A" }}>
-                  🪙 {purchasePopup?.price.toLocaleString()} ACoin
-                </Text>
+                <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: "#FFD60A" }}>🪙 {purchasePopup?.price.toLocaleString()} ACoin</Text>
               </View>
-
               <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
-
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                   <Ionicons name="calendar-outline" size={16} color={colors.icon} />
                   <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.textSecondary }}>Purchased On</Text>
                 </View>
-                <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: colors.text }}>
-                  {purchasePopup ? fmtDate(purchasePopup.purchasedAt) : "—"}
-                </Text>
+                <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: colors.text }}>{purchasePopup ? fmtDate(purchasePopup.purchasedAt) : "—"}</Text>
               </View>
-
               {purchasePopup?.sellerHandle && (
                 <>
                   <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
@@ -772,14 +602,11 @@ export default function MeScreen() {
                       <Ionicons name="person-outline" size={16} color={colors.icon} />
                       <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.textSecondary }}>Sold By</Text>
                     </View>
-                    <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: colors.text }}>
-                      @{purchasePopup.sellerHandle}
-                    </Text>
+                    <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: colors.text }}>@{purchasePopup.sellerHandle}</Text>
                   </View>
                 </>
               )}
             </View>
-
             <TouchableOpacity
               onPress={() => setPurchasePopup(null)}
               style={{ backgroundColor: accent, borderRadius: 16, paddingVertical: 12, alignItems: "center" }}
@@ -795,15 +622,10 @@ export default function MeScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  content: { gap: 14, paddingHorizontal: 14 },
+  content: { gap: 12, paddingHorizontal: 14 },
 
-  // Hero card
-  heroCard: {
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderTopWidth: 3,
-    overflow: "hidden",
-  },
+  // Hero
+  heroCard: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, borderTopWidth: 3, overflow: "hidden" },
   heroTop: { flexDirection: "row", alignItems: "flex-start", padding: 16, gap: 14 },
   heroName: { fontSize: 19, fontFamily: "Inter_700Bold", flexShrink: 1 },
   heroHandle: { fontSize: 13, fontFamily: "Inter_400Regular" },
@@ -811,6 +633,7 @@ const s = StyleSheet.create({
   premiumDot: { position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: "#FFD60A", alignItems: "center", justifyContent: "center" },
   businessChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, alignSelf: "flex-start", marginTop: 3 },
   businessChipText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
+  gearBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
 
   // ACoin bar
   acoinBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 11, borderTopWidth: StyleSheet.hairlineWidth },
@@ -819,7 +642,7 @@ const s = StyleSheet.create({
   acoinBalance: { fontSize: 15, fontFamily: "Inter_700Bold" },
   acoinSub: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
 
-  // Stats row
+  // Stats
   statsRow: { flexDirection: "row", borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 14, paddingHorizontal: 8 },
   statCell: { flex: 1, alignItems: "center", gap: 3 },
   statValue: { fontSize: 22, fontFamily: "Inter_700Bold" },
@@ -827,19 +650,10 @@ const s = StyleSheet.create({
   statDivider: { width: StyleSheet.hairlineWidth, marginVertical: 4 },
 
   // Quick actions
-  quickRow: { flexDirection: "row", borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 14, paddingHorizontal: 6 },
+  quickRow: { flexDirection: "row", borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 14, paddingHorizontal: 4 },
   quickBtn: { flex: 1, alignItems: "center", gap: 7 },
   quickIconWrap: { width: 44, height: 44, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  quickLabel: { fontSize: 11, fontFamily: "Inter_500Medium", textAlign: "center" },
-
-  // Business verify
-  verifyBanner: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderLeftWidth: 3, padding: 14, flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  verifyLeft: { flex: 1, flexDirection: "row", gap: 12, alignItems: "flex-start" },
-  verifyIconWrap: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  verifyTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
-  verifySub: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
-  verifyBtn: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20, marginTop: 8 },
-  verifyBtnText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  quickLabel: { fontSize: 10, fontFamily: "Inter_500Medium", textAlign: "center" },
 
   // Premium banner
   premiumBanner: { borderRadius: 16, borderWidth: 1, padding: 16, flexDirection: "row", alignItems: "center", gap: 14 },
