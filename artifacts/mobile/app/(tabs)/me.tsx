@@ -369,14 +369,6 @@ export default function MeScreen() {
               )}
             </View>
 
-            {/* Gear → Settings */}
-            <TouchableOpacity
-              style={[s.gearBtn, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => router.push("/settings")}
-              activeOpacity={0.75}
-            >
-              <Ionicons name="settings-outline" size={20} color={colors.icon} />
-            </TouchableOpacity>
           </View>
 
           {/* Bio */}
@@ -511,6 +503,16 @@ export default function MeScreen() {
           </MenuCard>
         </View>
 
+        {/* ── Account ───────────────────────────────────────────────────── */}
+        <View>
+          <SectionLabel label="Account" colors={colors} />
+          <MenuCard colors={colors}>
+            <MenuItem icon="settings-outline" iconColor={colors.icon} label="Settings" onPress={() => router.push("/settings")} showSeparator colors={colors} />
+            <MenuItem icon="notifications-outline" iconColor="#5856D6" label="Notifications" onPress={() => router.push("/settings/notifications" as any)} showSeparator colors={colors} />
+            <MenuItem icon="shield-outline" iconColor="#34C759" label="Privacy & Security" onPress={() => router.push("/settings/privacy" as any)} colors={colors} />
+          </MenuCard>
+        </View>
+
         {/* ── Growth ────────────────────────────────────────────────────── */}
         <View>
           <SectionLabel label="Growth" colors={colors} />
@@ -633,8 +635,6 @@ const s = StyleSheet.create({
   premiumDot: { position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: "#FFD60A", alignItems: "center", justifyContent: "center" },
   businessChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, alignSelf: "flex-start", marginTop: 3 },
   businessChipText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
-  gearBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-
   // ACoin bar
   acoinBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 11, borderTopWidth: StyleSheet.hairlineWidth },
   acoinIconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },

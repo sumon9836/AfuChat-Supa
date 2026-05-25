@@ -4656,7 +4656,15 @@ STRICT RULES:
                     const Contacts = await import("expo-contacts");
                     const { status } = await Contacts.requestPermissionsAsync();
                     if (status !== "granted") { showAlert("Permission needed", "Allow contacts access to save this person."); return; }
-                    await Contacts.presentContactPickerAsync();
+                    const rawName: string = chatInfo?.other_name || "Unknown";
+                    const parts = rawName.trim().split(/\s+/);
+                    const firstName = parts[0] ?? rawName;
+                    const lastName = parts.slice(1).join(" ") || undefined;
+                    const contactData: any = {
+                      [Contacts.Fields.FirstName]: firstName,
+                      ...(lastName ? { [Contacts.Fields.LastName]: lastName } : {}),
+                    };
+                    await Contacts.presentFormAsync(null, contactData, { isNew: true });
                     setIsStranger(false);
                   } catch {}
                 }}

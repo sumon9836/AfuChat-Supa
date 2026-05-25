@@ -83,7 +83,7 @@ function CompactTabBar({
 
   const lastShortsTapRef = useRef<number>(0);
 
-  const bottomPos = Math.max(insets.bottom, isAndroid ? 8 : 10) + 14;
+  const bottomPos = Math.max(insets.bottom, isAndroid ? 4 : 6) + 6;
 
   const barBg      = isDark ? "rgba(28,28,30,0.97)" : "rgba(255,255,255,0.97)";
   const borderColor = isDark ? "rgba(44,44,46,1)"   : "rgba(221,215,201,1)";
@@ -223,8 +223,8 @@ const bar = StyleSheet.create({
   pill: {
     flexDirection: "row",
     borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 5,
     borderWidth: 1,
     alignSelf: "center",
   },

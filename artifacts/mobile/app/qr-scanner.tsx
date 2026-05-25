@@ -247,14 +247,25 @@ function ResultSheet({
       const Contacts = await import("expo-contacts");
       const { status } = await Contacts.requestPermissionsAsync();
       if (status !== "granted") { showAlert("Permission needed", "Allow contacts access to save this person."); return; }
-      const name = (result.raw.match(/FN:(.+)/) || [])[1]?.trim() || "Contact";
-      const email = (result.raw.match(/EMAIL[^:]*:(.+)/) || [])[1]?.trim();
-      const phone = (result.raw.match(/TEL[^:]*:(.+)/) || [])[1]?.trim();
-      const contact: any = { [Contacts.Fields.FirstName]: name };
-      if (email) contact[Contacts.Fields.Emails] = [{ email, label: "work" }];
-      if (phone) contact[Contacts.Fields.PhoneNumbers] = [{ number: phone, label: "mobile" }];
-      await Contacts.addContactAsync(contact);
-      showAlert("Saved", "Contact saved to your phone.");
+      const fullName = (result.raw.match(/FN:(.+)/) || [])[1]?.trim() || "Contact";
+      const parts = fullName.split(/\s+/);
+      const firstName = parts[0] ?? fullName;
+      const lastName = parts.slice(1).join(" ") || undefined;
+      const email = (result.raw.match(/EMAIL[^:]*:([^\r\n]+)/) || [])[1]?.trim();
+      const phone = (result.raw.match(/TEL[^:]*:([^\r\n]+)/) || [])[1]?.trim();
+      const org = (result.raw.match(/ORG:([^\r\n]+)/) || [])[1]?.trim();
+      const title = (result.raw.match(/TITLE:([^\r\n]+)/) || [])[1]?.trim();
+      const url = (result.raw.match(/URL:([^\r\n]+)/) || [])[1]?.trim();
+      const contactData: any = {
+        [Contacts.Fields.FirstName]: firstName,
+        ...(lastName ? { [Contacts.Fields.LastName]: lastName } : {}),
+        ...(org ? { [Contacts.Fields.Company]: org } : {}),
+        ...(title ? { [Contacts.Fields.JobTitle]: title } : {}),
+        ...(email ? { [Contacts.Fields.Emails]: [{ email, label: "work" }] } : {}),
+        ...(phone ? { [Contacts.Fields.PhoneNumbers]: [{ number: phone, label: "mobile" }] } : {}),
+        ...(url ? { [Contacts.Fields.UrlAddresses]: [{ url, label: "work" }] } : {}),
+      };
+      await Contacts.presentFormAsync(null, contactData, { isNew: true });
     } catch { copyToClipboard(result.raw); }
   }
 
