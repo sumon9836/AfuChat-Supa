@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Image,
   Platform,
   Pressable,
@@ -83,6 +84,32 @@ function CompactTabBar({
 
   const lastShortsTapRef = useRef<number>(0);
 
+  // ── Sliding pill highlight ──────────────────────────────────────────────────
+  const ITEM_W  = 54;
+  const PILL_W  = 44;
+  const PILL_H  = 30;
+  const BAR_PAD = 5;
+
+  const pillX        = useRef(new Animated.Value(0)).current;
+  const didInitRef   = useRef(false);
+
+  useEffect(() => {
+    const idx = TABS.findIndex(t => t.route === active);
+    if (idx === -1) return;
+    const toValue = idx * ITEM_W;
+    if (!didInitRef.current) {
+      pillX.setValue(toValue);
+      didInitRef.current = true;
+      return;
+    }
+    Animated.spring(pillX, {
+      toValue,
+      damping: 20,
+      stiffness: 180,
+      useNativeDriver: true,
+    }).start();
+  }, [active]);
+
   const bottomPos = Math.max(insets.bottom, isAndroid ? 4 : 6) + 6;
 
   const barBg      = isDark ? "rgba(28,28,30,0.97)" : "rgba(255,255,255,0.97)";
@@ -145,6 +172,22 @@ function CompactTabBar({
       Platform.OS === "web" ? { position: "fixed" as any } : null,
     ]}>
       <View style={[bar.pill, shadow, { backgroundColor: barBg, borderColor }]}>
+
+        {/* ── Sliding accent highlight ──────────────────────────────────── */}
+        <Animated.View
+          style={[
+            bar.highlight,
+            {
+              width: PILL_W,
+              height: PILL_H,
+              borderRadius: PILL_H / 2,
+              backgroundColor: colors.accent + "22",
+              left: BAR_PAD + (ITEM_W - PILL_W) / 2,
+              transform: [{ translateX: pillX }],
+            },
+          ]}
+        />
+
         {TABS.map((tab) => {
           const focused   = active === tab.route;
           const iconColor = focused
@@ -227,11 +270,18 @@ const bar = StyleSheet.create({
     paddingHorizontal: 5,
     borderWidth: 1,
     alignSelf: "center",
+    overflow: "hidden",
+  },
+  highlight: {
+    position: "absolute",
+    top: 9,
+    zIndex: 0,
   },
   item: {
     alignItems: "center",
     justifyContent: "center",
     width: 54,
+    zIndex: 1,
   },
   pressable: {
     alignItems: "center",
