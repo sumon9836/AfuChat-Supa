@@ -3682,15 +3682,27 @@ STRICT RULES:
     setForwardMsg(msg);
     const { data } = await supabase
       .from("chats")
-      .select("id, name, avatar_url, chat_members!inner(user_id), profiles!chats_created_by_fkey(display_name, avatar_url)")
+      .select(`
+        id, name, avatar_url,
+        chat_members!inner(user_id),
+        all_members:chat_members(user_id, profiles(display_name, avatar_url))
+      `)
       .eq("chat_members.user_id", user?.id || "")
       .order("updated_at", { ascending: false })
       .limit(30);
-    const mapped = (data || []).map((c: any) => ({
-      id: c.id,
-      name: c.name || c.profiles?.display_name || "Chat",
-      avatar: c.avatar_url || c.profiles?.avatar_url || null,
-    }));
+    const uid = user?.id || "";
+    const mapped = (data || []).map((c: any) => {
+      if (c.name) {
+        return { id: c.id, name: c.name, avatar: c.avatar_url || null };
+      }
+      // For DM chats (no name), find the OTHER member's profile
+      const other = (c.all_members || []).find((m: any) => m.user_id !== uid);
+      return {
+        id: c.id,
+        name: other?.profiles?.display_name || "Chat",
+        avatar: other?.profiles?.avatar_url || null,
+      };
+    });
     setForwardChats(mapped);
   }
 

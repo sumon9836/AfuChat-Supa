@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { safeRouter } from "@/lib/navUtils";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "@/lib/haptics";
@@ -67,7 +67,7 @@ function ContactRow({ item, phonebookName }: { item: Contact; phonebookName?: st
       showAlert("Error", "Could not start conversation. Please try again.");
       return;
     }
-    router.push({ pathname: "/chat/[id]", params: { id: chatId } });
+    safeRouter.push({ pathname: "/chat/[id]", params: { id: chatId } });
   }
 
   const savedAs = phonebookName && phonebookName !== item.display_name ? phonebookName : null;
@@ -297,7 +297,7 @@ export default function ContactsScreen() {
             <View style={[styles.actionGroup, { backgroundColor: colors.surface }]}>
               <TouchableOpacity
                 style={styles.actionRow}
-                onPress={() => router.push("/group/create")}
+                onPress={() => safeRouter.push("/group/create")}
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIcon, { backgroundColor: "#007AFF" }]}>
@@ -309,7 +309,7 @@ export default function ContactsScreen() {
               <Separator indent={58} />
               <TouchableOpacity
                 style={styles.actionRow}
-                onPress={() => router.push("/channel/intro" as any)}
+                onPress={() => safeRouter.push("/channel/intro" as any)}
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIcon, { backgroundColor: "#34C759" }]}>
@@ -323,7 +323,7 @@ export default function ContactsScreen() {
                   <Separator indent={58} />
                   <TouchableOpacity
                     style={styles.actionRow}
-                    onPress={() => router.push("/phone-contacts")}
+                    onPress={() => safeRouter.push("/phone-contacts")}
                     activeOpacity={0.7}
                   >
                     <View style={[styles.actionIcon, { backgroundColor: colors.accent }]}>

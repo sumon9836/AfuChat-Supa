@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { safeRouter } from "@/lib/navUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -278,7 +278,7 @@ function AppTile({
     if (app.miniApp && Platform.OS !== "web") {
       openApp(app.id);
     } else {
-      router.push(app.route as any);
+      safeRouter.push(app.route as any);
     }
   }
 
@@ -373,7 +373,7 @@ function FeaturedBanner({
     if (app.miniApp && Platform.OS !== "web") {
       openApp(app.id);
     } else {
-      router.push(app.route as any);
+      safeRouter.push(app.route as any);
     }
   }
 

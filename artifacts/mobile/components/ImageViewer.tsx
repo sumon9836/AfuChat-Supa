@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -17,6 +18,7 @@ import Animated, {
 import {
   Gesture,
   GestureDetector,
+  GestureHandlerRootView,
 } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -271,6 +273,10 @@ export function ImageViewer({ images, initialIndex = 0, visible, onClose }: Prop
       onRequestClose={onClose}
       hardwareAccelerated
     >
+      {/* GestureHandlerRootView inside Modal is required on Android with New
+          Architecture — without it the Modal is rendered in a separate window
+          that isn't covered by the root GHRV, so pinch/pan gestures are lost */}
+      <GestureHandlerRootView style={styles.flex}>
       <View style={styles.root}>
         <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={10}>
@@ -343,6 +349,7 @@ export function ImageViewer({ images, initialIndex = 0, visible, onClose }: Prop
           </View>
         )}
       </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -364,6 +371,7 @@ export function useImageViewer() {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   root: {
     flex: 1,
     backgroundColor: "#000",

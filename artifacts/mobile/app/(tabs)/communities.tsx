@@ -10,7 +10,8 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
+import { safeRouter } from "@/lib/navUtils";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -154,7 +155,7 @@ export default function CommunitiesScreen() {
   async function joinOrOpenGroup(item: Group) {
     if (!user) return;
     if (item.am_member) {
-      router.push({ pathname: "/chat/[id]", params: { id: item.id } });
+      safeRouter.push({ pathname: "/chat/[id]", params: { id: item.id } });
       return;
     }
     if (!isOnline()) { showAlert("No internet", "An internet connection is required to join."); return; }
@@ -165,13 +166,13 @@ export default function CommunitiesScreen() {
       prev.map((g) => g.id === item.id ? { ...g, am_member: true, member_count: g.member_count + 1 } : g)
     );
     setJoiningId(null);
-    router.push({ pathname: "/chat/[id]", params: { id: item.id } });
+    safeRouter.push({ pathname: "/chat/[id]", params: { id: item.id } });
   }
 
   async function subscribeOrOpenChannel(item: Channel) {
     if (!user) return;
     if (item.am_subscriber) {
-      router.push({ pathname: "/channel/[id]", params: { id: item.id } } as any);
+      safeRouter.push({ pathname: "/channel/[id]", params: { id: item.id } } as any);
       return;
     }
     if (!isOnline()) { showAlert("No internet", "An internet connection is required to subscribe."); return; }
@@ -189,7 +190,7 @@ export default function CommunitiesScreen() {
       )
     );
     setJoiningId(null);
-    router.push({ pathname: "/channel/[id]", params: { id: item.id } } as any);
+    safeRouter.push({ pathname: "/channel/[id]", params: { id: item.id } } as any);
   }
 
   function GroupCard({ item, index }: { item: Group; index: number }) {
@@ -247,7 +248,7 @@ export default function CommunitiesScreen() {
       <Animated.View entering={FadeInDown.delay(index * 30).duration(220)}>
         <TouchableOpacity
           style={[ss.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={() => router.push({ pathname: "/channel/[id]", params: { id: item.id } } as any)}
+          onPress={() => safeRouter.push({ pathname: "/channel/[id]", params: { id: item.id } } as any)}
           activeOpacity={0.75}
         >
           <View style={ss.cardAvatarWrap}>
@@ -314,7 +315,7 @@ export default function CommunitiesScreen() {
           <TouchableOpacity
             style={[ss.createBtn, { backgroundColor: activeTab === "groups" ? colors.accent : PURPLE }]}
             onPress={() =>
-              router.push(activeTab === "groups" ? ("/group/create" as any) : ("/channel/intro" as any))
+              safeRouter.push(activeTab === "groups" ? ("/group/create" as any) : ("/channel/intro" as any))
             }
             hitSlop={8}
           >
@@ -380,7 +381,7 @@ export default function CommunitiesScreen() {
               <TouchableOpacity
                 style={[ss.emptyBtn, { backgroundColor: activeTab === "groups" ? BRAND : PURPLE }]}
                 onPress={() =>
-                  router.push(activeTab === "groups" ? ("/group/create" as any) : ("/channel/intro" as any))
+                  safeRouter.push(activeTab === "groups" ? ("/group/create" as any) : ("/channel/intro" as any))
                 }
               >
                 <Text style={ss.emptyBtnText}>

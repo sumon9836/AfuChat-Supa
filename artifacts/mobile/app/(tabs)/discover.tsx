@@ -24,6 +24,7 @@ import { Image as ExpoImage } from "expo-image";
 import { showAlert } from "@/lib/alert";
 import { useSafeAreaInsets, useSafeAreaInsets as useCardInsets } from "react-native-safe-area-context";
 import { router, useNavigation } from "expo-router";
+import { safeRouter } from "@/lib/navUtils";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "@/lib/haptics";
 import { ImageViewer, useImageViewer } from "@/components/ImageViewer";
@@ -142,7 +143,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
       { key: "open",    label: "Open post",                     icon: "open-outline",     onSelect: () => openPost() },
       { key: "like",    label: item.liked ? "Unlike" : "Like",  icon: item.liked ? "heart" : "heart-outline", onSelect: () => { if (!currentUser) { onRequireAuth?.(); return; } onToggleLike(item.id); } },
       { key: "save",    label: item.bookmarked ? "Unsave" : "Save", icon: item.bookmarked ? "bookmark" : "bookmark-outline", onSelect: () => { if (!currentUser) { onRequireAuth?.(); return; } onToggleBookmark(item.id); } },
-      { key: "profile", label: `View @${item.profile.handle}`, icon: "person-outline",   onSelect: () => router.push({ pathname: "/contact/[id]", params: { id: item.author_id, init_name: item.profile.display_name, init_handle: item.profile.handle, init_avatar: item.profile.avatar_url ?? "" } } as any) },
+      { key: "profile", label: `View @${item.profile.handle}`, icon: "person-outline",   onSelect: () => safeRouter.push({ pathname: "/contact/[id]", params: { id: item.author_id, init_name: item.profile.display_name, init_handle: item.profile.handle, init_avatar: item.profile.avatar_url ?? "" } } as any) },
     ],
     [
       { key: "copy",  label: "Copy link", icon: "link-outline",  onSelect: () => { if (typeof window !== "undefined") navigator.clipboard?.writeText(`${window.location.origin}/p/${item.id}`); } },
@@ -180,18 +181,18 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
 
   function openPost() {
     if (item.org_page_id) {
-      router.push(`/company/${item.org_slug}` as any);
+      safeRouter.push(`/company/${item.org_slug}` as any);
       return;
     }
     if (item.post_type === "article") {
-      router.push({ pathname: "/article/[id]", params: { id: item.id } });
+      safeRouter.push({ pathname: "/article/[id]", params: { id: item.id } });
       return;
     }
     if (item.post_type === "video") {
-      router.push({ pathname: "/video/[id]", params: { id: item.id } });
+      safeRouter.push({ pathname: "/video/[id]", params: { id: item.id } });
       return;
     }
-    router.push({
+    safeRouter.push({
       pathname: "/p/[id]",
       params: {
         id: encodeId(item.id),
@@ -249,7 +250,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
           <View style={styles.cardHeader}>
             {item.org_page_id ? (
               <TouchableOpacity
-                onPress={() => router.push(`/company/${item.org_slug}` as any)}
+                onPress={() => safeRouter.push(`/company/${item.org_slug}` as any)}
                 activeOpacity={0.8}
               >
                 <View style={{ width: isDesktop ? 44 : 40, height: isDesktop ? 44 : 40, borderRadius: 8, backgroundColor: colors.accent + "20", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -261,7 +262,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                onPress={() => router.push({ pathname: "/contact/[id]", params: { id: item.author_id, init_name: item.profile.display_name, init_handle: item.profile.handle, init_avatar: item.profile.avatar_url ?? "" } })}
+                onPress={() => safeRouter.push({ pathname: "/contact/[id]", params: { id: item.author_id, init_name: item.profile.display_name, init_handle: item.profile.handle, init_avatar: item.profile.avatar_url ?? "" } })}
                 activeOpacity={0.8}
               >
                 <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={isDesktop ? 44 : 40} square={!!(item.is_organization_verified)} />
@@ -270,7 +271,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
             <View style={{ flex: 1, gap: 2 }}>
               <View style={styles.nameRow}>
                 <TouchableOpacity
-                  onPress={() => item.org_page_id ? router.push(`/company/${item.org_slug}` as any) : undefined}
+                  onPress={() => item.org_page_id ? safeRouter.push(`/company/${item.org_slug}` as any) : undefined}
                   activeOpacity={item.org_page_id ? 0.7 : 1}
                 >
                   <Text style={[styles.cardName, { color: colors.text, fontSize: isDesktop ? 17 : 15 }]} numberOfLines={1}>
@@ -313,7 +314,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
             {item.org_page_id ? (
               <TouchableOpacity
                 style={[styles.followBtn, { backgroundColor: colors.accent + "15", borderWidth: 1, borderColor: colors.accent + "30" }]}
-                onPress={() => router.push(`/company/${item.org_slug}` as any)}
+                onPress={() => safeRouter.push(`/company/${item.org_slug}` as any)}
                 activeOpacity={0.7}
               >
                 <Ionicons name="business-outline" size={14} color={colors.accent} />
@@ -333,7 +334,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
           {item.post_type === "video" && item.video_url && (
             <TouchableOpacity
               activeOpacity={0.88}
-              onPress={() => router.push({ pathname: "/video/[id]", params: { id: item.id } })}
+              onPress={() => safeRouter.push({ pathname: "/video/[id]", params: { id: item.id } })}
               style={styles.videoCard}
             >
               <View style={styles.videoThumb}>
@@ -585,7 +586,7 @@ export default function DiscoverScreen() {
     if (Platform.OS === "web" && typeof window !== "undefined") {
       const sp = new URLSearchParams(window.location.search);
       if (sp.get("tab") === "shorts") {
-        router.replace("/shorts" as any);
+        router.replace("/shorts" as any); // replace intentional — not a user tap
       }
     }
   }, []);
@@ -1600,7 +1601,7 @@ export default function DiscoverScreen() {
             )}
             <TouchableOpacity
                 style={styles.tabPill}
-                onPress={() => router.push("/shorts" as any)}
+                onPress={() => safeRouter.push("/shorts" as any)}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                   <Ionicons name="play-circle-outline" size={15} color={colors.textMuted} />
@@ -1613,7 +1614,7 @@ export default function DiscoverScreen() {
 
           {!user && (
             <TouchableOpacity
-              onPress={() => router.push("/(auth)/login")}
+              onPress={() => safeRouter.push("/(auth)/login")}
               style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}
             >
               <Ionicons name="log-in-outline" size={16} color={colors.text} />
@@ -1706,7 +1707,7 @@ export default function DiscoverScreen() {
           <Ionicons name="lock-closed-outline" size={56} color={colors.textMuted} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Sign in to see Following</Text>
           <Text style={[styles.emptySub, { color: colors.textSecondary }]}>Follow people to see their posts here</Text>
-          <TouchableOpacity style={[styles.createBtn, { backgroundColor: colors.accent }]} onPress={() => router.push("/(auth)/login")}>
+          <TouchableOpacity style={[styles.createBtn, { backgroundColor: colors.accent }]} onPress={() => safeRouter.push("/(auth)/login")}>
             <Text style={styles.createBtnText}>Sign In</Text>
           </TouchableOpacity>
         </View>
@@ -1846,7 +1847,7 @@ export default function DiscoverScreen() {
               <TouchableOpacity
                 key={opt.label}
                 style={[styles.createPickerOption, { backgroundColor: colors.backgroundTertiary }]}
-                onPress={() => { setShowCreatePicker(false); setTimeout(() => router.push(opt.route as any), 150); }}
+                onPress={() => { setShowCreatePicker(false); setTimeout(() => safeRouter.push(opt.route as any), 150); }}
               >
                 <View style={[styles.createPickerIconBox, { backgroundColor: opt.color + "18" }]}>
                   <Ionicons name={opt.icon as any} size={24} color={opt.color} />
