@@ -1435,8 +1435,6 @@ function ChatScreen() {
   const { features: advancedFeatures } = useAdvancedFeatures();
   const advancedFeaturesRef = useRef(advancedFeatures);
   advancedFeaturesRef.current = advancedFeatures;
-  const chatInfoStateRef = useRef(chatInfo);
-  chatInfoStateRef.current = chatInfo;
   const { isLowData: chatIsLowData } = useDataMode();
   const { statsMap, getDynamicPrice } = useGiftPrices();
   const pickerQuality = (() => {
@@ -1487,6 +1485,8 @@ function ChatScreen() {
   };
 
   const [chatInfo, setChatInfo] = useState<ChatInfo | null>(buildInitialChatInfo);
+  const chatInfoStateRef = useRef(chatInfo);
+  chatInfoStateRef.current = chatInfo;
   const isAfuAiDirectChat = chatInfo?.other_id === AFUAI_BOT_ID;
   const isSelfChat = !chatInfo?.is_group && !chatInfo?.is_channel && !!chatInfo?.other_id && chatInfo?.other_id === user?.id;
   const [phonebookName, setPhonebookName] = useState<string | null>(null);
@@ -1500,6 +1500,9 @@ function ChatScreen() {
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [editHistoryMsg, setEditHistoryMsg] = useState<Message | null>(null);
+  const [editHistoryItems, setEditHistoryItems] = useState<{ id: string; previous_content: string; edited_at: string }[]>([]);
+  const [editHistoryLoading, setEditHistoryLoading] = useState(false);
   const [showReactions, setShowReactions] = useState<Message | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; handle: string; display_name: string; avatar_url: string | null }[]>([]);
@@ -3397,6 +3400,19 @@ STRICT RULES:
     setReplyTo(null);
   }
 
+  async function handleViewEditHistory(msg: Message) {
+    setEditHistoryMsg(msg);
+    setEditHistoryLoading(true);
+    setShowReactions(null);
+    const { data } = await supabase
+      .from("message_edit_history")
+      .select("id, previous_content, edited_at")
+      .eq("message_id", msg.id)
+      .order("edited_at", { ascending: false });
+    setEditHistoryItems(data ?? []);
+    setEditHistoryLoading(false);
+  }
+
   async function saveEditMessage() {
     if (!editingMessage || !user) return;
     const text = input.trim();
@@ -3407,6 +3423,12 @@ STRICT RULES:
       return;
     }
     setSending(true);
+    await supabase.from("message_edit_history").insert({
+      message_id: editingMessage.id,
+      edited_by: user.id,
+      previous_content: editingMessage.encrypted_content,
+      edited_at: new Date().toISOString(),
+    });
     const { error } = await supabase
       .from("messages")
       .update({ encrypted_content: text, edited_at: new Date().toISOString() })
@@ -6039,12 +6061,7 @@ STRICT RULES:
             {advancedFeatures.message_edit_history && showReactions && showReactions.edited_at && (
               <TouchableOpacity
                 style={st.reactModalAction}
-                onPress={() => {
-                  showAlert(
-                    "Message Edited",
-                    `This message was last edited on ${new Date(showReactions.edited_at!).toLocaleString()}.\n\nEdit history storage coming soon.`
-                  );
-                }}
+                onPress={() => { if (showReactions) handleViewEditHistory(showReactions); }}
               >
                 <Ionicons name="time-outline" size={20} color={colors.textMuted} />
                 <Text style={[st.reactModalActionText, { color: colors.text }]}>View Edit History</Text>
@@ -6732,6 +6749,84 @@ STRICT RULES:
           </View>
         </Modal>
       )}
+
+      {/* ── Edit History Modal ──────────────────────────────────────────── */}
+      <Modal
+        visible={!!editHistoryMsg}
+        transparent
+        animationType="slide"
+        onRequestClose={() => { setEditHistoryMsg(null); setEditHistoryItems([]); }}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => { setEditHistoryMsg(null); setEditHistoryItems([]); }} />
+          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: insets.bottom + 16, maxHeight: "80%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Ionicons name="time-outline" size={20} color={colors.accent} />
+                <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.text }}>Edit History</Text>
+              </View>
+              <TouchableOpacity onPress={() => { setEditHistoryMsg(null); setEditHistoryItems([]); }} hitSlop={12}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            {editHistoryLoading ? (
+              <ActivityIndicator color={colors.accent} style={{ marginVertical: 40 }} />
+            ) : (
+              <ScrollView style={{ paddingHorizontal: 16 }} showsVerticalScrollIndicator={false}>
+                {/* Current version */}
+                <View style={{ marginTop: 16 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#34C759" }} />
+                    <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#34C759", textTransform: "uppercase", letterSpacing: 0.5 }}>Current</Text>
+                  </View>
+                  <View style={{ backgroundColor: colors.inputBg, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: "#34C759" }}>
+                    <Text style={{ fontSize: 14, color: colors.text, fontFamily: "Inter_400Regular", lineHeight: 20 }}>
+                      {editHistoryMsg?.encrypted_content}
+                    </Text>
+                    {editHistoryMsg?.edited_at && (
+                      <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 6 }}>
+                        Last edited {new Date(editHistoryMsg.edited_at).toLocaleString()}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+
+                {editHistoryItems.length === 0 ? (
+                  <View style={{ alignItems: "center", paddingVertical: 32 }}>
+                    <Ionicons name="document-text-outline" size={36} color={colors.textMuted} />
+                    <Text style={{ fontSize: 14, color: colors.textMuted, marginTop: 8, textAlign: "center" }}>
+                      No previous versions found.{"\n"}History is recorded from this point on.
+                    </Text>
+                  </View>
+                ) : (
+                  editHistoryItems.map((item, idx) => {
+                    const isLast = idx === editHistoryItems.length - 1;
+                    return (
+                      <View key={item.id} style={{ marginTop: 12 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isLast ? colors.textMuted : colors.accent }} />
+                          <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: isLast ? colors.textMuted : colors.accent, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            {isLast ? "Original" : `Version ${editHistoryItems.length - idx}`}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: colors.textMuted, marginLeft: "auto" }}>
+                            Edited {new Date(item.edited_at).toLocaleString()}
+                          </Text>
+                        </View>
+                        <View style={{ backgroundColor: colors.inputBg, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: isLast ? colors.border : colors.accent + "66" }}>
+                          <Text style={{ fontSize: 14, color: colors.text, fontFamily: "Inter_400Regular", lineHeight: 20 }}>
+                            {item.previous_content}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
+                <View style={{ height: 24 }} />
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
