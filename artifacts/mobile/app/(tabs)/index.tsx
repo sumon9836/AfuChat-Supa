@@ -71,6 +71,7 @@ import {
 } from "@/lib/storyViewedStore";
 import { usePhonebookNames } from "@/hooks/usePhonebookNames";
 import { useContextMenu, ContextMenu } from "@/components/desktop/ContextMenu";
+import { useUnreadNotifCount } from "@/hooks/useUnreadNotifCount";
 
 type StoryUser = {
   userId: string;
@@ -677,6 +678,7 @@ async function findOrCreateNotesChatId(userId: string): Promise<string | null> {
 export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; onOpenChat?: (item: ChatItem, chatId: string) => void } = {}) {
   const { colors, isDark } = useTheme();
   const { user, profile, linkedAccounts, switchAccount } = useAuth();
+  const unreadNotifs = useUnreadNotifCount(user?.id);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { isDesktop } = useIsDesktop();
@@ -1541,6 +1543,24 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                 All
               </Text>
             </TouchableOpacity>
+          ) : !panelMode ? (
+            <View style={{ position: "relative" }}>
+              <TouchableOpacity
+                onPress={() => router.push("/(tabs)/notifications" as any)}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.backgroundSecondary, alignItems: "center", justifyContent: "center" }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="notifications-outline" size={20} color={colors.text} />
+              </TouchableOpacity>
+              {unreadNotifs > 0 && (
+                <View style={[styles.notifBadge, { backgroundColor: "#FF3B30" }]}>
+                  <Text style={styles.notifBadgeText} numberOfLines={1}>
+                    {unreadNotifs > 99 ? "99+" : String(unreadNotifs)}
+                  </Text>
+                </View>
+              )}
+            </View>
           ) : null}
         </View>
       </View>

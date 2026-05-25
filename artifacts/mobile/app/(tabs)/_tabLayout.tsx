@@ -30,7 +30,6 @@ const TABS = [
   { route: "/(tabs)/chats",         label: "Chats",    mdOn: "chatbubble",       mdOff: "chatbubble-outline"       },
   { route: "/(tabs)/discover",      label: "Discover", mdOn: "compass",          mdOff: "compass-outline"          },
   { route: "/(tabs)/shorts",        label: "Shorts",   mdOn: "play-circle",      mdOff: "play-circle-outline"      },
-  { route: "/(tabs)/notifications", label: "Inbox",    mdOn: "notifications",    mdOff: "notifications-outline"    },
   { route: "/(tabs)/apps",          label: "Apps",     mdOn: "grid",             mdOff: "grid-outline"             },
   { route: "/(tabs)/me",            label: "Profile",  mdOn: "person",           mdOff: "person-outline"           },
 ] as const;
@@ -70,21 +69,6 @@ function useTotalUnread(userId: string | undefined): number {
   return total;
 }
 
-function useUnreadNotifCount(userId: string | undefined): number {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (!userId) return;
-    supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("read", false).then(({ count: c }) => { setCount(c ?? 0); });
-    const ch = supabase.channel("notif-badge")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => setCount((c) => c + 1))
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => {
-        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("read", false).then(({ count: c }) => setCount(c ?? 0));
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [userId]);
-  return count;
-}
 
 function CompactTabBar({
   userId,
@@ -97,7 +81,6 @@ function CompactTabBar({
   const insets          = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const totalUnread     = useTotalUnread(userId);
-  const unreadNotifs    = useUnreadNotifCount(userId);
   const active          = normalizeTabPath(pathname);
   const isAndroid       = Platform.OS === "android";
 
@@ -215,7 +198,6 @@ function CompactTabBar({
           const isChats   = tab.route === "/(tabs)/chats";
           const isProfile = tab.route === "/(tabs)/me";
 
-          const isNotifs = tab.route === "/(tabs)/notifications";
           return (
             <View key={tab.route} style={bar.item}>
               <Pressable
@@ -264,13 +246,6 @@ function CompactTabBar({
                 <View style={[bar.badge, { backgroundColor: colors.accent }]}>
                   <Text style={bar.badgeText} numberOfLines={1}>
                     {totalUnread > 99 ? "99+" : String(totalUnread)}
-                  </Text>
-                </View>
-              )}
-              {isNotifs && unreadNotifs > 0 && (
-                <View style={[bar.badge, { backgroundColor: "#FF3B30" }]}>
-                  <Text style={bar.badgeText} numberOfLines={1}>
-                    {unreadNotifs > 99 ? "99+" : String(unreadNotifs)}
                   </Text>
                 </View>
               )}
