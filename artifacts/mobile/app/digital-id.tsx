@@ -326,10 +326,12 @@ function ActionBtn({ label, icon, color, loading, disabled, onPress }: {
 }
 
 /* ─── SHARED CARD PARTS ─── */
-function FlagStrip({ colors: fc, h = 5 }: { colors: string[]; h?: number }) {
+function CardStrip({ primary, secondary, h = 8 }: { primary: string; secondary: string; h?: number }) {
   return (
     <View style={{ flexDirection: "row", height: h }}>
-      {fc.map((c, i) => <View key={i} style={{ flex: 1, backgroundColor: c }} />)}
+      <View style={{ flex: 1.8, backgroundColor: primary }} />
+      <View style={{ flex: 5.4, backgroundColor: "#000000" }} />
+      <View style={{ flex: 1.8, backgroundColor: secondary }} />
     </View>
   );
 }
@@ -419,181 +421,154 @@ type CP = {
   issued: string; expires: string; mrzLine1: string; mrzLine2: string; qrValue: string;
 };
 
-function Field({ label, value, mono, accent }: { label: string; value: string; mono?: boolean; accent?: string }) {
+function Field({ label, value, mono, accent, large }: { label: string; value: string; mono?: boolean; accent?: string; large?: boolean }) {
   return (
-    <View style={{ gap: 1 }}>
+    <View style={{ gap: 2 }}>
       <Text style={s.fLbl}>{label}</Text>
-      <Text style={[s.fVal, mono && s.fMono, accent ? { color: accent } : {}]} numberOfLines={1}>{value}</Text>
+      <Text style={[large ? s.fValLg : s.fVal, mono && s.fMono, accent ? { color: accent } : {}]} numberOfLines={1}>{value}</Text>
     </View>
   );
 }
 
 /* ─── FRONT FACE ─── */
-function CardFront({ cardWidth: cw, cardHeight: ch, theme, profile, roleConf, memberNumber, afuId, issued, expires, mrzLine1, mrzLine2 }: CP) {
-  const PHOTO_W = Math.round(cw * 0.27);
-  const PHOTO_H = Math.round(PHOTO_W * 1.30);
-  const chipSize = Math.round(cw * 0.082);
+function CardFront({ cardWidth: cw, cardHeight: ch, theme, profile, roleConf, memberNumber, issued, expires, mrzLine1, mrzLine2 }: CP) {
+  const AV = Math.round(cw * 0.30);
 
   return (
-    <View style={[s.card, { width: cw, height: ch }]}>
-      <LinearGradient colors={theme.cardBg} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+    <View style={[s.card, { width: cw, height: ch, backgroundColor: "#0C0A06" }]}>
       <SecurityPattern w={cw} h={ch} color={theme.primary} />
 
-      <FlagStrip colors={theme.flag} h={6} />
+      {/* TOP STRIP */}
+      <CardStrip primary={theme.primary} secondary={theme.secondary} h={8} />
 
-      <LinearGradient colors={theme.headerBg} style={s.hdr}>
-        <Image source={afuSymbol} style={{ width: 20, height: 20 }} tintColor={BRAND} resizeMode="contain" />
-        <View style={{ flex: 1, marginLeft: 7 }}>
-          <Text style={s.hdrBrand}>AFUCHAT UNIVERSE</Text>
-          <Text style={s.hdrSub}>DIGITAL IDENTITY CARD</Text>
+      {/* HEADER */}
+      <View style={s.frontHdr}>
+        <Image source={afuSymbol} style={{ width: 28, height: 28 }} tintColor={BRAND} resizeMode="contain" />
+        <View style={{ flex: 1, marginLeft: 8 }}>
+          <Text style={s.frontBrand}>AFUCHAT</Text>
+          <Text style={s.frontSub}>UNIVERSE · DIGITAL IDENTITY CARD</Text>
         </View>
-        <View style={[s.roleBadge, { backgroundColor: roleConf.bg, borderColor: roleConf.color + "66" }]}>
-          <Text style={[s.roleTxt, { color: roleConf.color }]}>{roleConf.label}</Text>
-        </View>
-      </LinearGradient>
-
-      <HoloStrip w={cw} primary={theme.primary} />
-
-      {/* MAIN BODY */}
-      <View style={{ flex: 1, flexDirection: "row", paddingHorizontal: 12, paddingTop: 9, gap: 12 }}>
-        {/* LEFT: photo + chip */}
-        <View style={{ alignItems: "center", gap: 7 }}>
-          <View style={[s.photoBox, { width: PHOTO_W, height: PHOTO_H, borderColor: theme.primary + "99" }]}>
-            {profile?.avatar_url
-              ? <Image source={{ uri: profile.avatar_url }} style={{ width: PHOTO_W - 4, height: PHOTO_H - 4, borderRadius: 2 }} resizeMode="cover" />
-              : <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}>
-                  <Ionicons name="person" size={PHOTO_W * 0.38} color="#ffffff28" />
-                  <Text style={{ fontSize: 6, color: "#ffffff22", letterSpacing: 0.5 }}>PHOTO</Text>
-                </View>}
-          </View>
-          <Chip size={chipSize} primary={theme.primary} />
-        </View>
-
-        {/* RIGHT: ID fields */}
-        <View style={{ flex: 1, gap: 5, paddingTop: 2 }}>
-          <Field label="SURNAME / FULL NAME" value={profile?.display_name ?? "— — —"} />
-          <View style={{ height: 0.5, backgroundColor: theme.primary + "33" }} />
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1 }}><Field label="MEMBER NO." value={`AFU‑${padMember(memberNumber ?? 1)}`} mono accent={theme.primary} /></View>
-            <View style={{ flex: 1 }}><Field label="AFU ID" value={afuId} mono accent={theme.secondary || "#ffffff99"} /></View>
-          </View>
-          <Field label="NATIONALITY" value={profile?.country ?? "DIGITAL CITIZEN"} />
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1 }}><Field label="DATE OF ISSUE" value={issued} /></View>
-            <View style={{ flex: 1 }}><Field label="DATE OF EXPIRY" value={expires} /></View>
-          </View>
+        <View style={s.idBadge}>
+          <Text style={s.idBadgeTxt}>ID</Text>
         </View>
       </View>
 
-      {/* SIGNATURE STRIP — dedicated full-width row */}
-      <View style={[s.sigStrip, { borderTopColor: theme.primary + "25", borderBottomColor: theme.primary + "15" }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.sigLbl}>{"HOLDER'S SIGNATURE"}</Text>
-          <Text style={[s.sigVal, { borderBottomColor: theme.primary + "60" }]} numberOfLines={1}>
-            {profile?.display_name ?? ""}
-          </Text>
-        </View>
-        <View style={[s.sigStamp, { borderColor: theme.primary + "40" }]}>
-          <Image source={afuSymbol} style={{ width: 14, height: 14, opacity: 0.5 }} tintColor={theme.primary} resizeMode="contain" />
-          <Text style={[s.sigStampTxt, { color: theme.primary }]}>{"VALID"}</Text>
-        </View>
-      </View>
-
-      {/* MRZ ZONE */}
-      <View style={[s.mrzZone, { borderTopColor: theme.primary + "22" }]}>
-        <Text style={s.mrz} numberOfLines={1}>{mrzLine1}</Text>
-        <Text style={s.mrz} numberOfLines={1}>{mrzLine2}</Text>
-      </View>
-
-      <FlagStrip colors={theme.flag} h={5} />
-    </View>
-  );
-}
-
-/* ─── BACK FACE ─── */
-function CardBack({ cardWidth: cw, cardHeight: ch, theme, profile, memberNumber, afuId, issued, expires, qrValue, mrzLine1, mrzLine2 }: CP) {
-  const QR_SIZE = Math.round(ch * 0.42);
-
-  return (
-    <View style={[s.card, { width: cw, height: ch }]}>
-      {/* Background */}
-      <LinearGradient
-        colors={[theme.cardBg[2], theme.cardBg[1], theme.cardBg[0]]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }}
-      />
-      <SecurityPattern w={cw} h={ch} color={theme.secondary || theme.primary} />
-
-      {/* TOP FLAG */}
-      <FlagStrip colors={theme.flag} h={6} />
-
-      {/* MAGNETIC STRIPE */}
-      <MagneticStripe w={cw} />
-
-      {/* SIGNATURE PANEL */}
-      <View style={[s.signaturePanel, { borderColor: theme.primary + "22" }]}>
-        <View style={[s.signatureStripes]}>
-          {[...Array(5)].map((_, i) => (
-            <View key={i} style={{ flex: 1, backgroundColor: i % 2 === 0 ? "#ffffff08" : "#00000008" }} />
-          ))}
-        </View>
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 4, gap: 8 }}>
-          <Image source={afuSymbol} style={{ width: 14, height: 14 }} tintColor={BRAND} resizeMode="contain" />
-          <Text style={[s.panelTxt, { color: BRAND }]}>AFUCHAT UNIVERSE · DIGITAL FINGERPRINT</Text>
-          <View style={{ flex: 1 }} />
-          <View style={[s.secChip, { borderColor: theme.primary + "55" }]}>
-            <Ionicons name="lock-closed" size={6} color={theme.primary} />
-            <Text style={[s.secTxt, { color: theme.primary }]}>SECURE</Text>
+      {/* BODY */}
+      <View style={s.frontBody}>
+        {/* LEFT: circular avatar + role badge */}
+        <View style={{ alignItems: "center", gap: 8, width: AV + 16 }}>
+          <View style={[s.avatarRing, { width: AV + 6, height: AV + 6, borderRadius: (AV + 6) / 2, borderColor: theme.primary }]}>
+            <View style={[s.avatarInner, { width: AV, height: AV, borderRadius: AV / 2 }]}>
+              {profile?.avatar_url
+                ? <Image source={{ uri: profile.avatar_url }} style={{ width: AV, height: AV, borderRadius: AV / 2 }} resizeMode="cover" />
+                : <Ionicons name="person" size={AV * 0.48} color="#ffffff44" />}
+            </View>
+          </View>
+          <View style={[s.roleBadgeFront, { backgroundColor: roleConf.bg, borderColor: roleConf.color + "99" }]}>
+            <Text style={[s.roleBadgeTxt, { color: roleConf.color }]} numberOfLines={1}>{roleConf.label}</Text>
           </View>
         </View>
-      </View>
 
-      {/* HOLOGRAPHIC STRIP */}
-      <HoloStrip w={cw} primary={theme.primary} />
-
-      {/* MAIN BACK BODY */}
-      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 8, gap: 12 }}>
-
-        {/* QR Code */}
-        <View style={[s.qrBox, { borderColor: theme.primary + "44", backgroundColor: "#ffffff08" }]}>
-          <QRCode
-            value={qrValue}
-            size={QR_SIZE}
-            color="#ffffff"
-            backgroundColor="transparent"
-            logo={afuSymbol}
-            logoSize={QR_SIZE * 0.18}
-            logoBackgroundColor="transparent"
-          />
-        </View>
-
-        {/* Right info panel */}
+        {/* RIGHT: info fields */}
         <View style={{ flex: 1, gap: 7 }}>
-          <Field label="AFU ID" value={afuId} mono accent={theme.primary} />
-          <View style={{ height: 0.5, backgroundColor: theme.primary + "33" }} />
-          <Field label="MEMBER NO." value={`AFU‑${padMember(memberNumber ?? 1)}`} mono />
+          <Field label="FULL NAME" value={profile?.display_name ?? "— — —"} large />
+          <Field label="MEMBER NO." value={`AFU-${padMember(memberNumber ?? 1)}`} mono accent={theme.primary} large />
           <Field label="NATIONALITY" value={profile?.country ?? "DIGITAL CITIZEN"} />
           <View style={{ flexDirection: "row", gap: 10 }}>
             <View style={{ flex: 1 }}><Field label="ISSUED" value={issued} /></View>
             <View style={{ flex: 1 }}><Field label="EXPIRES" value={expires} /></View>
           </View>
           <View style={{ marginTop: 2 }}>
-            <Text style={s.sigLbl}>SCAN TO VERIFY</Text>
-            <Text style={[s.sigLbl, { color: theme.primary, letterSpacing: 0.3, marginTop: 1 }]}>
-              afuchat://id/{afuId}
-            </Text>
+            <Text style={s.sigLbl}>{"HOLDER'S SIGNATURE"}</Text>
+            <Text style={s.sigValFront} numberOfLines={1}>{profile?.display_name ?? ""}</Text>
           </View>
         </View>
       </View>
 
-      {/* MRZ ZONE */}
-      <View style={[s.mrzZone, { borderTopColor: theme.primary + "22" }]}>
+      {/* DIVIDER */}
+      <View style={s.hdivider} />
+
+      {/* MRZ */}
+      <View style={s.mrzZone}>
         <Text style={s.mrz} numberOfLines={1}>{mrzLine1}</Text>
         <Text style={s.mrz} numberOfLines={1}>{mrzLine2}</Text>
       </View>
 
-      {/* BOTTOM FLAG */}
-      <FlagStrip colors={theme.flag} h={5} />
+      {/* BOTTOM STRIP */}
+      <CardStrip primary={theme.primary} secondary={theme.secondary} h={8} />
+    </View>
+  );
+}
+
+/* ─── BACK FACE ─── */
+function CardBack({ cardWidth: cw, cardHeight: ch, theme, profile, memberNumber, afuId, issued, expires, qrValue, mrzLine1, mrzLine2 }: CP) {
+  const QR_SIZE = Math.round(ch * 0.46);
+
+  return (
+    <View style={[s.card, { width: cw, height: ch, backgroundColor: "#0C0A06" }]}>
+      <SecurityPattern w={cw} h={ch} color={theme.secondary || theme.primary} />
+
+      {/* TOP STRIP */}
+      <CardStrip primary={theme.primary} secondary={theme.secondary} h={8} />
+
+      {/* HEADER */}
+      <View style={s.backHdr}>
+        <Image source={afuSymbol} style={{ width: 18, height: 18 }} tintColor={BRAND} resizeMode="contain" />
+        <Text style={s.backBrand}> AFUCHAT</Text>
+        <Text style={[s.backBrand, { color: "#ffffff55", fontWeight: "400" }]}> · DIGITAL</Text>
+        <View style={{ flex: 1 }} />
+        <View style={s.secureBadge}>
+          <Ionicons name="lock-closed" size={9} color="#fff" />
+          <Text style={s.secureTxt}> SECURE</Text>
+        </View>
+      </View>
+
+      {/* DIVIDER */}
+      <View style={s.hdivider} />
+
+      {/* BODY */}
+      <View style={s.backBody}>
+        {/* QR Code — white background */}
+        <View style={s.qrBox}>
+          <QRCode
+            value={qrValue}
+            size={QR_SIZE}
+            color="#000000"
+            backgroundColor="#ffffff"
+            logo={afuSymbol}
+            logoSize={QR_SIZE * 0.18}
+            logoBackgroundColor="#ffffff"
+          />
+        </View>
+
+        {/* Right info panel */}
+        <View style={{ flex: 1, gap: 8 }}>
+          <View>
+            <Text style={s.fLbl}>AFU ID</Text>
+            <Text style={[s.afuIdBig, { color: theme.primary }]} numberOfLines={1}>{afuId}</Text>
+          </View>
+          <Field label="MEMBER NO." value={`AFU-${padMember(memberNumber ?? 1)}`} mono />
+          <Field label="NATIONALITY" value={profile?.country ?? "DIGITAL CITIZEN"} />
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flex: 1 }}><Field label="ISSUED" value={issued} /></View>
+            <View style={{ flex: 1 }}><Field label="EXPIRES" value={expires} /></View>
+          </View>
+          <View style={s.hdivider} />
+          <Text style={s.sigValBack} numberOfLines={1}>{profile?.display_name ?? ""}</Text>
+        </View>
+      </View>
+
+      {/* DIVIDER */}
+      <View style={s.hdivider} />
+
+      {/* MRZ */}
+      <View style={s.mrzZone}>
+        <Text style={s.mrz} numberOfLines={1}>{mrzLine1}</Text>
+        <Text style={s.mrz} numberOfLines={1}>{mrzLine2}</Text>
+      </View>
+
+      {/* BOTTOM STRIP */}
+      <CardStrip primary={theme.primary} secondary={theme.secondary} h={8} />
     </View>
   );
 }
@@ -621,89 +596,183 @@ const s = StyleSheet.create({
 
   /* Card shell */
   card: {
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: "hidden",
     ...Platform.select({
-      web: { boxShadow: "0 12px 40px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.06)" } as any,
-      default: { shadowColor: "#000", shadowOpacity: 0.7, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 16 },
+      web: { boxShadow: "0 16px 48px rgba(0,0,0,0.85), 0 0 0 0.5px rgba(255,255,255,0.08)" } as any,
+      default: { shadowColor: "#000", shadowOpacity: 0.8, shadowRadius: 28, shadowOffset: { width: 0, height: 12 }, elevation: 18 },
     }),
   },
 
-  /* Header */
-  hdr: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 7 },
-  hdrBrand: { fontSize: 10, fontWeight: "900", color: BRAND, letterSpacing: 2, lineHeight: 13 },
-  hdrSub: { fontSize: 6.5, color: "#ffffff55", letterSpacing: 0.8, lineHeight: 10 },
-
-  /* Role badge */
-  roleBadge: { borderWidth: 0.5, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  roleTxt: { fontSize: 6, fontWeight: "800", letterSpacing: 0.8 },
-
-  /* Photo box — rectangular like a real ID */
-  photoBox: {
+  /* ── FRONT CARD ── */
+  frontHdr: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  frontBrand: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: BRAND,
+    letterSpacing: 2.5,
+    lineHeight: 18,
+  },
+  frontSub: {
+    fontSize: 7,
+    color: "#ffffff55",
+    letterSpacing: 1,
+    lineHeight: 11,
+    marginTop: 1,
+  },
+  idBadge: {
     borderWidth: 1.5,
-    borderRadius: 4,
+    borderColor: "#ffffff44",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  idBadgeTxt: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#ffffffdd",
+    letterSpacing: 1,
+  },
+  frontBody: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingTop: 4,
+    paddingBottom: 6,
+    gap: 14,
+  },
+  avatarRing: {
+    borderWidth: 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInner: {
+    backgroundColor: "#1a1a1a",
     overflow: "hidden",
-    backgroundColor: "#ffffff08",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  roleBadgeFront: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    maxWidth: 110,
+  },
+  roleBadgeTxt: {
+    fontSize: 7,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textAlign: "center",
+  },
+
+  /* ── BACK CARD ── */
+  backHdr: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  backBrand: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: BRAND,
+    letterSpacing: 1.5,
+  },
+  secureBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ffffff55",
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  secureTxt: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#fff",
+    letterSpacing: 1,
+  },
+  backBody: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 14,
+  },
+  afuIdBig: {
+    fontSize: 22,
+    fontWeight: "900",
+    letterSpacing: 2,
+    lineHeight: 26,
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+  },
+  sigValBack: {
+    fontSize: 14,
+    fontStyle: "italic",
+    color: "#ffffffcc",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    letterSpacing: 0.3,
+    marginTop: 2,
+  },
+
+  /* ── SHARED ── */
+  hdivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#ffffff20",
+    marginHorizontal: 14,
   },
 
   /* Fields */
-  fLbl: { fontSize: 6.5, fontWeight: "700", color: "#ffffff44", letterSpacing: 1, lineHeight: 9 },
-  fVal: { fontSize: 10, color: "#ffffffcc", fontWeight: "600", lineHeight: 14 },
-  fMono: { fontFamily: Platform.OS === "ios" ? "Courier" : "monospace", fontSize: 11, letterSpacing: 1.2, fontWeight: "800" },
-
-  /* Signature strip */
-  sigStrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
-    backgroundColor: "rgba(255,255,255,0.03)",
-    gap: 10,
+  fLbl: { fontSize: 7, fontWeight: "700", color: "#ffffff44", letterSpacing: 1.2, lineHeight: 10, textTransform: "uppercase" },
+  fVal: { fontSize: 11, color: "#ffffffcc", fontWeight: "600", lineHeight: 15 },
+  fValLg: { fontSize: 14, color: "#ffffff", fontWeight: "700", lineHeight: 18 },
+  fMono: {
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    letterSpacing: 1.5,
+    fontWeight: "800",
   },
-  sigLbl: { fontSize: 6, fontWeight: "700", color: "#ffffff33", letterSpacing: 0.8, marginBottom: 3 },
-  sigVal: {
-    fontSize: 13,
+
+  /* Signature */
+  sigLbl: { fontSize: 7, fontWeight: "700", color: "#ffffff33", letterSpacing: 1, marginBottom: 2 },
+  sigValFront: {
+    fontSize: 14,
     fontStyle: "italic",
     color: "#ffffffbb",
-    borderBottomWidth: 0.5,
-    paddingBottom: 3,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
-  sigStamp: {
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 0.5,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    gap: 2,
-  },
-  sigStampTxt: { fontSize: 5.5, fontWeight: "800", letterSpacing: 1 },
 
   /* MRZ Zone */
   mrzZone: {
-    backgroundColor: "#000000aa",
-    borderTopWidth: 0.5,
-    paddingHorizontal: 10,
-    paddingTop: 3,
-    paddingBottom: 2,
+    backgroundColor: "#00000066",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   mrz: {
-    fontSize: 6,
-    color: "#ffffff55",
+    fontSize: 6.5,
+    color: "#ffffff44",
     letterSpacing: 1.8,
-    lineHeight: 9,
+    lineHeight: 10,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
 
-  /* Back */
-  signaturePanel: { borderBottomWidth: 0.5, overflow: "hidden" },
-  signatureStripes: { flexDirection: "row", height: 18 },
-  panelTxt: { fontSize: 6.5, fontWeight: "800", letterSpacing: 0.8 },
-  secChip: { flexDirection: "row", alignItems: "center", gap: 3, borderWidth: 0.5, borderRadius: 3, paddingHorizontal: 4, paddingVertical: 2 },
-  secTxt: { fontSize: 5.5, fontWeight: "700", letterSpacing: 0.5 },
-  qrBox: { padding: 8, borderWidth: 0.5, borderRadius: 8 },
+  /* QR */
+  qrBox: {
+    padding: 8,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    ...Platform.select({
+      web: { boxShadow: "0 4px 16px rgba(0,0,0,0.5)" } as any,
+      default: { shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+    }),
+  },
 });
