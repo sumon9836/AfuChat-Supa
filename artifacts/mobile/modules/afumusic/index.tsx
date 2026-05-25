@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   LayoutChangeEvent,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -14,9 +15,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
 import * as MediaLibrary from "expo-media-library";
+import * as Notifications from "expo-notifications";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { useTheme } from "@/hooks/useTheme";
 import * as Haptics from "@/lib/haptics";
+
+const NOTIF_ID = "afumusic_player";
 
 type AppView = "library" | "player";
 type RepeatMode = "none" | "one" | "all";
@@ -114,7 +118,7 @@ export default function AfuMusicApp() {
       try {
         const { granted } = await MediaLibrary.getPermissionsAsync();
         if (granted) setPermGranted(true);
-        else setPermDenied(false); // show the "Allow Access" button
+        else setPermDenied(true); // show the "Allow Access" button
       } catch {
         // AUDIO permission not in manifest on Expo Go — show Allow Access UI
         setPermDenied(true);
@@ -136,10 +140,57 @@ export default function AfuMusicApp() {
       shouldDuckAndroid: true,
       playThroughEarpieceAndroid: false,
     }).catch(() => {});
+
+    // Set up notification channel (Android) and request permission once
+    if (Platform.OS !== "web") {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: false,
+          shouldPlaySound: false,
+          shouldSetBadge: false,
+        }),
+      });
+      Notifications.setNotificationChannelAsync("music_player", {
+        name: "Music Player",
+        importance: Notifications.AndroidImportance.LOW,
+        sound: null,
+        vibrationPattern: null,
+        showBadge: false,
+      }).catch(() => {});
+      Notifications.requestPermissionsAsync().catch(() => {});
+    }
+
     return () => {
       soundRef.current?.unloadAsync().catch(() => {});
+      if (Platform.OS !== "web") {
+        Notifications.dismissNotificationAsync(NOTIF_ID).catch(() => {});
+      }
     };
   }, []);
+
+  // Keep the status-bar notification in sync with playback state
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    if (!currentTrack) {
+      Notifications.dismissNotificationAsync(NOTIF_ID).catch(() => {});
+      return;
+    }
+    Notifications.scheduleNotificationAsync({
+      identifier: NOTIF_ID,
+      content: {
+        title: trackTitle(currentTrack),
+        body: `${trackArtist(currentTrack)} · ${isPlaying ? "Playing" : "Paused"}`,
+        sound: undefined,
+        badge: 0,
+        data: { type: "music_player" },
+        ...(Platform.OS === "android" ? {
+          priority: Notifications.AndroidNotificationPriority.LOW,
+          color: "#5856D6",
+        } : {}),
+      },
+      trigger: null,
+    }).catch(() => {});
+  }, [currentTrack, isPlaying]);
 
   function buildShuffleOrder() {
     const order = tracks.map((_, i) => i);
@@ -271,6 +322,21 @@ export default function AfuMusicApp() {
 
   const progress = duration > 0 ? position / duration : 0;
   const accentColor = currentTrack ? colorForTrack(currentTrack.filename) : "#5856D6";
+
+  // Web: expo-media-library and background audio are not supported on web
+  if (Platform.OS === "web") {
+    return (
+      <View style={[s.center, { backgroundColor: colors.background, padding: 40 }]}>
+        <LinearGradient colors={["#5856D6", "#7B79E8"]} style={s.permIcon}>
+          <Ionicons name="musical-notes" size={40} color="#fff" />
+        </LinearGradient>
+        <Text style={[s.permTitle, { color: colors.text, textAlign: "center" }]}>AfuMusic</Text>
+        <Text style={[s.permSub, { color: colors.textMuted, textAlign: "center" }]}>
+          Music playback from your device library is available on the AfuChat Android app.{"\n\n"}Install AfuChat on your phone to enjoy your music offline, in the background, and with a status-bar player.
+        </Text>
+      </View>
+    );
+  }
 
   // Still checking (neither granted nor denied yet) — show a brief spinner
   if (!permGranted && !permDenied) {

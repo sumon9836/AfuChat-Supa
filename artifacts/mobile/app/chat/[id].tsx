@@ -5518,6 +5518,78 @@ STRICT RULES:
 
           const renderContent = () => {
             if (attachTab === "Gallery") {
+              // ── Web: use SDK pickers, no custom MediaLibrary grid ──────────
+              if (Platform.OS === "web") {
+                const WEB_PICKS = [
+                  {
+                    label: "Photo / Video",
+                    icon: "images-outline" as const,
+                    color: "#007AFF",
+                    onPress: async () => {
+                      setShowAttachPanel(false);
+                      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                      if (!perm.granted) return;
+                      const res = await ImagePicker.launchImageLibraryAsync({
+                        mediaTypes: ["images", "videos"] as any,
+                        allowsEditing: false,
+                        quality: 0.85,
+                      });
+                      if (!res.canceled && res.assets?.[0]) {
+                        const a = res.assets[0];
+                        setAttachmentPreview({ uri: a.uri, type: a.type === "video" ? "video" : "image" });
+                      }
+                    },
+                  },
+                  {
+                    label: "Document",
+                    icon: "document-text-outline" as const,
+                    color: "#3B82F6",
+                    onPress: async () => {
+                      setShowAttachPanel(false);
+                      try {
+                        const res = await DocumentPicker.getDocumentAsync({ type: "*/*", copyToCacheDirectory: true });
+                        if (!res.canceled && res.assets?.[0]) {
+                          const d = res.assets[0];
+                          setAttachmentPreview({ uri: d.uri, type: "file", name: d.name });
+                        }
+                      } catch { /* ignore */ }
+                    },
+                  },
+                  {
+                    label: "Audio File",
+                    icon: "musical-notes-outline" as const,
+                    color: "#10B981",
+                    onPress: async () => {
+                      setShowAttachPanel(false);
+                      try {
+                        const res = await DocumentPicker.getDocumentAsync({ type: "audio/*", copyToCacheDirectory: true });
+                        if (!res.canceled && res.assets?.[0]) {
+                          const d = res.assets[0];
+                          setAttachmentPreview({ uri: d.uri, type: "file", name: d.name });
+                        }
+                      } catch { /* ignore */ }
+                    },
+                  },
+                ];
+                return (
+                  <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 20, paddingTop: 20, gap: 16, justifyContent: "center" }}>
+                    {WEB_PICKS.map((pick) => (
+                      <TouchableOpacity
+                        key={pick.label}
+                        activeOpacity={0.75}
+                        onPress={pick.onPress}
+                        style={{ width: (SW2 - 80) / 3, alignItems: "center", paddingVertical: 18, borderRadius: 18, backgroundColor: colors.inputBg, gap: 10 }}
+                      >
+                        <View style={{ width: 54, height: 54, borderRadius: 18, backgroundColor: pick.color + "20", alignItems: "center", justifyContent: "center" }}>
+                          <Ionicons name={pick.icon} size={26} color={pick.color} />
+                        </View>
+                        <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.text, textAlign: "center" }}>{pick.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                );
+              }
+
               if (galleryLoading) {
                 return (
                   <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>

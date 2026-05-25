@@ -138,8 +138,11 @@ export default function Root({ children }: PropsWithChildren) {
           input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
           #root { display: flex; height: 100%; flex: 1; width: 100%; max-width: 100vw; overflow: hidden; }
           /* Allow single-finger scroll — overrides react-native-gesture-handler's touch-action:none */
-          #root > div { touch-action: pan-y !important; }
-          div[style*="overflow: scroll"], div[style*="overflow-y: scroll"], div[style*="overflow-y: auto"] { touch-action: pan-y !important; }
+          #root > div, #root > div > div, #root > div > div > div { touch-action: pan-y !important; }
+          div[style*="overflow: scroll"], div[style*="overflow-y: scroll"], div[style*="overflow-y: auto"], div[style*="overflow-x: scroll"] { touch-action: pan-y !important; }
+          [data-focusable], [tabindex] { touch-action: pan-y !important; }
+          /* React Native Web scroll containers */
+          [class*="r-overflow"], [style*="overflowY"], .css-scrollable { touch-action: pan-y !important; }
 
           /* Polished thin scrollbars on web */
           ::-webkit-scrollbar { width: 5px; height: 5px; }
