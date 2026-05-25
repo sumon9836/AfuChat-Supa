@@ -78,13 +78,6 @@ export default function PrivacySettingsScreen() {
             subtitle="Manage how your activity is used"
             onPress={() => router.push("/settings/privacy-data" as any)}
           />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="cloud-download"
-            label="Download My Data"
-            subtitle="Request a copy of your AfuChat data"
-            onPress={() => router.push("/settings/privacy-download" as any)}
-          />
         </GlassMenuSection>
       </ScrollView>
     </View>

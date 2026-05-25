@@ -27,6 +27,7 @@ import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import Colors from "@/constants/colors";
 import OfflineBanner from "@/components/ui/OfflineBanner";
 import { PrestigeBadge } from "@/components/ui/PrestigeBadge";
+import { showAlert } from "@/lib/alert";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -185,7 +186,7 @@ const pc = StyleSheet.create({
 export default function MeScreen() {
   const { colors, accent } = useTheme();
   const { isDesktop } = useIsDesktop();
-  const { profile, isPremium, subscription, loading, user } = useAuth();
+  const { profile, isPremium, subscription, loading, user, signOut } = useAuth();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
@@ -508,8 +509,17 @@ export default function MeScreen() {
           <SectionLabel label="Account" colors={colors} />
           <MenuCard colors={colors}>
             <MenuItem icon="settings-outline" iconColor={colors.icon} label="Settings" onPress={() => router.push("/settings")} showSeparator colors={colors} />
-            <MenuItem icon="notifications-outline" iconColor="#5856D6" label="Notifications" onPress={() => router.push("/settings/notifications" as any)} showSeparator colors={colors} />
-            <MenuItem icon="shield-outline" iconColor="#34C759" label="Privacy & Security" onPress={() => router.push("/settings/privacy" as any)} colors={colors} />
+            <MenuItem
+              icon="log-out-outline"
+              iconColor="#FF3B30"
+              label="Sign Out"
+              destructive
+              onPress={() => showAlert("Sign Out", "Are you sure you want to sign out?", [
+                { text: "Cancel", style: "cancel" },
+                { text: "Sign Out", style: "destructive", onPress: () => signOut() },
+              ])}
+              colors={colors}
+            />
           </MenuCard>
         </View>
 

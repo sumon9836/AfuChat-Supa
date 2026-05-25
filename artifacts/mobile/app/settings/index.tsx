@@ -29,7 +29,7 @@ const THEME_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]>
 export default function SettingsScreen() {
   const { colors, themeMode, setThemeMode, accent } = useTheme();
   const { langLabel } = useLanguage();
-  const { user, profile, isPremium, linkedAccounts, signOut, switchAccount } = useAuth();
+  const { user, profile, isPremium, linkedAccounts, switchAccount } = useAuth();
   const insets = useSafeAreaInsets();
   const [switchingId, setSwitchingId] = useState<string | null>(null);
 
@@ -37,13 +37,6 @@ export default function SettingsScreen() {
     const next = themeMode === "dark" ? "light" : themeMode === "light" ? "system" : "dark";
     Haptics.selectionAsync();
     setThemeMode(next);
-  }
-
-  function handleSignOut() {
-    showAlert("Sign Out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign Out", style: "destructive", onPress: () => signOut() },
-    ]);
   }
 
   async function handleSwitch(userId: string) {
@@ -226,27 +219,15 @@ export default function SettingsScreen() {
           <GlassMenuItem
             icon="shield-checkmark-outline"
             label="Privacy"
-            subtitle="Account visibility, messages, interactions"
+            subtitle="Visibility, messages, interactions, blocked users"
             onPress={() => router.push("/settings/privacy")}
           />
           <GlassMenuSeparator />
           <GlassMenuItem
             icon="lock-closed-outline"
             label="Security & Password"
-            subtitle="Password, device security, data download"
+            subtitle="Password, 2FA, device security, data download"
             onPress={() => router.push("/settings/security")}
-          />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="keypad-outline"
-            label="Two-Factor Authentication"
-            onPress={() => router.push("/settings/two-factor" as any)}
-          />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="ban-outline"
-            label="Blocked Users"
-            onPress={() => router.push("/settings/blocked")}
           />
         </GlassMenuSection>
 
@@ -287,16 +268,6 @@ export default function SettingsScreen() {
           />
         </GlassMenuSection>
 
-        {/* ── ACCOUNT ACTIONS ──────────────────────────────────────────── */}
-        <GlassMenuSection title="ACCOUNT">
-          <GlassMenuItem
-            icon="log-out-outline"
-            label="Sign Out"
-            danger
-            noChevron
-            onPress={handleSignOut}
-          />
-        </GlassMenuSection>
 
       </ScrollView>
     </View>
