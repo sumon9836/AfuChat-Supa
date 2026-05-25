@@ -186,7 +186,7 @@ const pc = StyleSheet.create({
 export default function MeScreen() {
   const { colors, accent } = useTheme();
   const { isDesktop } = useIsDesktop();
-  const { profile, isPremium, subscription, loading, user, signOut } = useAuth();
+  const { profile, isPremium, subscription, loading, user } = useAuth();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
@@ -508,18 +508,7 @@ export default function MeScreen() {
         <View>
           <SectionLabel label="Account" colors={colors} />
           <MenuCard colors={colors}>
-            <MenuItem icon="settings-outline" iconColor={colors.icon} label="Settings" onPress={() => router.push("/settings")} showSeparator colors={colors} />
-            <MenuItem
-              icon="log-out-outline"
-              iconColor="#FF3B30"
-              label="Sign Out"
-              destructive
-              onPress={() => showAlert("Sign Out", "Are you sure you want to sign out?", [
-                { text: "Cancel", style: "cancel" },
-                { text: "Sign Out", style: "destructive", onPress: () => signOut() },
-              ])}
-              colors={colors}
-            />
+            <MenuItem icon="settings-outline" iconColor={colors.icon} label="Settings" onPress={() => router.push("/settings")} colors={colors} />
           </MenuCard>
         </View>
 

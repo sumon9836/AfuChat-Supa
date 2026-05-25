@@ -29,7 +29,7 @@ const THEME_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]>
 export default function SettingsScreen() {
   const { colors, themeMode, setThemeMode, accent } = useTheme();
   const { langLabel } = useLanguage();
-  const { user, profile, isPremium, linkedAccounts, switchAccount } = useAuth();
+  const { user, profile, isPremium, linkedAccounts, switchAccount, signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const [switchingId, setSwitchingId] = useState<string | null>(null);
 
@@ -275,6 +275,20 @@ export default function SettingsScreen() {
           />
         </GlassMenuSection>
 
+        <GlassMenuSection title="SESSION">
+          <GlassMenuItem
+            icon="log-out-outline"
+            label="Sign Out"
+            danger
+            noChevron
+            onPress={() =>
+              showAlert("Sign Out", "Are you sure you want to sign out?", [
+                { text: "Cancel", style: "cancel" },
+                { text: "Sign Out", style: "destructive", onPress: () => signOut() },
+              ])
+            }
+          />
+        </GlassMenuSection>
 
       </ScrollView>
     </View>
