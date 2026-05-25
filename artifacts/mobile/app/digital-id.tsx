@@ -187,7 +187,7 @@ export default function DigitalIdScreen() {
   const mrzLine2 = mrz2(afuId, profile?.country ?? "AFU");
 
   const CARD_W = Math.min(width - 32, 380);
-  const CARD_H = Math.round(CARD_W / 1.586);
+  const CARD_H = Math.round(CARD_W / 1.42);
 
   function flip() {
     const next = showBack ? 0 : 1;
@@ -430,94 +430,72 @@ function Field({ label, value, mono, accent }: { label: string; value: string; m
 
 /* ─── FRONT FACE ─── */
 function CardFront({ cardWidth: cw, cardHeight: ch, theme, profile, roleConf, memberNumber, afuId, issued, expires, mrzLine1, mrzLine2 }: CP) {
-  const PHOTO_W = Math.round(cw * 0.28);
-  const PHOTO_H = Math.round(PHOTO_W * 1.28);
-  const chipSize = Math.round(cw * 0.085);
+  const PHOTO_W = Math.round(cw * 0.27);
+  const PHOTO_H = Math.round(PHOTO_W * 1.30);
+  const chipSize = Math.round(cw * 0.082);
 
   return (
     <View style={[s.card, { width: cw, height: ch }]}>
-      {/* Background gradient */}
-      <LinearGradient
-        colors={theme.cardBg}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      />
+      <LinearGradient colors={theme.cardBg} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <SecurityPattern w={cw} h={ch} color={theme.primary} />
 
-      {/* TOP FLAG STRIPE */}
       <FlagStrip colors={theme.flag} h={6} />
 
-      {/* HEADER BAND */}
       <LinearGradient colors={theme.headerBg} style={s.hdr}>
-        <Image source={afuSymbol} style={{ width: 22, height: 22 }} tintColor={BRAND} resizeMode="contain" />
+        <Image source={afuSymbol} style={{ width: 20, height: 20 }} tintColor={BRAND} resizeMode="contain" />
         <View style={{ flex: 1, marginLeft: 7 }}>
           <Text style={s.hdrBrand}>AFUCHAT UNIVERSE</Text>
           <Text style={s.hdrSub}>DIGITAL IDENTITY CARD</Text>
         </View>
-        {/* role badge */}
         <View style={[s.roleBadge, { backgroundColor: roleConf.bg, borderColor: roleConf.color + "66" }]}>
           <Text style={[s.roleTxt, { color: roleConf.color }]}>{roleConf.label}</Text>
         </View>
       </LinearGradient>
 
-      {/* HOLOGRAPHIC STRIP */}
       <HoloStrip w={cw} primary={theme.primary} />
 
       {/* MAIN BODY */}
-      <View style={{ flex: 1, flexDirection: "row", paddingHorizontal: 12, paddingTop: 8, gap: 12 }}>
-
+      <View style={{ flex: 1, flexDirection: "row", paddingHorizontal: 12, paddingTop: 9, gap: 12 }}>
         {/* LEFT: photo + chip */}
-        <View style={{ alignItems: "center", gap: 8 }}>
-          {/* Photo box — rectangle like real ID */}
-          <View style={[s.photoBox, {
-            width: PHOTO_W, height: PHOTO_H,
-            borderColor: theme.primary + "99",
-          }]}>
+        <View style={{ alignItems: "center", gap: 7 }}>
+          <View style={[s.photoBox, { width: PHOTO_W, height: PHOTO_H, borderColor: theme.primary + "99" }]}>
             {profile?.avatar_url
-              ? <Image source={{ uri: profile.avatar_url }}
-                  style={{ width: PHOTO_W - 4, height: PHOTO_H - 4, borderRadius: 2 }}
-                  resizeMode="cover" />
+              ? <Image source={{ uri: profile.avatar_url }} style={{ width: PHOTO_W - 4, height: PHOTO_H - 4, borderRadius: 2 }} resizeMode="cover" />
               : <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}>
                   <Ionicons name="person" size={PHOTO_W * 0.38} color="#ffffff28" />
                   <Text style={{ fontSize: 6, color: "#ffffff22", letterSpacing: 0.5 }}>PHOTO</Text>
                 </View>}
           </View>
-          {/* Chip */}
           <Chip size={chipSize} primary={theme.primary} />
         </View>
 
         {/* RIGHT: ID fields */}
-        <View style={{ flex: 1, gap: 6, paddingTop: 2 }}>
+        <View style={{ flex: 1, gap: 5, paddingTop: 2 }}>
           <Field label="SURNAME / FULL NAME" value={profile?.display_name ?? "— — —"} />
           <View style={{ height: 0.5, backgroundColor: theme.primary + "33" }} />
-
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <View style={{ flex: 1 }}>
-              <Field label="MEMBER NO." value={`AFU‑${padMember(memberNumber ?? 1)}`} mono accent={theme.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Field label="AFU ID" value={afuId} mono accent={theme.secondary || "#ffffff99"} />
-            </View>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1 }}><Field label="MEMBER NO." value={`AFU‑${padMember(memberNumber ?? 1)}`} mono accent={theme.primary} /></View>
+            <View style={{ flex: 1 }}><Field label="AFU ID" value={afuId} mono accent={theme.secondary || "#ffffff99"} /></View>
           </View>
-
           <Field label="NATIONALITY" value={profile?.country ?? "DIGITAL CITIZEN"} />
-
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <View style={{ flex: 1 }}>
-              <Field label="DATE OF ISSUE" value={issued} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Field label="DATE OF EXPIRY" value={expires} />
-            </View>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1 }}><Field label="DATE OF ISSUE" value={issued} /></View>
+            <View style={{ flex: 1 }}><Field label="DATE OF EXPIRY" value={expires} /></View>
           </View>
+        </View>
+      </View>
 
-          {/* Signature area */}
-          <View style={{ marginTop: 2 }}>
-            <Text style={s.sigLbl}>HOLDER'S SIGNATURE</Text>
-            <Text style={[s.sigVal, { borderBottomColor: theme.primary + "55" }]}>
-              {profile?.display_name ?? ""}
-            </Text>
-          </View>
+      {/* SIGNATURE STRIP — dedicated full-width row */}
+      <View style={[s.sigStrip, { borderTopColor: theme.primary + "25", borderBottomColor: theme.primary + "15" }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.sigLbl}>{"HOLDER'S SIGNATURE"}</Text>
+          <Text style={[s.sigVal, { borderBottomColor: theme.primary + "60" }]} numberOfLines={1}>
+            {profile?.display_name ?? ""}
+          </Text>
+        </View>
+        <View style={[s.sigStamp, { borderColor: theme.primary + "40" }]}>
+          <Image source={afuSymbol} style={{ width: 14, height: 14, opacity: 0.5 }} tintColor={theme.primary} resizeMode="contain" />
+          <Text style={[s.sigStampTxt, { color: theme.primary }]}>{"VALID"}</Text>
         </View>
       </View>
 
@@ -527,7 +505,6 @@ function CardFront({ cardWidth: cw, cardHeight: ch, theme, profile, roleConf, me
         <Text style={s.mrz} numberOfLines={1}>{mrzLine2}</Text>
       </View>
 
-      {/* BOTTOM FLAG */}
       <FlagStrip colors={theme.flag} h={5} />
     </View>
   );
@@ -674,16 +651,37 @@ const s = StyleSheet.create({
   fVal: { fontSize: 10, color: "#ffffffcc", fontWeight: "600", lineHeight: 14 },
   fMono: { fontFamily: Platform.OS === "ios" ? "Courier" : "monospace", fontSize: 11, letterSpacing: 1.2, fontWeight: "800" },
 
-  /* Signature */
-  sigLbl: { fontSize: 6, fontWeight: "700", color: "#ffffff33", letterSpacing: 0.8, marginBottom: 2 },
-  sigVal: {
-    fontSize: 12,
-    fontStyle: "italic",
-    color: "#ffffffaa",
+  /* Signature strip */
+  sigStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderTopWidth: 0.5,
     borderBottomWidth: 0.5,
-    paddingBottom: 2,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    backgroundColor: "rgba(255,255,255,0.03)",
+    gap: 10,
   },
+  sigLbl: { fontSize: 6, fontWeight: "700", color: "#ffffff33", letterSpacing: 0.8, marginBottom: 3 },
+  sigVal: {
+    fontSize: 13,
+    fontStyle: "italic",
+    color: "#ffffffbb",
+    borderBottomWidth: 0.5,
+    paddingBottom: 3,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    letterSpacing: 0.3,
+  },
+  sigStamp: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 0.5,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    gap: 2,
+  },
+  sigStampTxt: { fontSize: 5.5, fontWeight: "800", letterSpacing: 1 },
 
   /* MRZ Zone */
   mrzZone: {

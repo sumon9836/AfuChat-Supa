@@ -78,9 +78,9 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
   if (!showing && !isActive) return null;
 
   return (
-    <View style={styles.container} pointerEvents={showing ? "box-none" : "none"}>
+    <View style={[styles.container, { pointerEvents: showing ? "box-none" : "none" }]}>
       {/* Backdrop */}
-      <Animated.View style={[styles.backdrop, backdropStyle]} pointerEvents="box-none">
+      <Animated.View style={[styles.backdrop, backdropStyle, { pointerEvents: "box-none" }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={handleMinimize} />
       </Animated.View>
 
