@@ -142,7 +142,7 @@ export default function CompanyPageScreen() {
   const [verifyBannerDismissed, setVerifyBannerDismissed] = useState(false);
 
   const isAdmin = page?.admin_id === user?.id;
-  const headerTop = Platform.OS === "ios" ? insets.top : Math.max(insets.top, 16);
+  const headerTop = Math.max(insets.top, 16);
   const COVER_H = headerTop + 48 + 140;
 
   const load = useCallback(async () => {
@@ -976,7 +976,7 @@ export default function CompanyPageScreen() {
       {/* ─── Post Update Modal ─── */}
       <Modal visible={showPostModal} transparent animationType="slide" onRequestClose={closePostModal}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closePostModal}>
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ width: "100%" }}>
+          <KeyboardAvoidingView behavior={undefined} style={{ width: "100%" }}>
             <TouchableOpacity activeOpacity={1} onPress={() => {}}>
               <ScrollView
                 style={[styles.modalSheet, { backgroundColor: colors.surface }]}
@@ -1171,7 +1171,7 @@ export default function CompanyPageScreen() {
       {/* ─── Post Job Modal ─── */}
       <Modal visible={showJobModal} transparent animationType="slide" onRequestClose={() => setShowJobModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowJobModal(false)}>
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ width: "100%" }}>
+          <KeyboardAvoidingView behavior={undefined} style={{ width: "100%" }}>
             <Pressable>
               <ScrollView style={[styles.modalSheet, { backgroundColor: colors.surface }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                 <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />

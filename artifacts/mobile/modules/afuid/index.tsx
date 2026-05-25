@@ -612,7 +612,7 @@ const r = StyleSheet.create({
   infoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10 },
   infoLabel: { fontSize: 13 },
   infoValue: { fontSize: 13, fontWeight: "600" },
-  infoMono: { fontFamily: Platform.OS === "ios" ? "Courier" : "monospace", letterSpacing: 0.8 },
+  infoMono: { fontFamily: "monospace", letterSpacing: 0.8 },
   divider: { height: StyleSheet.hairlineWidth },
   captureLayer: { position: "absolute", left: 0, top: 0, opacity: 0, zIndex: -1, pointerEvents: "none" as any },
 });
@@ -633,7 +633,7 @@ const c = StyleSheet.create({
   photoBox: { borderWidth: 1.5, borderRadius: 4, overflow: "hidden", backgroundColor: "#ffffff08" },
   fLbl: { fontSize: 6.5, fontWeight: "700", color: "#ffffff44", letterSpacing: 1, lineHeight: 9 },
   fVal: { fontSize: 10, color: "#ffffffcc", fontWeight: "600", lineHeight: 14 },
-  fMono: { fontFamily: Platform.OS === "ios" ? "Courier" : "monospace", fontSize: 11, letterSpacing: 1.2, fontWeight: "800" },
+  fMono: { fontFamily: "monospace", fontSize: 11, letterSpacing: 1.2, fontWeight: "800" },
   sigStrip: {
     flexDirection: "row",
     alignItems: "center",
@@ -651,7 +651,7 @@ const c = StyleSheet.create({
     color: "#ffffffbb",
     borderBottomWidth: 0.5,
     paddingBottom: 3,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    fontFamily: "serif",
     letterSpacing: 0.3,
   },
   sigStamp: {
@@ -665,7 +665,7 @@ const c = StyleSheet.create({
   },
   sigStampTxt: { fontSize: 5.5, fontWeight: "800", letterSpacing: 1 },
   mrzZone: { backgroundColor: "#000000aa", borderTopWidth: 0.5, paddingHorizontal: 10, paddingTop: 3, paddingBottom: 2 },
-  mrz: { fontSize: 6, color: "#ffffff55", letterSpacing: 1.8, lineHeight: 9, fontFamily: Platform.OS === "ios" ? "Courier" : "monospace" },
+  mrz: { fontSize: 6, color: "#ffffff55", letterSpacing: 1.8, lineHeight: 9, fontFamily: "monospace" },
   signaturePanel: { borderBottomWidth: 0.5, overflow: "hidden" },
   signatureStripes: { flexDirection: "row", height: 18 },
   panelTxt: { fontSize: 6.5, fontWeight: "800", letterSpacing: 0.8 },

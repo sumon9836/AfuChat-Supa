@@ -364,7 +364,7 @@ export default function AfuLensApp() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "position" : undefined}
+        behavior={undefined}
         style={s.bottomArea}
         keyboardVerticalOffset={0}
       >

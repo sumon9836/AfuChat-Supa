@@ -713,13 +713,13 @@ const s = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 2,
     lineHeight: 26,
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontFamily: "monospace",
   },
   sigValBack: {
     fontSize: 14,
     fontStyle: "italic",
     color: "#ffffffcc",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    fontFamily: "serif",
     letterSpacing: 0.3,
     marginTop: 2,
   },
@@ -736,7 +736,7 @@ const s = StyleSheet.create({
   fVal: { fontSize: 11, color: "#ffffffcc", fontWeight: "600", lineHeight: 15 },
   fValLg: { fontSize: 14, color: "#ffffff", fontWeight: "700", lineHeight: 18 },
   fMono: {
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontFamily: "monospace",
     letterSpacing: 1.5,
     fontWeight: "800",
   },
@@ -747,7 +747,7 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontStyle: "italic",
     color: "#ffffffbb",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    fontFamily: "serif",
     letterSpacing: 0.4,
   },
 
@@ -762,7 +762,7 @@ const s = StyleSheet.create({
     color: "#ffffff44",
     letterSpacing: 1.8,
     lineHeight: 10,
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontFamily: "monospace",
   },
 
   /* QR */

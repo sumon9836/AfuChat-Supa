@@ -31,7 +31,7 @@ function buildDeviceInfo(): string {
     (Constants as any).manifest?.version ||
     "unknown";
   return [
-    `Platform: ${Platform.OS === "ios" ? "iOS" : Platform.OS === "android" ? "Android" : "Web"}`,
+    `Platform: ${Platform.OS === "android" ? "Android" : "Web"}`,
     `OS Version: ${Device.osVersion || "unknown"}`,
     `Device Model: ${Device.modelName || "unknown"}`,
     `Device Brand: ${(Device as any).brand || "unknown"}`,
@@ -262,7 +262,7 @@ export default function SupportCenter() {
 
       {/* New Ticket tab */}
       {tab === "new" && (
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="height" style={{ flex: 1 }}>
           <ScrollView
             style={st.scroll}
             contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 100 }}

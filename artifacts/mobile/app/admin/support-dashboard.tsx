@@ -347,7 +347,7 @@ export default function SupportDashboard() {
 
     return (
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="height"
         style={{ flex: 1, backgroundColor: colors.background }}
       >
         {/* Thread sub-header */}

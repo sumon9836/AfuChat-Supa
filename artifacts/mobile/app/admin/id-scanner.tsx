@@ -655,7 +655,7 @@ const st = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   memberStripText: {
-    fontSize: 13, fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontSize: 13, fontFamily: "monospace",
     fontWeight: "800", letterSpacing: 1, flex: 1,
   },
   memberStripSub: { fontSize: 12, fontFamily: "Inter_400Regular" },

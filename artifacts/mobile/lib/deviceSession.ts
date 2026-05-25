@@ -12,7 +12,7 @@ export async function registerDeviceSession(userId: string): Promise<void> {
   try {
     const fingerprint = buildFingerprint();
     const deviceName = Device.deviceName || Device.modelName || "Unknown device";
-    const deviceOs = `${Platform.OS === "ios" ? "iOS" : Platform.OS === "android" ? "Android" : "Web"} ${Device.osVersion || ""}`.trim();
+    const deviceOs = `${Platform.OS === "android" ? "Android" : "Web"} ${Device.osVersion || ""}`.trim();
     const deviceModel = Device.modelName || "";
 
     const now = new Date().toISOString();

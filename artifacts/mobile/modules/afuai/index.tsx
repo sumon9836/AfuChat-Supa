@@ -502,7 +502,7 @@ export default function AfuAIApp() {
   return (
     <KeyboardAvoidingView
       style={[styles.root, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="height"
       keyboardVerticalOffset={0}
     >
       {/* Header */}
@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
   mdBulletRow: { flexDirection: "row", gap: 6, alignItems: "flex-start" },
   mdBulletDot: { fontSize: 15, fontFamily: "Inter_400Regular", marginTop: 1, width: 14 },
   inlineCode: {
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontFamily: "monospace",
     fontSize: 13, backgroundColor: "#00000010",
     borderRadius: 4, paddingHorizontal: 4,
   },

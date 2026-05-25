@@ -107,7 +107,7 @@ export function FollowButton({
           borderWidth: cfg.borderWidth ?? 0,
           overflow: "hidden",
         },
-        Platform.OS === "ios" && pressed ? { opacity: 0.72 } : null,
+        null,
         style,
       ]}
       onPress={onToggle}

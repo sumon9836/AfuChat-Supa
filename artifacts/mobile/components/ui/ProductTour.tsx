@@ -173,12 +173,7 @@ export default function ProductTour() {
   const tooltipBg = isDark ? "rgba(18,22,30,0.82)" : "rgba(255,255,255,0.82)";
   const tooltipBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)";
 
-  const arrowBaseColor =
-    Platform.OS === "ios"
-      ? "transparent"
-      : isDark
-      ? "#1A2030"
-      : "#FFFFFF";
+  const arrowBaseColor = isDark ? "#1A2030" : "#FFFFFF";
 
   const arrowStyle = ((): object => {
     const base = { position: "absolute" as const, width: 0, height: 0 };

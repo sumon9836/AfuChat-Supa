@@ -111,11 +111,7 @@ export default function NotificationSettingsScreen() {
   }
 
   function openSystemSettings() {
-    if (Platform.OS === "ios") {
-      Linking.openURL("app-settings:");
-    } else if (Platform.OS === "android") {
-      Linking.openSettings();
-    }
+    Linking.openSettings();
   }
 
   function PrefRow({ label, field, sub }: { label: string; field: keyof Prefs; sub?: string }) {

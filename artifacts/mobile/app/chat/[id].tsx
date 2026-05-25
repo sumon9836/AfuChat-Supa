@@ -526,7 +526,7 @@ function AiInlineText({ text, color }: { text: string; color: string }) {
     if (m[2]) parts.push(<Text key={k++} style={{ color, fontWeight: "700", fontStyle: "italic" }}>{m[2]}</Text>);
     else if (m[3]) parts.push(<Text key={k++} style={{ color, fontWeight: "700" }}>{m[3]}</Text>);
     else if (m[4]) parts.push(<Text key={k++} style={{ color, fontStyle: "italic" }}>{m[4]}</Text>);
-    else if (m[5]) parts.push(<Text key={k++} style={{ color: "#00BCD4", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13 }}>{` ${m[5]} `}</Text>);
+    else if (m[5]) parts.push(<Text key={k++} style={{ color: "#00BCD4", fontFamily: "monospace", fontSize: 13 }}>{` ${m[5]} `}</Text>);
     last = m.index + m[0].length;
   }
   if (last < text.length) parts.push(<Text key={k++} style={{ color }}>{stripMd(text.slice(last))}</Text>);
@@ -540,7 +540,7 @@ function AiRichContent({ content, colors: c, isUser }: { content: string; colors
     <View style={{ gap: 2 }}>
       {segs.map((seg, i) => {
         if (seg.type === "heading") return <Text key={i} style={{ color: textColor, fontFamily: "Inter_700Bold", fontSize: seg.level === 1 ? 18 : seg.level === 2 ? 16 : 15, marginTop: 4 }}><AiInlineText text={seg.text} color={textColor} /></Text>;
-        if (seg.type === "codeblock") return <ScrollView key={i} horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: c.inputBg || "#1e1e1e", borderRadius: 8, padding: 10, marginVertical: 4 }}><Text style={{ fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, color: "#00BCD4" }}>{seg.text}</Text></ScrollView>;
+        if (seg.type === "codeblock") return <ScrollView key={i} horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: c.inputBg || "#1e1e1e", borderRadius: 8, padding: 10, marginVertical: 4 }}><Text style={{ fontFamily: "monospace", fontSize: 13, color: "#00BCD4" }}>{seg.text}</Text></ScrollView>;
         if (seg.type === "bullet") return <View key={i} style={{ flexDirection: "row", gap: 6, paddingLeft: (seg.indent || 0) * 16 }}><Text style={{ color: "#00BCD4", fontSize: 14, lineHeight: 22 }}>●</Text><Text style={{ color: textColor, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 21, flex: 1 }}><AiInlineText text={seg.text} color={textColor} /></Text></View>;
         if (seg.type === "numbered") return <View key={i} style={{ flexDirection: "row", gap: 6 }}><Text style={{ color: "#00BCD4", fontSize: 14, fontWeight: "600", lineHeight: 22, minWidth: 20 }}>{seg.num}.</Text><Text style={{ color: textColor, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 21, flex: 1 }}><AiInlineText text={seg.text} color={textColor} /></Text></View>;
         if (seg.type === "divider") return <View key={i} style={{ height: 1, backgroundColor: c.border, marginVertical: 6 }} />;
@@ -1494,8 +1494,8 @@ function ChatScreen() {
     if (Platform.OS === "web") return;
     // iOS: use Will events for zero-lag animation in sync with the keyboard.
     // Android (pan mode): use Did events; animate layout changes manually.
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showEvent = "keyboardDidShow";
+    const hideEvent = "keyboardDidHide";
     const onShow = Keyboard.addListener(showEvent, (e) => {
       const h = e.endCoordinates.height;
       if (Platform.OS === "android") {

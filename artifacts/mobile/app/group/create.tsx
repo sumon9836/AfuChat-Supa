@@ -141,7 +141,7 @@ export default function CreateGroupScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={[styles.root, { backgroundColor: colors.background }]} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "android" ? 0 : 0}>
+    <KeyboardAvoidingView style={[styles.root, { backgroundColor: colors.background }]} behavior="height" keyboardVerticalOffset={0}>
       <GlassHeader
         title="New Group"
         onBack={() => router.back()}

@@ -127,7 +127,7 @@ export default function AfuServicesApp() {
     return (
       <KeyboardAvoidingView
         style={[s.root, { backgroundColor: colors.background }]}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={undefined}
       >
         <View style={[s.payHeader, { borderBottomColor: colors.border }]}>
           <TouchableOpacity style={s.backBtn} onPress={() => setScreen("list")}>

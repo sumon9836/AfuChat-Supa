@@ -33,9 +33,7 @@ export default function SwipeableBottomSheet({
   overlayColor,
   useGlass = true,
 }: Props) {
-  const isIOS = Platform.OS === "ios";
-
-  const mobileBg = backgroundColor ?? (isIOS ? "transparent" : "rgba(18,22,28,0.96)");
+  const mobileBg = backgroundColor ?? "rgba(18,22,28,0.96)";
   const mobileOverlay = overlayColor ?? "rgba(0,0,0,0.5)";
 
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;

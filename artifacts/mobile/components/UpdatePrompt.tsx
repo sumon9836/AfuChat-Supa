@@ -20,7 +20,7 @@ export default function UpdatePrompt() {
   if (!info || dismissed) return null;
 
   const visible = info.hasUpdate && !dismissed;
-  const storeUrl = Platform.OS === "ios" ? info.iosUrl : info.androidUrl;
+  const storeUrl = info.androidUrl;
 
   function openStore() {
     Linking.openURL(storeUrl).catch(() => {});

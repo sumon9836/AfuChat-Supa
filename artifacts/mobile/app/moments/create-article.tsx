@@ -162,7 +162,7 @@ export default function CreateArticleScreen() {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="height">
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]}

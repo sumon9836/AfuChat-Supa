@@ -115,7 +115,7 @@ export default function SellerApplyScreen() {
     await checkExistingApp();
   }
 
-  const headerTopPad = Platform.OS === "ios" ? insets.top : Math.max(insets.top, 16);
+  const headerTopPad = Math.max(insets.top, 16);
 
   if (pageStatus === "loading") {
     return (
@@ -239,7 +239,7 @@ export default function SellerApplyScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="height">
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
           {/* Intro Banner */}
           <View style={[st.introBanner, { backgroundColor: colors.accent + "12", borderColor: colors.accent + "30" }]}>
@@ -463,7 +463,7 @@ const st = StyleSheet.create({
   input: {
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: Platform.OS === "ios" ? 12 : 9,
+    paddingVertical: 9,
     fontSize: 14,
     fontFamily: "Inter_400Regular",
   },
@@ -481,7 +481,7 @@ const st = StyleSheet.create({
     paddingRight: 4,
   },
   prefix: { fontSize: 13, fontFamily: "Inter_500Medium", marginRight: 2 },
-  prefixText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", paddingVertical: Platform.OS === "ios" ? 12 : 9 },
+  prefixText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", paddingVertical: 9 },
   termsBox: {
     flexDirection: "row",
     alignItems: "flex-start",

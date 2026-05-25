@@ -321,8 +321,8 @@ export default function MatchConversationScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 52 : 0}
+        behavior="height"
+        keyboardVerticalOffset={0}
       >
         {/* Messages */}
         <FlatList

@@ -59,7 +59,7 @@ export default function CompanyIndexScreen() {
   const { colors, isDark } = useTheme();
   const { user, profile } = useAuth();
   const insets = useSafeAreaInsets();
-  const headerTop = Platform.OS === "ios" ? insets.top : Math.max(insets.top, 16);
+  const headerTop = Math.max(insets.top, 16);
 
   const [pages, setPages] = useState<PageRow[]>([]);
   const [myPages, setMyPages] = useState<PageRow[]>([]);

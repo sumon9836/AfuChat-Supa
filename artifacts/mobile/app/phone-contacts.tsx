@@ -50,7 +50,7 @@ const INVITE_MSG =
 async function sendInvite(name: string, phone: string) {
   if (Platform.OS !== "web") {
     try {
-      const smsUrl = `sms:${phone}${Platform.OS === "ios" ? "&" : "?"}body=${encodeURIComponent(INVITE_MSG)}`;
+      const smsUrl = `sms:${phone}?body=${encodeURIComponent(INVITE_MSG)}`;
       const canOpen = await Linking.canOpenURL(smsUrl);
       if (canOpen) {
         await Linking.openURL(smsUrl);

@@ -397,7 +397,7 @@ export default function ViewStoryScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={undefined}
       style={[styles.root, { backgroundColor: "#0D0D0D" }]}
     >
       {/* ── Media ─────────────────────────────────────────────────────────── */}

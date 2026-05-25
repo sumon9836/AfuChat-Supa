@@ -475,7 +475,7 @@ export default function OrderDetailScreen() {
           </View>
         </ScrollView>
       ) : (
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }} keyboardVerticalOffset={0}>
+        <KeyboardAvoidingView behavior="height" style={{ flex: 1 }} keyboardVerticalOffset={0}>
           <ScrollView
             ref={scrollRef}
             showsVerticalScrollIndicator={false}
@@ -676,7 +676,7 @@ const st = StyleSheet.create({
   },
   chatTextInput: {
     flex: 1, borderWidth: 1, borderRadius: 20, paddingHorizontal: 14,
-    paddingVertical: Platform.OS === "ios" ? 10 : 8, fontSize: 14,
+    paddingVertical: 8, fontSize: 14,
     fontFamily: "Inter_400Regular", maxHeight: 120,
   },
   sendBtn: {

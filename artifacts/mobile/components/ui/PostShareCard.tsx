@@ -433,7 +433,7 @@ const m = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
-    paddingBottom: Platform.OS === "ios" ? 36 : 24,
+    paddingBottom: 24,
     ...Platform.select({
       web: { boxShadow: "0 -8px 24px rgba(0,0,0,0.2)" } as any,
       default: { shadowColor: "#000", shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.2, shadowRadius: 24, elevation: 24 },

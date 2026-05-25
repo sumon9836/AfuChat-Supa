@@ -471,7 +471,7 @@ export default function LabScreen() {
 
       {/* ── Query input ── */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "position" : undefined}
+        behavior={undefined}
         style={styles.bottomArea}
         keyboardVerticalOffset={0}
       >

@@ -206,7 +206,7 @@ export default function AfuFreelanceApp() {
   // ─── Post Gig screen ────────────────────────────────────────────────────────
   if (screen === "post-gig") {
     return (
-      <KeyboardAvoidingView style={[s.root, { backgroundColor: colors.background }]} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={[s.root, { backgroundColor: colors.background }]} behavior="height">
         <View style={[s.subHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <Pressable onPress={() => setScreen("browse")} hitSlop={12} style={s.backBtn}>
             <Ionicons name="chevron-back" size={22} color={colors.text} />

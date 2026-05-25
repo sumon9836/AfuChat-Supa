@@ -82,7 +82,7 @@ export default function BusinessVerificationScreen() {
     linkedin: "",
   });
 
-  const headerTopPad = Platform.OS === "ios" ? insets.top : Math.max(insets.top, 16);
+  const headerTopPad = Math.max(insets.top, 16);
 
   useEffect(() => {
     if (!user) return;
@@ -252,7 +252,7 @@ export default function BusinessVerificationScreen() {
   return (
     <View style={[st.root, { backgroundColor: colors.background }]}>
       <NavBar />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={undefined}>
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 60, gap: 14 }}
           showsVerticalScrollIndicator={false}

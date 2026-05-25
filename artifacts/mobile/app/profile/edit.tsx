@@ -336,7 +336,7 @@ export default function EditProfileScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="height"
       style={[styles.root, { backgroundColor: colors.backgroundSecondary }]}
       keyboardVerticalOffset={insets.top + 48}
     >

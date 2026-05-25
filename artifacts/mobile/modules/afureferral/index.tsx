@@ -175,8 +175,7 @@ function normalizePhone(raw: string): string {
 }
 
 function smsUrl(phone: string, body: string): string {
-  const sep = Platform.OS === "ios" ? "&" : "?";
-  return `sms:${phone}${sep}body=${encodeURIComponent(body)}`;
+  return `sms:${phone}?body=${encodeURIComponent(body)}`;
 }
 
 // ── QR Modal ──────────────────────────────────────────────────────────────────

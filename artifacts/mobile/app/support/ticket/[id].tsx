@@ -200,9 +200,9 @@ export default function TicketDetail() {
 
       {/* Messages */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="height"
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 52 : 0}
+        keyboardVerticalOffset={0}
       >
         <FlatList
           ref={listRef}

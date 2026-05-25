@@ -85,7 +85,7 @@ const INVITE_MSG =
 async function sendInvite(name: string, phone: string) {
   if (Platform.OS !== "web") {
     try {
-      const smsUrl = `sms:${phone}${Platform.OS === "ios" ? "&" : "?"}body=${encodeURIComponent(INVITE_MSG)}`;
+      const smsUrl = `sms:${phone}?body=${encodeURIComponent(INVITE_MSG)}`;
       if (await Linking.canOpenURL(smsUrl)) {
         await Linking.openURL(smsUrl);
         return;
@@ -444,7 +444,7 @@ export default function NewChatScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.root, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={undefined}
       keyboardVerticalOffset={0}
     >
       <OfflineBanner />

@@ -29,9 +29,7 @@ export async function sharePost(params: {
 
   try {
     await Share.share(
-      Platform.OS === "ios"
-        ? { message: `${params.authorName} on AfuChat:\n"${preview}"\n\n${WATERMARK}`, url }
-        : { message },
+      { message },
       { dialogTitle: "Share Post" }
     );
   } catch (e: any) {
@@ -53,9 +51,7 @@ export async function shareVideo(params: {
 
   try {
     await Share.share(
-      Platform.OS === "ios"
-        ? { message: `${params.authorName} posted a video on AfuChat${body}\n\n${WATERMARK}`, url }
-        : { message },
+      { message },
       { dialogTitle: "Share Video" }
     );
   } catch (e: any) {
@@ -76,9 +72,7 @@ export async function shareProfile(params: {
 
   try {
     await Share.share(
-      Platform.OS === "ios"
-        ? { message: intro + `\n\n${WATERMARK}`, url }
-        : { message },
+      { message },
       { dialogTitle: "Share Profile" }
     );
   } catch (e: any) {
@@ -100,9 +94,7 @@ export async function shareArticle(params: {
 
   try {
     await Share.share(
-      Platform.OS === "ios"
-        ? { message: `${params.title}${body ? "\n" + body : ""}\nRead on AfuChat`, url }
-        : { message },
+      { message },
       { dialogTitle: "Share Article" }
     );
   } catch (e: any) {
@@ -119,9 +111,7 @@ export async function shareStory(params: {
 
   try {
     await Share.share(
-      Platform.OS === "ios"
-        ? { message: `Watch ${params.userName}'s story on AfuChat\n\n${WATERMARK}`, url }
-        : { message },
+      { message },
       { dialogTitle: "Share Story" }
     );
   } catch (e: any) {
@@ -138,9 +128,7 @@ export async function shareRedEnvelope(params: {
 
   try {
     await Share.share(
-      Platform.OS === "ios"
-        ? { message: `🧧 ${params.senderName} sent you a Red Envelope on AfuChat! Open it before time runs out!`, url }
-        : { message },
+      { message },
       { dialogTitle: "Share Red Envelope" }
     );
   } catch (e: any) {

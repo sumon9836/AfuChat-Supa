@@ -36,7 +36,7 @@ function buildDeviceInfo(): string {
     (Constants as any).manifest?.version ||
     "unknown";
   const lines = [
-    `Platform: ${Platform.OS === "ios" ? "iOS" : Platform.OS === "android" ? "Android" : "Web"}`,
+    `Platform: ${Platform.OS === "android" ? "Android" : "Web"}`,
     `OS Version: ${Device.osVersion || "unknown"}`,
     `Device Model: ${Device.modelName || "unknown"}`,
     `Device Brand: ${(Device as any).brand || "unknown"}`,
@@ -133,7 +133,7 @@ export default function SupportReportModal({
     >
       <View style={st.overlay}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior="height"
           style={st.kav}
         >
           <View

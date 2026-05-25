@@ -80,7 +80,7 @@ export function FolderModal({ visible, initial, onSave, onDelete, onClose }: Pro
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Pressable style={st.backdrop} onPress={onClose}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={undefined}
           style={st.kav}
         >
           <Animated.View

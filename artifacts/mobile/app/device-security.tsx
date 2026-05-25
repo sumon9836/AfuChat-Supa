@@ -550,7 +550,7 @@ export default function DeviceSecurityScreen() {
               icon="camera-off-outline"
               iconColor="#34C759"
               label="Screenshot Protection"
-              desc={Platform.OS === "ios" ? "Hides app in App Switcher" : "Blocks screenshots and screen recording"}
+              desc="Blocks screenshots and screen recording"
               value={prefs.screenshot_protection}
               onToggle={toggleScreenshot}
               colors={colors}

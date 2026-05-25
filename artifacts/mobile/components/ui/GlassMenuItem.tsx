@@ -110,7 +110,7 @@ export const GlassMenuItem = React.memo(function GlassMenuItem({
         styles.row,
         disabled && { opacity: 0.45 },
         // iOS press feedback (Android uses ripple)
-        Platform.OS === "ios" && pressed ? { opacity: 0.6 } : null,
+        null,
       ]}
       onPress={() => {
         if (disabled || loading) return;

@@ -80,7 +80,7 @@ export function GlassHeader({
                 android_ripple={backRipple}
                 style={({ pressed }) => [
                   styles.backBtn,
-                  Platform.OS === "ios" && pressed ? { opacity: 0.6 } : null,
+                  null,
                 ]}
                 onPress={handleBack}
                 hitSlop={{ top: 8, left: 8, right: 12, bottom: 8 }}

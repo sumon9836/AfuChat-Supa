@@ -205,7 +205,7 @@ function BidSheet({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={undefined}
       >
         <TouchableOpacity style={s.sheetBackdrop} activeOpacity={1} onPress={onClose} />
         <View style={[s.sheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -311,7 +311,7 @@ function ListSheet({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={undefined}
       >
         <TouchableOpacity style={s.sheetBackdrop} activeOpacity={1} onPress={onClose} />
         <View style={[s.sheet, s.sheetTall, { backgroundColor: colors.surface, borderColor: colors.border }]}>

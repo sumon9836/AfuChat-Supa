@@ -257,7 +257,7 @@ export default function CreateStoryScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="height"
         keyboardVerticalOffset={0}
       >
         <View style={styles.previewContainer}>

@@ -12,8 +12,7 @@
     "backgroundColor": "#000000",
     "notification": {
       "icon": "./assets/images/notification-icon-white.png",
-      "color": "#00BCD4",
-      "iosDisplayInForeground": true
+      "color": "#00BCD4"
     },
     "splash": {
       "image": "./assets/images/splash-icon.png",
@@ -84,13 +83,6 @@
         }
       ]
     },
-    "ios": {
-      "bundleIdentifier": "com.afuchat.app",
-      "associatedDomains": [
-        "applinks:afuchat.com",
-        "applinks:www.afuchat.com"
-      ]
-    },
     "web": {
       "favicon": "./assets/images/logo.png",
       "bundler": "metro",
@@ -122,7 +114,6 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "AfuChat uses your location only when the Nearby Friends feature is open, to show AfuChat users near you. Your exact location is never visible to other users.",
-          "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }
       ],

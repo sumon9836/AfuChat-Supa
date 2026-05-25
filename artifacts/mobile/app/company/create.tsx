@@ -99,7 +99,7 @@ export default function CreateCompanyPageScreen() {
   const { colors, isDark } = useTheme();
   const { user, profile } = useAuth();
   const insets = useSafeAreaInsets();
-  const headerTop = Platform.OS === "ios" ? insets.top : Math.max(insets.top, 16);
+  const headerTop = Math.max(insets.top, 16);
 
   const [step, setStep] = useState(1);
   const [slugEdited, setSlugEdited] = useState(false);
@@ -395,7 +395,7 @@ export default function CreateCompanyPageScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={undefined}>
         <ScrollView
           contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 100, gap: 16 }}
           showsVerticalScrollIndicator={false}

@@ -325,18 +325,7 @@ export async function registerForPushNotifications(userId: string): Promise<stri
     let finalStatus = existing;
 
     if (existing !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync({
-        ios: {
-          allowAlert: true,
-          allowBadge: true,
-          allowSound: true,
-          allowDisplayInCarPlay: false,
-          allowCriticalAlerts: false,
-          provideAppNotificationSettings: false,
-          allowProvisional: false,
-          allowAnnouncements: false,
-        },
-      });
+      const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
@@ -526,7 +515,7 @@ export function setupNotificationListeners() {
       await handleNotificationAction(actionIdentifier, userText, data);
 
       // Then route if needed (navigation actions / default tap)
-      const DEFAULT = Notifications?.DEFAULT_ACTION_IDENTIFIER ?? "com.apple.UNNotificationDefaultActionIdentifier";
+      const DEFAULT = Notifications?.DEFAULT_ACTION_IDENTIFIER ?? "expo.modules.notifications.actions.DEFAULT";
       const isNavAction = [
         DEFAULT,
         "view_post",

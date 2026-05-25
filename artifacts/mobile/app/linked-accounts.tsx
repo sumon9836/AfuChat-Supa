@@ -182,7 +182,7 @@ export default function LinkedAccountsScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.root, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={undefined}
     >
       <GlassHeader title="Accounts" />
 
