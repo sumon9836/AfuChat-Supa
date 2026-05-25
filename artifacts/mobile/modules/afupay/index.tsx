@@ -1,11 +1,13 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   Linking,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -20,6 +22,8 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { showAlert } from "@/lib/alert";
 import * as Haptics from "@/lib/haptics";
+import * as Clipboard from "expo-clipboard";
+import QRCode from "react-native-qrcode-svg";
 import Colors from "@/constants/colors";
 
 type AppView = "home" | "history" | "topup" | "send" | "receive" | "exchange" | "requests";
@@ -458,22 +462,77 @@ function SendView({ colors, insets, user, profile, onBack, onSuccess }: any) {
 
 function ReceiveView({ colors, insets, profile, onBack }: any) {
   const handle = profile?.handle || "you";
+  const afuId = useMemo(() => {
+    if (!profile?.id) return "00000000";
+    const hex = profile.id.replace(/-/g, "");
+    return String(parseInt(hex.slice(0, 8), 16) % 100000000).padStart(8, "0");
+  }, [profile?.id]);
+  const qrValue = `afuchat://id/${afuId}`;
+  const afuPayId = `afupay:${handle}`;
+
+  async function copyId() {
+    await Clipboard.setStringAsync(afuPayId);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showAlert("Copied", "AfuPay ID copied to clipboard.");
+  }
+
+  async function shareId() {
+    try {
+      if (Platform.OS === "web") {
+        await Clipboard.setStringAsync(afuPayId);
+        showAlert("Copied", "AfuPay ID copied. Share it with anyone to receive payments.");
+      } else {
+        await Share.share({ message: `Send me ACoin or Nexa on AfuChat: ${afuPayId}` });
+      }
+    } catch {}
+  }
+
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
       <SubHeader title="Receive" onBack={onBack} colors={colors} />
       <ScrollView contentContainerStyle={{ alignItems: "center", padding: 24, paddingBottom: insets.bottom + 32 }}>
-        <Text style={[s.receiveNote, { color: colors.textSecondary }]}>Share your AfuPay ID to receive ACoin or Nexa</Text>
-        <View style={[s.qrBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Ionicons name="qr-code" size={100} color={colors.text} />
-          <Text style={[s.walletId, { color: colors.text }]}>@{handle}</Text>
-          <Text style={[s.walletIdSub, { color: colors.textMuted }]}>Tap & share your AfuPay ID</Text>
+        <Text style={[s.receiveNote, { color: colors.textSecondary }]}>
+          Show this QR code or share your AfuPay ID to receive ACoin or Nexa
+        </Text>
+
+        {/* Real QR Code */}
+        <View style={[s.qrBox, { backgroundColor: "#fff", borderColor: colors.border }]}>
+          <QRCode
+            value={qrValue}
+            size={160}
+            color="#111"
+            backgroundColor="#fff"
+          />
         </View>
-        <View style={[s.idCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[s.idLabel, { color: colors.textMuted }]}>AFUPAY ID</Text>
-          <Text style={[s.idValue, { color: colors.text }]}>afupay:{handle}</Text>
+
+        {/* AFU ID label */}
+        <View style={[s.afuIdRow, { backgroundColor: Colors.brand + "12", borderColor: Colors.brand + "30" }]}>
+          <Ionicons name="diamond" size={14} color={Colors.brand} />
+          <Text style={[s.afuIdText, { color: Colors.brand }]}>AFU ID: {afuId}</Text>
         </View>
+
+        {/* AfuPay ID card with copy */}
+        <TouchableOpacity
+          style={[s.idCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={copyId}
+          activeOpacity={0.7}
+        >
+          <Text style={[s.idLabel, { color: colors.textMuted }]}>AFUPAY ID (TAP TO COPY)</Text>
+          <Text style={[s.idValue, { color: colors.text }]}>{afuPayId}</Text>
+        </TouchableOpacity>
+
+        {/* Share button */}
+        <TouchableOpacity
+          style={[s.shareBtn, { backgroundColor: Colors.brand }]}
+          onPress={shareId}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="share-social" size={18} color="#fff" />
+          <Text style={s.shareBtnText}>Share AfuPay ID</Text>
+        </TouchableOpacity>
+
         <Text style={[s.receiveHint, { color: colors.textMuted }]}>
-          Anyone with your @{handle} or AfuPay ID can send ACoin or Nexa directly to you.
+          Anyone can scan this QR or use @{handle} / {afuPayId} to send you money.
         </Text>
       </ScrollView>
     </View>
@@ -658,12 +717,14 @@ const s = StyleSheet.create({
   rateBox: { borderRadius: 12, borderWidth: 1, padding: 12, alignItems: "center" },
   rateText: { fontSize: 13, fontFamily: "Inter_400Regular" },
   receiveNote: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 24 },
-  qrBox: { width: 200, height: 200, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 },
-  walletId: { fontSize: 18, fontFamily: "Inter_700Bold" },
-  walletIdSub: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  idCard: { width: "100%", borderRadius: 14, borderWidth: 1, padding: 16, alignItems: "center", marginBottom: 16 },
+  qrBox: { width: 200, height: 200, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  afuIdRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginBottom: 16 },
+  afuIdText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  idCard: { width: "100%", borderRadius: 14, borderWidth: 1, padding: 16, alignItems: "center", marginBottom: 12 },
   idLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, marginBottom: 4 },
   idValue: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  shareBtn: { flexDirection: "row", alignItems: "center", gap: 8, width: "100%", justifyContent: "center", borderRadius: 14, paddingVertical: 13, marginBottom: 16 },
+  shareBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
   receiveHint: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
   requestCard: { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 10 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
