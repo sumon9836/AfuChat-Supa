@@ -4,44 +4,102 @@ import {
   FlatList,
   Image,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Platform,
 } from "react-native";
-import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
+import { safeRouter } from "@/lib/navUtils";
 
-type NotifType = "follow" | "like" | "mention" | "message" | "comment" | "gift";
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type NotifType =
+  | "follow"
+  | "like"
+  | "mention"
+  | "message"
+  | "comment"
+  | "gift"
+  | "order_update"
+  | "order_shipped"
+  | "incoming_call";
 
 interface Notification {
   id: string;
   user_id: string;
   type: NotifType;
   actor_id: string | null;
+  reference_id: string | null;
+  reference_type: string | null;
+  data: Record<string, any>;
+  read: boolean;
+  created_at: string;
+  // joined from profiles
+  actor_name: string | null;
   actor_handle: string | null;
   actor_avatar: string | null;
-  actor_name: string | null;
-  entity_type: string | null;
-  entity_id: string | null;
+}
+
+// Raw row shape from Supabase (before profile merge)
+interface RawNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  actor_id: string | null;
+  reference_id: string | null;
+  reference_type: string | null;
   data: Record<string, any>;
   read: boolean;
   created_at: string;
 }
 
+// ── Category filter tabs ──────────────────────────────────────────────────────
+
+type Category = "all" | "follow" | "like" | "comment" | "mention" | "message" | "gift" | "orders" | "calls";
+
+const CATEGORIES: { key: Category; label: string; icon: string; types?: NotifType[] }[] = [
+  { key: "all",     label: "All",      icon: "notifications-outline" },
+  { key: "follow",  label: "Follows",  icon: "person-add-outline",      types: ["follow"] },
+  { key: "like",    label: "Likes",    icon: "heart-outline",           types: ["like"] },
+  { key: "comment", label: "Comments", icon: "chatbubble-ellipses-outline", types: ["comment"] },
+  { key: "mention", label: "Mentions", icon: "at-circle-outline",       types: ["mention"] },
+  { key: "message", label: "Messages", icon: "chatbubble-outline",      types: ["message"] },
+  { key: "gift",    label: "Gifts",    icon: "gift-outline",            types: ["gift"] },
+  { key: "orders",  label: "Orders",   icon: "cube-outline",            types: ["order_update", "order_shipped"] },
+  { key: "calls",   label: "Calls",    icon: "call-outline",            types: ["incoming_call"] },
+];
+
+// ── Notification type display meta ────────────────────────────────────────────
+
 const TYPE_META: Record<NotifType, { icon: string; color: string; label: (n: Notification) => string }> = {
-  follow:  { icon: "person-add",      color: "#007AFF", label: (n) => `${n.actor_name || n.actor_handle || "Someone"} started following you` },
-  like:    { icon: "heart",           color: "#FF3B30", label: (n) => `${n.actor_name || n.actor_handle || "Someone"} liked your post` },
-  mention: { icon: "at-circle",       color: "#5856D6", label: (n) => `${n.actor_name || n.actor_handle || "Someone"} mentioned you${n.data?.context ? `: "${n.data.context}"` : ""}` },
-  message: { icon: "chatbubble",      color: "#34C759", label: (n) => `${n.actor_name || n.actor_handle || "Someone"} sent you a message${n.data?.preview ? `: "${n.data.preview}"` : ""}` },
-  comment: { icon: "chatbubble-ellipses", color: "#FF9500", label: (n) => `${n.actor_name || n.actor_handle || "Someone"} commented on your post${n.data?.context ? `: "${n.data.context}"` : ""}` },
-  gift:    { icon: "gift",            color: "#D4A853", label: (n) => `${n.actor_name || n.actor_handle || "Someone"} sent you a gift${n.data?.amount ? ` (${n.data.amount})` : ""}` },
+  follow:        { icon: "person-add",             color: "#007AFF", label: (n) => `${actor(n)} started following you` },
+  like:          { icon: "heart",                  color: "#FF3B30", label: (n) => `${actor(n)} liked your post` },
+  mention:       { icon: "at-circle",              color: "#5856D6", label: (n) => `${actor(n)} mentioned you${ctx(n)}` },
+  message:       { icon: "chatbubble",             color: "#34C759", label: (n) => `${actor(n)} sent you a message${preview(n)}` },
+  comment:       { icon: "chatbubble-ellipses",    color: "#FF9500", label: (n) => `${actor(n)} commented on your post${ctx(n)}` },
+  gift:          { icon: "gift",                   color: "#D4A853", label: (n) => `${actor(n)} sent you a gift${n.data?.amount ? ` (${n.data.amount})` : ""}` },
+  order_update:  { icon: "cube",                   color: "#5AC8FA", label: (n) => n.data?.status ? `Order update: ${n.data.status}` : "Your order has been updated" },
+  order_shipped: { icon: "airplane",               color: "#30B0C7", label: (n) => `Your order has shipped${n.data?.carrier ? ` via ${n.data.carrier}` : ""}` },
+  incoming_call: { icon: "call",                   color: "#4CD964", label: (n) => `${actor(n)} is calling you` },
 };
+
+function actor(n: Notification) {
+  return n.actor_name || (n.actor_handle ? `@${n.actor_handle}` : "Someone");
+}
+function ctx(n: Notification) {
+  return n.data?.context ? `: "${n.data.context}"` : "";
+}
+function preview(n: Notification) {
+  return n.data?.preview ? `: "${n.data.preview}"` : "";
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -56,7 +114,19 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function NotifRow({ item, colors, accent, onPress }: { item: Notification; colors: any; accent: string; onPress: (n: Notification) => void }) {
+// ── NotifRow ──────────────────────────────────────────────────────────────────
+
+function NotifRow({
+  item,
+  colors,
+  accent,
+  onPress,
+}: {
+  item: Notification;
+  colors: any;
+  accent: string;
+  onPress: (n: Notification) => void;
+}) {
   const meta = TYPE_META[item.type] ?? TYPE_META.message;
   const label = meta.label(item);
 
@@ -85,7 +155,9 @@ function NotifRow({ item, colors, accent, onPress }: { item: Notification; color
 
       {/* Content */}
       <View style={st.content}>
-        <Text style={[st.label, { color: colors.text }]} numberOfLines={2}>{label}</Text>
+        <Text style={[st.label, { color: colors.text }]} numberOfLines={2}>
+          {label}
+        </Text>
         <Text style={[st.time, { color: colors.textMuted }]}>{timeAgo(item.created_at)}</Text>
       </View>
 
@@ -94,6 +166,8 @@ function NotifRow({ item, colors, accent, onPress }: { item: Notification; color
     </TouchableOpacity>
   );
 }
+
+// ── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
   const { user } = useAuth();
@@ -104,21 +178,59 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeCategory, setActiveCategory] = useState<Category>("all");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // ── Data loading ───────────────────────────────────────────────────────────
 
   const loadNotifications = useCallback(async (silent = false) => {
     if (!user) return;
     if (!silent) setLoading(true);
-    const { data, error } = await supabase
+
+    // 1. Fetch raw notification rows
+    const { data: rows, error } = await supabase
       .from("notifications")
-      .select("*")
+      .select("id, user_id, type, actor_id, reference_id, reference_type, data, read, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(60);
-    if (!error && data) {
-      setNotifications(data as Notification[]);
-      setUnreadCount(data.filter((n) => !n.read).length);
+      .limit(100);
+
+    if (error || !rows) {
+      if (!silent) setLoading(false);
+      return;
     }
+
+    // 2. Fetch actor profiles for all unique actor_ids in one round-trip
+    const actorIds = [...new Set(rows.map((r) => r.actor_id).filter(Boolean))] as string[];
+    let profileMap: Record<string, { display_name: string | null; handle: string | null; avatar_url: string | null }> = {};
+
+    if (actorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name, handle, avatar_url")
+        .in("id", actorIds);
+
+      if (profiles) {
+        for (const p of profiles) {
+          profileMap[p.id] = { display_name: p.display_name, handle: p.handle, avatar_url: p.avatar_url };
+        }
+      }
+    }
+
+    // 3. Merge profiles into notifications
+    const merged: Notification[] = rows.map((row: RawNotification) => {
+      const profile = row.actor_id ? profileMap[row.actor_id] : null;
+      return {
+        ...row,
+        type: row.type as NotifType,
+        actor_name: profile?.display_name ?? null,
+        actor_handle: profile?.handle ?? null,
+        actor_avatar: profile?.avatar_url ?? null,
+      };
+    });
+
+    setNotifications(merged);
+    setUnreadCount(merged.filter((n) => !n.read).length);
     if (!silent) setLoading(false);
   }, [user]);
 
@@ -126,20 +238,52 @@ export default function NotificationsScreen() {
     loadNotifications();
   }, [loadNotifications]);
 
+  // ── Realtime subscription ──────────────────────────────────────────────────
+
   useEffect(() => {
     if (!user) return;
+
     const ch = supabase
-      .channel("notifications-inbox")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        (payload) => {
-          setNotifications((prev) => [payload.new as Notification, ...prev]);
+      .channel("notifications-inbox-v2")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        async (payload) => {
+          const raw = payload.new as RawNotification;
+
+          // Fetch the actor profile for this new notification
+          let actor_name: string | null = null;
+          let actor_handle: string | null = null;
+          let actor_avatar: string | null = null;
+
+          if (raw.actor_id) {
+            const { data: p } = await supabase
+              .from("profiles")
+              .select("display_name, handle, avatar_url")
+              .eq("id", raw.actor_id)
+              .single();
+            if (p) { actor_name = p.display_name; actor_handle = p.handle; actor_avatar = p.avatar_url; }
+          }
+
+          const notif: Notification = {
+            ...raw,
+            type: raw.type as NotifType,
+            actor_name,
+            actor_handle,
+            actor_avatar,
+          };
+
+          setNotifications((prev) => [notif, ...prev]);
           setUnreadCount((c) => c + 1);
         }
       )
       .subscribe();
+
     channelRef.current = ch;
     return () => { supabase.removeChannel(ch); };
   }, [user]);
+
+  // ── Actions ────────────────────────────────────────────────────────────────
 
   async function markAllRead() {
     if (!user || unreadCount === 0) return;
@@ -150,18 +294,36 @@ export default function NotificationsScreen() {
 
   async function handleNotifPress(notif: Notification) {
     if (!notif.read) {
-      setNotifications((prev) => prev.map((n) => n.id === notif.id ? { ...n, read: true } : n));
+      setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)));
       setUnreadCount((c) => Math.max(0, c - 1));
       supabase.from("notifications").update({ read: true }).eq("id", notif.id).then(() => {});
     }
-    if (notif.type === "follow" && notif.actor_handle) {
-      router.push(`/@${notif.actor_handle}` as any);
-    } else if (notif.type === "message" && notif.entity_id) {
-      router.push({ pathname: "/chat/[id]", params: { id: notif.entity_id } });
-    } else if ((notif.type === "like" || notif.type === "comment" || notif.type === "mention") && notif.entity_id) {
-      router.push({ pathname: "/p/[id]", params: { id: notif.entity_id } } as any);
-    } else if (notif.type === "gift" && notif.actor_handle) {
-      router.push(`/@${notif.actor_handle}` as any);
+
+    const refId = notif.reference_id;
+    const handle = notif.actor_handle;
+
+    switch (notif.type) {
+      case "follow":
+        if (handle) safeRouter.push(`/@${handle}` as any);
+        break;
+      case "message":
+        if (refId) safeRouter.push({ pathname: "/chat/[id]", params: { id: refId } });
+        break;
+      case "like":
+      case "comment":
+      case "mention":
+        if (refId) safeRouter.push({ pathname: "/p/[id]", params: { id: refId } } as any);
+        break;
+      case "gift":
+        if (handle) safeRouter.push(`/@${handle}` as any);
+        break;
+      case "order_update":
+      case "order_shipped":
+        if (refId) safeRouter.push({ pathname: "/marketplace/orders/[id]", params: { id: refId } } as any);
+        break;
+      case "incoming_call":
+        if (handle) safeRouter.push(`/@${handle}` as any);
+        break;
     }
   }
 
@@ -171,60 +333,143 @@ export default function NotificationsScreen() {
     setRefreshing(false);
   }, [loadNotifications]);
 
+  // ── Filtering ──────────────────────────────────────────────────────────────
+
+  const catDef = CATEGORIES.find((c) => c.key === activeCategory)!;
+  const filtered =
+    activeCategory === "all"
+      ? notifications
+      : notifications.filter((n) => catDef.types?.includes(n.type));
+
+  const filteredUnread = filtered.filter((n) => !n.read).length;
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   const topPad = Math.max(insets.top, 16);
 
   return (
     <View style={[st.root, { backgroundColor: colors.backgroundSecondary }]}>
-      {/* Header */}
-      <View style={[st.header, { paddingTop: topPad, backgroundColor: colors.backgroundSecondary, borderBottomColor: colors.border }]}>
+      {/* ── Header ── */}
+      <View
+        style={[
+          st.header,
+          { paddingTop: topPad, backgroundColor: colors.backgroundSecondary, borderBottomColor: colors.border },
+        ]}
+      >
         <Text style={[st.title, { color: colors.text }]}>Inbox</Text>
         {unreadCount > 0 && (
-          <TouchableOpacity onPress={markAllRead} activeOpacity={0.7} style={[st.markAllBtn, { borderColor: accent + "50" }]}>
+          <TouchableOpacity
+            onPress={markAllRead}
+            activeOpacity={0.7}
+            style={[st.markAllBtn, { borderColor: accent + "50" }]}
+          >
             <Ionicons name="checkmark-done" size={13} color={accent} />
             <Text style={[st.markAllText, { color: accent }]}>Mark all read</Text>
           </TouchableOpacity>
         )}
       </View>
 
+      {/* ── Category pills ── */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={[st.pillBar, { borderBottomColor: colors.border }]}
+        contentContainerStyle={st.pillBarContent}
+      >
+        {CATEGORIES.map((cat) => {
+          const isActive = activeCategory === cat.key;
+          // count unread for this category
+          const catUnread =
+            cat.key === "all"
+              ? unreadCount
+              : notifications.filter((n) => !n.read && cat.types?.includes(n.type)).length;
+
+          return (
+            <TouchableOpacity
+              key={cat.key}
+              activeOpacity={0.72}
+              onPress={() => setActiveCategory(cat.key)}
+              style={[
+                st.pill,
+                isActive
+                  ? { backgroundColor: accent }
+                  : { backgroundColor: colors.backgroundTertiary ?? colors.surface },
+              ]}
+            >
+              <Ionicons
+                name={cat.icon as any}
+                size={13}
+                color={isActive ? "#fff" : colors.textMuted}
+              />
+              <Text
+                style={[
+                  st.pillText,
+                  { color: isActive ? "#fff" : colors.textMuted },
+                ]}
+              >
+                {cat.label}
+              </Text>
+              {catUnread > 0 && (
+                <View style={[st.pillBadge, { backgroundColor: isActive ? "rgba(255,255,255,0.35)" : accent }]}>
+                  <Text style={st.pillBadgeText}>{catUnread > 99 ? "99+" : catUnread}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* ── Body ── */}
       {loading ? (
         <View style={st.center}>
           <ActivityIndicator size="large" color={accent} />
         </View>
-      ) : notifications.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <View style={st.center}>
           <View style={[st.emptyIconWrap, { backgroundColor: accent + "12" }]}>
-            <Ionicons name="notifications-outline" size={38} color={accent} />
+            <Ionicons
+              name={(catDef.icon.replace("-outline", "") as any) ?? "notifications-outline"}
+              size={38}
+              color={accent}
+            />
           </View>
-          <Text style={[st.emptyTitle, { color: colors.text }]}>All caught up</Text>
+          <Text style={[st.emptyTitle, { color: colors.text }]}>
+            {activeCategory === "all" ? "All caught up" : `No ${catDef.label.toLowerCase()} yet`}
+          </Text>
           <Text style={[st.emptySub, { color: colors.textMuted }]}>
-            Notifications for likes, follows, mentions, and messages will appear here.
+            {activeCategory === "all"
+              ? "Notifications for likes, follows, mentions, and messages will appear here."
+              : `${catDef.label} notifications will appear here.`}
           </Text>
         </View>
       ) : (
         <FlatList
-          data={notifications}
+          data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={accent}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent} />
           }
-          ItemSeparatorComponent={() => <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />}
+          ItemSeparatorComponent={() => (
+            <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+          )}
           renderItem={({ item }) => (
             <NotifRow item={item} colors={colors} accent={accent} onPress={handleNotifPress} />
           )}
           ListHeaderComponent={
-            unreadCount > 0 ? (
-              <View style={[st.unreadBanner, { backgroundColor: accent + "10", borderBottomColor: accent + "25" }]}>
+            filteredUnread > 0 ? (
+              <View
+                style={[
+                  st.unreadBanner,
+                  { backgroundColor: accent + "10", borderBottomColor: accent + "25" },
+                ]}
+              >
                 <View style={[st.unreadBadge, { backgroundColor: accent }]}>
-                  <Text style={st.unreadBadgeText}>{unreadCount}</Text>
+                  <Text style={st.unreadBadgeText}>{filteredUnread}</Text>
                 </View>
                 <Text style={[st.unreadBannerText, { color: colors.text }]}>
-                  {unreadCount} unread notification{unreadCount !== 1 ? "s" : ""}
+                  {filteredUnread} unread notification{filteredUnread !== 1 ? "s" : ""}
                 </Text>
               </View>
             ) : null
@@ -235,6 +480,8 @@ export default function NotificationsScreen() {
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const st = StyleSheet.create({
   root: { flex: 1 },
   header: {
@@ -242,7 +489,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   title: {
@@ -263,6 +510,45 @@ const st = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
   },
+  // category pills
+  pillBar: {
+    flexGrow: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  pillBarContent: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  pillText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  pillBadge: {
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    marginLeft: 1,
+  },
+  pillBadgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+  },
+  // content
   center: {
     flex: 1,
     alignItems: "center",
@@ -305,7 +591,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 6,
   },
   unreadBadgeText: {
-    color: "#000",
+    color: "#fff",
     fontSize: 11,
     fontFamily: "Inter_700Bold",
   },
