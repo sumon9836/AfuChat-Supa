@@ -5334,15 +5334,16 @@ STRICT RULES:
                     )}
                     {(input.trim() || attachmentPreview) && !isRecording ? (
                       <View style={st.sendBtnCol}>
-                        {input.trim().length > 50 && !editingMessage && !attachmentPreview && (
-                          <TouchableOpacity
-                            onPress={() => { Keyboard.dismiss(); setShowAiEditor(true); }}
-                            hitSlop={8}
-                            style={[st.aiAboveSendBtn, { backgroundColor: BRAND + "18", borderColor: BRAND + "50" }]}
-                          >
-                            <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
-                          </TouchableOpacity>
-                        )}
+                        {input.trim().length > 50 && !editingMessage && !attachmentPreview
+                          ? (
+                            <TouchableOpacity
+                              onPress={() => { Keyboard.dismiss(); setShowAiEditor(true); }}
+                              hitSlop={8}
+                              style={[st.aiAboveSendBtn, { backgroundColor: BRAND + "18", borderColor: BRAND + "50" }]}
+                            >
+                              <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
+                            </TouchableOpacity>
+                          ) : <View />}
                         <TouchableOpacity
                           onPress={editingMessage ? saveEditMessage : attachmentPreview ? sendAttachment : () => sendMessage()}
                           disabled={sending}
@@ -5474,15 +5475,16 @@ STRICT RULES:
                     )}
                     {(input.trim() || attachmentPreview) && !isRecording ? (
                       <View style={st.sendBtnCol}>
-                        {input.trim().length > 50 && !editingMessage && !attachmentPreview && (
-                          <TouchableOpacity
-                            onPress={() => { Keyboard.dismiss(); setShowAiEditor(true); }}
-                            hitSlop={8}
-                            style={[st.aiAboveSendBtn, { backgroundColor: BRAND + "18", borderColor: BRAND + "50" }]}
-                          >
-                            <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
-                          </TouchableOpacity>
-                        )}
+                        {input.trim().length > 50 && !editingMessage && !attachmentPreview
+                          ? (
+                            <TouchableOpacity
+                              onPress={() => { Keyboard.dismiss(); setShowAiEditor(true); }}
+                              hitSlop={8}
+                              style={[st.aiAboveSendBtn, { backgroundColor: BRAND + "18", borderColor: BRAND + "50" }]}
+                            >
+                              <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
+                            </TouchableOpacity>
+                          ) : <View />}
                         <TouchableOpacity
                           onPress={editingMessage ? saveEditMessage : attachmentPreview ? sendAttachment : () => sendMessage()}
                           disabled={sending}
@@ -7340,7 +7342,7 @@ const st = StyleSheet.create({
   pillIcon: { paddingHorizontal: 6 },
   input: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 22, outlineStyle: "none" as any, paddingTop: 10, paddingBottom: 10, minHeight: 28, maxHeight: 120 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  sendBtnCol: { alignItems: "center", gap: 4 },
+  sendBtnCol: { alignSelf: "stretch", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
   aiAboveSendBtn: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, borderWidth: 1.5, alignItems: "center", justifyContent: "center", minWidth: 32 },
   recHoldGlass: { },
   recCancelZone: { width: 44, alignItems: "center", justifyContent: "center" },
