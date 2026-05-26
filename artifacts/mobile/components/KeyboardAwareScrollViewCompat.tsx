@@ -43,7 +43,7 @@ export function KeyboardAwareScrollViewCompat({
   return (
     <KeyboardAvoidingView
       style={[styles.flex, style as any]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
     >
       <ScrollView

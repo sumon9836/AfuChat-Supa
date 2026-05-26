@@ -142,7 +142,7 @@ export default function CreateChannelScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.root, { backgroundColor: colors.background }]}
-      behavior="height"
+      behavior="padding"
     >
       <GlassHeader
         title="New Channel"

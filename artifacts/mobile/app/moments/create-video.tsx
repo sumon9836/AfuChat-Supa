@@ -846,7 +846,7 @@ function EditPhase({
   ];
 
   return (
-    <KeyboardAvoidingView style={[es.root, { backgroundColor: "#000" }]} behavior="height">
+    <KeyboardAvoidingView style={[es.root, { backgroundColor: "#000" }]} behavior="padding">
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       {/* ── Top bar ── */}

@@ -321,7 +321,7 @@ export default function MatchConversationScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior="height"
+        behavior="padding"
         keyboardVerticalOffset={0}
       >
         {/* Messages */}

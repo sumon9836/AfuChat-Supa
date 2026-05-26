@@ -125,7 +125,7 @@ export function TwoFactorGate({
     >
       <KeyboardAvoidingView
         style={styles.overlay}
-        behavior="height"
+        behavior="padding"
       >
         <TouchableOpacity
           style={styles.backdrop}

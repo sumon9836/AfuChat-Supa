@@ -395,7 +395,7 @@ export default function CreateCompanyPageScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 100, gap: 16 }}
           showsVerticalScrollIndicator={false}

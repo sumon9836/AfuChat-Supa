@@ -229,7 +229,7 @@ export default function CreatePostScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.root, { backgroundColor: colors.background }]}
-      behavior="height"
+      behavior="padding"
       keyboardVerticalOffset={0}
     >
       <GlassHeader

@@ -252,7 +252,7 @@ export default function BusinessVerificationScreen() {
   return (
     <View style={[st.root, { backgroundColor: colors.background }]}>
       <NavBar />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 60, gap: 14 }}
           showsVerticalScrollIndicator={false}

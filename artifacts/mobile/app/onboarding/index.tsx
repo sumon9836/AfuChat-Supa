@@ -1063,7 +1063,7 @@ export default function OnboardingScreen() {
     <React.Fragment>
     <KeyboardAvoidingView
       style={[st.root, { backgroundColor: colors.background }]}
-      behavior="height"
+      behavior="padding"
       keyboardVerticalOffset={0}
     >
       {/* ── Top bar ── */}

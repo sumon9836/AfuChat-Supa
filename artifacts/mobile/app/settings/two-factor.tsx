@@ -406,7 +406,7 @@ export default function TwoFactorScreen() {
         {renderHeader("Verify Code")}
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior="height"
+          behavior="padding"
         >
           <ScrollView
             contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 40 }]}
@@ -470,7 +470,7 @@ export default function TwoFactorScreen() {
         {renderHeader("Recover Account")}
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior="height"
+          behavior="padding"
         >
           <ScrollView
             contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 40 }]}
@@ -538,7 +538,7 @@ export default function TwoFactorScreen() {
         {renderHeader("Enter Recovery Code")}
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior="height"
+          behavior="padding"
         >
           <ScrollView
             contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 40 }]}

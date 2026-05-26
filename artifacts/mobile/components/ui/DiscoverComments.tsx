@@ -725,7 +725,7 @@ export function DiscoverCommentsSheet({
 
   const inputMinH = inputExpand.interpolate({ inputRange: [0, 1], outputRange: [42, 42] });
   const floatingBottom = keyboardH > 0
-    ? keyboardH - insets.bottom
+    ? keyboardH
     : Math.max(insets.bottom, 8);
 
   return (

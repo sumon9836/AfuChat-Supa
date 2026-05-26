@@ -133,7 +133,7 @@ export default function SupportReportModal({
     >
       <View style={st.overlay}>
         <KeyboardAvoidingView
-          behavior="height"
+          behavior="padding"
           style={st.kav}
         >
           <View

@@ -584,9 +584,9 @@ function CommentsSheet({ visible, onClose, postId, postAuthorId, onReplyCountCha
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={cStyles.kavFull}>
+      <KeyboardAvoidingView behavior="padding" style={cStyles.kavFull}>
         <Pressable style={cStyles.overlay} onPress={onClose}>
-          <Pressable onPress={() => {}} style={[cStyles.container, { paddingBottom: Math.max(insets.bottom, 16) + kbHeight, maxHeight: sheetMaxH }]}>
+          <Pressable onPress={() => {}} style={[cStyles.container, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: sheetMaxH }]}>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111115", borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
             <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.12)" }} pointerEvents="none" />
             <View style={cStyles.handle} />

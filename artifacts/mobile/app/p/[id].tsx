@@ -515,7 +515,7 @@ export default function PostShortLinkScreen() {
         }
       />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="height" keyboardVerticalOffset={0}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={0}>
         <FlatList
           data={buildReplyTree(replies)}
           keyExtractor={(item) => item.id}

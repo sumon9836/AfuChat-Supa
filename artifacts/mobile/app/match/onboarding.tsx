@@ -280,7 +280,7 @@ export default function MatchOnboarding() {
         <Ionicons name="chevron-back" size={22} color={colors.accent} />
       </TouchableOpacity>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="height">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 52 }]}
           keyboardShouldPersistTaps="handled"

@@ -255,7 +255,7 @@ export default function MatchProfileEditScreen() {
         }
       />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="height">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

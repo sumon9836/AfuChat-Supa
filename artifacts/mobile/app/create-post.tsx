@@ -102,7 +102,7 @@ export default function CreatePostScreen() {
   return (
     <KeyboardAvoidingView
       style={[s.root, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       keyboardVerticalOffset={0}
     >
       {/* Header */}
