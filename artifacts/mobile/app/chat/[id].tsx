@@ -1074,7 +1074,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                   </View>
                 </TouchableOpacity>
               {hasTextContent && (
-                <RichText style={[st.bubbleText, { color: textColor, marginTop: 6, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND}>{displayText}</RichText>
+                <RichText style={[st.bubbleText, { color: textColor, marginTop: 6, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND} selectable={true}>{displayText}</RichText>
               )}
             </>
           ) : hasVideo ? (
@@ -1230,10 +1230,10 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
               <Text style={{ fontSize: 64, lineHeight: 74 }}>{msg.encrypted_content ?? ""}</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={300} activeOpacity={0.9}>
+            <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
               {msg._isAi
                 ? <AiRichContent content={displayText} colors={colors} isUser={isMe} />
-                : <RichText style={[st.bubbleText, { color: textColor, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND} selectable={Platform.OS === "web"}>{displayText}</RichText>
+                : <RichText style={[st.bubbleText, { color: textColor, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND} selectable={true}>{displayText}</RichText>
               }
               {!msg._isAi && !isSpecial && chatPrefsLocal?.link_previews !== false && msgBubbleFeatures.interactive_link_preview && (
                 <LinkPreview text={displayText} isMe={isMe} />
