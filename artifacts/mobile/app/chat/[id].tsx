@@ -1233,7 +1233,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
             <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={300} activeOpacity={0.9}>
               {msg._isAi
                 ? <AiRichContent content={displayText} colors={colors} isUser={isMe} />
-                : <RichText style={[st.bubbleText, { color: textColor, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND} selectable={Platform.OS === "web"}>{stripMd(displayText)}</RichText>
+                : <RichText style={[st.bubbleText, { color: textColor, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND} selectable={Platform.OS === "web"}>{displayText}</RichText>
               }
               {!msg._isAi && !isSpecial && chatPrefsLocal?.link_previews !== false && msgBubbleFeatures.interactive_link_preview && (
                 <LinkPreview text={displayText} isMe={isMe} />

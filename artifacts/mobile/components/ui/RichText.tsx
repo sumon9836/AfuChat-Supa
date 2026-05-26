@@ -1,18 +1,18 @@
 /**
  * RichText — inline-formatted text renderer.
  *
- * Supported markdown-style markers (user messages & chat bubbles):
+ * Supported markdown-style markers:
  *   **text**   → Bold
- *   _text_     → Italic
+ *   _text_     → Italic   (only at word boundaries — won't match snake_case)
  *   `text`     → Mono / code
  *   ~~text~~   → Strikethrough
- *   __text__   → Underline
+ *   __text__   → Underline (only at word boundaries)
  *   ||text||   → Spoiler (hidden; tap to reveal)
  *
  * Also renders URLs, @mentions, and #hashtags as tappable links.
  */
 import React, { useState } from "react";
-import { Linking, StyleSheet, Text } from "react-native";
+import { Linking, Platform, StyleSheet, Text } from "react-native";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAppAccent } from "@/context/AppAccentContext";
@@ -41,52 +41,59 @@ type Span = {
 // ─── Parser ───────────────────────────────────────────────────────────────────
 
 /**
- * Order matters: longer / higher-priority patterns first.
- *   **  before  _   (bold vs italic)
- *   __  before  _   (underline vs italic)
- *   ~~              (strikethrough)
- *   ||              (spoiler)
- *   `               (mono)
- *   _               (italic — must come after __ and **)
- *   URLs / email / mention / hashtag
+ * Regex order (longest / highest-priority first):
+ *   **bold**         — double-star, no word-boundary needed (** is never in normal text)
+ *   __underline__    — only at word boundaries (prevents __init__ false matches)
+ *   ~~strike~~       — double-tilde
+ *   ||spoiler||      — double-pipe
+ *   `mono`           — backtick
+ *   _italic_         — only at word boundaries (prevents snake_case false matches)
+ *   URL / www / email / @mention / #hashtag
  */
 const INLINE_RE =
-  /(\*\*[^*\n]+?\*\*|__[^_\n]+?__|~~[^~\n]+?~~|\|\|[^\|\n]+?\|\||`[^`\n]+?`|_[^_\n]+?_|https?:\/\/[^\s<)"\]]+|www\.[^\s<)"\]]+\.[^\s<)"\]]+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|@[a-zA-Z0-9_]{1,30}|#[a-zA-Z0-9_]{2,30})/g;
+  /(\*\*[^*\n]+?\*\*|(?<![A-Za-z0-9_])__[^_\n]+?__(?![A-Za-z0-9_])|~~[^~\n]+?~~|\|\|[^|\n]+?\|\||`[^`\n]+?`|(?<![A-Za-z0-9_])_[^_\n]+?_(?![A-Za-z0-9_])|https?:\/\/[^\s<)"'\]]+|www\.[^\s<)"'\]]+\.[^\s<)"'\]]{2,}|[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}|@[A-Za-z0-9_]{1,30}|#[A-Za-z0-9_]{2,30})/g;
 
 function parseRichText(text: string): Span[] {
   if (!text) return [];
   const spans: Span[] = [];
   let last = 0;
-  let match: RegExpExecArray | null;
-  INLINE_RE.lastIndex = 0;
 
-  while ((match = INLINE_RE.exec(text)) !== null) {
-    if (match.index > last) {
-      spans.push({ text: text.slice(last, match.index), type: "text" });
+  try {
+    INLINE_RE.lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = INLINE_RE.exec(text)) !== null) {
+      if (match.index > last) {
+        spans.push({ text: text.slice(last, match.index), type: "text" });
+      }
+      const m = match[0];
+
+      if (m.startsWith("**") && m.endsWith("**")) {
+        spans.push({ text: m.slice(2, -2), type: "bold" });
+      } else if (m.startsWith("__") && m.endsWith("__")) {
+        spans.push({ text: m.slice(2, -2), type: "underline" });
+      } else if (m.startsWith("~~") && m.endsWith("~~")) {
+        spans.push({ text: m.slice(2, -2), type: "strike" });
+      } else if (m.startsWith("||") && m.endsWith("||")) {
+        spans.push({ text: m.slice(2, -2), type: "spoiler" });
+      } else if (m.startsWith("`") && m.endsWith("`")) {
+        spans.push({ text: m.slice(1, -1), type: "mono" });
+      } else if (m.startsWith("_") && m.endsWith("_")) {
+        spans.push({ text: m.slice(1, -1), type: "italic" });
+      } else if (m.startsWith("@")) {
+        spans.push({ text: m, type: "mention" });
+      } else if (m.startsWith("#")) {
+        spans.push({ text: m, type: "hashtag" });
+      } else if (m.includes("@") && !m.startsWith("http")) {
+        spans.push({ text: m, type: "email" });
+      } else {
+        spans.push({ text: m, type: "url" });
+      }
+
+      last = match.index + m.length;
     }
-    const m = match[0];
-    if (m.startsWith("**") && m.endsWith("**")) {
-      spans.push({ text: m.slice(2, -2), type: "bold" });
-    } else if (m.startsWith("__") && m.endsWith("__")) {
-      spans.push({ text: m.slice(2, -2), type: "underline" });
-    } else if (m.startsWith("~~") && m.endsWith("~~")) {
-      spans.push({ text: m.slice(2, -2), type: "strike" });
-    } else if (m.startsWith("||") && m.endsWith("||")) {
-      spans.push({ text: m.slice(2, -2), type: "spoiler" });
-    } else if (m.startsWith("`") && m.endsWith("`")) {
-      spans.push({ text: m.slice(1, -1), type: "mono" });
-    } else if (m.startsWith("_") && m.endsWith("_")) {
-      spans.push({ text: m.slice(1, -1), type: "italic" });
-    } else if (m.startsWith("@")) {
-      spans.push({ text: m, type: "mention" });
-    } else if (m.startsWith("#")) {
-      spans.push({ text: m, type: "hashtag" });
-    } else if (m.includes("@") && !m.startsWith("http")) {
-      spans.push({ text: m, type: "email" });
-    } else {
-      spans.push({ text: m, type: "url" });
-    }
-    last = match.index + m.length;
+  } catch {
+    return [{ text, type: "text" }];
   }
 
   if (last < text.length) {
@@ -98,26 +105,65 @@ function parseRichText(text: string): Span[] {
   return spans;
 }
 
+// ─── Colour helper ────────────────────────────────────────────────────────────
+
+/**
+ * Safely extract a colour string from a RN style value.
+ * `style` may be:
+ *   - a plain object  { color: "#fff", ... }
+ *   - an array        [StyleSheet-id, { color: "#fff" }]
+ *   - undefined
+ */
+function extractColor(style: any, fallback: string): string {
+  if (!style) return fallback;
+  if (typeof style === "object" && !Array.isArray(style)) {
+    if (typeof style.color === "string") return style.color;
+    return fallback;
+  }
+  if (Array.isArray(style)) {
+    for (let i = style.length - 1; i >= 0; i--) {
+      const s = style[i];
+      if (s && typeof s === "object" && typeof s.color === "string") {
+        return s.color;
+      }
+    }
+  }
+  return fallback;
+}
+
 // ─── Spoiler span ─────────────────────────────────────────────────────────────
 
+/**
+ * Cross-platform spoiler:
+ *   • Hidden  — characters replaced with ■■■, shown at 50% opacity
+ *   • Revealed — real text at full opacity
+ *
+ * We avoid `backgroundColor` on a nested <Text> (unreliable on older iOS/Android)
+ * and `color: "transparent"` (which still takes space but shows nothing on some
+ * engines). The ■■■ mask approach is reliable everywhere.
+ */
 function SpoilerSpan({
   text,
-  baseColor,
+  textColor,
 }: {
   text: string;
-  baseColor: string;
+  textColor: string;
 }) {
   const [revealed, setRevealed] = useState(false);
+  const mask = text.replace(/[^\n]/g, "■");
+
   return (
     <Text
       onPress={() => setRevealed((v) => !v)}
       style={{
-        color: revealed ? baseColor : "transparent",
-        backgroundColor: revealed ? "transparent" : baseColor + "55",
-        borderRadius: 3,
+        color: textColor,
+        opacity: revealed ? 1 : 0.45,
+        ...(Platform.OS === "web"
+          ? { borderRadius: 3, backgroundColor: textColor + "30" }
+          : {}),
       }}
     >
-      {text}
+      {revealed ? text : mask}
     </Text>
   );
 }
@@ -163,7 +209,10 @@ export function RichText({
           .maybeSingle()
           .then(({ data }) => {
             if (data?.id) {
-              router.push({ pathname: "/contact/[id]", params: { id: data.id } });
+              router.push({
+                pathname: "/contact/[id]",
+                params: { id: data.id },
+              });
             }
           });
         break;
@@ -176,13 +225,17 @@ export function RichText({
     }
   }
 
-  if (!children) return <Text style={style} selectable={selectable}>{""}</Text>;
+  if (!children) {
+    return (
+      <Text style={style} selectable={selectable}>
+        {""}
+      </Text>
+    );
+  }
 
   const spans = parseRichText(children);
-  const baseColor =
-    typeof style?.color === "string"
-      ? style.color
-      : (style?.[style?.length - 1]?.color ?? "#000");
+
+  const inheritedColor = extractColor(style, "#000000");
 
   return (
     <Text style={style} numberOfLines={numberOfLines} selectable={selectable}>
@@ -190,13 +243,21 @@ export function RichText({
         switch (span.type) {
           case "bold":
             return (
-              <Text key={i} style={styles.bold} selectable={selectable}>
+              <Text
+                key={i}
+                style={[styles.bold, { color: inheritedColor }]}
+                selectable={selectable}
+              >
                 {span.text}
               </Text>
             );
           case "italic":
             return (
-              <Text key={i} style={styles.italic} selectable={selectable}>
+              <Text
+                key={i}
+                style={[styles.italic, { color: inheritedColor }]}
+                selectable={selectable}
+              >
                 {span.text}
               </Text>
             );
@@ -212,19 +273,31 @@ export function RichText({
             );
           case "strike":
             return (
-              <Text key={i} style={styles.strike} selectable={selectable}>
+              <Text
+                key={i}
+                style={[styles.strike, { color: inheritedColor }]}
+                selectable={selectable}
+              >
                 {span.text}
               </Text>
             );
           case "underline":
             return (
-              <Text key={i} style={styles.underline} selectable={selectable}>
+              <Text
+                key={i}
+                style={[styles.underline, { color: inheritedColor }]}
+                selectable={selectable}
+              >
                 {span.text}
               </Text>
             );
           case "spoiler":
             return (
-              <SpoilerSpan key={i} text={span.text} baseColor={baseColor} />
+              <SpoilerSpan
+                key={i}
+                text={span.text}
+                textColor={inheritedColor}
+              />
             );
           case "url":
           case "email":
@@ -246,7 +319,11 @@ export function RichText({
             );
           default:
             return (
-              <Text key={i} selectable={selectable}>
+              <Text
+                key={i}
+                style={{ color: inheritedColor }}
+                selectable={selectable}
+              >
                 {span.text}
               </Text>
             );
