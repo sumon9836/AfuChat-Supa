@@ -4,13 +4,13 @@ import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
-  Image,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { router, usePathname } from "expo-router";
 import { safeRouter } from "@/lib/navUtils";
 import type { Session } from "@supabase/supabase-js";
@@ -213,7 +213,7 @@ function CompactTabBar({
               >
                 <View style={bar.iconChip}>
                   {isProfile && avatarUrl ? (
-                    <Image
+                    <ExpoImage
                       source={{ uri: avatarUrl }}
                       style={[
                         bar.avatar,
@@ -221,12 +221,14 @@ function CompactTabBar({
                           ? { borderColor: colors.accent, borderWidth: 2.5 }
                           : { borderColor: "rgba(128,128,128,0.22)", borderWidth: 2 },
                       ]}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
                     />
                   ) : isChats ? (
-                    <Image
+                    <ExpoImage
                       source={afuSymbol}
                       style={{ width: 40, height: 40 }}
-                      resizeMode="contain"
+                      contentFit="contain"
                       tintColor={iconColor}
                     />
                   ) : (

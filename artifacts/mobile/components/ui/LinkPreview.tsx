@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
@@ -101,7 +101,7 @@ function ProfilePreviewCard({
     >
       <View style={st.profileRow}>
         {card.avatar_url ? (
-          <Image source={{ uri: card.avatar_url }} style={st.avatar} />
+          <ExpoImage source={{ uri: card.avatar_url }} style={st.avatar} contentFit="cover" cachePolicy="memory-disk" />
         ) : (
           <View style={[st.avatarPlaceholder, { backgroundColor: accent + "30" }]}>
             <Ionicons name="person" size={18} color={accent} />

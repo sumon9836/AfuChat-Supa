@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Linking,
   Platform,
   ScrollView,
@@ -12,6 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -242,7 +242,7 @@ function VideoThumbnailImage({ videoUrl, imageUrl, style }: { videoUrl: string; 
   }, [videoUrl]);
 
   if (thumbUri) {
-    return <Image source={{ uri: thumbUri }} style={style} resizeMode="cover" />;
+    return <ExpoImage source={{ uri: thumbUri }} style={style} contentFit="cover" cachePolicy="memory-disk" />;
   }
   return null;
 }
@@ -783,7 +783,7 @@ export default function SearchScreen() {
         <Animated.View entering={FadeInDown.delay(i * 30).duration(200)}>
           <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(`/company/${o.slug}` as any)} activeOpacity={0.75}>
             <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: GOLD + "1A", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-              {o.logo_url ? <Image source={{ uri: o.logo_url }} style={{ width: 48, height: 48, borderRadius: 12 }} /> : <Ionicons name="business" size={22} color={GOLD} />}
+              {o.logo_url ? <ExpoImage source={{ uri: o.logo_url }} style={{ width: 48, height: 48, borderRadius: 12 }} contentFit="cover" cachePolicy="memory-disk" /> : <Ionicons name="business" size={22} color={GOLD} />}
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -805,7 +805,7 @@ export default function SearchScreen() {
         <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(`/@${per.handle}` as any)} activeOpacity={0.75}>
           <View style={{ position: "relative" }}>
             {per.avatar_url
-              ? <Image source={{ uri: per.avatar_url }} style={{ width: 48, height: 48, borderRadius: per.is_organization_verified ? 12 : 24 }} />
+              ? <ExpoImage source={{ uri: per.avatar_url }} style={{ width: 48, height: 48, borderRadius: per.is_organization_verified ? 12 : 24 }} contentFit="cover" cachePolicy="memory-disk" />
               : <AvatarPlaceholder name={per.display_name} size={48} color={BRAND} />}
             {per.is_verified && (
               <View style={[ss.verifyBadge, { backgroundColor: colors.background }]}>
@@ -832,14 +832,14 @@ export default function SearchScreen() {
         <TouchableOpacity style={[ss.contentCard, { backgroundColor: colors.surface }]} onPress={() => router.push(`/post/${p.id}` as any)} activeOpacity={0.75}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
             {p.author_avatar
-              ? <Image source={{ uri: p.author_avatar }} style={{ width: 28, height: 28, borderRadius: 14 }} />
+              ? <ExpoImage source={{ uri: p.author_avatar }} style={{ width: 28, height: 28, borderRadius: 14 }} contentFit="cover" cachePolicy="memory-disk" />
               : <AvatarPlaceholder name={p.author_name} size={28} color={BRAND} />}
             <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Inter_500Medium", flex: 1 }}>@{p.author_handle}</Text>
             <Text style={{ color: colors.textMuted, fontSize: 11 }}>{timeAgo(p.created_at)}</Text>
           </View>
           {p.article_title && <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.text, marginBottom: 5 }} numberOfLines={2}>{p.article_title}</Text>}
           <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 19 }} numberOfLines={3}>{p.content}</Text>
-          {p.image_url && <Image source={{ uri: p.image_url }} style={ss.postImage} resizeMode="cover" />}
+          {p.image_url && <ExpoImage source={{ uri: p.image_url }} style={ss.postImage} contentFit="cover" cachePolicy="memory-disk" />}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Ionicons name="eye-outline" size={12} color={colors.textMuted} />
@@ -929,7 +929,7 @@ export default function SearchScreen() {
         <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(`/group/${gr.id}` as any)} activeOpacity={0.75}>
           <View style={{ width: 48, height: 48, borderRadius: 14, overflow: "hidden" }}>
             {gr.avatar_url
-              ? <Image source={{ uri: gr.avatar_url }} style={{ width: 48, height: 48 }} />
+              ? <ExpoImage source={{ uri: gr.avatar_url }} style={{ width: 48, height: 48 }} contentFit="cover" cachePolicy="memory-disk" />
               : <LinearGradient colors={[BRAND, "#0097A7"]} style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}><Ionicons name="people" size={22} color="#fff" /></LinearGradient>}
           </View>
           <View style={{ flex: 1, gap: 3 }}>
@@ -954,7 +954,7 @@ export default function SearchScreen() {
         <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(`/channel/${ch.id}` as any)} activeOpacity={0.75}>
           <View style={{ width: 48, height: 48, borderRadius: 14, overflow: "hidden" }}>
             {ch.avatar_url
-              ? <Image source={{ uri: ch.avatar_url }} style={{ width: 48, height: 48 }} />
+              ? <ExpoImage source={{ uri: ch.avatar_url }} style={{ width: 48, height: 48 }} contentFit="cover" cachePolicy="memory-disk" />
               : <LinearGradient colors={[PURPLE, "#A855F7"]} style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}><Ionicons name="megaphone" size={22} color="#fff" /></LinearGradient>}
           </View>
           <View style={{ flex: 1, gap: 3 }}>
@@ -1038,7 +1038,7 @@ export default function SearchScreen() {
         <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(s.route as any)} activeOpacity={0.75}>
           <View style={{ width: 48, height: 48, borderRadius: 12, overflow: "hidden", backgroundColor: c + "1A", alignItems: "center", justifyContent: "center" }}>
             {s.image_url
-              ? <Image source={{ uri: s.image_url }} style={{ width: 48, height: 48 }} resizeMode="cover" />
+              ? <ExpoImage source={{ uri: s.image_url }} style={{ width: 48, height: 48 }} contentFit="cover" cachePolicy="memory-disk" />
               : <Text style={{ fontSize: 22 }}>{s.emoji || "🛍️"}</Text>}
           </View>
           <View style={{ flex: 1, gap: 3 }}>
@@ -1077,7 +1077,7 @@ export default function SearchScreen() {
         >
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
             {j.company_logo
-              ? <Image source={{ uri: j.company_logo }} style={{ width: 44, height: 44, borderRadius: 12 }} />
+              ? <ExpoImage source={{ uri: j.company_logo }} style={{ width: 44, height: 44, borderRadius: 12 }} contentFit="cover" cachePolicy="memory-disk" />
               : <LinearGradient colors={[SUCCESS, "#30D158"]} style={{ width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" }}><Ionicons name="business" size={20} color="#fff" /></LinearGradient>}
             <View style={{ flex: 1 }}>
               <Text style={[ss.rowTitle, { color: colors.text, marginBottom: 2 }]} numberOfLines={2}>{j.title}</Text>
@@ -1636,7 +1636,7 @@ export default function SearchScreen() {
                   <LinearGradient colors={[BRAND + "44", BRAND + "08"]} style={{ height: 52, alignItems: "center" }} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                     <View style={{ position: "absolute", bottom: -28, alignItems: "center" }}>
                       {p.avatar_url
-                        ? <Image source={{ uri: p.avatar_url }} style={{ width: 56, height: 56, borderRadius: 28, borderWidth: 3, borderColor: colors.surface }} />
+                        ? <ExpoImage source={{ uri: p.avatar_url }} style={{ width: 56, height: 56, borderRadius: 28, borderWidth: 3, borderColor: colors.surface }} contentFit="cover" cachePolicy="memory-disk" />
                         : <AvatarPlaceholder name={p.display_name || p.handle} size={56} color={BRAND} />
                       }
                       {(p.is_verified || p.is_organization_verified) && (
@@ -1722,7 +1722,7 @@ export default function SearchScreen() {
                         <Text style={{ fontSize: 13, fontFamily: "Inter_700Bold", color: colors.text, lineHeight: 18 }} numberOfLines={2}>{v.content || "Video"}</Text>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
                           {v.author_avatar
-                            ? <Image source={{ uri: v.author_avatar }} style={{ width: 18, height: 18, borderRadius: 9 }} />
+                            ? <ExpoImage source={{ uri: v.author_avatar }} style={{ width: 18, height: 18, borderRadius: 9 }} contentFit="cover" cachePolicy="memory-disk" />
                             : <AvatarPlaceholder name={v.author_name || v.author_handle} size={18} color={RED} />
                           }
                           <Text style={{ fontSize: 12, color: colors.textMuted, fontFamily: "Inter_500Medium" }} numberOfLines={1}>@{v.author_handle}</Text>

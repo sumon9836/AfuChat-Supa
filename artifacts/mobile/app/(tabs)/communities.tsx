@@ -204,7 +204,7 @@ export default function CommunitiesScreen() {
         >
           <View style={ss.cardAvatarWrap}>
             {item.avatar_url ? (
-              <Image source={{ uri: item.avatar_url }} style={ss.cardAvatar} />
+              <Image source={{ uri: item.avatar_url }} style={ss.cardAvatar} contentFit="cover" cachePolicy="memory-disk" />
             ) : (
               <View style={[ss.cardAvatarPlaceholder, { backgroundColor: BRAND + "22" }]}>
                 <Ionicons name="people" size={26} color={BRAND} />
@@ -253,7 +253,7 @@ export default function CommunitiesScreen() {
         >
           <View style={ss.cardAvatarWrap}>
             {item.avatar_url ? (
-              <Image source={{ uri: item.avatar_url }} style={ss.cardAvatar} />
+              <Image source={{ uri: item.avatar_url }} style={ss.cardAvatar} contentFit="cover" cachePolicy="memory-disk" />
             ) : (
               <View style={[ss.cardAvatarPlaceholder, { backgroundColor: PURPLE + "22" }]}>
                 <Ionicons name="megaphone" size={26} color={PURPLE} />

@@ -16,7 +16,6 @@ import React, {
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Keyboard,
   Platform,
   ScrollView,
@@ -26,6 +25,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { router } from "expo-router";
@@ -197,10 +197,11 @@ function MessageBubble({ msg, isMe, showAvatar, isGroup, colors, isDark }: {
         }}>
           {/* Attachment */}
           {msg.attachment_url && (
-            <Image
+            <ExpoImage
               source={{ uri: msg.attachment_url }}
               style={{ width: 220, height: 160, borderRadius: 10, marginBottom: 6 }}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
             />
           )}
 

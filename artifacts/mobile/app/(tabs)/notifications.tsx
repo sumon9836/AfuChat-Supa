@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
@@ -146,7 +146,7 @@ function NotifRow({
     >
       <View style={st.avatarWrap}>
         {item.actor_avatar ? (
-          <Image source={{ uri: item.actor_avatar }} style={st.avatar} />
+          <ExpoImage source={{ uri: item.actor_avatar }} style={st.avatar} contentFit="cover" cachePolicy="memory-disk" />
         ) : (
           <View style={[st.avatarFallback, { backgroundColor: meta.color + "20" }]}>
             <Ionicons name={meta.icon as any} size={20} color={meta.color} />

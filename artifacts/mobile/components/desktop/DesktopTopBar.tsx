@@ -19,7 +19,6 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -27,6 +26,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
 
@@ -521,7 +521,7 @@ function ProfileDropdown({
 
   function renderAvatar(uri: string | null | undefined, name: string | null | undefined, size: number) {
     if (uri) {
-      return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+      return <ExpoImage source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="cover" cachePolicy="memory-disk" />;
     }
     return (
       <View
@@ -555,7 +555,7 @@ function ProfileDropdown({
           ]}
         >
           {profile?.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatarImg} />
+            <ExpoImage source={{ uri: profile.avatar_url }} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" />
           ) : (
             <View style={[styles.avatarFallback, { backgroundColor: theme.accent }]}>
               <Text style={styles.avatarFallbackText}>{initial}</Text>
