@@ -4888,10 +4888,19 @@ STRICT RULES:
     );
   }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup]);
 
-  // Single source of truth for the bottom offset: real keyboard → emoji panel → safe area.
-  const effectiveBottom = keyboardHeight > 0 ? keyboardHeight
-    : showEmojiStickerPicker ? emojiKeyboardHeight + insets.bottom
-    : insets.bottom;
+  // Single source of truth for the bottom offset.
+  // Android uses softwareKeyboardLayoutMode:"resize" so the view already shrinks
+  // when the system keyboard shows — we must NOT add keyboardHeight again or the
+  // input bar will be pushed double the keyboard height.
+  // iOS uses adjustPan so we must account for keyboardHeight manually.
+  // For our custom emoji picker (not the system keyboard) both platforms need the offset.
+  const effectiveBottom = showEmojiStickerPicker && !keyboardHeight
+    ? emojiKeyboardHeight + insets.bottom
+    : Platform.OS === "android"
+      ? insets.bottom
+      : keyboardHeight > 0
+        ? keyboardHeight
+        : insets.bottom;
 
   return (
     <View style={[st.root, { backgroundColor: colors.background }]}>
@@ -5540,6 +5549,7 @@ STRICT RULES:
             height={emojiKeyboardHeight}
             onEmojiSelected={(emoji) => setInput((prev) => prev + emoji)}
             onSendSticker={sendStickerMessage}
+            onDelete={() => setInput((prev) => prev.slice(0, -1))}
             onClose={() => setShowEmojiStickerPicker(false)}
           />
           {insets.bottom > 0 && (

@@ -1,3 +1,11 @@
+/**
+ * EmojiStickerPicker
+ * Custom in-app keyboard replacement with three tabs:
+ *   Emoji  |  GIFs  |  Stickers  [⌫]
+ *
+ * The tab bar sits at the BOTTOM exactly like a native keyboard (as per design).
+ * The ⌫ delete button on the right deletes the last character from the input.
+ */
 import React, { useState } from "react";
 import {
   FlatList,
@@ -5,13 +13,17 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { EmojiKeyboard } from "rn-emoji-keyboard";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
+import { useAppAccent } from "@/context/AppAccentContext";
 
-const BRAND = "#00BCD4";
+// ─── Sticker data ─────────────────────────────────────────────────────────────
 
 const STICKER_CATEGORIES: { label: string; icon: string; stickers: string[] }[] = [
   {
@@ -87,17 +99,87 @@ const STICKER_CATEGORIES: { label: string; icon: string; stickers: string[] }[] 
   },
 ];
 
-type Tab = "emoji" | "stickers";
+// ─── GIF panel ────────────────────────────────────────────────────────────────
+
+const TRENDING_GIFS = [
+  "😂","🤣","👏","🔥","💯","🤩","😍","🥳","😎","🤗",
+  "🙌","💪","✨","🎉","🥺","😭","❤️","😅","🤦","🤷",
+];
+
+function GifPanel({ onSendSticker }: { onSendSticker: (s: string) => void }) {
+  const { colors } = useTheme();
+  const [q, setQ] = useState("");
+
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={[gs.searchRow, { backgroundColor: colors.inputBg, borderColor: (colors.border as string) ?? "#ccc" }]}>
+        <Ionicons name="search" size={16} color={colors.textMuted as string} style={{ marginRight: 6 }} />
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          placeholder="Search GIFs…"
+          placeholderTextColor={colors.textMuted as string}
+          style={[gs.searchInput, { color: colors.text as string }]}
+          returnKeyType="search"
+        />
+      </View>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <Text style={{ fontSize: 42 }}>🎬</Text>
+        <Text style={[gs.gifNotice, { color: colors.textSecondary as string }]}>GIFs coming soon</Text>
+        <Text style={[gs.gifSub, { color: colors.textMuted as string }]}>Connect a GIF provider in settings</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 20, paddingVertical: 8 }}>
+          {TRENDING_GIFS.map((e, i) => (
+            <TouchableOpacity key={i} onPress={() => onSendSticker(e)} style={[gs.trendChip, { backgroundColor: colors.inputBg as string }]}>
+              <Text style={{ fontSize: 28 }}>{e}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    </View>
+  );
+}
+
+const gs = StyleSheet.create({
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    margin: 10,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchInput: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
+  gifNotice: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  gifSub: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  trendChip: { borderRadius: 12, padding: 8, alignItems: "center", justifyContent: "center", width: 52, height: 52 },
+});
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Tab = "emoji" | "gifs" | "stickers";
 
 interface Props {
   height: number;
   onEmojiSelected: (emoji: string) => void;
   onSendSticker: (emoji: string) => void;
+  onDelete?: () => void;
   onClose?: () => void;
 }
 
-export default function EmojiStickerPicker({ height, onEmojiSelected, onSendSticker, onClose }: Props) {
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function EmojiStickerPicker({
+  height,
+  onEmojiSelected,
+  onSendSticker,
+  onDelete,
+  onClose,
+}: Props) {
   const { colors } = useTheme();
+  const { accent } = useAppAccent();
+  const BRAND = accent;
+
   const [tab, setTab] = useState<Tab>("emoji");
   const [activeCat, setActiveCat] = useState(0);
 
@@ -121,35 +203,18 @@ export default function EmojiStickerPicker({ height, onEmojiSelected, onSendStic
     emoji: { selected: colors.inputBg },
   };
 
-  return (
-    <View style={[styles.root, { height, backgroundColor: colors.surface }]}>
-      {/* ── Tab bar ── */}
-      <View style={[styles.tabBar, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
-        <TouchableOpacity
-          style={[styles.tab, tab === "emoji" && { borderBottomColor: BRAND, borderBottomWidth: 2 }]}
-          onPress={() => setTab("emoji")}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabLabel, { color: tab === "emoji" ? BRAND : colors.textMuted }]}>
-            😊 Emoji
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, tab === "stickers" && { borderBottomColor: BRAND, borderBottomWidth: 2 }]}
-          onPress={() => setTab("stickers")}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabLabel, { color: tab === "stickers" ? BRAND : colors.textMuted }]}>
-            🎨 Stickers
-          </Text>
-        </TouchableOpacity>
-      </View>
+  const TAB_BAR_H = 46;
 
-      {/* ── Emoji panel ── */}
-      {tab === "emoji" && (
-        <View style={styles.emojiPanel}>
+  return (
+    <View style={[s.root, { height, backgroundColor: colors.surface as string }]}>
+
+      {/* ── Content area (fills space above tab bar) ── */}
+      <View style={{ flex: 1 }}>
+        {tab === "emoji" && (
           <EmojiKeyboard
-            onEmojiSelected={(emojiObject: { emoji: string }) => onEmojiSelected(emojiObject.emoji)}
+            onEmojiSelected={(emojiObject: { emoji: string }) =>
+              onEmojiSelected(emojiObject.emoji)
+            }
             enableRecentlyUsed
             enableSearchBar
             enableCategoryChangeGesture={false}
@@ -157,82 +222,134 @@ export default function EmojiStickerPicker({ height, onEmojiSelected, onSendStic
             disableSafeArea
             expandable={false}
             theme={emojiTheme}
-            styles={{ container: { flex: 1, borderRadius: 0, ...(Platform.OS !== "web" ? { shadowOpacity: 0 } : {}), elevation: 0 } }}
+            styles={{
+              container: {
+                flex: 1,
+                borderRadius: 0,
+                ...(Platform.OS !== "web" ? { shadowOpacity: 0 } : {}),
+                elevation: 0,
+              },
+            }}
           />
-        </View>
-      )}
+        )}
 
-      {/* ── Stickers panel ── */}
-      {tab === "stickers" && (
-        <View style={styles.stickerPanel}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={[styles.catBar, { borderBottomColor: colors.border }]}
-            contentContainerStyle={styles.catBarContent}
-          >
-            {STICKER_CATEGORIES.map((cat, i) => (
-              <TouchableOpacity
-                key={cat.label}
-                onPress={() => setActiveCat(i)}
+        {tab === "gifs" && (
+          <GifPanel onSendSticker={onSendSticker} />
+        )}
+
+        {tab === "stickers" && (
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={[s.catBar, { borderBottomColor: colors.border as string }]}
+              contentContainerStyle={s.catBarContent}
+            >
+              {STICKER_CATEGORIES.map((cat, i) => (
+                <TouchableOpacity
+                  key={cat.label}
+                  onPress={() => setActiveCat(i)}
+                  style={[
+                    s.catBtn,
+                    i === activeCat && {
+                      borderBottomColor: BRAND,
+                      borderBottomWidth: 2,
+                    },
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.catIcon}>{cat.icon}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <FlatList
+              key={activeCat}
+              data={STICKER_CATEGORIES[activeCat].stickers}
+              numColumns={6}
+              keyExtractor={(item, i) => `${activeCat}-${i}-${item}`}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={s.grid}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => onSendSticker(item)}
+                  style={s.stickerBtn}
+                  activeOpacity={0.6}
+                >
+                  <Text style={s.stickerEmoji}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        )}
+      </View>
+
+      {/* ── Bottom tab bar — Emoji | GIFs | Stickers  [⌫] ── */}
+      <View
+        style={[
+          s.bottomBar,
+          {
+            height: TAB_BAR_H,
+            backgroundColor: colors.surface as string,
+            borderTopColor: ((colors.border as string) ?? "#ccc") + "80",
+          },
+        ]}
+      >
+        {(["emoji", "gifs", "stickers"] as Tab[]).map((t) => {
+          const active = tab === t;
+          const label = t === "emoji" ? "Emoji" : t === "gifs" ? "GIFs" : "Stickers";
+          return (
+            <TouchableOpacity
+              key={t}
+              style={s.bottomTab}
+              onPress={() => setTab(t)}
+              activeOpacity={0.7}
+            >
+              {active && (
+                <View style={[s.activeIndicator, { backgroundColor: BRAND }]} />
+              )}
+              <Text
                 style={[
-                  styles.catBtn,
-                  i === activeCat && { borderBottomColor: BRAND, borderBottomWidth: 2 },
+                  s.bottomTabLabel,
+                  {
+                    color: active ? BRAND : (colors.textMuted as string),
+                    fontFamily: active ? "Inter_600SemiBold" : "Inter_400Regular",
+                  },
                 ]}
-                activeOpacity={0.7}
               >
-                <Text style={styles.catIcon}>{cat.icon}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
 
-          <FlatList
-            key={activeCat}
-            data={STICKER_CATEGORIES[activeCat].stickers}
-            numColumns={6}
-            keyExtractor={(item, i) => `${activeCat}-${i}-${item}`}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.grid}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                onPress={() => onSendSticker(item)}
-                style={styles.stickerBtn}
-                activeOpacity={0.6}
-              >
-                <Text style={styles.stickerEmoji}>{item}</Text>
-              </TouchableOpacity>
-            )}
+        {/* Spacer pushes ⌫ to the right */}
+        <View style={{ flex: 1 }} />
+
+        {/* Delete / backspace key */}
+        <TouchableOpacity
+          style={s.deleteBtn}
+          onPress={onDelete}
+          activeOpacity={0.6}
+          hitSlop={8}
+        >
+          <Ionicons
+            name="backspace-outline"
+            size={22}
+            color={colors.textMuted as string}
           />
-        </View>
-      )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { overflow: "hidden" },
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
-  tabBar: {
-    flexDirection: "row",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    height: 42,
-  },
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingBottom: 2,
-  },
-  tabLabel: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
+const s = StyleSheet.create({
+  root: { overflow: "hidden", flexDirection: "column" },
 
-  emojiPanel: {
-    flex: 1,
-  },
-
-  stickerPanel: { flex: 1 },
+  /* Sticker category bar */
   catBar: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     maxHeight: 44,
@@ -249,7 +366,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   catIcon: { fontSize: 22 },
-
   grid: { padding: 8 },
   stickerBtn: {
     flex: 1,
@@ -259,4 +375,36 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   stickerEmoji: { fontSize: 34 },
+
+  /* Bottom navigation bar */
+  bottomBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 4,
+  },
+  bottomTab: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    height: "100%",
+    position: "relative",
+  },
+  activeIndicator: {
+    position: "absolute",
+    top: 0,
+    left: 10,
+    right: 10,
+    height: 2.5,
+    borderRadius: 2,
+  },
+  bottomTabLabel: {
+    fontSize: 13,
+  },
+  deleteBtn: {
+    paddingHorizontal: 16,
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
