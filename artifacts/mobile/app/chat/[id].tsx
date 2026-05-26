@@ -85,13 +85,14 @@ import { useChatPreferences, CHAT_THEME_COLORS, BUBBLE_RADIUS } from "@/context/
 import { useAdvancedFeatures } from "@/context/AdvancedFeaturesContext";
 import { useDataMode } from "@/context/DataModeContext";
 import { markChatVisited, setActiveChatId, clearActiveChatId } from "@/lib/chatVisited";
-import { askAi, aiSuggestReply, transcribeAudio, getEdgeFnBase, edgeHeaders } from "@/lib/aiHelper";
+import { askAi, aiSuggestReply, transcribeAudio, getEdgeFnBase, edgeHeaders, aiTransformTone, aiFixText, aiEmojifyText } from "@/lib/aiHelper";
 import { buildNavigationContext, ACTION_ROUTES_GUIDE, detectVoiceNavCommand, pickNavConfirmation } from "@/lib/platformKnowledge";
 import { playNotificationSound as playMgrSound } from "@/lib/soundManager";
 import { AFUAI_BOT_ID } from "@/lib/afuAiBot";
 import { getDailyUsage, recordDailyUsage } from "@/lib/featureUsage";
 import EmojiStickerPicker from "@/components/chat/EmojiStickerPicker";
 import GiftPickerSheet, { DbGift } from "@/components/gifts/GiftPickerSheet";
+import AiEditorSheet from "@/components/ui/AiEditorSheet";
 import MiniProfilePopup from "@/components/chat/MiniProfilePopup";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import ReAnimated, {
@@ -1507,6 +1508,7 @@ function ChatScreen() {
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; handle: string; display_name: string; avatar_url: string | null }[]>([]);
   const [showRedEnvelope, setShowRedEnvelope] = useState(false);
+  const [showAiEditor, setShowAiEditor] = useState(false);
   const [envelopeAmount, setEnvelopeAmount] = useState("");
   const [envelopeMsg, setEnvelopeMsg] = useState("");
   const [envelopeCount, setEnvelopeCount] = useState("1");
@@ -5303,6 +5305,15 @@ STRICT RULES:
                             )}
                           </>
                         )}
+                        {input.trim().length > 50 && !editingMessage && !attachmentPreview && (
+                          <TouchableOpacity
+                            onPress={() => { Keyboard.dismiss(); setShowAiEditor(true); }}
+                            hitSlop={8}
+                            style={st.pillIcon}
+                          >
+                            <Text style={{ color: BRAND, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     )}
                     {(input.trim() || attachmentPreview) && !isRecording ? (
@@ -5430,6 +5441,15 @@ STRICT RULES:
                               </TouchableOpacity>
                             )}
                           </>
+                        )}
+                        {input.trim().length > 50 && !editingMessage && !attachmentPreview && (
+                          <TouchableOpacity
+                            onPress={() => { Keyboard.dismiss(); setShowAiEditor(true); }}
+                            hitSlop={8}
+                            style={st.pillIcon}
+                          >
+                            <Text style={{ color: BRAND, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
+                          </TouchableOpacity>
                         )}
                       </View>
                     )}
@@ -6407,6 +6427,14 @@ STRICT RULES:
         sending={giftSending}
         acoinBalance={profile?.acoin ?? 0}
         recipientName={chatInfo?.other_name}
+      />
+
+      <AiEditorSheet
+        visible={showAiEditor}
+        text={input}
+        onClose={() => setShowAiEditor(false)}
+        onApply={(t) => { setInput(t); setShowAiEditor(false); saveDraft(t); }}
+        onApplyAndSend={(t) => { setInput(t); setShowAiEditor(false); saveDraft(t); sendMessage(t); }}
       />
 
       {/* legacy showAttachMenu kept so TypeScript is happy; panel is now inline */}

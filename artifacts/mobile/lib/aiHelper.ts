@@ -157,6 +157,41 @@ export async function transcribeAudio(audioUrl: string): Promise<string> {
   return data.text || "";
 }
 
+export async function aiTransformTone(text: string, preset: string): Promise<string> {
+  const prompts: Record<string, string> = {
+    create:  "Rewrite this message in a more creative, vivid, and expressive way. Keep the same core meaning.",
+    formal:  "Rewrite this message in a formal, professional tone. Keep the same meaning.",
+    short:   "Make this message shorter and more concise. Strip all fluff but keep the core meaning.",
+    tribal:  "Rewrite this with street/urban culture energy. Raw, real, authentic.",
+    corp:    "Rewrite this in professional corporate business language suitable for a workplace.",
+    biblical:"Rewrite this in a solemn biblical style using old-testament language patterns.",
+    viking:  "Rewrite this as a Norse Viking warrior would say it. Bold, honourable, dramatic.",
+    zen:     "Rewrite this in a calm, mindful, zen-like tone. Peaceful and contemplative.",
+  };
+  const instruction = prompts[preset] ?? "Rewrite this message in a different style.";
+  return askAi(
+    `${instruction}\n\nReturn ONLY the rewritten text, nothing else:\n\n${text}`,
+    "Message rewriting assistant. Return ONLY the rewritten text. No quotes, no explanations, no prefixes. Same language as input.",
+    { fast: true, maxTokens: 600 },
+  );
+}
+
+export async function aiFixText(text: string): Promise<string> {
+  return askAi(
+    `Fix all grammar, spelling, and punctuation errors in this message. Keep the same meaning, tone, and style. Return ONLY the corrected text:\n\n${text}`,
+    "Grammar and spelling editor. Return ONLY the corrected text. Do not change the meaning, tone, or style — fix errors only.",
+    { fast: true, maxTokens: 600 },
+  );
+}
+
+export async function aiEmojifyText(text: string): Promise<string> {
+  return askAi(
+    `Add relevant emojis to this message to make it more expressive and engaging. Integrate them naturally within the text or at the end. Return ONLY the enhanced text:\n\n${text}`,
+    "Emoji enhancer. Return ONLY the text with emojis naturally added. Do not change the words.",
+    { fast: true, maxTokens: 700 },
+  );
+}
+
 export async function aiTranslateMessage(text: string, targetLang: string): Promise<string> {
   return askAi(
     `Translate to ${targetLang}. Return ONLY the translation:\n\n${text}`,
