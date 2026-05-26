@@ -2547,23 +2547,32 @@ function ChatScreen() {
   }
 
   function saveDraft(text: string) {
-    if (!id || !advancedFeatures.offline_drafts) return;
+    if (!id) return;
     if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
     draftSaveTimer.current = setTimeout(() => {
-      if (user && id) {
-        if (text.trim()) {
-          supabase.from("chat_drafts")
-            .upsert({ user_id: user.id, chat_id: id, content: text, updated_at: new Date().toISOString() }, { onConflict: "user_id,chat_id" })
-            .then(({ error }) => { if (error) AsyncStorage.setItem(`chat_draft_${id}`, text).catch(() => {}); });
-        } else {
+      const key = `chat_draft_${id}`;
+      if (!text.trim()) {
+        // Always clear — even if the offline_drafts feature flag is off —
+        // so an empty input never shows as a draft in the chats list.
+        AsyncStorage.removeItem(key).catch(() => {});
+        if (user) {
           supabase.from("chat_drafts")
             .delete().eq("user_id", user.id).eq("chat_id", id)
-            .then(({ error }) => { if (error) AsyncStorage.removeItem(`chat_draft_${id}`).catch(() => {}); });
+            .then(() => {});
         }
-      } else if (id) {
-        const key = `chat_draft_${id}`;
-        if (text.trim()) { AsyncStorage.setItem(key, text).catch(() => {}); }
-        else { AsyncStorage.removeItem(key).catch(() => {}); }
+        return;
+      }
+      if (!advancedFeatures.offline_drafts) return;
+      // Write to AsyncStorage immediately so the chats list can reflect the
+      // draft on the next focus without waiting for Supabase.
+      AsyncStorage.setItem(key, text).catch(() => {});
+      if (user) {
+        supabase.from("chat_drafts")
+          .upsert(
+            { user_id: user.id, chat_id: id, content: text, updated_at: new Date().toISOString() },
+            { onConflict: "user_id,chat_id" }
+          )
+          .then(() => {});
       }
     }, 800);
   }

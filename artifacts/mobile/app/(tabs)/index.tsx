@@ -143,6 +143,8 @@ type ChatItem = {
   is_organization_verified: boolean;
   other_last_seen: string | null;
   other_show_online: boolean;
+  /** Unsent draft text for this chat (empty string = no draft) */
+  draft?: string;
 };
 
 function TypingDots({ color }: { color: string }) {
@@ -328,6 +330,11 @@ function ChatRow({
               </Text>
               <TypingDots color={colors.accent} />
             </View>
+          ) : item.draft ? (
+            <Text style={[styles.preview, { flex: 1 }]} numberOfLines={1}>
+              <Text style={{ color: "#FF3B30", fontFamily: "Inter_600SemiBold" }}>Draft: </Text>
+              <Text style={{ color: colors.textSecondary as string }}>{stripMdPreview(item.draft)}</Text>
+            </Text>
           ) : (
           <Text
             style={[styles.preview, { color: hasUnread ? colors.text : colors.textSecondary, fontFamily: hasUnread ? "Inter_500Medium" : "Inter_400Regular", flex: 1 }]}
@@ -1030,13 +1037,33 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
       }];
     });
 
-    // Merge regular chats + broadcast channel items, keep sorted
+    // ── Load local unsent drafts ──────────────────────────────────────────────
+    // Read all draft keys at once so we can (a) show "Draft:" labels and
+    // (b) sort drafted chats above non-drafted ones.
     const combined = [...regularItems, ...channelItems];
+    const allCombinedIds = combined.map((c) => c.id).filter(Boolean);
+    let draftMap: Record<string, string> = {};
+    try {
+      const draftPairs = await AsyncStorage.multiGet(
+        allCombinedIds.map((cid) => `chat_draft_${cid}`)
+      );
+      for (const [key, val] of draftPairs) {
+        if (val && val.trim()) {
+          draftMap[key.replace("chat_draft_", "")] = val;
+        }
+      }
+    } catch {}
+
+    // Sort: pinned → drafted (non-pinned, non-archived) → normal → archived
     combined.sort((a, b) => {
       if (a.is_pinned && !b.is_pinned) return -1;
       if (!a.is_pinned && b.is_pinned) return 1;
       if (a.is_archived && !b.is_archived) return 1;
       if (!a.is_archived && b.is_archived) return -1;
+      const aD = !a.is_pinned && !a.is_archived && !!draftMap[a.id];
+      const bD = !b.is_pinned && !b.is_archived && !!draftMap[b.id];
+      if (aD && !bD) return -1;
+      if (!aD && bD) return 1;
       if (!a.last_message_at && b.last_message_at) return 1;
       if (a.last_message_at && !b.last_message_at) return -1;
       return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
@@ -1064,9 +1091,13 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
       is_organization_verified: false,
       other_last_seen: null,
       other_show_online: false,
+      draft: draftMap[selfChatItem?.id || ""] || "",
     };
 
-    const finalItems = [notesItem, ...combined];
+    const finalItems: ChatItem[] = [
+      notesItem,
+      ...combined.map((item) => ({ ...item, draft: draftMap[item.id] || "" })),
+    ];
 
     finalItems.forEach((item) => {
       if (item.unread_count === 0 && item.kind !== "notes" && item.kind !== "channel_broadcast") {
