@@ -85,12 +85,12 @@ export async function handleNotificationAction(
         // Match by type + actor + post when available for a targeted update
         let q = supabase
           .from("notifications")
-          .update({ is_read: true })
+          .update({ read: true })
           .eq("user_id", session.user.id)
-          .eq("is_read", false);
+          .eq("read", false);
         if (data.notifType) q = (q as any).eq("type", data.notifType);
         if (data.actorId)   q = (q as any).eq("actor_id", data.actorId);
-        if (data.postId)    q = (q as any).eq("post_id", data.postId);
+        if (data.postId)    q = (q as any).eq("reference_id", data.postId);
         await q;
         break;
       }

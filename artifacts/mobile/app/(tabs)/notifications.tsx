@@ -330,7 +330,7 @@ export default function NotificationsScreen() {
         break;
       case "order_update":
       case "order_shipped":
-        if (refId) safeRouter.push({ pathname: "/marketplace/orders/[id]", params: { id: refId } } as any);
+        if (refId) safeRouter.push({ pathname: "/shop/order/[id]", params: { id: refId } } as any);
         break;
       case "incoming_call":
         if (handle) safeRouter.push(`/@${handle}` as any);

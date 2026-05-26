@@ -23,7 +23,6 @@ import {
   Animated,
   FlatList,
   Keyboard,
-  KeyboardAvoidingView,
   Linking,
   Modal,
   Platform,
@@ -472,13 +471,11 @@ function CommentsSheet({ visible, onClose, postId, postAuthorId, onReplyCountCha
   const sendScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (Platform.OS !== "android") return;
-    const show = Keyboard.addListener("keyboardDidShow", (e) => {
-      setKbHeight(e.endCoordinates.height);
-    });
-    const hide = Keyboard.addListener("keyboardDidHide", () => {
-      setKbHeight(0);
-    });
+    if (Platform.OS === "web") return;
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const show = Keyboard.addListener(showEvent, (e) => setKbHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener(hideEvent, () => setKbHeight(0));
     return () => { show.remove(); hide.remove(); };
   }, []);
 
@@ -584,9 +581,13 @@ function CommentsSheet({ visible, onClose, postId, postAuthorId, onReplyCountCha
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <KeyboardAvoidingView behavior="padding" style={cStyles.kavFull}>
+      <View style={cStyles.kavFull}>
         <Pressable style={cStyles.overlay} onPress={onClose}>
-          <Pressable onPress={() => {}} style={[cStyles.container, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: sheetMaxH }]}>
+          <Pressable onPress={() => {}} style={[cStyles.container, {
+            paddingBottom: Math.max(insets.bottom, 16),
+            marginBottom: kbHeight,
+            maxHeight: kbHeight > 0 ? sheetH - kbHeight - 20 : sheetMaxH,
+          }]}>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111115", borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
             <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.12)" }} pointerEvents="none" />
             <View style={cStyles.handle} />
@@ -710,7 +711,7 @@ function CommentsSheet({ visible, onClose, postId, postAuthorId, onReplyCountCha
             )}
           </Pressable>
         </Pressable>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
