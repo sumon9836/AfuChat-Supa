@@ -93,7 +93,6 @@ import { getDailyUsage, recordDailyUsage } from "@/lib/featureUsage";
 import EmojiStickerPicker from "@/components/chat/EmojiStickerPicker";
 import GiftPickerSheet, { DbGift } from "@/components/gifts/GiftPickerSheet";
 import AiEditorSheet from "@/components/ui/AiEditorSheet";
-import FormatToolbar from "@/components/chat/FormatToolbar";
 import MiniProfilePopup from "@/components/chat/MiniProfilePopup";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import ReAnimated, {
@@ -1518,7 +1517,6 @@ function ChatScreen() {
   const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; handle: string; display_name: string; avatar_url: string | null }[]>([]);
   const [showRedEnvelope, setShowRedEnvelope] = useState(false);
   const [showAiEditor, setShowAiEditor] = useState(false);
-  const [inputSelection, setInputSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
   const [envelopeAmount, setEnvelopeAmount] = useState("");
   const [envelopeMsg, setEnvelopeMsg] = useState("");
   const [envelopeCount, setEnvelopeCount] = useState("1");
@@ -1899,7 +1897,6 @@ function ChatScreen() {
   const chatInputRef = useRef<TextInput>(null);
   const typingTimeout = useRef<any>(null);
   const draftSaveTimer = useRef<any>(null);
-  const selectionClearTimer = useRef<any>(null);
 
   const effectiveChatId = isDraft ? realChatId : id;
 
@@ -5240,13 +5237,6 @@ STRICT RULES:
               <SmartReplyBar messages={messages} myId={user?.id || ""} input={input} onSend={handleSmartReply} colors={colors} />
             )}
             <View style={[st.inputFloatOuter, { paddingBottom: 8 }]}>
-              <FormatToolbar
-                visible={inputSelection.start < inputSelection.end && input.length > 0}
-                selection={inputSelection}
-                value={input}
-                onFormat={(newText) => { setInput(newText); saveDraft(newText); setInputSelection({ start: 0, end: 0 }); }}
-                onClose={() => setInputSelection({ start: 0, end: 0 })}
-              />
               {true ? (
                 <View style={[st.inputGlassPill, { backgroundColor: colors.surface, borderColor: colors.border + "80" }, isRecording && !recLocked ? st.recHoldGlass : undefined]}>
                   <View style={st.inputBarRow}>
@@ -5310,19 +5300,7 @@ STRICT RULES:
                             }
                           }}
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
-                          onSelectionChange={(e) => {
-                            const sel = e.nativeEvent.selection;
-                            if (sel.start === sel.end) {
-                              // Debounce deselection: Android fires onSelectionChange({0,0})
-                              // before the FormatToolbar button's onPress, which would hide the
-                              // toolbar before the action completes.
-                              if (selectionClearTimer.current) clearTimeout(selectionClearTimer.current);
-                              selectionClearTimer.current = setTimeout(() => setInputSelection(sel), 150);
-                            } else {
-                              if (selectionClearTimer.current) { clearTimeout(selectionClearTimer.current); selectionClearTimer.current = null; }
-                              setInputSelection(sel);
-                            }
-                          }}
+
                           multiline
                           maxLength={4000}
                           returnKeyType={chatPrefs.enter_to_send ? "send" : "default"}
@@ -5462,19 +5440,7 @@ STRICT RULES:
                             }
                           }}
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
-                          onSelectionChange={(e) => {
-                            const sel = e.nativeEvent.selection;
-                            if (sel.start === sel.end) {
-                              // Debounce deselection: Android fires onSelectionChange({0,0})
-                              // before the FormatToolbar button's onPress, which would hide the
-                              // toolbar before the action completes.
-                              if (selectionClearTimer.current) clearTimeout(selectionClearTimer.current);
-                              selectionClearTimer.current = setTimeout(() => setInputSelection(sel), 150);
-                            } else {
-                              if (selectionClearTimer.current) { clearTimeout(selectionClearTimer.current); selectionClearTimer.current = null; }
-                              setInputSelection(sel);
-                            }
-                          }}
+
                           multiline
                           maxLength={4000}
                           returnKeyType={chatPrefs.enter_to_send ? "send" : "default"}
