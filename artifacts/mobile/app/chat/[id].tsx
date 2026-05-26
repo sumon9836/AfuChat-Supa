@@ -5323,7 +5323,6 @@ STRICT RULES:
                               setInputSelection(sel);
                             }
                           }}
-                          contextMenuHidden={Platform.OS !== "web"}
                           multiline
                           maxLength={4000}
                           returnKeyType={chatPrefs.enter_to_send ? "send" : "default"}
@@ -5476,7 +5475,6 @@ STRICT RULES:
                               setInputSelection(sel);
                             }
                           }}
-                          contextMenuHidden={Platform.OS !== "web"}
                           multiline
                           maxLength={4000}
                           returnKeyType={chatPrefs.enter_to_send ? "send" : "default"}
