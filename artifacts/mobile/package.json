@@ -70,7 +70,7 @@
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.22",
     "expo-image-manipulator": "~14.0.8",
-    "expo-keep-awake": "^56.0.3",
+    "expo-keep-awake": "^15.0.8",
     "expo-local-authentication": "~17.0.8",
     "expo-media-library": "~18.2.1",
     "expo-network": "~8.0.8",
