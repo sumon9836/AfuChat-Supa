@@ -93,6 +93,7 @@ import { getDailyUsage, recordDailyUsage } from "@/lib/featureUsage";
 import EmojiStickerPicker from "@/components/chat/EmojiStickerPicker";
 import GiftPickerSheet, { DbGift } from "@/components/gifts/GiftPickerSheet";
 import AiEditorSheet from "@/components/ui/AiEditorSheet";
+import FormatToolbar from "@/components/chat/FormatToolbar";
 import MiniProfilePopup from "@/components/chat/MiniProfilePopup";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import ReAnimated, {
@@ -498,8 +499,12 @@ function parseAiRichText(raw: string): RichSeg[] {
 }
 function stripMd(s: string) {
   return s
+    .replace(/\*\*([^*\n]*)\*\*/g, "$1")
+    .replace(/~~([^~\n]*)~~/g, "$1")
+    .replace(/\|\|([^|\n]*)\|\|/g, "$1")
+    .replace(/__([^_\n]*)__/g, "$1")
+    .replace(/_([^_\n]*)_/g, "$1")
     .replace(/\*{1,3}([^*\n]*)\*{1,3}/g, "$1")
-    .replace(/_{1,2}([^_\n]*)_{1,2}/g, "$1")
     .replace(/\*{1,3}/g, "")
     .replace(/_{1,2}/g, "")
     .replace(/^#{1,3}\s*/gm, "")
@@ -511,8 +516,12 @@ function stripMdForPreview(s: string): string {
     .replace(/\[SUGGEST:[^\]]+\]/g, "")
     .replace(/\[INVOICE:[\s\S]*?\]/g, "")
     .replace(/\[EXEC:\w+:[\s\S]*?\]/g, "")
+    .replace(/\*\*([^*\n]*)\*\*/g, "$1")
+    .replace(/~~([^~\n]*)~~/g, "$1")
+    .replace(/\|\|([^|\n]*)\|\|/g, "$1")
+    .replace(/__([^_\n]*)__/g, "$1")
+    .replace(/_([^_\n]*)_/g, "$1")
     .replace(/\*{1,3}([^*\n]*)\*{1,3}/g, "$1")
-    .replace(/_{1,2}([^_\n]*)_{1,2}/g, "$1")
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/`([^`]*)`/g, "$1")
     .replace(/\*+/g, "")
@@ -1065,7 +1074,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                   </View>
                 </TouchableOpacity>
               {hasTextContent && (
-                <RichText style={[st.bubbleText, { color: textColor, marginTop: 6, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND}>{stripMd(displayText)}</RichText>
+                <RichText style={[st.bubbleText, { color: textColor, marginTop: 6, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND}>{displayText}</RichText>
               )}
             </>
           ) : hasVideo ? (
@@ -1509,6 +1518,7 @@ function ChatScreen() {
   const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; handle: string; display_name: string; avatar_url: string | null }[]>([]);
   const [showRedEnvelope, setShowRedEnvelope] = useState(false);
   const [showAiEditor, setShowAiEditor] = useState(false);
+  const [inputSelection, setInputSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
   const [envelopeAmount, setEnvelopeAmount] = useState("");
   const [envelopeMsg, setEnvelopeMsg] = useState("");
   const [envelopeCount, setEnvelopeCount] = useState("1");
@@ -5213,6 +5223,13 @@ STRICT RULES:
               <SmartReplyBar messages={messages} myId={user?.id || ""} input={input} onSend={handleSmartReply} colors={colors} />
             )}
             <View style={[st.inputFloatOuter, { paddingBottom: 8 }]}>
+              <FormatToolbar
+                visible={inputSelection.start < inputSelection.end && input.length > 0}
+                selection={inputSelection}
+                value={input}
+                onFormat={(newText) => { setInput(newText); saveDraft(newText); setInputSelection({ start: 0, end: 0 }); }}
+                onClose={() => setInputSelection({ start: 0, end: 0 })}
+              />
               {true ? (
                 <View style={[st.inputGlassPill, { backgroundColor: colors.surface, borderColor: colors.border + "80" }, isRecording && !recLocked ? st.recHoldGlass : undefined]}>
                   <View style={st.inputBarRow}>
@@ -5276,6 +5293,8 @@ STRICT RULES:
                             }
                           }}
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
+                          onSelectionChange={(e) => setInputSelection(e.nativeEvent.selection)}
+                          contextMenuHidden={Platform.OS !== "web"}
                           multiline
                           maxLength={4000}
                           returnKeyType={chatPrefs.enter_to_send ? "send" : "default"}
@@ -5415,6 +5434,8 @@ STRICT RULES:
                             }
                           }}
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
+                          onSelectionChange={(e) => setInputSelection(e.nativeEvent.selection)}
+                          contextMenuHidden={Platform.OS !== "web"}
                           multiline
                           maxLength={4000}
                           returnKeyType={chatPrefs.enter_to_send ? "send" : "default"}
