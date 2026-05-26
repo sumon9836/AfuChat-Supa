@@ -2,7 +2,7 @@
   "expo": {
     "name": "AfuChat",
     "slug": "afuchat",
-    "version": "2.0.77",
+    "version": "2.0.78",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "afuchat",
@@ -81,7 +81,8 @@
             "DEFAULT"
           ]
         }
-      ]
+      ],
+      "versionCode": 2078
     },
     "web": {
       "favicon": "./assets/images/logo.png",
@@ -160,6 +161,9 @@
         "projectId": "363a3c64-5a90-4aae-86b5-aa54014921ef"
       }
     },
-    "owner": "afume"
+    "owner": "afume",
+    "ios": {
+      "buildNumber": "2.0.78"
+    }
   }
 }

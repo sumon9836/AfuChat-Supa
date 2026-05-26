@@ -1592,23 +1592,33 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
               </Text>
             </TouchableOpacity>
           ) : !panelMode ? (
-            <View style={{ position: "relative" }}>
+            <>
               <TouchableOpacity
-                onPress={() => router.push("/(tabs)/notifications" as any)}
+                onPress={() => router.push("/chat-search" as any)}
                 hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.backgroundSecondary, alignItems: "center", justifyContent: "center" }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="notifications-outline" size={20} color={colors.text} />
+                <Ionicons name="search-outline" size={20} color={colors.text} />
               </TouchableOpacity>
-              {unreadNotifs > 0 && (
-                <View style={[styles.notifBadge, { backgroundColor: "#FF3B30" }]}>
-                  <Text style={styles.notifBadgeText} numberOfLines={1}>
-                    {unreadNotifs > 99 ? "99+" : String(unreadNotifs)}
-                  </Text>
-                </View>
-              )}
-            </View>
+              <View style={{ position: "relative" }}>
+                <TouchableOpacity
+                  onPress={() => router.push("/(tabs)/notifications" as any)}
+                  hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.backgroundSecondary, alignItems: "center", justifyContent: "center" }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="notifications-outline" size={20} color={colors.text} />
+                </TouchableOpacity>
+                {unreadNotifs > 0 && (
+                  <View style={[styles.notifBadge, { backgroundColor: "#FF3B30" }]}>
+                    <Text style={styles.notifBadgeText} numberOfLines={1}>
+                      {unreadNotifs > 99 ? "99+" : String(unreadNotifs)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
           ) : null}
         </View>
       </View>
@@ -1642,42 +1652,6 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
         </Animated.View>
       )}
 
-      {!selectMode && (
-        <View style={styles.searchWrap}>
-          <View style={[
-            styles.searchBox,
-            { backgroundColor: isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)", borderWidth: StyleSheet.hairlineWidth, borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)" },
-          ]}>
-            <Ionicons name="search-outline" size={19} color={colors.textMuted} />
-            <TouchableOpacity
-              style={{ flex: 1 }}
-              onPress={() => router.push("/chat-search" as any)}
-              activeOpacity={1}
-            >
-              <Text
-                style={[styles.searchInput, { color: colors.textMuted, lineHeight: 40, marginTop: 0 }]}
-                numberOfLines={1}
-              >
-                Search conversations…
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push(("/chat-search?ai=true") as any)}
-              activeOpacity={0.75}
-              style={styles.aiBtn}
-            >
-              <LinearGradient
-                colors={["#7B61FF", "#00C2CB"]}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={styles.aiBtnGrad}
-              >
-                <Ionicons name="sparkles" size={11} color="#fff" />
-                <Text style={styles.aiBtnText}>AI</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
 
       <View style={styles.body}>

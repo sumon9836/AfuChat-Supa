@@ -1,5 +1,26 @@
 # EAS Build History
 
+## v2.0.78 — Android APK (preview)
+
+- **Build ID**: `7f3fbb2f-6224-485b-97cf-671ec288acb2`
+- **Dashboard**: https://expo.dev/accounts/afume/projects/afuchat/builds/7f3fbb2f-6224-485b-97cf-671ec288acb2
+- **Status**: QUEUED ⏳
+- **Platform**: Android
+- **Profile**: preview (APK, internal distribution)
+- **versionCode**: 2062 (auto-incremented by EAS remote)
+- **Keystore**: Build Credentials 1Nj4newnzl (default, managed by Expo)
+- **Triggered**: 2026-05-26
+- **Changes in this build**:
+  - Removed home page search bar (replaced by compact header search icon)
+  - Added search icon (→ chat-search) next to notification bell in header
+  - Folder tabs now fill the area previously occupied by the search bar
+  - Native Android alerts: `showAlert` now always uses `Alert.alert` on Android/iOS (custom modal web-only)
+  - Toast auto-dismiss: exit animation plays when duration elapses (not only on tap)
+  - FlatList numColumns crash fixed: stable `key` prop on all 9 grid FlatLists
+- **Method**: EAS CLI `npx eas-cli@latest` with `EAS_NO_VCS=1` + `EXPO_NO_INTERACTIVE=1`
+
+---
+
 ## v2.0.73 — Android APK (preview)
 
 - **Build ID**: `db5dc5e0-d2b3-454b-821d-79586d869281`
