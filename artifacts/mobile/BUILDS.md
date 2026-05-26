@@ -4,7 +4,7 @@
 
 - **Build ID**: `7f3fbb2f-6224-485b-97cf-671ec288acb2`
 - **Dashboard**: https://expo.dev/accounts/afume/projects/afuchat/builds/7f3fbb2f-6224-485b-97cf-671ec288acb2
-- **Status**: QUEUED ⏳
+- **Status**: IN QUEUE ✅ (confirmed via EAS CLI)
 - **Platform**: Android
 - **Profile**: preview (APK, internal distribution)
 - **versionCode**: 2062 (auto-incremented by EAS remote)
