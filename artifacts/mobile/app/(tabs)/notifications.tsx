@@ -21,6 +21,7 @@ import { safeRouter } from "@/lib/navUtils";
 
 type NotifType =
   | "follow"
+  | "new_follower"
   | "like"
   | "mention"
   | "message"
@@ -35,28 +36,29 @@ interface Notification {
   user_id: string;
   type: NotifType;
   actor_id: string | null;
-  reference_id: string | null;
-  reference_type: string | null;
+  entity_id: string | null;
+  entity_type: string | null;
   data: Record<string, any>;
   read: boolean;
   created_at: string;
-  // joined from profiles
   actor_name: string | null;
   actor_handle: string | null;
   actor_avatar: string | null;
 }
 
-// Raw row shape from Supabase (before profile merge)
 interface RawNotification {
   id: string;
   user_id: string;
   type: string;
   actor_id: string | null;
-  reference_id: string | null;
-  reference_type: string | null;
+  entity_id: string | null;
+  entity_type: string | null;
   data: Record<string, any>;
   read: boolean;
   created_at: string;
+  actor_name: string | null;
+  actor_handle: string | null;
+  actor_avatar: string | null;
 }
 
 // ── Category filter tabs ──────────────────────────────────────────────────────
@@ -65,7 +67,7 @@ type Category = "all" | "follow" | "like" | "comment" | "mention" | "message" | 
 
 const CATEGORIES: { key: Category; label: string; icon: string; types?: NotifType[] }[] = [
   { key: "all",     label: "All",      icon: "notifications-outline" },
-  { key: "follow",  label: "Follows",  icon: "person-add-outline",      types: ["follow"] },
+  { key: "follow",  label: "Follows",  icon: "person-add-outline",      types: ["follow", "new_follower"] },
   { key: "like",    label: "Likes",    icon: "heart-outline",           types: ["like"] },
   { key: "comment", label: "Comments", icon: "chatbubble-ellipses-outline", types: ["comment"] },
   { key: "mention", label: "Mentions", icon: "at-circle-outline",       types: ["mention"] },
@@ -77,8 +79,9 @@ const CATEGORIES: { key: Category; label: string; icon: string; types?: NotifTyp
 
 // ── Notification type display meta ────────────────────────────────────────────
 
-const TYPE_META: Record<NotifType, { icon: string; color: string; label: (n: Notification) => string }> = {
+const TYPE_META: Record<string, { icon: string; color: string; label: (n: Notification) => string }> = {
   follow:        { icon: "person-add",             color: "#007AFF", label: (n) => `${actor(n)} started following you` },
+  new_follower:  { icon: "person-add",             color: "#007AFF", label: (n) => `${actor(n)} started following you` },
   like:          { icon: "heart",                  color: "#FF3B30", label: (n) => `${actor(n)} liked your post` },
   mention:       { icon: "at-circle",              color: "#5856D6", label: (n) => `${actor(n)} mentioned you${ctx(n)}` },
   message:       { icon: "chatbubble",             color: "#34C759", label: (n) => `${actor(n)} sent you a message${preview(n)}` },
@@ -88,6 +91,8 @@ const TYPE_META: Record<NotifType, { icon: string; color: string; label: (n: Not
   order_shipped: { icon: "airplane",               color: "#30B0C7", label: (n) => `Your order has shipped${n.data?.carrier ? ` via ${n.data.carrier}` : ""}` },
   incoming_call: { icon: "call",                   color: "#4CD964", label: (n) => `${actor(n)} is calling you` },
 };
+
+const DEFAULT_META = TYPE_META.message;
 
 function actor(n: Notification) {
   return n.actor_name || (n.actor_handle ? `@${n.actor_handle}` : "Someone");
@@ -127,7 +132,7 @@ function NotifRow({
   accent: string;
   onPress: (n: Notification) => void;
 }) {
-  const meta = TYPE_META[item.type] ?? TYPE_META.message;
+  const meta = TYPE_META[item.type] ?? DEFAULT_META;
   const label = meta.label(item);
 
   return (
@@ -139,7 +144,6 @@ function NotifRow({
         { backgroundColor: item.read ? colors.surface : accent + "0C", borderBottomColor: colors.border },
       ]}
     >
-      {/* Avatar / icon area */}
       <View style={st.avatarWrap}>
         {item.actor_avatar ? (
           <Image source={{ uri: item.actor_avatar }} style={st.avatar} />
@@ -153,7 +157,6 @@ function NotifRow({
         </View>
       </View>
 
-      {/* Content */}
       <View style={st.content}>
         <Text style={[st.label, { color: colors.text }]} numberOfLines={2}>
           {label}
@@ -161,7 +164,6 @@ function NotifRow({
         <Text style={[st.time, { color: colors.textMuted }]}>{timeAgo(item.created_at)}</Text>
       </View>
 
-      {/* Unread dot */}
       {!item.read && <View style={[st.unreadDot, { backgroundColor: accent }]} />}
     </TouchableOpacity>
   );
@@ -188,16 +190,16 @@ export default function NotificationsScreen() {
     if (!user) return;
     if (!silent) { setLoading(true); setFetchError(null); }
 
-    // 1. Fetch raw notification rows
+    // 1. Fetch rows with real column names
     const { data: rows, error } = await supabase
       .from("notifications")
-      .select("id, user_id, type, actor_id, reference_id, reference_type, data, read, created_at")
+      .select("id, user_id, type, actor_id, entity_id, entity_type, actor_handle, actor_avatar, actor_name, data, read, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(100);
 
     if (error) {
-      console.error("[Notifications] query error:", error.message, error.details, error.hint);
+      console.error("[Notifications] query error:", error.message);
       if (!silent) { setFetchError(error.message ?? "Failed to load notifications"); setLoading(false); }
       return;
     }
@@ -207,18 +209,18 @@ export default function NotificationsScreen() {
       return;
     }
 
-    // 2. Fetch actor profiles for all unique actor_ids in one round-trip
-    const actorIds = [...new Set(rows.map((r: RawNotification) => r.actor_id).filter(Boolean))] as string[];
+    // 2. Enrich actor info from profiles for rows where columns are null
+    const needsProfile = (rows as RawNotification[]).filter(
+      (r) => r.actor_id && (!r.actor_name && !r.actor_handle && !r.actor_avatar)
+    );
+    const actorIds = [...new Set(needsProfile.map((r) => r.actor_id).filter(Boolean))] as string[];
     let profileMap: Record<string, { display_name: string | null; handle: string | null; avatar_url: string | null }> = {};
 
     if (actorIds.length > 0) {
-      const { data: profiles, error: profErr } = await supabase
+      const { data: profiles } = await supabase
         .from("profiles")
         .select("id, display_name, handle, avatar_url")
         .in("id", actorIds);
-
-      if (profErr) console.warn("[Notifications] profiles fetch error:", profErr.message);
-
       if (profiles) {
         for (const p of profiles) {
           profileMap[p.id] = { display_name: p.display_name, handle: p.handle, avatar_url: p.avatar_url };
@@ -226,16 +228,16 @@ export default function NotificationsScreen() {
       }
     }
 
-    // 3. Merge profiles into notifications (null-safe data field)
-    const merged: Notification[] = rows.map((row: RawNotification) => {
-      const profile = row.actor_id ? profileMap[row.actor_id] : null;
+    // 3. Merge — prefer DB columns, fall back to profile join
+    const merged: Notification[] = (rows as RawNotification[]).map((row) => {
+      const profile = row.actor_id && !row.actor_name && !row.actor_handle ? profileMap[row.actor_id] : null;
       return {
         ...row,
         data: row.data ?? {},
         type: row.type as NotifType,
-        actor_name: profile?.display_name ?? null,
-        actor_handle: profile?.handle ?? null,
-        actor_avatar: profile?.avatar_url ?? null,
+        actor_name:   row.actor_name   ?? profile?.display_name ?? null,
+        actor_handle: row.actor_handle ?? profile?.handle       ?? null,
+        actor_avatar: row.actor_avatar ?? profile?.avatar_url   ?? null,
       };
     });
 
@@ -255,19 +257,18 @@ export default function NotificationsScreen() {
     if (!user) return;
 
     const ch = supabase
-      .channel("notifications-inbox-v2")
+      .channel("notifications-inbox-v3")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         async (payload) => {
           const raw = payload.new as RawNotification;
 
-          // Fetch the actor profile for this new notification
-          let actor_name: string | null = null;
-          let actor_handle: string | null = null;
-          let actor_avatar: string | null = null;
+          let actor_name   = raw.actor_name   ?? null;
+          let actor_handle = raw.actor_handle ?? null;
+          let actor_avatar = raw.actor_avatar ?? null;
 
-          if (raw.actor_id) {
+          if (raw.actor_id && !actor_name && !actor_handle) {
             const { data: p } = await supabase
               .from("profiles")
               .select("display_name, handle, avatar_url")
@@ -278,6 +279,7 @@ export default function NotificationsScreen() {
 
           const notif: Notification = {
             ...raw,
+            data: raw.data ?? {},
             type: raw.type as NotifType,
             actor_name,
             actor_handle,
@@ -310,27 +312,30 @@ export default function NotificationsScreen() {
       supabase.from("notifications").update({ read: true }).eq("id", notif.id).then(() => {});
     }
 
-    const refId = notif.reference_id;
-    const handle = notif.actor_handle;
+    const entityId = notif.entity_id;
+    const handle   = notif.actor_handle;
 
     switch (notif.type) {
       case "follow":
+      case "new_follower":
         if (handle) safeRouter.push(`/@${handle}` as any);
+        else if (notif.actor_id) safeRouter.push({ pathname: "/contact/[id]", params: { id: notif.actor_id } } as any);
         break;
       case "message":
-        if (refId) safeRouter.push({ pathname: "/chat/[id]", params: { id: refId } });
+        if (entityId) safeRouter.push({ pathname: "/chat/[id]", params: { id: entityId } });
         break;
       case "like":
       case "comment":
       case "mention":
-        if (refId) safeRouter.push({ pathname: "/p/[id]", params: { id: refId } } as any);
+        if (entityId) safeRouter.push({ pathname: "/p/[id]", params: { id: entityId } } as any);
         break;
       case "gift":
         if (handle) safeRouter.push(`/@${handle}` as any);
         break;
       case "order_update":
       case "order_shipped":
-        if (refId) safeRouter.push({ pathname: "/shop/order/[id]", params: { id: refId } } as any);
+        if (entityId) safeRouter.push({ pathname: "/shop/order/[id]", params: { id: entityId } } as any);
+        else safeRouter.push("/shop/my-orders" as any);
         break;
       case "incoming_call":
         if (handle) safeRouter.push(`/@${handle}` as any);
@@ -389,7 +394,6 @@ export default function NotificationsScreen() {
       >
         {CATEGORIES.map((cat) => {
           const isActive = activeCategory === cat.key;
-          // count unread for this category
           const catUnread =
             cat.key === "all"
               ? unreadCount
@@ -412,12 +416,7 @@ export default function NotificationsScreen() {
                 size={13}
                 color={isActive ? "#fff" : colors.textMuted}
               />
-              <Text
-                style={[
-                  st.pillText,
-                  { color: isActive ? "#fff" : colors.textMuted },
-                ]}
-              >
+              <Text style={[st.pillText, { color: isActive ? "#fff" : colors.textMuted }]}>
                 {cat.label}
               </Text>
               {catUnread > 0 && (
@@ -486,12 +485,7 @@ export default function NotificationsScreen() {
           )}
           ListHeaderComponent={
             filteredUnread > 0 ? (
-              <View
-                style={[
-                  st.unreadBanner,
-                  { backgroundColor: accent + "10", borderBottomColor: accent + "25" },
-                ]}
-              >
+              <View style={[st.unreadBanner, { backgroundColor: accent + "10", borderBottomColor: accent + "25" }]}>
                 <View style={[st.unreadBadge, { backgroundColor: accent }]}>
                   <Text style={st.unreadBadgeText}>{filteredUnread}</Text>
                 </View>
@@ -537,7 +531,6 @@ const st = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
   },
-  // category pills
   pillBar: {
     flexGrow: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -575,7 +568,6 @@ const st = StyleSheet.create({
     fontSize: 9,
     fontFamily: "Inter_700Bold",
   },
-  // content
   center: {
     flex: 1,
     alignItems: "center",
@@ -600,6 +592,19 @@ const st = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     textAlign: "center",
     lineHeight: 20,
+  },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  retryBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
   },
   unreadBanner: {
     flexDirection: "row",
@@ -630,25 +635,23 @@ const st = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 13,
-    gap: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 14,
+    gap: 12,
   },
   avatarWrap: {
     position: "relative",
-    width: 48,
-    height: 48,
-    flexShrink: 0,
+    width: 44,
+    height: 44,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   avatarFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -656,17 +659,17 @@ const st = StyleSheet.create({
     position: "absolute",
     bottom: -2,
     right: -2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: "#fff",
   },
   content: {
     flex: 1,
-    gap: 4,
+    gap: 3,
   },
   label: {
     fontSize: 14,
@@ -678,23 +681,9 @@ const st = StyleSheet.create({
     fontFamily: "Inter_400Regular",
   },
   unreadDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     flexShrink: 0,
-  },
-  retryBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginTop: 4,
-  },
-  retryBtnText: {
-    color: "#fff",
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
   },
 });

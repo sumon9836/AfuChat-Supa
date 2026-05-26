@@ -90,7 +90,7 @@ export async function handleNotificationAction(
           .eq("read", false);
         if (data.notifType) q = (q as any).eq("type", data.notifType);
         if (data.actorId)   q = (q as any).eq("actor_id", data.actorId);
-        if (data.postId)    q = (q as any).eq("reference_id", data.postId);
+        if (data.postId)    q = (q as any).eq("entity_id", data.postId);
         await q;
         break;
       }
