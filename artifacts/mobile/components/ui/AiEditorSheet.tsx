@@ -198,7 +198,7 @@ export default function AiEditorSheet({
           style={[s.sheet, {
             backgroundColor: colors.backgroundSecondary ?? (colors.background as string),
             paddingBottom: Math.max(insets.bottom, 16),
-            maxHeight: sheetH,
+            height: sheetH,
           }]}
         >
           <View style={[StyleSheet.absoluteFill, { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: (colors.border as string) + "80" }]} pointerEvents="none" />
