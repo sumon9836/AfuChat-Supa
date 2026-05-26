@@ -708,7 +708,11 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [editingFolder, setEditingFolder]     = useState<ChatFolder | null>(null);
   const [pageIdx, setPageIdx]           = useState(0);
-  const pagerRef = useRef<FlatList<any>>(null);
+  const pagerRef        = useRef<FlatList<any>>(null);
+  const folderScrollRef = useRef<ScrollView>(null);
+  const tabLayoutsRef   = useRef<Record<number, { x: number; width: number }>>({});
+  const folderPillX     = useRef(new Animated.Value(6)).current;
+  const folderPillW     = useRef(new Animated.Value(52)).current;
 
   // ── Multi-select state ────────────────────────────────────────────────────
   const [selectMode, setSelectMode] = useState(false);
@@ -1418,6 +1422,15 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
     loadFolders().then(setFolders);
   }, [user?.id]);
 
+  // ── Folder pill animation + tab-bar auto-scroll ───────────────────────────
+  useEffect(() => {
+    const layout = tabLayoutsRef.current[pageIdx];
+    if (!layout) return;
+    Animated.spring(folderPillX, { toValue: layout.x - 4, damping: 22, stiffness: 200, useNativeDriver: false }).start();
+    Animated.spring(folderPillW, { toValue: layout.width + 8, damping: 22, stiffness: 200, useNativeDriver: false }).start();
+    folderScrollRef.current?.scrollTo({ x: Math.max(0, layout.x - 40), animated: true });
+  }, [pageIdx]);
+
   // Show the folder tab bar on mobile only when the feature is enabled or
   // the user already has folders (so their data is never hidden).
   const showFolderUI = !panelMode && !isDesktop && (advancedFeatures.chat_folders || folders.length > 0);
@@ -1833,11 +1846,27 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
             ]}
           >
             <ScrollView
+              ref={folderScrollRef}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.folderTabBarContent}
               keyboardShouldPersistTaps="handled"
             >
+              {/* Sliding pill highlight — follows active tab */}
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  top: 5,
+                  bottom: 5,
+                  borderRadius: 20,
+                  backgroundColor: colors.accent + "38",
+                  left: folderPillX,
+                  width: folderPillW,
+                  zIndex: 0,
+                }}
+              />
+
               {pages.map((page, idx) => {
                 const isAll  = !("filter" in page);
                 const label  = isAll ? "All" : page.name;
@@ -1847,7 +1876,17 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                 return (
                   <TouchableOpacity
                     key={isAll ? "all" : page.id}
-                    style={styles.folderTab}
+                    style={[styles.folderTab, { zIndex: 1 }]}
+                    onLayout={(e) => {
+                      tabLayoutsRef.current[idx] = {
+                        x: e.nativeEvent.layout.x,
+                        width: e.nativeEvent.layout.width,
+                      };
+                      if (idx === pageIdx) {
+                        folderPillX.setValue(e.nativeEvent.layout.x - 4);
+                        folderPillW.setValue(e.nativeEvent.layout.width + 8);
+                      }
+                    }}
                     onPress={() => {
                       setPageIdx(idx);
                       if (hasFolders) {
@@ -1887,16 +1926,13 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                         </View>
                       )}
                     </View>
-                    {active && (
-                      <View style={[styles.folderTabUnderline, { backgroundColor: colors.accent }]} />
-                    )}
                   </TouchableOpacity>
                 );
               })}
 
               {advancedFeatures.chat_folders && (
                 <TouchableOpacity
-                  style={[styles.folderAddBtn, { backgroundColor: colors.backgroundSecondary }]}
+                  style={[styles.folderAddBtn, { backgroundColor: colors.backgroundSecondary, zIndex: 1 }]}
                   onPress={() => {
                     setEditingFolder(null);
                     setShowFolderModal(true);
