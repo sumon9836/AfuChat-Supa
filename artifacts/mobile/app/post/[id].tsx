@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Animated,
   FlatList,
   Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +16,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Audio } from "expo-av";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { PostDetailSkeleton } from "@/components/ui/Skeleton";
 import { GlassHeader } from "@/components/ui/GlassHeader";
@@ -24,6 +29,7 @@ import { sharePost } from "@/lib/share";
 import { isUuid, isEncodedId, decodeId, encodeId } from "@/lib/shortId";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useAppAccent } from "@/context/AppAccentContext";
 import { RichText } from "@/components/ui/RichText";
 import { Avatar } from "@/components/ui/Avatar";
 import { ImageViewer, useImageViewer } from "@/components/ImageViewer";
@@ -36,12 +42,194 @@ import { aiSummarizeThread } from "@/lib/aiHelper";
 import { setPageMeta, resetPageMeta } from "@/lib/webMeta";
 import * as Haptics from "@/lib/haptics";
 import { getLocalFeedPost } from "@/lib/storage/localFeed";
+import { uploadToStorage } from "@/lib/mediaUpload";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const USE_NATIVE = Platform.OS !== "web";
+const MAX_CHARS = 500;
+const MAX_VOICE_SECS = 60;
+const WAVEFORM_BARS = 30;
+const QUICK_EMOJIS = ["🔥", "❤️", "😂", "😮", "👏", "💯", "🙌", "😍"];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function formatSecs(totalSecs: number): string {
+  const m = Math.floor(totalSecs / 60);
+  const s = Math.floor(totalSecs % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function genWaveHeights(seed: string): number[] {
+  const n = seed.split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) & 0xffff, 7);
+  return Array.from({ length: WAVEFORM_BARS }, (_, i) => {
+    const v = Math.abs(Math.sin(n * 0.0013 + i * 0.71) * Math.cos(i * 0.43 + n * 0.007));
+    return 0.15 + v * 0.85;
+  });
+}
+
+function parseCommentText(text: string, accent: string): React.ReactNode {
+  return text.split(/(@\w[\w.]*|#\w+)/g).map((p, i) => {
+    if (/^@\w/.test(p)) return <Text key={i} style={{ color: accent, fontFamily: "Inter_600SemiBold" }}>{p}</Text>;
+    if (/^#\w/.test(p)) return <Text key={i} style={{ color: accent + "BB" }}>{p}</Text>;
+    return <Text key={i}>{p}</Text>;
+  });
+}
+
+// ─── WaveformBars ─────────────────────────────────────────────────────────────
+function WaveformBars({ heights, progress, accent, animating }: { heights: number[]; progress: number; accent: string; animating: boolean }) {
+  const pulseAnims = useRef(heights.map(() => new Animated.Value(1))).current;
+  const loopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (animating) {
+      loopRef.current = Animated.loop(
+        Animated.stagger(40, pulseAnims.map((a) =>
+          Animated.sequence([
+            Animated.timing(a, { toValue: 1.5 + Math.random() * 0.5, duration: 200 + Math.random() * 200, useNativeDriver: true }),
+            Animated.timing(a, { toValue: 1, duration: 200, useNativeDriver: true }),
+          ]),
+        )),
+      );
+      loopRef.current.start();
+    } else {
+      loopRef.current?.stop();
+      pulseAnims.forEach((a) => a.setValue(1));
+    }
+    return () => { loopRef.current?.stop(); };
+  }, [animating]);
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 2, height: 28 }}>
+      {heights.map((h, i) => {
+        const isPlayed = progress > 0 && (i + 1) / heights.length <= progress;
+        return (
+          <Animated.View key={i} style={{
+            width: 2.5, height: Math.max(4, h * 26), borderRadius: 2,
+            backgroundColor: isPlayed ? accent : accent + "44",
+            transform: animating ? [{ scaleY: pulseAnims[i] }] : [],
+          }} />
+        );
+      })}
+    </View>
+  );
+}
+
+// ─── VoicePlayer ──────────────────────────────────────────────────────────────
+function VoicePlayer({ uri, durationSecs, accent, colors }: { uri: string; durationSecs: number; accent: string; colors: any }) {
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [positionMs, setPositionMs] = useState(0);
+  const [durationMs, setDurationMs] = useState(Math.max(1000, durationSecs * 1000));
+  const containerWidth = useRef(200);
+  const heights = useMemo(() => genWaveHeights(uri), [uri]);
+  const progress = durationMs > 0 ? positionMs / durationMs : 0;
+
+  useEffect(() => {
+    let mounted = true;
+    Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false }).catch(() => {});
+    Audio.Sound.createAsync({ uri }, { shouldPlay: false })
+      .then(({ sound: s }) => {
+        if (!mounted) { s.unloadAsync().catch(() => {}); return; }
+        s.setOnPlaybackStatusUpdate((st) => {
+          if (!st.isLoaded) return;
+          setPositionMs(st.positionMillis);
+          if (st.durationMillis) setDurationMs(st.durationMillis);
+          if (st.didJustFinish) { setPlaying(false); setPositionMs(0); s.setPositionAsync(0).catch(() => {}); }
+        });
+        setSound(s);
+      }).catch(() => {});
+    return () => { mounted = false; setSound((prev) => { prev?.unloadAsync().catch(() => {}); return null; }); };
+  }, [uri]);
+
+  async function togglePlay() {
+    if (!sound) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (playing) { await sound.pauseAsync(); setPlaying(false); }
+    else { await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false }).catch(() => {}); await sound.playAsync(); setPlaying(true); }
+  }
+
+  function handleSeek(x: number) {
+    if (!sound || durationMs <= 0) return;
+    const ratio = Math.max(0, Math.min(1, x / containerWidth.current));
+    setPositionMs(ratio * durationMs);
+    sound.setPositionAsync(ratio * durationMs).catch(() => {});
+  }
+
+  const displayTime = positionMs > 100 ? formatSecs(Math.floor(positionMs / 1000)) : formatSecs(Math.ceil(durationMs / 1000));
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 14, backgroundColor: colors.inputBg, marginTop: 6, maxWidth: 260, alignSelf: "flex-start" }}>
+      <TouchableOpacity onPress={togglePlay} activeOpacity={0.8} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: accent, alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name={playing ? "pause" : "play"} size={12} color="#fff" />
+      </TouchableOpacity>
+      <View style={{ flex: 1, gap: 3 }}>
+        <TouchableOpacity activeOpacity={0.95} onLayout={(e) => { containerWidth.current = e.nativeEvent.layout.width; }} onPress={(e) => handleSeek(e.nativeEvent.locationX)}>
+          <WaveformBars heights={heights} progress={progress} accent={accent} animating={playing} />
+        </TouchableOpacity>
+        <Text style={{ color: colors.textMuted, fontSize: 10, fontFamily: "Inter_500Medium" }}>{displayTime}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── RecordingBar ─────────────────────────────────────────────────────────────
+function RecordingBar({ elapsed, onStop, accent, colors }: { elapsed: number; onStop: () => void; accent: string; colors: any }) {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pct = elapsed / MAX_VOICE_SECS;
+  const isNearEnd = elapsed >= MAX_VOICE_SECS - 10;
+
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1.4, duration: 600, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  return (
+    <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <Animated.View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: isNearEnd ? "#FF3B30" : "#FF2D55", transform: [{ scale: pulseAnim }] }} />
+      <View style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: colors.border, overflow: "hidden" }}>
+        <View style={{ height: "100%", width: `${pct * 100}%` as any, borderRadius: 2, backgroundColor: isNearEnd ? "#FF3B30" : accent }} />
+      </View>
+      <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: isNearEnd ? "#FF3B30" : colors.textMuted, minWidth: 64, textAlign: "right" }}>
+        {formatSecs(elapsed)}<Text style={{ color: colors.textMuted }}>/{formatSecs(MAX_VOICE_SECS)}</Text>
+      </Text>
+      <TouchableOpacity onPress={onStop} activeOpacity={0.7} style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.inputBg, borderWidth: 1, borderColor: accent + "80", alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name="stop" size={12} color={colors.text} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ─── VoicePreviewBar ──────────────────────────────────────────────────────────
+function VoicePreviewBar({ uri, durationSecs, onDiscard, accent, colors }: { uri: string; durationSecs: number; onDiscard: () => void; accent: string; colors: any }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+      <Ionicons name="mic" size={13} color={accent} />
+      <Text style={{ color: accent, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>Voice note</Text>
+      <View style={{ flex: 1 }}>
+        <VoicePlayer uri={uri} durationSecs={durationSecs} accent={accent} colors={colors} />
+      </View>
+      <TouchableOpacity onPress={onDiscard} hitSlop={8}>
+        <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+type RecordState = "idle" | "recording" | "recorded";
 
 type Reply = {
   id: string;
   content: string;
   created_at: string;
   parent_reply_id: string | null;
+  like_count: number;
+  voice_url: string | null;
+  voice_duration: number | null;
+  image_url: string | null;
   author: { id: string; display_name: string; avatar_url: string | null; handle: string; is_verified: boolean; is_organization_verified: boolean };
   children?: Reply[];
 };
@@ -113,122 +301,120 @@ const THREAD_COLORS = ["#00BCD4", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
 function ReplyCard({
   item,
   colors,
+  accent,
   depth,
   onReplyTo,
 }: {
   item: Reply;
   colors: any;
+  accent: string;
   depth: number;
   onReplyTo: (reply: Reply) => void;
 }) {
   const { displayText, isTranslated, lang } = useAutoTranslate(item.content);
   const [collapsed, setCollapsed] = useState(false);
   const [liked, setLiked] = useState(false);
-  const [localLikes, setLocalLikes] = useState(0);
+  const [localLikes, setLocalLikes] = useState(item.like_count || 0);
+  const [imgExpanded, setImgExpanded] = useState(false);
+  const likeScale = useRef(new Animated.Value(1)).current;
   const indent = Math.min(depth, 4) * 18;
   const hasChildren = (item.children?.length ?? 0) > 0;
   const threadColor = THREAD_COLORS[depth % THREAD_COLORS.length];
   const isTopLevel = depth === 0;
-  const avatarSize = isTopLevel ? 36 : 28;
+  const avatarSize = isTopLevel ? 34 : 26;
 
   function handleLike() {
     const next = !liked;
     setLiked(next);
     setLocalLikes((c) => (next ? c + 1 : Math.max(0, c - 1)));
+    Animated.sequence([
+      Animated.spring(likeScale, { toValue: 1.5, tension: 350, friction: 7, useNativeDriver: USE_NATIVE }),
+      Animated.spring(likeScale, { toValue: 1, tension: 350, friction: 7, useNativeDriver: USE_NATIVE }),
+    ]).start();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
   return (
     <>
-      <View style={{ flexDirection: "row", paddingLeft: 16 + indent, paddingRight: 16, paddingTop: isTopLevel ? 14 : 8, paddingBottom: 2 }}>
-        {/* Thread connector line for nested replies */}
+      <View style={{ flexDirection: "row", paddingLeft: 16 + indent, paddingRight: 16, paddingTop: isTopLevel ? 12 : 7, paddingBottom: 2 }}>
         {depth > 0 && (
-          <View
-            style={{
-              width: 2,
-              borderRadius: 1,
-              backgroundColor: threadColor + "50",
-              position: "absolute",
-              left: 16 + indent - 10,
-              top: 0,
-              bottom: 0,
-            }}
-          />
+          <View style={{ width: 2, borderRadius: 1, backgroundColor: threadColor + "50", position: "absolute", left: 16 + indent - 10, top: 0, bottom: 0 }} />
         )}
 
         {/* Avatar */}
-        <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: item.author.id, init_name: item.author.display_name, init_handle: item.author.handle, init_avatar: item.author.avatar_url ?? "", init_verified: item.author.is_verified ? "1" : "0", init_org_verified: item.author.is_organization_verified ? "1" : "0" } })} activeOpacity={0.8} style={{ marginRight: 10, marginTop: 2 }}>
+        <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: item.author.id, init_name: item.author.display_name, init_handle: item.author.handle, init_avatar: item.author.avatar_url ?? "", init_verified: item.author.is_verified ? "1" : "0", init_org_verified: item.author.is_organization_verified ? "1" : "0" } })} activeOpacity={0.8} style={{ marginRight: 9, marginTop: 1 }}>
           <Avatar uri={item.author.avatar_url} name={item.author.display_name} size={avatarSize} square={!!(item.author.is_organization_verified)} />
-          {isTopLevel && (
-            <View style={{
-              position: "absolute", bottom: -2, right: -2,
-              width: 12, height: 12, borderRadius: 6,
-              backgroundColor: colors.background,
-              alignItems: "center", justifyContent: "center",
-            }}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#34C759" }} />
-            </View>
-          )}
         </TouchableOpacity>
 
         {/* Body */}
         <View style={{ flex: 1 }}>
           {/* Header row */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 3 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap", marginBottom: 2 }}>
             <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: item.author.id, init_name: item.author.display_name, init_handle: item.author.handle, init_avatar: item.author.avatar_url ?? "", init_verified: item.author.is_verified ? "1" : "0", init_org_verified: item.author.is_organization_verified ? "1" : "0" } })} activeOpacity={0.8}>
-              <Text style={{ color: colors.text, fontSize: 13, fontFamily: "Inter_700Bold" }} numberOfLines={1}>
-                {item.author.display_name}
-              </Text>
+              <Text style={{ color: colors.text, fontSize: 13, fontFamily: "Inter_700Bold" }} numberOfLines={1}>{item.author.display_name}</Text>
             </TouchableOpacity>
-            {item.author.is_organization_verified && (
-              <Ionicons name="checkmark-circle" size={13} color={Colors.gold} />
-            )}
-            {!item.author.is_organization_verified && item.author.is_verified && (
-              <Ionicons name="checkmark-circle" size={13} color={colors.accent} />
-            )}
+            {item.author.is_organization_verified && <Ionicons name="checkmark-circle" size={12} color={Colors.gold} />}
+            {!item.author.is_organization_verified && item.author.is_verified && <Ionicons name="checkmark-circle" size={12} color={colors.accent} />}
             <Text style={{ color: colors.textMuted, fontSize: 11 }}>@{item.author.handle}</Text>
             <Text style={{ color: colors.textMuted, fontSize: 11 }}>· {timeAgo(item.created_at)}</Text>
           </View>
 
-          {/* Content */}
-          <RichText style={{ color: colors.text, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21 }}>
-            {displayText}
-          </RichText>
+          {/* Content with mention/hashtag highlighting */}
+          {item.content.length > 0 && (
+            <Text style={{ color: colors.text, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 }}>
+              {parseCommentText(displayText, accent)}
+            </Text>
+          )}
 
           {isTranslated && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 4 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3 }}>
               <Ionicons name="language" size={10} color={colors.textMuted} />
-              <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: colors.textMuted }}>
-                {`Translated · ${LANG_LABELS[lang || ""] ?? lang}`}
-              </Text>
+              <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: colors.textMuted }}>{`Translated · ${LANG_LABELS[lang || ""] ?? lang}`}</Text>
             </View>
           )}
 
+          {/* Voice note */}
+          {item.voice_url && (
+            <VoicePlayer uri={item.voice_url} durationSecs={item.voice_duration ?? 0} accent={accent} colors={colors} />
+          )}
+
+          {/* Image attachment */}
+          {item.image_url && (
+            <>
+              <TouchableOpacity activeOpacity={0.88} onPress={() => setImgExpanded(true)} style={{ marginTop: 7, borderRadius: 10, overflow: "hidden", alignSelf: "flex-start" }}>
+                <Image source={{ uri: item.image_url }} style={{ width: 200, height: 140, borderRadius: 10 }} resizeMode="cover" />
+              </TouchableOpacity>
+              <Modal visible={imgExpanded} transparent animationType="fade" onRequestClose={() => setImgExpanded(false)}>
+                <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.92)", alignItems: "center", justifyContent: "center" }} onPress={() => setImgExpanded(false)}>
+                  <Image source={{ uri: item.image_url }} style={{ width: "92%", height: "70%", borderRadius: 14 }} resizeMode="contain" />
+                  <TouchableOpacity onPress={() => setImgExpanded(false)} style={{ position: "absolute", top: 52, right: 20, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="close" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </Pressable>
+              </Modal>
+            </>
+          )}
+
           {/* Action row */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 16, marginTop: 8, marginBottom: 4 }}>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }} onPress={handleLike} activeOpacity={0.7}>
-              <Ionicons name={liked ? "heart" : "heart-outline"} size={14} color={liked ? "#FF2D55" : colors.textMuted} />
-              {localLikes > 0 && (
-                <Text style={{ color: liked ? "#FF2D55" : colors.textMuted, fontSize: 12, fontFamily: "Inter_600SemiBold" }}>{localLikes}</Text>
-              )}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6, marginBottom: 3 }}>
+            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 3 }} onPress={handleLike} activeOpacity={0.7}>
+              <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+                <Ionicons name={liked ? "heart" : "heart-outline"} size={13} color={liked ? "#FF2D55" : colors.textMuted} />
+              </Animated.View>
+              <Text style={{ color: liked ? "#FF2D55" : colors.textMuted, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>
+                {localLikes > 0 ? localLikes : "Like"}
+              </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }} onPress={() => onReplyTo(item)} activeOpacity={0.7}>
-              <Ionicons name="arrow-undo-outline" size={14} color={colors.textMuted} />
-              <Text style={{ color: colors.textMuted, fontSize: 12, fontFamily: "Inter_600SemiBold" }}>Reply</Text>
+            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 3 }} onPress={() => onReplyTo(item)} activeOpacity={0.7}>
+              <Ionicons name="arrow-undo-outline" size={13} color={colors.textMuted} />
+              <Text style={{ color: colors.textMuted, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>Reply</Text>
             </TouchableOpacity>
 
             {hasChildren && (
-              <TouchableOpacity
-                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-                onPress={() => setCollapsed((c) => !c)}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={collapsed ? "chevron-down-circle-outline" : "chevron-up-circle-outline"}
-                  size={14}
-                  color={threadColor}
-                />
-                <Text style={{ color: threadColor, fontSize: 12, fontFamily: "Inter_600SemiBold" }}>
+              <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 3 }} onPress={() => setCollapsed((c) => !c)} activeOpacity={0.7}>
+                <Ionicons name={collapsed ? "chevron-down" : "chevron-up"} size={12} color={threadColor} />
+                <Text style={{ color: threadColor, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>
                   {collapsed ? `${item.children!.length} ${item.children!.length === 1 ? "reply" : "replies"}` : "Hide"}
                 </Text>
               </TouchableOpacity>
@@ -237,19 +423,16 @@ function ReplyCard({
         </View>
       </View>
 
-      {/* Separator line */}
       {isTopLevel && !hasChildren && (
-        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 16 + indent + avatarSize + 10, marginRight: 16, marginTop: 4 }} />
+        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 16 + indent + avatarSize + 9, marginRight: 16, marginTop: 3 }} />
       )}
 
-      {/* Children */}
       {!collapsed && item.children?.map((child) => (
-        <ReplyCard key={child.id} item={child} colors={colors} depth={depth + 1} onReplyTo={onReplyTo} />
+        <ReplyCard key={child.id} item={child} colors={colors} accent={accent} depth={depth + 1} onReplyTo={onReplyTo} />
       ))}
 
-      {/* Bottom separator after thread group */}
       {isTopLevel && hasChildren && !collapsed && (
-        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 16, marginRight: 16, marginTop: 6, marginBottom: 2 }} />
+        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 16, marginRight: 16, marginTop: 4, marginBottom: 2 }} />
       )}
     </>
   );
@@ -287,9 +470,12 @@ export default function PostDetailScreen() {
     const shortCode = isUuid(rawId) ? encodeId(rawId) : rawId;
     router.replace({ pathname: "/p/[id]", params: { id: shortCode } });
   }, [rawId]);
+
   const { user, profile: myProfile } = useAuth();
   const { colors, isDark } = useTheme();
+  const { accent } = useAppAccent();
   const insets = useSafeAreaInsets();
+
   const [post, setPost] = useState<PostData | null>(null);
   const [replies, setReplies] = useState<Reply[]>([]);
   const [hasMoreReplies, setHasMoreReplies] = useState(false);
@@ -313,8 +499,23 @@ export default function PostDetailScreen() {
   const imgViewer = useImageViewer();
   const { displayText: postDisplayText, isTranslated: postIsTranslated, lang: postLang } = useAutoTranslate(post?.content);
 
+  // Voice recording state
+  const [recordState, setRecordState] = useState<RecordState>("idle");
+  const [recordingObj, setRecordingObj] = useState<Audio.Recording | null>(null);
+  const [recordedUri, setRecordedUri] = useState<string | null>(null);
+  const [recordedDuration, setRecordedDuration] = useState(0);
+  const [recordElapsed, setRecordElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Image attachment state
+  const [attachedImage, setAttachedImage] = useState<{ uri: string; width: number; height: number } | null>(null);
+
+  // Animated send button
+  const sendScale = useRef(new Animated.Value(1)).current;
+
   const isOwner = user && post && post.author.id === user.id;
-  const charLeft = 280 - replyText.length;
+  const charLeft = MAX_CHARS - replyText.length;
+  const canSend = !sending && (replyText.trim().length > 0 || (recordState === "recorded" && !!recordedUri) || !!attachedImage);
 
   const loadPost = useCallback(async () => {
     if (!id) return;
@@ -435,18 +636,30 @@ export default function PostDetailScreen() {
     }
   }, [id, user]);
 
+  const mapReply = (r: any): Reply => ({
+    id: r.id,
+    content: r.content || "",
+    created_at: r.created_at,
+    parent_reply_id: r.parent_reply_id || null,
+    like_count: r.like_count || 0,
+    voice_url: r.voice_url || null,
+    voice_duration: r.voice_duration ?? null,
+    image_url: r.image_url || null,
+    author: r.profiles,
+  });
+
   const loadReplies = useCallback(async () => {
     if (!id) return;
     repliesOffsetRef.current = 0;
     const { data } = await supabase
       .from("post_replies")
-      .select("id, content, created_at, parent_reply_id, profiles!post_replies_author_id_fkey(id, display_name, avatar_url, handle, is_verified, is_organization_verified)")
+      .select("id, content, created_at, parent_reply_id, voice_url, voice_duration, image_url, profiles!post_replies_author_id_fkey(id, display_name, avatar_url, handle, is_verified, is_organization_verified)")
       .eq("post_id", id)
       .order("created_at", { ascending: true })
       .range(0, 49);
 
     if (data) {
-      setReplies(data.map((r: any) => ({ ...r, author: r.profiles, parent_reply_id: r.parent_reply_id || null })));
+      setReplies(data.map(mapReply));
       setHasMoreReplies(data.length === 50);
       repliesOffsetRef.current = data.length;
     }
@@ -458,12 +671,12 @@ export default function PostDetailScreen() {
     const offset = repliesOffsetRef.current;
     const { data } = await supabase
       .from("post_replies")
-      .select("id, content, created_at, parent_reply_id, profiles!post_replies_author_id_fkey(id, display_name, avatar_url, handle, is_verified, is_organization_verified)")
+      .select("id, content, created_at, parent_reply_id, voice_url, voice_duration, image_url, profiles!post_replies_author_id_fkey(id, display_name, avatar_url, handle, is_verified, is_organization_verified)")
       .eq("post_id", id)
       .order("created_at", { ascending: true })
       .range(offset, offset + 49);
     if (data) {
-      setReplies(prev => [...prev, ...data.map((r: any) => ({ ...r, author: r.profiles, parent_reply_id: r.parent_reply_id || null }))]);
+      setReplies(prev => [...prev, ...data.map(mapReply)]);
       setHasMoreReplies(data.length === 50);
       repliesOffsetRef.current = offset + data.length;
     }
@@ -536,24 +749,148 @@ export default function PostDetailScreen() {
     setTimeout(() => replyInputRef.current?.focus(), 100);
   }
 
+  function stopTimer() {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }
+
+  function discardRecording() {
+    stopTimer();
+    if (recordingObj) { recordingObj.stopAndUnloadAsync().catch(() => {}); setRecordingObj(null); }
+    setRecordState("idle");
+    setRecordedUri(null);
+    setRecordedDuration(0);
+    setRecordElapsed(0);
+  }
+
+  async function startRecording() {
+    if (Platform.OS === "web") {
+      Alert.alert("Not supported", "Voice recording is not available on web.");
+      return;
+    }
+    const { granted } = await Audio.requestPermissionsAsync();
+    if (!granted) {
+      Alert.alert("Microphone access needed", "Please enable microphone access in Settings to record voice notes.");
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      setRecordingObj(recording);
+      setRecordElapsed(0);
+      setRecordState("recording");
+      timerRef.current = setInterval(async () => {
+        setRecordElapsed((prev) => {
+          const next = prev + 1;
+          if (next >= MAX_VOICE_SECS) { stopRecording(recording, next); }
+          return next;
+        });
+      }, 1000);
+    } catch (e: any) {
+      Alert.alert("Could not start recording", e?.message || "Please try again.");
+    }
+  }
+
+  async function stopRecording(rec?: Audio.Recording | null, elapsed?: number) {
+    stopTimer();
+    const activeRec = rec ?? recordingObj;
+    if (!activeRec) { setRecordState("idle"); return; }
+    try {
+      const status = await activeRec.getStatusAsync();
+      await activeRec.stopAndUnloadAsync();
+      const uri = activeRec.getURI();
+      const durationMs = (status as any).durationMillis as number | undefined;
+      const durationS = durationMs ? Math.ceil(durationMs / 1000) : (elapsed ?? recordElapsed);
+      setRecordingObj(null);
+      if (uri && durationS > 0) {
+        setRecordedUri(uri);
+        setRecordedDuration(durationS);
+        setRecordState("recorded");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        setRecordState("idle");
+        setRecordElapsed(0);
+      }
+    } catch {
+      setRecordState("idle");
+      setRecordElapsed(0);
+    }
+    await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+  }
+
+  async function pickImage() {
+    if (Platform.OS !== "web") {
+      const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!granted) { Alert.alert("Photos access needed", "Please enable photo library access in Settings."); return; }
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.82, allowsEditing: false });
+    if (!result.canceled && result.assets.length > 0) {
+      const a = result.assets[0];
+      setAttachedImage({ uri: a.uri, width: a.width, height: a.height });
+    }
+  }
+
   async function sendReply() {
-    if (!replyText.trim() || !user || sending) return;
-    if (replyText.trim().length > 280) { showAlert("Too long", "Replies are limited to 280 characters."); return; }
+    const hasText = replyText.trim().length > 0;
+    const hasVoice = recordState === "recorded" && !!recordedUri;
+    const hasImage = !!attachedImage;
+    if (!user || (!hasText && !hasVoice && !hasImage) || sending) return;
+    if (replyText.trim().length > MAX_CHARS) { showAlert("Too long", `Replies are limited to ${MAX_CHARS} characters.`); return; }
+
     setSending(true);
+    Animated.sequence([
+      Animated.spring(sendScale, { toValue: 0.78, tension: 400, friction: 8, useNativeDriver: USE_NATIVE }),
+      Animated.spring(sendScale, { toValue: 1, tension: 400, friction: 8, useNativeDriver: USE_NATIVE }),
+    ]).start();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    let finalVoiceUrl: string | null = null;
+    let finalImageUrl: string | null = null;
+
+    if (hasVoice && recordedUri) {
+      const path = `${user.id}/comment_${Date.now()}.m4a`;
+      const { publicUrl, error } = await uploadToStorage("voice-messages", path, recordedUri, "audio/mp4");
+      if (error || !publicUrl) {
+        Alert.alert("Upload failed", "Could not upload voice note. Please try again.");
+        setSending(false);
+        return;
+      }
+      finalVoiceUrl = publicUrl;
+    }
+
+    if (hasImage && attachedImage) {
+      const uriLower = attachedImage.uri.toLowerCase();
+      const ext = uriLower.includes(".png") ? "png" : uriLower.includes(".webp") ? "webp" : "jpg";
+      const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+      const path = `${user.id}/comment_${id}_${Date.now()}.${ext}`;
+      const { publicUrl, error } = await uploadToStorage("post-images", path, attachedImage.uri, mime);
+      if (error || !publicUrl) {
+        Alert.alert("Upload failed", "Could not upload image. Please try again.");
+        setSending(false);
+        return;
+      }
+      finalImageUrl = publicUrl;
+    }
+
     const content = replyText.trim();
     const insertData: any = { post_id: id, author_id: user.id, content };
     if (replyingTo) insertData.parent_reply_id = replyingTo.id;
+    if (finalVoiceUrl) { insertData.voice_url = finalVoiceUrl; insertData.voice_duration = recordedDuration; }
+    if (finalImageUrl) insertData.image_url = finalImageUrl;
+
     const { error } = await supabase.from("post_replies").insert(insertData);
     if (error) {
       showAlert("Error", "Could not post reply.");
     } else {
-      setReplyText(""); setReplyingTo(null);
+      setReplyText("");
+      setReplyingTo(null);
+      discardRecording();
+      setAttachedImage(null);
       setPost((p) => p ? { ...p, replyCount: p.replyCount + 1 } : p);
       loadReplies();
       try { const { rewardXp } = await import("../../lib/rewardXp"); rewardXp("post_reply"); } catch (_) {}
       if (post && post.author.id !== user.id) {
-        notifyPostReply({ postAuthorId: post.author.id, replierName: myProfile?.display_name || "Someone", replierUserId: user.id, postId: post.id, replyPreview: content });
+        notifyPostReply({ postAuthorId: post.author.id, replierName: myProfile?.display_name || "Someone", replierUserId: user.id, postId: post.id, replyPreview: content || (finalVoiceUrl ? "🎤 Voice note" : finalImageUrl ? "🖼️ Image" : "") });
       }
     }
     setSending(false);
@@ -890,7 +1227,7 @@ export default function PostDetailScreen() {
             </View>
           }
           renderItem={({ item }) => (
-            <ReplyCard item={item} colors={colors} depth={0} onReplyTo={handleReplyTo} />
+            <ReplyCard item={item} colors={colors} accent={accent} depth={0} onReplyTo={handleReplyTo} />
           )}
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
@@ -899,54 +1236,107 @@ export default function PostDetailScreen() {
         {/* Reply composer */}
         {user ? (
           <>
+            {/* Replying-to banner */}
             {replyingTo && (
               <View style={[styles.replyingBanner, { backgroundColor: colors.backgroundSecondary, borderTopColor: colors.border }]}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.replyingText, { color: colors.textMuted }]}>
                     Replying to{" "}
-                    <Text style={{ color: colors.accent, fontFamily: "Inter_600SemiBold" }}>@{replyingTo.author.handle}</Text>
+                    <Text style={{ color: accent, fontFamily: "Inter_600SemiBold" }}>@{replyingTo.author.handle}</Text>
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => { setReplyingTo(null); setReplyText(""); }} hitSlop={8}>
-                  <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
             )}
-            <View style={[styles.composerBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 4, borderTopColor: colors.border, backgroundColor: colors.surface }]}>
-              <Avatar uri={myProfile?.avatar_url ?? null} name={myProfile?.display_name ?? ""} size={32} />
-              <View style={[styles.composerPill, { backgroundColor: colors.inputBg }]}>
-                <TextInput
-                  ref={replyInputRef}
-                  style={[styles.composerInput, { color: colors.text }]}
-                  placeholder={replyingTo ? `Reply to @${replyingTo.author.handle}…` : "Write a reply…"}
-                  placeholderTextColor={colors.textMuted}
-                  value={replyText}
-                  onChangeText={setReplyText}
-                  maxLength={280}
-                  multiline
-                />
-                {replyText.length > 200 && (
-                  <Text style={[styles.charCount, { color: charLeft < 20 ? "#FF3B30" : colors.textMuted }]}>
-                    {charLeft}
-                  </Text>
-                )}
+
+            {/* Image preview bar */}
+            {attachedImage && (
+              <View style={[styles.mediaPreviewBar, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+                <View style={{ position: "relative" }}>
+                  <Image source={{ uri: attachedImage.uri }} style={styles.mediaThumb} resizeMode="cover" />
+                  <TouchableOpacity onPress={() => setAttachedImage(null)} style={styles.mediaRemoveBtn}>
+                    <Ionicons name="close-circle" size={18} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={{ color: colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular" }}>Tap × to remove</Text>
               </View>
-              <TouchableOpacity
-                onPress={sendReply}
-                disabled={!replyText.trim() || sending}
-                style={[styles.sendBtn, { backgroundColor: replyText.trim() && !sending ? colors.accent : colors.border }]}
-              >
-                {sending
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Ionicons name="send" size={17} color={replyText.trim() ? "#fff" : colors.textMuted} />}
-              </TouchableOpacity>
+            )}
+
+            {/* Voice preview bar */}
+            {recordState === "recorded" && recordedUri && (
+              <VoicePreviewBar uri={recordedUri} durationSecs={recordedDuration} onDiscard={discardRecording} accent={accent} colors={colors} />
+            )}
+
+            {/* Quick emoji bar */}
+            <View style={[styles.emojiBar, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+              {QUICK_EMOJIS.map((e) => (
+                <TouchableOpacity key={e} onPress={() => setReplyText((t) => t + e)} style={styles.emojiBtn} activeOpacity={0.6}>
+                  <Text style={styles.emojiText}>{e}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Input row */}
+            <View style={[styles.composerBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 4, borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+              <Avatar uri={myProfile?.avatar_url ?? null} name={myProfile?.display_name ?? ""} size={30} />
+
+              {recordState === "recording" ? (
+                <RecordingBar elapsed={recordElapsed} onStop={() => stopRecording()} accent={accent} colors={colors} />
+              ) : (
+                <View style={[styles.composerPill, { backgroundColor: colors.inputBg }]}>
+                  <TextInput
+                    ref={replyInputRef}
+                    style={[styles.composerInput, { color: colors.text }]}
+                    placeholder={recordState === "recorded" ? "Add a caption… (optional)" : replyingTo ? `Reply to @${replyingTo.author.handle}…` : "Write a reply…"}
+                    placeholderTextColor={colors.textMuted}
+                    value={replyText}
+                    onChangeText={setReplyText}
+                    maxLength={MAX_CHARS}
+                    multiline
+                  />
+                  {replyText.length > MAX_CHARS - 100 && (
+                    <Text style={[styles.charCount, { color: charLeft < 20 ? "#FF3B30" : colors.textMuted }]}>
+                      {charLeft}
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {/* Attachment buttons */}
+              {recordState !== "recording" && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                  <TouchableOpacity onPress={pickImage} activeOpacity={0.7} hitSlop={6}
+                    style={[styles.attachBtn, attachedImage && { backgroundColor: accent + "25" }]}>
+                    <Ionicons name="image-outline" size={19} color={attachedImage ? accent : colors.textMuted} />
+                  </TouchableOpacity>
+                  {recordState === "idle" && Platform.OS !== "web" && (
+                    <TouchableOpacity onPress={startRecording} activeOpacity={0.7} hitSlop={6} style={styles.attachBtn}>
+                      <Ionicons name="mic-outline" size={19} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              <Animated.View style={{ transform: [{ scale: sendScale }] }}>
+                <TouchableOpacity
+                  onPress={sendReply}
+                  disabled={!canSend}
+                  style={[styles.sendBtn, { backgroundColor: canSend ? accent : colors.border }]}
+                >
+                  {sending
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Ionicons name="arrow-up" size={16} color={canSend ? "#fff" : colors.textMuted} />}
+                </TouchableOpacity>
+              </Animated.View>
             </View>
           </>
         ) : (
           <View style={[styles.signInBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 8, borderTopColor: colors.border, backgroundColor: colors.surface }]}>
             <TouchableOpacity
               onPress={() => router.push("/(auth)/login")}
-              style={[styles.signInBtn, { backgroundColor: colors.accent }]}
+              style={[styles.signInBtn, { backgroundColor: accent }]}
             >
               <Ionicons name="log-in-outline" size={18} color="#fff" />
               <Text style={styles.signInBtnText}>Sign in to reply</Text>
@@ -1225,49 +1615,77 @@ const styles = StyleSheet.create({
   replyingBanner: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  replyingText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  replyingText: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  emojiBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 0,
+  },
+  emojiBtn: { flex: 1, alignItems: "center", paddingVertical: 5 },
+  emojiText: { fontSize: 18 },
+  mediaPreviewBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  mediaThumb: { width: 48, height: 48, borderRadius: 8 },
+  mediaRemoveBtn: { position: "absolute", top: -6, right: -6 },
   composerBar: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    gap: 10,
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    gap: 7,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   composerPill: {
     flex: 1,
     flexDirection: "row",
-    alignItems: "flex-end",
-    borderRadius: 22,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 8,
-    minHeight: 44,
+    alignItems: "center",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+    minHeight: 36,
   },
   composerInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Inter_400Regular",
-    lineHeight: 22,
+    lineHeight: 20,
     borderWidth: 0,
     outlineStyle: "none" as any,
-    maxHeight: 120,
+    maxHeight: 90,
+    paddingVertical: 0,
   },
-  charCount: { fontSize: 12, fontFamily: "Inter_500Medium", marginBottom: 2 },
+  charCount: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  attachBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   signInBar: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   signInBtn: {
@@ -1275,10 +1693,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 24,
   },
-  signInBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  signInBtnText: { color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold" },
 
   /* Edit mode */
   editInput: {
