@@ -5318,13 +5318,13 @@ STRICT RULES:
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
                           onSelectionChange={(e) => {
                             const sel = e.nativeEvent.selection;
-                            if (sel.start === sel.end) {
-                              if (selectionClearTimer.current) clearTimeout(selectionClearTimer.current);
-                              selectionClearTimer.current = setTimeout(() => setInputSelection(sel), 150);
-                            } else {
-                              if (selectionClearTimer.current) { clearTimeout(selectionClearTimer.current); selectionClearTimer.current = null; }
-                              setInputSelection(sel);
-                            }
+                            // Always debounce — never fire setInputSelection synchronously.
+                            // Keyboard autocomplete on Android selects the word it will
+                            // replace BEFORE firing onChangeText. An immediate setState here
+                            // causes a re-render that forces value={input} back onto the
+                            // native text mid-replacement, cutting the autocomplete suggestion.
+                            if (selectionClearTimer.current) clearTimeout(selectionClearTimer.current);
+                            selectionClearTimer.current = setTimeout(() => setInputSelection(sel), 150);
                           }}
                           multiline
                           maxLength={4000}
@@ -5469,13 +5469,13 @@ STRICT RULES:
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
                           onSelectionChange={(e) => {
                             const sel = e.nativeEvent.selection;
-                            if (sel.start === sel.end) {
-                              if (selectionClearTimer.current) clearTimeout(selectionClearTimer.current);
-                              selectionClearTimer.current = setTimeout(() => setInputSelection(sel), 150);
-                            } else {
-                              if (selectionClearTimer.current) { clearTimeout(selectionClearTimer.current); selectionClearTimer.current = null; }
-                              setInputSelection(sel);
-                            }
+                            // Always debounce — never fire setInputSelection synchronously.
+                            // Keyboard autocomplete on Android selects the word it will
+                            // replace BEFORE firing onChangeText. An immediate setState here
+                            // causes a re-render that forces value={input} back onto the
+                            // native text mid-replacement, cutting the autocomplete suggestion.
+                            if (selectionClearTimer.current) clearTimeout(selectionClearTimer.current);
+                            selectionClearTimer.current = setTimeout(() => setInputSelection(sel), 150);
                           }}
                           multiline
                           maxLength={4000}
