@@ -93,6 +93,7 @@ import { getDailyUsage, recordDailyUsage } from "@/lib/featureUsage";
 import EmojiStickerPicker from "@/components/chat/EmojiStickerPicker";
 import GiftPickerSheet, { DbGift } from "@/components/gifts/GiftPickerSheet";
 import AiEditorSheet from "@/components/ui/AiEditorSheet";
+import FormatToolbar from "@/components/chat/FormatToolbar";
 import MiniProfilePopup from "@/components/chat/MiniProfilePopup";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import ReAnimated, {
@@ -1517,6 +1518,7 @@ function ChatScreen() {
   const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; handle: string; display_name: string; avatar_url: string | null }[]>([]);
   const [showRedEnvelope, setShowRedEnvelope] = useState(false);
   const [showAiEditor, setShowAiEditor] = useState(false);
+  const [inputSelection, setInputSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
   const [envelopeAmount, setEnvelopeAmount] = useState("");
   const [envelopeMsg, setEnvelopeMsg] = useState("");
   const [envelopeCount, setEnvelopeCount] = useState("1");
@@ -1897,6 +1899,7 @@ function ChatScreen() {
   const chatInputRef = useRef<TextInput>(null);
   const typingTimeout = useRef<any>(null);
   const draftSaveTimer = useRef<any>(null);
+  const selectionClearTimer = useRef<any>(null);
 
   const effectiveChatId = isDraft ? realChatId : id;
 
@@ -5237,6 +5240,13 @@ STRICT RULES:
               <SmartReplyBar messages={messages} myId={user?.id || ""} input={input} onSend={handleSmartReply} colors={colors} />
             )}
             <View style={[st.inputFloatOuter, { paddingBottom: 8 }]}>
+              <FormatToolbar
+                visible={inputSelection.start < inputSelection.end && input.length > 0}
+                selection={inputSelection}
+                value={input}
+                onFormat={(newText) => { setInput(newText); saveDraft(newText); setInputSelection({ start: 0, end: 0 }); }}
+                onClose={() => setInputSelection({ start: 0, end: 0 })}
+              />
               {true ? (
                 <View style={[st.inputGlassPill, { backgroundColor: colors.surface, borderColor: colors.border + "80" }, isRecording && !recLocked ? st.recHoldGlass : undefined]}>
                   <View style={st.inputBarRow}>
@@ -5300,7 +5310,16 @@ STRICT RULES:
                             }
                           }}
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
-
+                          onSelectionChange={(e) => {
+                            const sel = e.nativeEvent.selection;
+                            if (sel.start === sel.end) {
+                              if (selectionClearTimer.current) clearTimeout(selectionClearTimer.current);
+                              selectionClearTimer.current = setTimeout(() => setInputSelection(sel), 150);
+                            } else {
+                              if (selectionClearTimer.current) { clearTimeout(selectionClearTimer.current); selectionClearTimer.current = null; }
+                              setInputSelection(sel);
+                            }
+                          }}
                           multiline
                           maxLength={4000}
                           returnKeyType={chatPrefs.enter_to_send ? "send" : "default"}
@@ -5342,6 +5361,7 @@ STRICT RULES:
                               style={[st.aiAboveSendBtn, { backgroundColor: BRAND + "18", borderColor: BRAND + "50" }]}
                             >
                               <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
+                              <Text style={[st.wordCountLabel, { color: BRAND }]}>{input.trim().split(/\s+/).filter(Boolean).length}w</Text>
                             </TouchableOpacity>
                           ) : <View />}
                         <TouchableOpacity
@@ -5441,7 +5461,16 @@ STRICT RULES:
                             }
                           }}
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
-
+                          onSelectionChange={(e) => {
+                            const sel = e.nativeEvent.selection;
+                            if (sel.start === sel.end) {
+                              if (selectionClearTimer.current) clearTimeout(selectionClearTimer.current);
+                              selectionClearTimer.current = setTimeout(() => setInputSelection(sel), 150);
+                            } else {
+                              if (selectionClearTimer.current) { clearTimeout(selectionClearTimer.current); selectionClearTimer.current = null; }
+                              setInputSelection(sel);
+                            }
+                          }}
                           multiline
                           maxLength={4000}
                           returnKeyType={chatPrefs.enter_to_send ? "send" : "default"}
@@ -5483,6 +5512,7 @@ STRICT RULES:
                               style={[st.aiAboveSendBtn, { backgroundColor: BRAND + "18", borderColor: BRAND + "50" }]}
                             >
                               <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
+                              <Text style={[st.wordCountLabel, { color: BRAND }]}>{input.trim().split(/\s+/).filter(Boolean).length}w</Text>
                             </TouchableOpacity>
                           ) : <View />}
                         <TouchableOpacity
@@ -7343,7 +7373,8 @@ const st = StyleSheet.create({
   input: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 22, outlineStyle: "none" as any, paddingTop: 10, paddingBottom: 10, minHeight: 28, maxHeight: 120 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   sendBtnCol: { alignSelf: "stretch", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
-  aiAboveSendBtn: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, borderWidth: 1.5, alignItems: "center", justifyContent: "center", minWidth: 32 },
+  aiAboveSendBtn: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, borderWidth: 1.5, alignItems: "center", justifyContent: "center", minWidth: 32, gap: 1 },
+  wordCountLabel: { fontSize: 8, fontFamily: "Inter_600SemiBold", opacity: 0.75 },
   recHoldGlass: { },
   recCancelZone: { width: 44, alignItems: "center", justifyContent: "center" },
   recCancelCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,59,48,0.1)", alignItems: "center", justifyContent: "center" },
