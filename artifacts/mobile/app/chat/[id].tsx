@@ -5305,29 +5305,31 @@ STRICT RULES:
                             )}
                           </>
                         )}
+                      </View>
+                    )}
+                    {(input.trim() || attachmentPreview) && !isRecording ? (
+                      <View style={st.sendBtnCol}>
                         {input.trim().length > 50 && !editingMessage && !attachmentPreview && (
                           <TouchableOpacity
                             onPress={() => { Keyboard.dismiss(); setShowAiEditor(true); }}
                             hitSlop={8}
-                            style={st.pillIcon}
+                            style={[st.aiAboveSendBtn, { backgroundColor: BRAND + "18", borderColor: BRAND + "50" }]}
                           >
-                            <Text style={{ color: BRAND, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
+                            <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
                           </TouchableOpacity>
                         )}
+                        <TouchableOpacity
+                          onPress={editingMessage ? saveEditMessage : attachmentPreview ? sendAttachment : () => sendMessage()}
+                          disabled={sending}
+                          style={[st.sendBtn, { backgroundColor: editingMessage ? "#FF9500" : BRAND }]}
+                        >
+                          {sending ? (
+                            <ActivityIndicator color="#fff" size="small" />
+                          ) : (
+                            <Ionicons name={editingMessage ? "checkmark" : "send"} size={18} color="#fff" />
+                          )}
+                        </TouchableOpacity>
                       </View>
-                    )}
-                    {(input.trim() || attachmentPreview) && !isRecording ? (
-                      <TouchableOpacity
-                        onPress={editingMessage ? saveEditMessage : attachmentPreview ? sendAttachment : () => sendMessage()}
-                        disabled={sending}
-                        style={[st.sendBtn, { backgroundColor: editingMessage ? "#FF9500" : BRAND }]}
-                      >
-                        {sending ? (
-                          <ActivityIndicator color="#fff" size="small" />
-                        ) : (
-                          <Ionicons name={editingMessage ? "checkmark" : "send"} size={18} color="#fff" />
-                        )}
-                      </TouchableOpacity>
                     ) : (
                       <View style={isRecording && !recLocked ? st.recMicWrap : undefined}>
                         {isRecording && !recLocked && (
@@ -5442,29 +5444,31 @@ STRICT RULES:
                             )}
                           </>
                         )}
+                      </View>
+                    )}
+                    {(input.trim() || attachmentPreview) && !isRecording ? (
+                      <View style={st.sendBtnCol}>
                         {input.trim().length > 50 && !editingMessage && !attachmentPreview && (
                           <TouchableOpacity
                             onPress={() => { Keyboard.dismiss(); setShowAiEditor(true); }}
                             hitSlop={8}
-                            style={st.pillIcon}
+                            style={[st.aiAboveSendBtn, { backgroundColor: BRAND + "18", borderColor: BRAND + "50" }]}
                           >
-                            <Text style={{ color: BRAND, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
+                            <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
                           </TouchableOpacity>
                         )}
+                        <TouchableOpacity
+                          onPress={editingMessage ? saveEditMessage : attachmentPreview ? sendAttachment : () => sendMessage()}
+                          disabled={sending}
+                          style={[st.sendBtn, { backgroundColor: editingMessage ? "#FF9500" : BRAND }]}
+                        >
+                          {sending ? (
+                            <ActivityIndicator color="#fff" size="small" />
+                          ) : (
+                            <Ionicons name={editingMessage ? "checkmark" : "send"} size={18} color="#fff" />
+                          )}
+                        </TouchableOpacity>
                       </View>
-                    )}
-                    {(input.trim() || attachmentPreview) && !isRecording ? (
-                      <TouchableOpacity
-                        onPress={editingMessage ? saveEditMessage : attachmentPreview ? sendAttachment : () => sendMessage()}
-                        disabled={sending}
-                        style={[st.sendBtn, { backgroundColor: editingMessage ? "#FF9500" : BRAND }]}
-                      >
-                        {sending ? (
-                          <ActivityIndicator color="#fff" size="small" />
-                        ) : (
-                          <Ionicons name={editingMessage ? "checkmark" : "send"} size={18} color="#fff" />
-                        )}
-                      </TouchableOpacity>
                     ) : Platform.OS === "web" ? (
                       <TouchableOpacity onPress={startVoiceRecordingWeb} style={[st.sendBtn, { backgroundColor: BRAND }]} hitSlop={6}>
                         <Ionicons name="mic" size={20} color="#fff" />
@@ -7309,6 +7313,8 @@ const st = StyleSheet.create({
   pillIcon: { paddingHorizontal: 6 },
   input: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 22, outlineStyle: "none" as any, paddingTop: 10, paddingBottom: 10, minHeight: 28, maxHeight: 120 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  sendBtnCol: { alignItems: "center", gap: 4 },
+  aiAboveSendBtn: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, borderWidth: 1.5, alignItems: "center", justifyContent: "center", minWidth: 32 },
   recHoldGlass: { },
   recCancelZone: { width: 44, alignItems: "center", justifyContent: "center" },
   recCancelCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,59,48,0.1)", alignItems: "center", justifyContent: "center" },
