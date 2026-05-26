@@ -1899,6 +1899,7 @@ function ChatScreen() {
   const chatInputRef = useRef<TextInput>(null);
   const typingTimeout = useRef<any>(null);
   const draftSaveTimer = useRef<any>(null);
+  const selectionClearTimer = useRef<any>(null);
 
   const effectiveChatId = isDraft ? realChatId : id;
 
@@ -4898,18 +4899,16 @@ STRICT RULES:
   }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup]);
 
   // Single source of truth for the bottom offset.
-  // Android uses softwareKeyboardLayoutMode:"resize" so the view already shrinks
-  // when the system keyboard shows — we must NOT add keyboardHeight again or the
-  // input bar will be pushed double the keyboard height.
-  // iOS uses adjustPan so we must account for keyboardHeight manually.
-  // For our custom emoji picker (not the system keyboard) both platforms need the offset.
+  // The floatingInputContainer is position:absolute so it cannot rely on
+  // softwareKeyboardLayoutMode:"resize" (Expo Router's screen container does not
+  // propagate the activity resize to absolutely-positioned children).
+  // We therefore apply keyboardHeight manually on BOTH platforms, same as iOS.
+  // Custom emoji picker: use emojiKeyboardHeight (system keyboard is closed then).
   const effectiveBottom = showEmojiStickerPicker && !keyboardHeight
     ? emojiKeyboardHeight + insets.bottom
-    : Platform.OS === "android"
-      ? insets.bottom
-      : keyboardHeight > 0
-        ? keyboardHeight
-        : insets.bottom;
+    : keyboardHeight > 0
+      ? keyboardHeight
+      : insets.bottom;
 
   return (
     <View style={[st.root, { backgroundColor: colors.background }]}>
@@ -5311,7 +5310,19 @@ STRICT RULES:
                             }
                           }}
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
-                          onSelectionChange={(e) => setInputSelection(e.nativeEvent.selection)}
+                          onSelectionChange={(e) => {
+                            const sel = e.nativeEvent.selection;
+                            if (sel.start === sel.end) {
+                              // Debounce deselection: Android fires onSelectionChange({0,0})
+                              // before the FormatToolbar button's onPress, which would hide the
+                              // toolbar before the action completes.
+                              if (selectionClearTimer.current) clearTimeout(selectionClearTimer.current);
+                              selectionClearTimer.current = setTimeout(() => setInputSelection(sel), 150);
+                            } else {
+                              if (selectionClearTimer.current) { clearTimeout(selectionClearTimer.current); selectionClearTimer.current = null; }
+                              setInputSelection(sel);
+                            }
+                          }}
                           contextMenuHidden={Platform.OS !== "web"}
                           multiline
                           maxLength={4000}
@@ -5452,7 +5463,19 @@ STRICT RULES:
                             }
                           }}
                           onFocus={() => { if (showEmojiStickerPicker) setShowEmojiStickerPicker(false); if (showAttachPanel) setShowAttachPanel(false); }}
-                          onSelectionChange={(e) => setInputSelection(e.nativeEvent.selection)}
+                          onSelectionChange={(e) => {
+                            const sel = e.nativeEvent.selection;
+                            if (sel.start === sel.end) {
+                              // Debounce deselection: Android fires onSelectionChange({0,0})
+                              // before the FormatToolbar button's onPress, which would hide the
+                              // toolbar before the action completes.
+                              if (selectionClearTimer.current) clearTimeout(selectionClearTimer.current);
+                              selectionClearTimer.current = setTimeout(() => setInputSelection(sel), 150);
+                            } else {
+                              if (selectionClearTimer.current) { clearTimeout(selectionClearTimer.current); selectionClearTimer.current = null; }
+                              setInputSelection(sel);
+                            }
+                          }}
                           contextMenuHidden={Platform.OS !== "web"}
                           multiline
                           maxLength={4000}

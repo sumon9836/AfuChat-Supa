@@ -1,0 +1,1 @@
+- [Chat keyboard avoidance](chat-keyboard-avoidance.md) — effectiveBottom must use keyboardHeight on BOTH platforms; Android adjustResize does not move absolute children.
