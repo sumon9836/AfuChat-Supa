@@ -29,7 +29,8 @@ import {
 } from "react-native";
 import { ShortsFeedSkeleton } from "@/components/ui/Skeleton";
 import { Video, ResizeMode } from "expo-av";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { activateKeepAwakeAsync, deactivateKeepAwakeAsync } from "expo-keep-awake";
 import { Ionicons } from "@expo/vector-icons";
 
 import { supabase } from "@/lib/supabase";
@@ -586,6 +587,19 @@ export default function ShortsFeed({
   const [globalMuted, setGlobalMuted] = useState(true);
   const cursorRef = useRef<string | null>(null);
   const loadMoreInFlight = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "web") {
+        activateKeepAwakeAsync("shorts-feed").catch(() => {});
+      }
+      return () => {
+        if (Platform.OS !== "web") {
+          deactivateKeepAwakeAsync("shorts-feed").catch(() => {});
+        }
+      };
+    }, [])
+  );
 
   const isFullscreen = layout === "fullscreen";
 

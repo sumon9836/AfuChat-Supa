@@ -81,6 +81,7 @@ import {
 } from "../../lib/feedAlgorithm";
 import * as Haptics from "@/lib/haptics";
 import { VideoCommentsSheet } from "@/components/ui/VideoCommentsSheet";
+import { activateKeepAwakeAsync, deactivateKeepAwakeAsync } from "expo-keep-awake";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -899,7 +900,15 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   useFocusEffect(
     useCallback(() => {
       setTabFocused(true);
-      return () => { setTabFocused(false); };
+      if (Platform.OS !== "web") {
+        activateKeepAwakeAsync("video-feed").catch(() => {});
+      }
+      return () => {
+        setTabFocused(false);
+        if (Platform.OS !== "web") {
+          deactivateKeepAwakeAsync("video-feed").catch(() => {});
+        }
+      };
     }, [])
   );
 
