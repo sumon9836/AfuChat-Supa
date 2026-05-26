@@ -59,7 +59,7 @@ import SignInPromptModal from "@/components/ui/SignInPromptModal";
 import { TrendingSoundsSection } from "@/components/TrendingSoundsSection";
 import { SuggestedUsers } from "@/components/ui/SuggestedUsers";
 import { PostShareCaptureModal, type ShareablePost } from "@/components/ui/PostShareCard";
-import { DiscoverCommentsSheet } from "@/components/ui/DiscoverComments";
+import { VideoCommentsSheet } from "@/components/ui/VideoCommentsSheet";
 
 type PostItem = {
   id: string;
@@ -1871,7 +1871,7 @@ export default function DiscoverScreen() {
 
       <SignInPromptModal visible={showSignInPrompt} onDismiss={() => setShowSignInPrompt(false)} />
 
-      <DiscoverCommentsSheet
+      <VideoCommentsSheet
         visible={!!commentPostId}
         postId={commentPostId ?? ""}
         postAuthorId={commentPostAuthorId}
