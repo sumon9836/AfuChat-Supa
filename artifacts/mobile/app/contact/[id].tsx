@@ -885,6 +885,7 @@ export default function ContactProfileScreen() {
           ListHeaderComponent={profileHeader}
           data={photoPosts}
           keyExtractor={(p) => p.id}
+          key={`photos-${GRID_COLS}`}
           numColumns={GRID_COLS}
           columnWrapperStyle={{ gap: GRID_GAP, paddingHorizontal: GRID_PADDING }}
           ItemSeparatorComponent={() => <View style={{ height: GRID_GAP }} />}
@@ -942,6 +943,7 @@ export default function ContactProfileScreen() {
           ListHeaderComponent={profileHeader}
           data={videoPosts}
           keyExtractor={(p) => p.id}
+          key={`videos-${GRID_COLS}`}
           numColumns={GRID_COLS}
           columnWrapperStyle={{ gap: GRID_GAP, paddingHorizontal: GRID_PADDING }}
           ItemSeparatorComponent={() => <View style={{ height: GRID_GAP }} />}

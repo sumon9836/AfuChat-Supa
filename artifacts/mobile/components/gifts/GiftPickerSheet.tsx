@@ -359,6 +359,7 @@ export default function GiftPickerSheet({
               <FlatList
                 data={filtered}
                 keyExtractor={(item) => item.id}
+                key={`gifts-${CARD_COLS}`}
                 numColumns={CARD_COLS}
                 columnWrapperStyle={styles.gridRow}
                 contentContainerStyle={styles.gridContent}

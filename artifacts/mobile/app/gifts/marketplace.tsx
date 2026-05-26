@@ -367,6 +367,7 @@ export default function GiftMarketplaceScreen() {
         <FlatList
           data={listings}
           keyExtractor={(item) => item.id}
+          key="marketplace-2"
           numColumns={2}
           renderItem={renderListing}
           contentContainerStyle={{ padding: 8, paddingBottom: insets.bottom + 20 }}

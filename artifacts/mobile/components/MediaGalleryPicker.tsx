@@ -244,6 +244,7 @@ export default function MediaGalleryPicker({
           <FlatList
             data={assets}
             keyExtractor={(a) => a.id}
+            key={`gallery-${COLS}`}
             numColumns={COLS}
             contentContainerStyle={{ padding: 2, paddingBottom: insets.bottom + 24 }}
             columnWrapperStyle={{ gap: 2 }}

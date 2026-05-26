@@ -5726,6 +5726,7 @@ STRICT RULES:
                   <FlatList
                     data={thumbData}
                     keyExtractor={(i) => i.id}
+                    key={`thumb-${THUMB_COLS}`}
                     numColumns={THUMB_COLS}
                     style={{ flex: 1 }}
                     contentContainerStyle={{ gap: 2 }}
@@ -5882,6 +5883,7 @@ STRICT RULES:
                   <FlatList
                     data={filtered}
                     keyExtractor={(c) => c.id}
+                    key="contacts-share"
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                     ListEmptyComponent={

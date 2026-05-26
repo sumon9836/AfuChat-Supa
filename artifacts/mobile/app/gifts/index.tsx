@@ -426,6 +426,7 @@ export default function GiftsScreen() {
         <FlatList
           data={owned}
           keyExtractor={(item) => item.id}
+          key="gifts-2"
           numColumns={2}
           renderItem={renderGiftCard}
           extraData={statsMap}

@@ -163,6 +163,7 @@ export default function StoreStorefront() {
         <FlatList
           data={filteredProducts}
           keyExtractor={(i) => i.id}
+          key="shop-2"
           numColumns={2}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.accent} />}

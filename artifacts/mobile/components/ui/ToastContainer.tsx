@@ -62,6 +62,13 @@ function DefaultToast({
     ]).start(() => onAnimatedOut(item.id));
   }, [item.id, onAnimatedOut]);
 
+  // Auto-dismiss: start exit animation when the toast's duration elapses.
+  useEffect(() => {
+    if (!item.duration || item.duration <= 0) return;
+    const t = setTimeout(animateOut, item.duration);
+    return () => clearTimeout(t);
+  }, [item.duration, animateOut]);
+
   return (
     <Animated.View style={[s.pill, { opacity, transform: [{ translateY }, { scale }] }]}>
       <Pressable
@@ -111,6 +118,13 @@ function ActionToast({
       Animated.timing(opacity,    { toValue: 0,  duration: 160, useNativeDriver: true }),
     ]).start(() => onAnimatedOut(item.id));
   }, [item.id, onAnimatedOut]);
+
+  // Auto-dismiss: start exit animation when the toast's duration elapses.
+  useEffect(() => {
+    if (!item.duration || item.duration <= 0) return;
+    const t = setTimeout(animateOut, item.duration);
+    return () => clearTimeout(t);
+  }, [item.duration, animateOut]);
 
   function handleAction() {
     item.onAction?.();
