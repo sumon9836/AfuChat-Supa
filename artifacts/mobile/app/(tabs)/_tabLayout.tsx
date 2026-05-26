@@ -183,7 +183,7 @@ function CompactTabBar({
               width: PILL_W,
               height: PILL_H,
               borderRadius: PILL_H / 2,
-              backgroundColor: colors.accent + "22",
+              backgroundColor: colors.accent + "40",
               left: BAR_PAD + (ITEM_W - PILL_W) / 2,
               transform: [{ translateX: pillX }],
             },
@@ -237,7 +237,14 @@ function CompactTabBar({
                     />
                   )}
                 </View>
-                <Text style={[bar.label, { color: iconColor }]} numberOfLines={1}>
+                <Text
+                  style={[
+                    bar.label,
+                    { color: iconColor },
+                    focused && bar.labelActive,
+                  ]}
+                  numberOfLines={1}
+                >
                   {tab.label}
                 </Text>
               </Pressable>
@@ -302,9 +309,16 @@ const bar = StyleSheet.create({
   label: {
     fontSize: 10.5,
     fontFamily: "Inter_700Bold",
-    letterSpacing: 0.04,
+    fontWeight: Platform.OS === "android" ? "700" : undefined,
+    letterSpacing: 0.1,
     lineHeight: 14,
     textAlign: "center",
+  },
+  labelActive: {
+    fontSize: Platform.OS === "android" ? 11.5 : 11,
+    fontFamily: "Inter_700Bold",
+    fontWeight: Platform.OS === "android" ? "900" : "bold",
+    letterSpacing: 0.15,
   },
   avatar: {
     width: 28,
