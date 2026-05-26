@@ -1,6 +1,22 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+/**
+ * AfuMusic — offline device music player.
+ *
+ * Design goals:
+ *  - Fully offline: reads only from the device's MediaLibrary, no network calls.
+ *  - No loading spinner: tracks stream into the list as each page loads.
+ *  - No stale closures: all playback-control callbacks read from refs so
+ *    repeat/shuffle changes are reflected immediately even mid-song.
+ *  - No 3rd-party push notifications: playing status lives only in the UI.
+ */
+
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
-  ActivityIndicator,
   FlatList,
   LayoutChangeEvent,
   Platform,
@@ -15,15 +31,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
 import * as MediaLibrary from "expo-media-library";
-import * as Notifications from "expo-notifications";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { useTheme } from "@/hooks/useTheme";
 import * as Haptics from "@/lib/haptics";
 
-const NOTIF_ID = "afumusic_player";
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 type AppView = "library" | "player";
 type RepeatMode = "none" | "one" | "all";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const ACCENT_COLORS = [
   "#5856D6", "#FF3B30", "#FF9500", "#34C759",
@@ -31,107 +48,118 @@ const ACCENT_COLORS = [
 ];
 
 function colorForTrack(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return ACCENT_COLORS[Math.abs(hash) % ACCENT_COLORS.length];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return ACCENT_COLORS[Math.abs(h) % ACCENT_COLORS.length];
 }
 
 function formatMs(ms: number): string {
   if (!ms || ms < 0) return "0:00";
   const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  return `${m}:${String(s % 60).padStart(2, "0")}`;
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-function trackTitle(asset: MediaLibrary.Asset): string {
-  return asset.filename.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ").trim();
+function trackTitle(a: MediaLibrary.Asset): string {
+  return a.filename.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ").trim();
 }
 
-function trackArtist(asset: MediaLibrary.Asset): string {
-  const parts = asset.filename.split(/[-–]/);
-  return parts.length >= 2 ? parts[0].trim() : "Unknown Artist";
+function trackArtist(a: MediaLibrary.Asset): string {
+  const p = a.filename.split(/[-–]/);
+  return p.length >= 2 ? p[0].trim() : "Unknown Artist";
 }
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function AfuMusicApp() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  // usePermissions() calls getPermissionsAsync() immediately, which crashes on
-  // Android in Expo Go when READ_MEDIA_AUDIO is not in AndroidManifest.
-  // We manage permission state manually so every native call is in a try/catch.
+
+  // ── Permission ──────────────────────────────────────────────────────────────
+  // We never show a spinner for the permission check — we just show
+  // "Allow Access" immediately if not granted.
   const [permGranted, setPermGranted] = useState(false);
-  const [permDenied, setPermDenied] = useState(false);
-  // Alias so the rest of the component can reference `permission` unchanged
-  const permission = permGranted ? { granted: true } : null;
+  const [permChecked, setPermChecked] = useState(false);
+
   const requestPermission = useCallback(async () => {
     try {
-      const result = await MediaLibrary.requestPermissionsAsync();
-      setPermGranted(result.granted);
-      if (!result.granted) setPermDenied(true);
+      const res = await MediaLibrary.requestPermissionsAsync();
+      setPermGranted(res.granted);
     } catch {
-      // READ_MEDIA_AUDIO not in AndroidManifest — feature unavailable
-      setPermDenied(true);
+      setPermGranted(false);
     }
+    setPermChecked(true);
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { granted } = await MediaLibrary.getPermissionsAsync();
+        setPermGranted(granted);
+      } catch {
+        setPermGranted(false);
+      }
+      setPermChecked(true);
+    })();
+  }, []);
+
+  // ── Library ─────────────────────────────────────────────────────────────────
   const [tracks, setTracks] = useState<MediaLibrary.Asset[]>([]);
-  const [loading, setLoading] = useState(false);
   const [view, setView] = useState<AppView>("library");
+  const [search, setSearch] = useState("");
+
+  // Stream tracks in progressively — each page of 100 is appended immediately
+  // so the list populates as the scan runs, with no blocking spinner.
+  useEffect(() => {
+    if (!permGranted) return;
+    let cancelled = false;
+    (async () => {
+      let after: string | undefined;
+      let hasMore = true;
+      while (hasMore && !cancelled) {
+        try {
+          const page = await MediaLibrary.getAssetsAsync({
+            mediaType: MediaLibrary.MediaType.audio,
+            sortBy: [MediaLibrary.SortBy.default],
+            first: 100,
+            after,
+          });
+          if (!cancelled && page.assets.length > 0) {
+            setTracks(prev => [...prev, ...page.assets]);
+          }
+          hasMore = page.hasNextPage;
+          after = page.endCursor;
+        } catch {
+          break;
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [permGranted]);
+
+  // ── Playback state ──────────────────────────────────────────────────────────
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<RepeatMode>("none");
-  const [search, setSearch] = useState("");
+
   const soundRef = useRef<Audio.Sound | null>(null);
-  const shuffleOrder = useRef<number[]>([]);
-  const shufflePos = useRef(0);
 
-  const currentTrack = currentIndex !== null ? tracks[currentIndex] : null;
+  // ── Refs so finish/next/prev callbacks are never stale ─────────────────────
+  const repeatRef = useRef<RepeatMode>("none");
+  const shuffleRef = useRef(false);
+  const tracksRef = useRef<MediaLibrary.Asset[]>([]);
+  const currentIndexRef = useRef<number | null>(null);
+  const shuffleOrderRef = useRef<number[]>([]);
+  const shufflePosRef = useRef(0);
 
-  const loadLibrary = useCallback(async () => {
-    setLoading(true);
-    try {
-      let allAssets: MediaLibrary.Asset[] = [];
-      let hasMore = true;
-      let after: string | undefined;
-      while (hasMore) {
-        const page = await MediaLibrary.getAssetsAsync({
-          mediaType: MediaLibrary.MediaType.audio,
-          sortBy: [MediaLibrary.SortBy.default],
-          first: 200,
-          after,
-        });
-        allAssets = [...allAssets, ...page.assets];
-        hasMore = page.hasNextPage;
-        after = page.endCursor;
-        if (!hasMore || allAssets.length >= 1000) break;
-      }
-      setTracks(allAssets);
-    } catch (_) {}
-    setLoading(false);
-  }, []);
+  useLayoutEffect(() => { repeatRef.current = repeat; }, [repeat]);
+  useLayoutEffect(() => { shuffleRef.current = shuffle; }, [shuffle]);
+  useLayoutEffect(() => { tracksRef.current = tracks; }, [tracks]);
+  useLayoutEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
 
-  // Check permission on mount without crashing — getPermissionsAsync alone
-  // does NOT prompt the user, so this is safe even on Expo Go/Android.
-  useEffect(() => {
-    (async () => {
-      try {
-        const { granted } = await MediaLibrary.getPermissionsAsync();
-        if (granted) setPermGranted(true);
-        else setPermDenied(true); // show the "Allow Access" button
-      } catch {
-        // AUDIO permission not in manifest on Expo Go — show Allow Access UI
-        setPermDenied(true);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (permission?.granted) {
-      loadLibrary();
-    }
-  }, [permission, loadLibrary]);
-
+  // ── Audio session setup ─────────────────────────────────────────────────────
   useEffect(() => {
     Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
@@ -140,70 +168,53 @@ export default function AfuMusicApp() {
       shouldDuckAndroid: true,
       playThroughEarpieceAndroid: false,
     }).catch(() => {});
-
-    // Set up notification channel (Android) and request permission once
-    if (Platform.OS !== "web") {
-      Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: false,
-          shouldPlaySound: false,
-          shouldSetBadge: false,
-        }),
-      });
-      Notifications.setNotificationChannelAsync("music_player", {
-        name: "Music Player",
-        importance: Notifications.AndroidImportance.LOW,
-        sound: null,
-        vibrationPattern: null,
-        showBadge: false,
-      }).catch(() => {});
-      Notifications.requestPermissionsAsync().catch(() => {});
-    }
-
     return () => {
       soundRef.current?.unloadAsync().catch(() => {});
-      if (Platform.OS !== "web") {
-        Notifications.dismissNotificationAsync(NOTIF_ID).catch(() => {});
-      }
     };
   }, []);
 
-  // Keep the status-bar notification in sync with playback state
-  useEffect(() => {
-    if (Platform.OS === "web") return;
-    if (!currentTrack) {
-      Notifications.dismissNotificationAsync(NOTIF_ID).catch(() => {});
-      return;
-    }
-    Notifications.scheduleNotificationAsync({
-      identifier: NOTIF_ID,
-      content: {
-        title: trackTitle(currentTrack),
-        body: `${trackArtist(currentTrack)} · ${isPlaying ? "Playing" : "Paused"}`,
-        sound: undefined,
-        badge: 0,
-        data: { type: "music_player" },
-        ...(Platform.OS === "android" ? {
-          priority: Notifications.AndroidNotificationPriority.LOW,
-          color: "#5856D6",
-        } : {}),
-      },
-      trigger: null,
-    }).catch(() => {});
-  }, [currentTrack, isPlaying]);
-
-  function buildShuffleOrder() {
-    const order = tracks.map((_, i) => i);
+  // ── Shuffle helper ──────────────────────────────────────────────────────────
+  function buildShuffleOrder(length: number) {
+    const order = Array.from({ length }, (_, i) => i);
     for (let i = order.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [order[i], order[j]] = [order[j], order[i]];
     }
-    shuffleOrder.current = order;
-    shufflePos.current = 0;
+    shuffleOrderRef.current = order;
+    shufflePosRef.current = 0;
   }
 
+  // ── Core playback ───────────────────────────────────────────────────────────
+  // loadAndPlayRef lets handleFinish call the latest loadAndPlay without
+  // needing to capture it in the status callback closure at create time.
+  const loadAndPlayRef = useRef<(index: number) => Promise<void>>();
+
+  const handleFinish = useCallback(() => {
+    const rep = repeatRef.current;
+    const shuf = shuffleRef.current;
+    const trks = tracksRef.current;
+    const ci = currentIndexRef.current ?? 0;
+
+    if (rep === "one") {
+      soundRef.current?.replayAsync().catch(() => {});
+      return;
+    }
+    if (shuf) {
+      shufflePosRef.current = (shufflePosRef.current + 1) % shuffleOrderRef.current.length;
+      loadAndPlayRef.current?.(shuffleOrderRef.current[shufflePosRef.current]);
+    } else {
+      const next = (ci + 1) % trks.length;
+      if (rep === "all" || next !== 0) {
+        loadAndPlayRef.current?.(next);
+      } else {
+        setIsPlaying(false);
+      }
+    }
+  }, []);
+
   const loadAndPlay = useCallback(async (index: number) => {
-    if (index < 0 || index >= tracks.length) return;
+    const trks = tracksRef.current;
+    if (index < 0 || index >= trks.length) return;
     try {
       if (soundRef.current) {
         await soundRef.current.stopAsync().catch(() => {});
@@ -215,80 +226,62 @@ export default function AfuMusicApp() {
       setDuration(0);
       setIsPlaying(false);
 
-      const asset = tracks[index];
       const { sound } = await Audio.Sound.createAsync(
-        { uri: asset.uri },
+        { uri: trks[index].uri },
         { shouldPlay: true, progressUpdateIntervalMillis: 500 },
         (status) => {
           if (!status.isLoaded) return;
           setPosition(status.positionMillis ?? 0);
           setDuration((status as any).durationMillis ?? 0);
           setIsPlaying(status.isPlaying ?? false);
-          if ((status as any).didJustFinish) {
-            handleFinish(index);
-          }
-        }
+          if ((status as any).didJustFinish) handleFinish();
+        },
       );
       soundRef.current = sound;
       setIsPlaying(true);
-    } catch (_) {}
-  }, [tracks, repeat, shuffle]);
+    } catch {}
+  }, [handleFinish]);
 
-  function handleFinish(fromIndex: number) {
-    if (repeat === "one") {
-      soundRef.current?.replayAsync().catch(() => {});
-      return;
-    }
-    if (shuffle) {
-      shufflePos.current = (shufflePos.current + 1) % shuffleOrder.current.length;
-      loadAndPlay(shuffleOrder.current[shufflePos.current]);
-    } else {
-      const next = (fromIndex + 1) % tracks.length;
-      if (repeat === "all" || next !== 0) {
-        loadAndPlay(next);
-      } else {
-        setIsPlaying(false);
-      }
-    }
-  }
+  useLayoutEffect(() => { loadAndPlayRef.current = loadAndPlay; }, [loadAndPlay]);
 
+  // ── Controls ────────────────────────────────────────────────────────────────
   async function playPause() {
     if (!soundRef.current) {
-      if (currentIndex !== null) await loadAndPlay(currentIndex);
+      if (currentIndexRef.current !== null) await loadAndPlay(currentIndexRef.current);
       return;
     }
-    const status = await soundRef.current.getStatusAsync();
-    if (!status.isLoaded) return;
-    if (status.isPlaying) {
-      await soundRef.current.pauseAsync();
-    } else {
-      await soundRef.current.playAsync();
-    }
+    try {
+      const status = await soundRef.current.getStatusAsync();
+      if (!status.isLoaded) return;
+      if (status.isPlaying) await soundRef.current.pauseAsync();
+      else await soundRef.current.playAsync();
+    } catch {}
     Haptics.selectionAsync();
   }
 
   async function playNext() {
-    if (tracks.length === 0) return;
-    const from = currentIndex ?? 0;
-    let next: number;
-    if (shuffle) {
-      shufflePos.current = (shufflePos.current + 1) % shuffleOrder.current.length;
-      next = shuffleOrder.current[shufflePos.current];
+    const trks = tracksRef.current;
+    if (trks.length === 0) return;
+    const ci = currentIndexRef.current ?? 0;
+    if (shuffleRef.current) {
+      shufflePosRef.current = (shufflePosRef.current + 1) % shuffleOrderRef.current.length;
+      await loadAndPlay(shuffleOrderRef.current[shufflePosRef.current]);
     } else {
-      next = (from + 1) % tracks.length;
+      await loadAndPlay((ci + 1) % trks.length);
     }
-    await loadAndPlay(next);
+    Haptics.selectionAsync();
   }
 
   async function playPrev() {
-    if (tracks.length === 0) return;
+    const trks = tracksRef.current;
+    if (trks.length === 0) return;
     if (position > 3000) {
       await soundRef.current?.setPositionAsync(0);
       return;
     }
-    const from = currentIndex ?? 0;
-    const prev = (from - 1 + tracks.length) % tracks.length;
-    await loadAndPlay(prev);
+    const ci = currentIndexRef.current ?? 0;
+    await loadAndPlay((ci - 1 + trks.length) % trks.length);
+    Haptics.selectionAsync();
   }
 
   async function seekTo(ratio: number) {
@@ -300,14 +293,17 @@ export default function AfuMusicApp() {
 
   function handleTrackTap(index: number) {
     Haptics.selectionAsync();
-    if (shuffle && shuffleOrder.current.length !== tracks.length) buildShuffleOrder();
+    if (shuffleRef.current && shuffleOrderRef.current.length !== tracksRef.current.length) {
+      buildShuffleOrder(tracksRef.current.length);
+    }
     loadAndPlay(index);
     setView("player");
   }
 
   function toggleShuffle() {
-    setShuffle(!shuffle);
-    buildShuffleOrder();
+    const next = !shuffleRef.current;
+    setShuffle(next);
+    if (next) buildShuffleOrder(tracksRef.current.length);
     Haptics.selectionAsync();
   }
 
@@ -316,14 +312,15 @@ export default function AfuMusicApp() {
     Haptics.selectionAsync();
   }
 
-  const filtered = search.trim()
-    ? tracks.filter(t => t.filename.toLowerCase().includes(search.trim().toLowerCase()))
-    : tracks;
-
+  // ── Derived ─────────────────────────────────────────────────────────────────
+  const currentTrack = currentIndex !== null ? tracks[currentIndex] : null;
   const progress = duration > 0 ? position / duration : 0;
   const accentColor = currentTrack ? colorForTrack(currentTrack.filename) : "#5856D6";
+  const filtered = search.trim()
+    ? tracks.filter(t => t.filename.toLowerCase().includes(search.toLowerCase()))
+    : tracks;
 
-  // Web: expo-media-library and background audio are not supported on web
+  // ── Web stub ─────────────────────────────────────────────────────────────────
   if (Platform.OS === "web") {
     return (
       <View style={[s.center, { backgroundColor: colors.background, padding: 40 }]}>
@@ -332,20 +329,16 @@ export default function AfuMusicApp() {
         </LinearGradient>
         <Text style={[s.permTitle, { color: colors.text, textAlign: "center" }]}>AfuMusic</Text>
         <Text style={[s.permSub, { color: colors.textMuted, textAlign: "center" }]}>
-          Music playback from your device library is available on the AfuChat Android app.{"\n\n"}Install AfuChat on your phone to enjoy your music offline, in the background, and with a status-bar player.
+          Music playback from your device is only available on the Android app.
         </Text>
       </View>
     );
   }
 
-  // Still checking (neither granted nor denied yet) — show a brief spinner
-  if (!permGranted && !permDenied) {
-    return (
-      <View style={[s.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color="#5856D6" />
-      </View>
-    );
-  }
+  // ── Permission wall (shown only if not yet granted) ──────────────────────────
+  // We wait until `permChecked` to avoid flashing the permission screen briefly
+  // before the async check finishes. Until then, render nothing (blank).
+  if (!permChecked) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
   if (!permGranted) {
     return (
@@ -369,27 +362,19 @@ export default function AfuMusicApp() {
     );
   }
 
+  // ── Player screen ─────────────────────────────────────────────────────────────
   if (view === "player") {
     return (
       <View style={[s.root, { backgroundColor: colors.background }]}>
-        <View style={[s.playerScreen, { paddingTop: 16, paddingBottom: insets.bottom + 20 }]}>
+        <View style={[s.playerScreen, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 20 }]}>
           <TouchableOpacity style={s.downBtn} onPress={() => setView("library")}>
             <Ionicons name="chevron-down" size={28} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <View style={s.albumWrap}>
-            {currentTrack ? (
-              <LinearGradient
-                colors={[accentColor, accentColor + "88"]}
-                style={s.albumArt}
-              >
-                <Ionicons name="musical-notes" size={80} color="rgba(255,255,255,0.9)" />
-              </LinearGradient>
-            ) : (
-              <View style={[s.albumArt, { backgroundColor: colors.surface }]}>
-                <Ionicons name="musical-notes" size={80} color={colors.textMuted} />
-              </View>
-            )}
+            <LinearGradient colors={[accentColor, accentColor + "88"]} style={s.albumArt}>
+              <Ionicons name="musical-notes" size={80} color="rgba(255,255,255,0.9)" />
+            </LinearGradient>
           </View>
 
           <View style={s.trackInfoWrap}>
@@ -397,7 +382,7 @@ export default function AfuMusicApp() {
               {currentTrack ? trackTitle(currentTrack) : "Nothing playing"}
             </Text>
             <Text style={[s.playerArtist, { color: colors.textSecondary }]} numberOfLines={1}>
-              {currentTrack ? trackArtist(currentTrack) : "Select a track"}
+              {currentTrack ? trackArtist(currentTrack) : "Select a track from the library"}
             </Text>
           </View>
 
@@ -418,12 +403,17 @@ export default function AfuMusicApp() {
               <Ionicons name="play-skip-back" size={30} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity style={[s.playBtn, { backgroundColor: accentColor }]} onPress={playPause}>
-              <Ionicons name={isPlaying ? "pause" : "play"} size={30} color="#fff" style={!isPlaying && { marginLeft: 3 }} />
+              <Ionicons
+                name={isPlaying ? "pause" : "play"}
+                size={30}
+                color="#fff"
+                style={!isPlaying && { marginLeft: 3 }}
+              />
             </TouchableOpacity>
             <TouchableOpacity hitSlop={12} onPress={playNext}>
               <Ionicons name="play-skip-forward" size={30} color={colors.text} />
             </TouchableOpacity>
-            <TouchableOpacity hitSlop={16} onPress={toggleRepeat}>
+            <TouchableOpacity hitSlop={16} onPress={toggleRepeat} style={{ alignItems: "center" }}>
               <Ionicons
                 name={repeat === "one" ? "repeat-outline" : "repeat"}
                 size={22}
@@ -436,22 +426,23 @@ export default function AfuMusicApp() {
           </View>
 
           {tracks.length > 0 && (
-            <View style={s.trackCount}>
-              <Text style={[s.trackCountText, { color: colors.textMuted }]}>
-                {currentIndex !== null ? currentIndex + 1 : "—"} / {tracks.length} tracks
-              </Text>
-            </View>
+            <Text style={[s.trackCount, { color: colors.textMuted }]}>
+              {currentIndex !== null ? currentIndex + 1 : "—"} / {tracks.length}
+            </Text>
           )}
         </View>
       </View>
     );
   }
 
+  // ── Library screen ────────────────────────────────────────────────────────────
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
-      <View style={[s.libraryHeader, { borderBottomColor: colors.border }]}>
+      <View style={[s.libraryHeader, { paddingTop: insets.top + 6, borderBottomColor: colors.border }]}>
         <Text style={[s.libraryTitle, { color: colors.text }]}>Music Library</Text>
-        <Text style={[s.libraryCount, { color: colors.textMuted }]}>{tracks.length} songs</Text>
+        <Text style={[s.libraryCount, { color: colors.textMuted }]}>
+          {tracks.length > 0 ? `${tracks.length} songs` : "Scanning…"}
+        </Text>
       </View>
 
       <View style={[s.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
@@ -462,6 +453,8 @@ export default function AfuMusicApp() {
           placeholderTextColor={colors.textMuted}
           value={search}
           onChangeText={setSearch}
+          autoCorrect={false}
+          autoCapitalize="none"
         />
         {search.length > 0 && (
           <TouchableOpacity onPress={() => setSearch("")}>
@@ -470,34 +463,37 @@ export default function AfuMusicApp() {
         )}
       </View>
 
-      {loading ? (
+      {filtered.length === 0 && tracks.length === 0 ? (
+        // Still scanning — show empty list with a subtle hint (no spinner)
         <View style={s.center}>
-          <ActivityIndicator color="#5856D6" size="large" />
-          <Text style={[s.loadingText, { color: colors.textMuted }]}>Scanning music library…</Text>
+          <Ionicons name="musical-notes-outline" size={56} color={colors.textMuted} />
+          <Text style={[s.emptyTitle, { color: colors.text }]}>Scanning your music…</Text>
+          <Text style={[s.emptySub, { color: colors.textMuted }]}>
+            Songs will appear here as they are found.
+          </Text>
         </View>
       ) : filtered.length === 0 ? (
         <View style={s.center}>
-          <Ionicons name="musical-notes-outline" size={56} color={colors.textMuted} />
-          <Text style={[s.emptyTitle, { color: colors.text }]}>
-            {search ? `No results for "${search}"` : "No music found"}
-          </Text>
-          <Text style={[s.emptySub, { color: colors.textMuted }]}>
-            {search ? "Try a different search term." : "Add music files to your device and they'll appear here."}
-          </Text>
+          <Ionicons name="search-outline" size={40} color={colors.textMuted} />
+          <Text style={[s.emptyTitle, { color: colors.text }]}>No results for "{search}"</Text>
         </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: currentTrack ? 88 + insets.bottom : insets.bottom + 16 }}
+          contentContainerStyle={{ paddingBottom: currentTrack ? 96 + insets.bottom : insets.bottom + 16 }}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item, index }) => {
+          windowSize={10}
+          maxToRenderPerBatch={15}
+          initialNumToRender={25}
+          removeClippedSubviews
+          renderItem={({ item }) => {
             const realIndex = tracks.indexOf(item);
             const active = realIndex === currentIndex;
             const color = colorForTrack(item.filename);
             return (
               <TouchableOpacity
-                style={[s.trackRow, active && { backgroundColor: color + "10" }]}
+                style={[s.trackRow, active && { backgroundColor: color + "12" }]}
                 onPress={() => handleTrackTap(realIndex)}
                 activeOpacity={0.75}
               >
@@ -517,15 +513,6 @@ export default function AfuMusicApp() {
                     {item.duration ? ` · ${formatMs(item.duration * 1000)}` : ""}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  hitSlop={10}
-                  onPress={() => {
-                    setCurrentIndex(realIndex);
-                    setView("player");
-                  }}
-                >
-                  <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
-                </TouchableOpacity>
               </TouchableOpacity>
             );
           }}
@@ -534,7 +521,11 @@ export default function AfuMusicApp() {
 
       {currentTrack && (
         <TouchableOpacity
-          style={[s.miniPlayer, { backgroundColor: colors.surface, borderColor: colors.border, bottom: insets.bottom + 8 }]}
+          style={[s.miniPlayer, {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            bottom: insets.bottom + 8,
+          }]}
           onPress={() => setView("player")}
           activeOpacity={0.9}
         >
@@ -542,17 +533,27 @@ export default function AfuMusicApp() {
             <Ionicons name="musical-notes" size={18} color={accentColor} />
           </View>
           <View style={s.miniInfo}>
-            <Text style={[s.miniTitle, { color: colors.text }]} numberOfLines={1}>{trackTitle(currentTrack)}</Text>
-            <Text style={[s.miniArtist, { color: colors.textMuted }]} numberOfLines={1}>{trackArtist(currentTrack)}</Text>
+            <Text style={[s.miniTitle, { color: colors.text }]} numberOfLines={1}>
+              {trackTitle(currentTrack)}
+            </Text>
+            <Text style={[s.miniArtist, { color: colors.textMuted }]} numberOfLines={1}>
+              {trackArtist(currentTrack)}
+            </Text>
           </View>
           <TouchableOpacity hitSlop={12} onPress={playPause} style={s.miniPlayBtn}>
-            <Ionicons name={isPlaying ? "pause-circle" : "play-circle"} size={34} color={accentColor} />
+            <Ionicons
+              name={isPlaying ? "pause-circle" : "play-circle"}
+              size={36}
+              color={accentColor}
+            />
           </TouchableOpacity>
           <TouchableOpacity hitSlop={12} onPress={playNext} style={s.miniNextBtn}>
             <Ionicons name="play-skip-forward" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
           <View style={[s.miniProgress, { backgroundColor: colors.border }]}>
-            <View style={[s.miniProgressFill, { backgroundColor: accentColor, width: `${progress * 100}%` as any }]} />
+            <View
+              style={[s.miniProgressFill, { backgroundColor: accentColor, width: `${progress * 100}%` as any }]}
+            />
           </View>
         </TouchableOpacity>
       )}
@@ -560,11 +561,17 @@ export default function AfuMusicApp() {
   );
 }
 
+// ─── Progress bar ─────────────────────────────────────────────────────────────
+
 function ProgressBar({
   progress, position, duration, accentColor, colors, onSeek,
 }: {
-  progress: number; position: number; duration: number;
-  accentColor: string; colors: any; onSeek: (ratio: number) => void;
+  progress: number;
+  position: number;
+  duration: number;
+  accentColor: string;
+  colors: any;
+  onSeek: (ratio: number) => void;
 }) {
   const [barWidth, setBarWidth] = useState(1);
 
@@ -573,16 +580,16 @@ function ProgressBar({
   }
 
   function handlePress(e: any) {
-    const x = e.nativeEvent.locationX;
-    const ratio = Math.max(0, Math.min(1, x / barWidth));
-    onSeek(ratio);
+    onSeek(Math.max(0, Math.min(1, e.nativeEvent.locationX / barWidth)));
   }
+
+  const pct = `${Math.max(0, Math.min(100, progress * 100))}%` as any;
 
   return (
     <View style={s.progressWrap}>
       <Pressable style={s.progressBar} onLayout={handleLayout} onPress={handlePress}>
         <View style={[s.progressTrack, { backgroundColor: colors.border }]}>
-          <View style={[s.progressFill, { backgroundColor: accentColor, width: `${Math.max(0, Math.min(100, progress * 100))}%` as any }]} />
+          <View style={[s.progressFill, { backgroundColor: accentColor, width: pct }]} />
           <View style={[s.progressThumb, { backgroundColor: accentColor, left: `${Math.max(0, Math.min(98, progress * 100))}%` as any }]} />
         </View>
       </Pressable>
@@ -594,6 +601,8 @@ function ProgressBar({
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const s = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
@@ -602,12 +611,11 @@ const s = StyleSheet.create({
   permSub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 21 },
   permBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14, marginTop: 8 },
   permBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  libraryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  libraryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth },
   libraryTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
   libraryCount: { fontSize: 13, fontFamily: "Inter_400Regular" },
   searchWrap: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginVertical: 10, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9 },
   searchInput: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
-  loadingText: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 8 },
   emptyTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold", textAlign: "center" },
   emptySub: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
   trackRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
@@ -636,11 +644,10 @@ const s = StyleSheet.create({
   progressTrack: { height: 4, borderRadius: 2, width: "100%", position: "relative", overflow: "visible" },
   progressFill: { height: 4, borderRadius: 2, position: "absolute", top: 0, left: 0 },
   progressThumb: { width: 14, height: 14, borderRadius: 7, position: "absolute", top: -5, marginLeft: -7 },
-  timesRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
+  timesRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 6 },
   timeText: { fontSize: 12, fontFamily: "Inter_400Regular" },
   controls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", paddingHorizontal: 4 },
   playBtn: { width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center" },
-  repeatOneDot: { position: "absolute", bottom: -3, left: "50%", width: 5, height: 5, borderRadius: 3 },
-  trackCount: { marginTop: 20 },
-  trackCountText: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  repeatOneDot: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
+  trackCount: { marginTop: 20, fontSize: 12, fontFamily: "Inter_400Regular" },
 });
