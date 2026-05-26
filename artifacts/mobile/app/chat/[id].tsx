@@ -1971,7 +1971,10 @@ function ChatScreen() {
           attachment_url: m.attachment_url,
           attachment_type: m.attachment_type,
           encrypted_content: m.content ?? "",
-        })));
+        })), {
+          autoDownloadPref: chatPrefs.auto_download ? "wifi_only" : "never",
+          saveToGallery: chatPrefs.save_to_gallery,
+        });
         // Background: refresh reactions for cached messages so they reappear after navigation.
         const cachedIds = cached.map((m) => m.id).filter((cid) => !cid.startsWith("pending"));
         if (cachedIds.length > 0) {
@@ -2057,7 +2060,10 @@ function ChatScreen() {
       });
 
       if (Platform.OS !== "web") saveMessages(chatId, mapped).catch(() => {});
-      if (Platform.OS !== "web") autoDownloadChatAttachments(mapped);
+      if (Platform.OS !== "web") autoDownloadChatAttachments(mapped, {
+        autoDownloadPref: chatPrefs.auto_download ? "wifi_only" : "never",
+        saveToGallery: chatPrefs.save_to_gallery,
+      });
       clearUnread(chatId).catch(() => {});
 
       if (!newestStored) {

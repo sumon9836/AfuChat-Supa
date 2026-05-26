@@ -26,6 +26,7 @@ import {
   BubbleStyle,
   MediaQuality,
 } from "@/context/ChatPreferencesContext";
+import { requestGalleryPermissionOnce } from "@/lib/storage/chatAttachmentCache";
 
 const BUBBLE_STYLES: { name: BubbleStyle; radius: number }[] = [
   { name: "Rounded", radius: 18 },
@@ -275,7 +276,34 @@ export default function ChatSettingsScreen() {
         {Platform.OS !== "web" && (
           <>
             <Separator />
-            <ToggleRow icon="download" iconColor="#34C759" label="Save to Gallery" desc="Auto-save received photos and videos to your camera roll" field="save_to_gallery" />
+            <Row
+              icon="download"
+              iconColor="#34C759"
+              label="Save to Gallery"
+              desc="Auto-save received photos and videos to your camera roll"
+              right={
+                <Switch
+                  value={prefs.save_to_gallery}
+                  onValueChange={async (enabled) => {
+                    if (enabled) {
+                      // Request gallery permission ONCE here so background saves
+                      // never need to show a per-file dialog.
+                      const granted = await requestGalleryPermissionOnce();
+                      if (!granted) {
+                        showAlert(
+                          "Permission Required",
+                          "AfuChat needs access to your photo library to save received images. Please enable it in your device Settings.",
+                        );
+                        return;
+                      }
+                    }
+                    updatePref("save_to_gallery", enabled);
+                  }}
+                  trackColor={{ true: themeAccent, false: colors.border }}
+                  thumbColor="#fff"
+                />
+              }
+            />
           </>
         )}
       </GlassCard>

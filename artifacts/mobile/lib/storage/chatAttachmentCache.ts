@@ -67,9 +67,25 @@ export async function ensureChatAttachmentDownloaded(
   return p;
 }
 
+export type AutoDownloadOpts = {
+  /** Mirrors the chat_preferences.auto_download / chat_media_autodownload setting.
+   *  "never"     → no auto-downloads at all (user must tap to download manually).
+   *  "wifi_only" → download only on Wi-Fi (default).
+   *  "always"    → download on any connection.
+   *  Pass the boolean from ChatPrefs as: auto_download ? "wifi_only" : "never"
+   */
+  autoDownloadPref?: "always" | "wifi_only" | "never";
+  /** Mirror downloaded images/gifs to the device gallery.
+   *  Only effective when MediaLibrary permission is already granted.
+   *  Controlled by chat_preferences.save_to_gallery.
+   */
+  saveToGallery?: boolean;
+};
+
 /**
  * Fire-and-forget background download for all attachments in a message list.
- * Videos are skipped (streamed from URL instead — they can be very large).
+ * Videos and raw files are always skipped (too large / user-initiated only).
+ * Respects the user's autoDownloadPref — pass "never" to disable completely.
  */
 export function autoDownloadChatAttachments(
   messages: Array<{
@@ -77,15 +93,37 @@ export function autoDownloadChatAttachments(
     attachment_type?: string | null;
     encrypted_content?: string | null;
   }>,
+  opts: AutoDownloadOpts = {},
 ): void {
   if (Platform.OS === "web") return;
+  const { autoDownloadPref = "wifi_only", saveToGallery = false } = opts;
+  if (autoDownloadPref === "never") return;
   for (const msg of messages) {
     const { attachment_url: url, attachment_type: type } = msg;
     if (!url || !type) continue;
     if (type === "video") continue;  // too large — stream from URL
     if (type === "file") continue;   // user must decide to download
     if (_mem.has(url)) continue;
-    ensureChatAttachmentDownloaded(url, type, msg.encrypted_content ?? undefined).catch(() => {});
+    _downloadWithOpts(url, type, saveToGallery, msg.encrypted_content ?? undefined).catch(() => {});
+  }
+}
+
+/**
+ * Request MediaLibrary permission exactly once — call this when the user
+ * enables "Save to Gallery" in settings so subsequent background saves never
+ * need to show a dialog.
+ * Returns true if permission was granted (or was already granted).
+ */
+export async function requestGalleryPermissionOnce(): Promise<boolean> {
+  if (Platform.OS === "web") return false;
+  try {
+    const ML = await import("expo-media-library");
+    const { status: current } = await ML.getPermissionsAsync();
+    if (current === "granted") return true;
+    const { status } = await ML.requestPermissionsAsync();
+    return status === "granted";
+  } catch {
+    return false;
   }
 }
 
@@ -216,14 +254,19 @@ async function _registerDB(
 
 /**
  * Silently mirror an attachment to the device media library after download.
- * Only runs if MediaLibrary permissions are ALREADY granted — no popup here.
- * Handles image, gif, audio, and story_reply types.
+ * Only runs if:
+ *   1. saveToGallery is true (user has the "Save to Gallery" setting enabled)
+ *   2. MediaLibrary permission is ALREADY granted — no popup triggered here.
+ *      Permission is requested once up-front via requestGalleryPermissionOnce().
+ * Handles image, gif, and story_reply types only.
  */
 async function _saveToDeviceLibrary(
   localPath: string,
   type: string,
   urlHash: string,
+  saveToGallery: boolean,
 ): Promise<void> {
+  if (!saveToGallery) return;
   if (Platform.OS === "web") return;
   // Skip audio — Android requires READ_MEDIA_AUDIO in AndroidManifest which is
   // not declared, causing a hard crash when MediaLibrary checks permissions.
@@ -262,7 +305,25 @@ async function _saveToDeviceLibrary(
   } catch {}
 }
 
-async function _download(url: string, type: string): Promise<string | null> {
+/**
+ * Internal download entry-point called by autoDownloadChatAttachments.
+ * Carries the saveToGallery flag through to _saveToDeviceLibrary.
+ */
+async function _downloadWithOpts(
+  url: string,
+  type: string,
+  saveToGallery: boolean,
+  _hint?: string,
+): Promise<string | null> {
+  if (_mem.has(url)) return _mem.get(url)!;
+  if (_inFlight.has(url)) return _inFlight.get(url)!;
+  const p = _download(url, type, saveToGallery);
+  _inFlight.set(url, p);
+  p.finally(() => _inFlight.delete(url));
+  return p;
+}
+
+async function _download(url: string, type: string, saveToGallery = false): Promise<string | null> {
   try {
     const dir = DIRS[type] ?? DIRS.file;
     await _ensureDir(dir);
@@ -291,8 +352,7 @@ async function _download(url: string, type: string): Promise<string | null> {
     if (existing.exists && (existing as any).size > 0) {
       _mem.set(url, localPath);
       await _registerDB(url, hash, localPath, type, (existing as any).size);
-      // Mirror to device library if permissions allow (fire-and-forget)
-      _saveToDeviceLibrary(localPath, type, hash).catch(() => {});
+      _saveToDeviceLibrary(localPath, type, hash, saveToGallery).catch(() => {});
       return localPath;
     }
 
@@ -303,8 +363,8 @@ async function _download(url: string, type: string): Promise<string | null> {
 
     _mem.set(url, result.uri);
     await _registerDB(url, hash, result.uri, type, (verify as any).size);
-    // Mirror to device media library — silent, no popup (background behaviour)
-    _saveToDeviceLibrary(result.uri, type, hash).catch(() => {});
+    // Mirror to gallery only if user has save_to_gallery enabled and permission is granted
+    _saveToDeviceLibrary(result.uri, type, hash, saveToGallery).catch(() => {});
     return result.uri;
   } catch {
     return null;
