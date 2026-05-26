@@ -265,22 +265,22 @@ function SwipeCard({
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => isTop,
     onMoveShouldSetPanResponder: (_, g) => isTop && (Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4),
-    onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
+    onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: true }),
     onPanResponderRelease: (_, g) => {
       if (g.dy < -SWIPE_THRESHOLD) flyOut("up");
       else if (g.dx > SWIPE_THRESHOLD) flyOut("right");
       else if (g.dx < -SWIPE_THRESHOLD) flyOut("left");
       else if (Math.abs(g.dx) < 8 && Math.abs(g.dy) < 8) {
         onTap();
-        Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
-      } else Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
+        Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: true }).start();
+      } else Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: true }).start();
     },
   }), [isTop]);
 
   function flyOut(dir: "left" | "right" | "up") {
     Haptics.impactAsync();
     const toVal = dir === "right" ? { x: SW * 1.5, y: 0 } : dir === "left" ? { x: -SW * 1.5, y: 0 } : { x: 0, y: -SH * 1.5 };
-    Animated.timing(pan, { toValue: toVal, duration: SWIPE_OUT_DURATION, useNativeDriver: false }).start(() => {
+    Animated.timing(pan, { toValue: toVal, duration: SWIPE_OUT_DURATION, useNativeDriver: true }).start(() => {
       pan.setValue({ x: 0, y: 0 });
       if (dir === "right") onSwipeRight();
       else if (dir === "left") onSwipeLeft();

@@ -41,6 +41,13 @@ config.transformer = {
   minifierConfig: {
     ...(config.transformer?.minifierConfig || {}),
   },
+  // Defer module evaluation until first use — faster startup, less memory
+  getTransformOptions: async () => ({
+    transform: {
+      experimentalImportSupport: false,
+      inlineRequires: true,
+    },
+  }),
 };
 
 /**

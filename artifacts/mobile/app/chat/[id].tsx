@@ -5093,6 +5093,10 @@ STRICT RULES:
               scrollEventThrottle={16}
               onEndReached={loadMoreMessages}
               onEndReachedThreshold={0.3}
+              windowSize={10}
+              initialNumToRender={20}
+              maxToRenderPerBatch={10}
+              updateCellsBatchingPeriod={50}
               onScrollToIndexFailed={(info) => {
                 setTimeout(() => {
                   flatListRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.5 });

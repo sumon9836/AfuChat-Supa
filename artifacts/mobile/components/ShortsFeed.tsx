@@ -591,11 +591,11 @@ export default function ShortsFeed({
   useFocusEffect(
     useCallback(() => {
       if (Platform.OS !== "web") {
-        activateKeepAwakeAsync("shorts-feed").catch(() => {});
+        activateKeepAwakeAsync?.("shorts-feed")?.catch(() => {});
       }
       return () => {
         if (Platform.OS !== "web") {
-          deactivateKeepAwakeAsync("shorts-feed").catch(() => {});
+          deactivateKeepAwakeAsync?.("shorts-feed")?.catch(() => {});
         }
       };
     }, [])

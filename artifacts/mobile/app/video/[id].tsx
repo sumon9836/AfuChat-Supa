@@ -901,12 +901,12 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     useCallback(() => {
       setTabFocused(true);
       if (Platform.OS !== "web") {
-        activateKeepAwakeAsync("video-feed").catch(() => {});
+        activateKeepAwakeAsync?.("video-feed")?.catch(() => {});
       }
       return () => {
         setTabFocused(false);
         if (Platform.OS !== "web") {
-          deactivateKeepAwakeAsync("video-feed").catch(() => {});
+          deactivateKeepAwakeAsync?.("video-feed")?.catch(() => {});
         }
       };
     }, [])
