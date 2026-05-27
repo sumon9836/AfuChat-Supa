@@ -23,6 +23,7 @@ import { TabSwipeProvider } from "@/context/TabSwipeContext";
 import { getLocalConversations } from "@/lib/storage/localConversations";
 import { supabase } from "@/lib/supabase";
 import { emitShortsRefresh } from "@/lib/shortsRefresh";
+import { getTotalUnread, subscribeUnread } from "@/lib/chatUnreadEvents";
 
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
@@ -45,26 +46,35 @@ function normalizeTabPath(p: string): string {
 }
 
 function useTotalUnread(userId: string | undefined): number {
-  const [total, setTotal] = useState(0);
-
-  const refresh = useCallback(async () => {
-    const convs = await getLocalConversations();
-    setTotal(convs.reduce((s, c) => s + (c.unread_count ?? 0), 0));
-  }, []);
-
-  useEffect(() => { refresh(); }, [refresh]);
+  // Initialise from the in-memory store so there is no flash of zero on mount.
+  const [total, setTotal] = useState(() => getTotalUnread());
 
   useEffect(() => {
     if (!userId) return;
-    // Filter to message_status rows for this user — avoids receiving every
-    // message from every user in the system (table-wide subscription).
+
+    // Primary path: ChatsScreen pushes the latest count into the shared store
+    // every time its `chats` state changes. This gives us zero-delay updates.
+    const unsubStore = subscribeUnread(setTotal);
+
+    // Fallback path: if ChatsScreen is not mounted (user is on another tab and
+    // has never visited Chats this session), subscribe to message_status inserts
+    // so the badge still updates when the chat page receives a message and
+    // writes a delivered/read row.
+    const fallbackRefresh = async () => {
+      const convs = await getLocalConversations();
+      setTotal(convs.reduce((s, c) => s + (c.unread_count ?? 0), 0));
+    };
     const ch = supabase
       .channel("tab-bar-unread")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_status", filter: `user_id=eq.${userId}` }, refresh)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "message_status", filter: `user_id=eq.${userId}` }, refresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_status", filter: `user_id=eq.${userId}` }, fallbackRefresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "message_status", filter: `user_id=eq.${userId}` }, fallbackRefresh)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [userId, refresh]);
+
+    return () => {
+      unsubStore();
+      supabase.removeChannel(ch);
+    };
+  }, [userId]);
 
   return total;
 }

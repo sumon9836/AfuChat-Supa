@@ -1,1 +1,3 @@
 - [Chat keyboard avoidance](chat-keyboard-avoidance.md) — effectiveBottom must use keyboardHeight on BOTH platforms; Android adjustResize does not move absolute children.
+- [Unread badge shared store](unread-badge-store.md) — tab bar reads from in-memory store (chatUnreadEvents.ts), not SQLite; ChatsScreen pushes on every chats state change.
+- [Post replies trigger bug](post-replies-trigger.md) — stale DB trigger on post_replies caused comment inserts to fail (42703); migrations applied to drop it.

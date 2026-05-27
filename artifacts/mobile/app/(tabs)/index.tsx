@@ -72,6 +72,7 @@ import {
 import { usePhonebookNames } from "@/hooks/usePhonebookNames";
 import { useContextMenu, ContextMenu } from "@/components/desktop/ContextMenu";
 import { useUnreadNotifCount } from "@/hooks/useUnreadNotifCount";
+import { setTotalUnread } from "@/lib/chatUnreadEvents";
 
 type StoryUser = {
   userId: string;
@@ -1123,6 +1124,13 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
 
   useEffect(() => { loadChats(); }, [loadChats]);
   useFocusEffect(useCallback(() => { loadChats(true); }, [loadChats]));
+
+  // Push the latest total unread into the shared in-memory store so the tab
+  // bar badge updates instantly without waiting for a SQLite round-trip.
+  useEffect(() => {
+    const total = chats.reduce((s, c) => s + (c.unread_count ?? 0), 0);
+    setTotalUnread(total);
+  }, [chats]);
 
   // Right-click context-menu actions on chat list rows.
   const handleChatAction = useCallback(
