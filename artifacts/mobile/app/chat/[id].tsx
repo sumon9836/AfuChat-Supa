@@ -138,6 +138,8 @@ type Message = {
   reply_to_message_id?: string | null;
   reactions?: { emoji: string; count: number; myReaction: boolean }[];
   status?: string;
+  delivered_at?: string | null;
+  read_at?: string | null;
   attachment_url?: string | null;
   attachment_type?: string | null;
   edited_at?: string | null;
@@ -216,6 +218,19 @@ function formatLastSeen(ts: string | null | undefined, showOnlineStatus?: boolea
 function formatMsgTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatMsgInfoTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (isToday) return `Today at ${time}`;
+  if (isYesterday) return `Yesterday at ${time}`;
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} at ${time}`;
 }
 
 function formatDateHeader(iso: string): string {
@@ -771,7 +786,7 @@ function LensContextCard({ msg, onSuggestionTap }: {
   );
 }
 
-function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, replyPreview, onTapReply, isHighlighted, onTapEnvelope, onTapGift, onImageTap, isPremiumSender, onConfirmExec, onCancelExec, onSuggestionTap, onSenderPress, onReactionPress }: {
+function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, replyPreview, onTapReply, isHighlighted, onTapEnvelope, onTapGift, onImageTap, isPremiumSender, onConfirmExec, onCancelExec, onSuggestionTap, onSenderPress, onReactionPress, onStatusPress }: {
   msg: Message;
   isMe: boolean;
   showTail: boolean;
@@ -790,6 +805,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   onSuggestionTap?: (text: string) => void;
   onSenderPress?: (senderId: string) => void;
   onReactionPress?: (msg: Message, emoji: string) => void;
+  onStatusPress?: (msg: Message) => void;
 }) {
   const { colors } = useTheme();
   const BRAND = colors.accent;
@@ -1304,21 +1320,24 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
               {formatMsgTime(msg.sent_at)}
             </Text>
             {isMe && (
-              <Ionicons
-                name={
-                  msg.status === "failed" ? "alert-circle-outline" :
-                  isPending ? "time-outline" :
-                  msg.status === "read" ? "checkmark-done" :
-                  msg.status === "delivered" ? "checkmark-done" : "checkmark"
-                }
-                size={14}
-                color={
-                  msg.status === "failed" ? "#FF4444" :
-                  msg.status === "read" ? "#53BDEB" :
-                  "rgba(255,255,255,0.55)"
-                }
-                style={{ marginLeft: 3 }}
-              />
+              <TouchableOpacity onPress={() => onStatusPress?.(msg)} hitSlop={8} activeOpacity={0.65} disabled={!onStatusPress}>
+                <Ionicons
+                  name={
+                    msg.status === "failed" ? "alert-circle-outline" :
+                    isPending ? "time-outline" :
+                    msg.status === "read" ? "checkmark-done" :
+                    msg.status === "delivered" ? "checkmark-done" : "checkmark"
+                  }
+                  size={14}
+                  color={
+                    msg.status === "failed" ? "#FF4444" :
+                    msg.status === "read" ? "#53BDEB" :
+                    msg.status === "delivered" ? "rgba(255,255,255,0.85)" :
+                    "rgba(255,255,255,0.55)"
+                  }
+                  style={{ marginLeft: 3 }}
+                />
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -1515,6 +1534,7 @@ function ChatScreen() {
   const [editHistoryItems, setEditHistoryItems] = useState<{ id: string; previous_content: string; edited_at: string }[]>([]);
   const [editHistoryLoading, setEditHistoryLoading] = useState(false);
   const [showReactions, setShowReactions] = useState<Message | null>(null);
+  const [msgInfoTarget, setMsgInfoTarget] = useState<Message | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; handle: string; display_name: string; avatar_url: string | null }[]>([]);
   const [showRedEnvelope, setShowRedEnvelope] = useState(false);
@@ -2094,22 +2114,23 @@ function ChatScreen() {
               reactionMap[r.message_id].push({ emoji: r.reaction, count: 1, myReaction: r.user_id === user.id });
             }
           }
-          const readSet = new Set<string>();
-          const deliveredSet = new Set<string>();
+          const statusMap = new Map<string, { read_at: string | null; delivered_at: string | null }>();
           for (const s of (statuses || []) as any[]) {
-            if (s.read_at) readSet.add(s.message_id);
-            else if (s.delivered_at) deliveredSet.add(s.message_id);
+            statusMap.set(s.message_id, { read_at: s.read_at || null, delivered_at: s.delivered_at || null });
           }
           const msgIdSet = new Set(msgIds);
           setMessages((prev) =>
             prev.map((m) => {
               if (!msgIdSet.has(m.id)) return m;
+              const sInfo = statusMap.get(m.id);
               return {
                 ...m,
                 reactions: reactionMap[m.id] ?? m.reactions,
                 status: m.sender_id === user.id
-                  ? (readSet.has(m.id) ? "read" : deliveredSet.has(m.id) ? "delivered" : (m.status || "sent"))
+                  ? (sInfo?.read_at ? "read" : sInfo?.delivered_at ? "delivered" : (m.status || "sent"))
                   : m.status,
+                read_at: m.sender_id === user.id ? (sInfo?.read_at || null) : m.read_at,
+                delivered_at: m.sender_id === user.id ? (sInfo?.delivered_at || null) : m.delivered_at,
               };
             })
           );
@@ -2132,11 +2153,13 @@ function ChatScreen() {
                   message_id: m.id,
                   user_id: user.id,
                   delivered_at: now,
-                  read_at: now,
+                  ...(chatPrefs.read_receipts ? { read_at: now } : {}),
                 })),
                 { onConflict: "message_id,user_id" }
               ).then(() => {});
-              typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: toMark.map((m: any) => m.id), chat_id: id } });
+              if (chatPrefs.read_receipts) {
+                typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: toMark.map((m: any) => m.id), chat_id: id, read_at: now } });
+              }
             }
           });
       }
@@ -2169,11 +2192,9 @@ function ChatScreen() {
         if (existing) { existing.count++; if (r.user_id === user.id) existing.myReaction = true; }
         else reactionMap[r.message_id].push({ emoji: r.reaction, count: 1, myReaction: r.user_id === user.id });
       }
-      const readSet = new Set<string>();
-      const deliveredSet = new Set<string>();
+      const statusMap2 = new Map<string, { read_at: string | null; delivered_at: string | null }>();
       for (const s of (statuses || []) as any[]) {
-        if (s.read_at) readSet.add(s.message_id);
-        else if (s.delivered_at) deliveredSet.add(s.message_id);
+        statusMap2.set(s.message_id, { read_at: s.read_at || null, delivered_at: s.delivered_at || null });
       }
       const mapped = data.map((m: any) => {
         const isBot = m.sender_id === AFUAI_BOT_ID;
@@ -2185,8 +2206,10 @@ function ChatScreen() {
           attachment_url: m.attachment_url, attachment_type: m.attachment_type, edited_at: m.edited_at,
           sender: m.profiles, reactions: reactionMap[m.id] || [],
           status: m.sender_id === user.id
-            ? (readSet.has(m.id) ? "read" : deliveredSet.has(m.id) ? "delivered" : "sent")
+            ? (statusMap2.get(m.id)?.read_at ? "read" : statusMap2.get(m.id)?.delivered_at ? "delivered" : "sent")
             : undefined,
+          read_at: m.sender_id === user.id ? (statusMap2.get(m.id)?.read_at || null) : undefined,
+          delivered_at: m.sender_id === user.id ? (statusMap2.get(m.id)?.delivered_at || null) : undefined,
           _isAi: isBot || undefined,
           _aiActions: aiParsed && aiParsed.actions.length > 0 ? aiParsed.actions : undefined,
           _aiInvoices: aiParsed && aiParsed.invoices.length > 0 ? aiParsed.invoices : undefined,
@@ -2390,8 +2413,11 @@ function ChatScreen() {
           }
 
           if (user) {
-            supabase.from("message_status").upsert({ message_id: newMsg.id, user_id: user.id, delivered_at: new Date().toISOString(), read_at: new Date().toISOString() }, { onConflict: "message_id,user_id" }).then(() => {});
-            typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: [newMsg.id], chat_id: id } });
+            const _rtNow = new Date().toISOString();
+            supabase.from("message_status").upsert({ message_id: newMsg.id, user_id: user.id, delivered_at: _rtNow, ...(chatPrefs.read_receipts ? { read_at: _rtNow } : {}) }, { onConflict: "message_id,user_id" }).then(() => {});
+            if (chatPrefs.read_receipts) {
+              typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: [newMsg.id], chat_id: id, read_at: _rtNow } });
+            }
             markChatVisited(id);
           }
         }
@@ -2468,13 +2494,14 @@ function ChatScreen() {
     };
 
     const handleReadEvent = (payload: any) => {
-      const { reader_id, message_ids } = (payload.payload || {}) as { reader_id: string; message_ids: string[] };
+      const { reader_id, message_ids, read_at: rawReadAt } = (payload.payload || {}) as { reader_id: string; message_ids: string[]; read_at?: string };
       if (!reader_id || reader_id === user?.id || !Array.isArray(message_ids)) return;
       const readSet = new Set(message_ids);
+      const readAt = rawReadAt || new Date().toISOString();
       setMessages((prev) =>
         prev.map((m) =>
           m.sender_id === user?.id && readSet.has(m.id)
-            ? { ...m, status: "read" as const }
+            ? { ...m, status: "read" as const, read_at: readAt }
             : m
         )
       );
@@ -4899,6 +4926,7 @@ STRICT RULES:
             onSuggestionTap={(text) => sendMessage(text)}
             onSenderPress={advancedFeatures.mini_profile_popup && !isMe ? (id) => setMiniProfileUserId(id) : undefined}
             onReactionPress={addReaction}
+            onStatusPress={isMe ? (m) => setMsgInfoTarget(m) : undefined}
           />
         )}
       </View>
@@ -6237,6 +6265,15 @@ STRICT RULES:
                 <Text style={[st.reactModalActionText, { color: colors.text }]}>Edit</Text>
               </TouchableOpacity>
             )}
+            {showReactions && showReactions.sender_id === user?.id && (
+              <TouchableOpacity
+                style={st.reactModalAction}
+                onPress={() => { setMsgInfoTarget(showReactions); setShowReactions(null); setAiResult(null); setAiResultType(null); setAiReplies([]); }}
+              >
+                <Ionicons name="information-circle-outline" size={20} color={colors.text} />
+                <Text style={[st.reactModalActionText, { color: colors.text }]}>Message Info</Text>
+              </TouchableOpacity>
+            )}
             {advancedFeatures.message_edit_history && showReactions && showReactions.edited_at && (
               <TouchableOpacity
                 style={st.reactModalAction}
@@ -6565,6 +6602,47 @@ STRICT RULES:
               ))}
           </View>
         </ScrollView>
+      </BottomSheet>
+
+      <BottomSheet visible={!!msgInfoTarget} onClose={() => setMsgInfoTarget(null)}>
+        <View style={{ paddingHorizontal: 20, paddingBottom: 24 }}>
+          <Text style={[st.sheetTitle, { color: colors.text }]}>Message Info</Text>
+          <View style={{ gap: 18, marginTop: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+              <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: colors.inputBg, alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="checkmark" size={18} color={colors.textMuted} />
+              </View>
+              <View>
+                <Text style={{ fontSize: 12, color: colors.textMuted, fontFamily: "Inter_400Regular", textTransform: "uppercase", letterSpacing: 0.5 }}>Sent</Text>
+                <Text style={{ fontSize: 15, color: colors.text, fontFamily: "Inter_500Medium", marginTop: 2 }}>
+                  {msgInfoTarget ? formatMsgInfoTime(msgInfoTarget.sent_at) : ""}
+                </Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 14, opacity: msgInfoTarget?.delivered_at ? 1 : 0.4 }}>
+              <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: colors.inputBg, alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="checkmark-done" size={18} color={colors.textMuted} />
+              </View>
+              <View>
+                <Text style={{ fontSize: 12, color: colors.textMuted, fontFamily: "Inter_400Regular", textTransform: "uppercase", letterSpacing: 0.5 }}>Delivered</Text>
+                <Text style={{ fontSize: 15, color: colors.text, fontFamily: "Inter_500Medium", marginTop: 2 }}>
+                  {msgInfoTarget?.delivered_at ? formatMsgInfoTime(msgInfoTarget.delivered_at) : "Awaiting delivery"}
+                </Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 14, opacity: msgInfoTarget?.read_at ? 1 : 0.4 }}>
+              <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: msgInfoTarget?.read_at ? "#53BDEB22" : colors.inputBg, alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="checkmark-done" size={18} color={msgInfoTarget?.read_at ? "#53BDEB" : colors.textMuted} />
+              </View>
+              <View>
+                <Text style={{ fontSize: 12, color: colors.textMuted, fontFamily: "Inter_400Regular", textTransform: "uppercase", letterSpacing: 0.5 }}>Read</Text>
+                <Text style={{ fontSize: 15, color: msgInfoTarget?.read_at ? colors.text : colors.textMuted, fontFamily: msgInfoTarget?.read_at ? "Inter_500Medium" : "Inter_400Regular", marginTop: 2 }}>
+                  {msgInfoTarget?.read_at ? formatMsgInfoTime(msgInfoTarget.read_at) : "Not yet read"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
       </BottomSheet>
 
       <Modal visible={!!envReveal} transparent animationType="fade" onRequestClose={() => setEnvReveal(null)}>

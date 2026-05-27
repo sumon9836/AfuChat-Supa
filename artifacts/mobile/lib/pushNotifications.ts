@@ -503,7 +503,22 @@ export function setupNotificationListeners() {
 
   // OS plays the channel sound for push notifications automatically.
   // In-app sound is handled per-screen (e.g. the active open chat).
-  const receivedSubscription = Notifications.addNotificationReceivedListener(() => {});
+  // Mark delivered_at so senders know the message reached this device even if the chat is not open.
+  const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
+    const data = (notification.request.content.data || {}) as Record<string, string>;
+    if (data.message_id) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return;
+        supabase
+          .from("message_status")
+          .upsert(
+            { message_id: data.message_id, user_id: user.id, delivered_at: new Date().toISOString() },
+            { onConflict: "message_id,user_id", ignoreDuplicates: true }
+          )
+          .then(() => {});
+      }).catch(() => {});
+    }
+  });
 
   // Handle action button taps AND notification taps
   const responseSubscription = Notifications.addNotificationResponseReceivedListener(

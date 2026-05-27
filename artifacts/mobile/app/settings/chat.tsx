@@ -236,7 +236,7 @@ export default function ChatSettingsScreen() {
       <GlassCard style={styles.group} variant="medium">
         <ToggleRow icon="volume-high" iconColor="#007AFF" label="Sound Effects" desc="Play sounds for sent and received messages" field="sounds_enabled" />
         <Separator />
-        <ToggleRow icon="checkmark-done" iconColor="#34C759" label="Read Receipts" desc="Let others see when you've read their messages" field="read_receipts" />
+        <ToggleRow icon="checkmark-done" iconColor="#34C759" label="Read Receipts" desc="When on, senders see when and at what time you've read their messages. Senders always see delivery status." field="read_receipts" />
         <Separator />
         <ToggleRow icon="link" iconColor="#FF2D55" label="Link Previews" desc="Show rich previews for URLs in messages" field="link_previews" />
         {Platform.OS !== "web" && (
