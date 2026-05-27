@@ -19,6 +19,26 @@ config.resolver = {
     path.resolve(__dirname, "node_modules"),
     path.resolve(__dirname, "../../node_modules"),
   ],
+  // On web, use the Reanimated mock instead of the real library.
+  // The real react-native-reanimated@4 uses react-native-worklets which crashes
+  // in JSWorklets mode (web) with "createSerializableObject should never be called".
+  resolveRequest: (context, moduleName, platform) => {
+    if (platform === "web") {
+      if (moduleName === "react-native-reanimated") {
+        return {
+          filePath: path.resolve(__dirname, "lib/reanimated-web-shim.js"),
+          type: "sourceFile",
+        };
+      }
+      if (moduleName === "react-native-worklets") {
+        return {
+          filePath: path.resolve(__dirname, "lib/worklets-web-shim.js"),
+          type: "sourceFile",
+        };
+      }
+    }
+    return context.resolveRequest(context, moduleName, platform);
+  },
 };
 
 /**

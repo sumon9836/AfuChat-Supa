@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+const ND = Platform.OS !== "web";
 import {
   registerAlertListener,
   unregisterAlertListener,
@@ -39,17 +40,17 @@ export default function AlertModal() {
       Animated.parallel([
         Animated.spring(scale, {
           toValue: 1,
-          useNativeDriver: true,
+          useNativeDriver: ND,
           damping: 20,
           stiffness: 300,
           mass: 0.8,
         }),
-        Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: ND }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(scale, { toValue: 0.88, duration: 140, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0, duration: 140, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 0.88, duration: 140, useNativeDriver: ND }),
+        Animated.timing(opacity, { toValue: 0, duration: 140, useNativeDriver: ND }),
       ]).start();
     }
   }, [state.visible]);

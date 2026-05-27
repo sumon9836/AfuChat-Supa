@@ -17,7 +17,17 @@ export function useOpenLink() {
     (url: string) => {
       if (!url) return;
       const trimmed = url.trim();
-      if (isWebUrl(trimmed) && Platform.OS !== "web" && features.in_app_browser) {
+      if (Platform.OS === "web") {
+        if (isWebUrl(trimmed)) {
+          if (typeof window !== "undefined") {
+            window.open(trimmed, "_blank", "noopener,noreferrer");
+          }
+        } else {
+          Linking.openURL(trimmed).catch(() => {});
+        }
+        return;
+      }
+      if (isWebUrl(trimmed) && features.in_app_browser) {
         router.push({ pathname: "/browser", params: { url: trimmed } });
       } else {
         Linking.openURL(trimmed).catch(() => {});

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, View } from "react-native";
+import { Animated, Platform, View } from "react-native";
+const ND = Platform.OS !== "web";
 import Svg, { Circle } from "react-native-svg";
 import Colors from "@/constants/colors";
 import { useAppAccent } from "@/context/AppAccentContext";
@@ -16,12 +17,12 @@ export function PremiumRing({ size, children }: Props) {
 
   useEffect(() => {
     const spinAnim = Animated.loop(
-      Animated.timing(spin, { toValue: 1, duration: 3200, useNativeDriver: true })
+      Animated.timing(spin, { toValue: 1, duration: 3200, useNativeDriver: ND })
     );
     const pulseAnim = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.06, duration: 1200, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1.06, duration: 1200, useNativeDriver: ND }),
+        Animated.timing(pulse, { toValue: 1, duration: 1200, useNativeDriver: ND }),
       ])
     );
     spinAnim.start();

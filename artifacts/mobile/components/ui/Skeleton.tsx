@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, View, ViewStyle } from "react-native";
+import { Animated, Platform, StyleSheet, View, ViewStyle } from "react-native";
+const ND = Platform.OS !== "web";
 import { useTheme } from "../../hooks/useTheme";
 
 type SkeletonProps = {
@@ -18,8 +19,8 @@ export function Skeleton({ width, height, borderRadius = 8, style, forceDark }: 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 800, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 800, useNativeDriver: ND }),
+        Animated.timing(anim, { toValue: 0.3, duration: 800, useNativeDriver: ND }),
       ])
     );
     loop.start();

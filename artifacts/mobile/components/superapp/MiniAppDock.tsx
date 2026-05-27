@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -98,11 +99,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 10,
+    ...Platform.select({
+      web: { boxShadow: "0 3px 12px rgba(0,0,0,0.18)" } as any,
+      default: { shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 3 }, elevation: 10 },
+    }),
     maxWidth: "90%",
   },
   dockItem: {

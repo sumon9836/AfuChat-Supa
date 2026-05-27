@@ -108,7 +108,7 @@ function CompactTabBar({
       toValue,
       damping: 20,
       stiffness: 180,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== "web",
     }).start();
   }, [active]);
 
@@ -356,7 +356,7 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
         lazy: false,
         freezeOnBlur: true,
         sceneStyle: { backgroundColor: "transparent" },
-        tabBarStyle: { display: "none", backgroundColor: "transparent", elevation: 0, shadowOpacity: 0, borderTopWidth: 0 },
+        tabBarStyle: { display: "none", backgroundColor: "transparent", elevation: 0, ...(Platform.OS !== "web" ? { shadowOpacity: 0 } : {}), borderTopWidth: 0 },
         tabBarBackground: () => null,
       }}
     >

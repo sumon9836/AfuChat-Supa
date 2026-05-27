@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+const ND = Platform.OS !== "web";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { dismissToast, registerToastListener, type ToastItem } from "@/lib/toast";
@@ -46,9 +47,9 @@ function DefaultToast({
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(translateY, { toValue: 0, tension: 220, friction: 20, useNativeDriver: true }),
-      Animated.timing(opacity,    { toValue: 1, duration: 160, useNativeDriver: true }),
-      Animated.spring(scale,      { toValue: 1, tension: 220, friction: 20, useNativeDriver: true }),
+      Animated.spring(translateY, { toValue: 0, tension: 220, friction: 20, useNativeDriver: ND }),
+      Animated.timing(opacity,    { toValue: 1, duration: 160, useNativeDriver: ND }),
+      Animated.spring(scale,      { toValue: 1, tension: 220, friction: 20, useNativeDriver: ND }),
     ]).start();
   }, []);
 
@@ -56,9 +57,9 @@ function DefaultToast({
     if (dismissingRef.current) return;
     dismissingRef.current = true;
     Animated.parallel([
-      Animated.timing(translateY, { toValue: 60,  duration: 200, useNativeDriver: true }),
-      Animated.timing(opacity,    { toValue: 0,   duration: 160, useNativeDriver: true }),
-      Animated.timing(scale,      { toValue: 0.9, duration: 200, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 60,  duration: 200, useNativeDriver: ND }),
+      Animated.timing(opacity,    { toValue: 0,   duration: 160, useNativeDriver: ND }),
+      Animated.timing(scale,      { toValue: 0.9, duration: 200, useNativeDriver: ND }),
     ]).start(() => onAnimatedOut(item.id));
   }, [item.id, onAnimatedOut]);
 
@@ -105,8 +106,8 @@ function ActionToast({
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(translateY, { toValue: 0, tension: 220, friction: 20, useNativeDriver: true }),
-      Animated.timing(opacity,    { toValue: 1, duration: 160, useNativeDriver: true }),
+      Animated.spring(translateY, { toValue: 0, tension: 220, friction: 20, useNativeDriver: ND }),
+      Animated.timing(opacity,    { toValue: 1, duration: 160, useNativeDriver: ND }),
     ]).start();
   }, []);
 
@@ -114,8 +115,8 @@ function ActionToast({
     if (dismissingRef.current) return;
     dismissingRef.current = true;
     Animated.parallel([
-      Animated.timing(translateY, { toValue: 60, duration: 200, useNativeDriver: true }),
-      Animated.timing(opacity,    { toValue: 0,  duration: 160, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 60, duration: 200, useNativeDriver: ND }),
+      Animated.timing(opacity,    { toValue: 0,  duration: 160, useNativeDriver: ND }),
     ]).start(() => onAnimatedOut(item.id));
   }, [item.id, onAnimatedOut]);
 

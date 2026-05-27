@@ -586,10 +586,12 @@ function TabBar({
                 borderColor: colors.border,
                 borderBottomWidth: active ? 0 : 0,
                 borderBottomColor: "transparent",
-                shadowColor: active ? "#000" : "transparent",
-                shadowOffset: { width: 0, height: -1 },
-                shadowOpacity: active ? 0.06 : 0,
-                shadowRadius: 2,
+                ...(Platform.OS !== "web" ? {
+                  shadowColor: active ? "#000" : "transparent",
+                  shadowOffset: { width: 0, height: -1 },
+                  shadowOpacity: active ? 0.06 : 0,
+                  shadowRadius: 2,
+                } : {}),
               },
             ]}
           >
