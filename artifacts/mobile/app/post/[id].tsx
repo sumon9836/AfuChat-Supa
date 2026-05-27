@@ -651,13 +651,14 @@ export default function PostDetailScreen() {
   const loadReplies = useCallback(async () => {
     if (!id) return;
     repliesOffsetRef.current = 0;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("post_replies")
       .select("id, content, created_at, parent_reply_id, voice_url, voice_duration, image_url, profiles!post_replies_author_id_fkey(id, display_name, avatar_url, handle, is_verified, is_organization_verified)")
       .eq("post_id", id)
       .order("created_at", { ascending: true })
       .range(0, 49);
 
+    if (error) console.error("[PostDetails] loadReplies:", error.message, error.code);
     if (data) {
       setReplies(data.map(mapReply));
       setHasMoreReplies(data.length === 50);

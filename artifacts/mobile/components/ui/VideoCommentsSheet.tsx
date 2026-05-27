@@ -525,7 +525,8 @@ export function VideoCommentsSheet({
       .eq("post_id", postId)
       .order("created_at", { ascending: true })
       .limit(50)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) console.error("[VideoCommentsSheet] loadReplies:", error.message, error.code);
         if (data) {
           setReplies(data.map((r: any) => ({
             id: r.id,
@@ -775,6 +776,7 @@ export function VideoCommentsSheet({
       setAttachedImage(null);
       if (!wasThreaded) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 150);
     } else if (error) {
+      console.error("[VideoCommentsSheet] sendReply:", error.message, error.code, error.details);
       Alert.alert(
         "Comment failed",
         "Your comment could not be posted. If this keeps happening, check the Status page under Settings → Help & About.",
