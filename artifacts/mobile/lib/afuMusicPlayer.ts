@@ -14,6 +14,11 @@
 import { Audio } from "expo-av";
 import { AppState, Platform } from "react-native";
 import type * as MediaLibraryTypes from "expo-media-library";
+import {
+  initMusicNotification,
+  updateMusicNotification,
+  dismissMusicNotification,
+} from "./musicNotification";
 
 export type RepeatMode = "none" | "one" | "all";
 
@@ -50,6 +55,7 @@ class AfuMusicPlayerSingleton {
   constructor() {
     if (Platform.OS === "web") return;
     this._initAudioMode();
+    initMusicNotification().catch(() => {});
     AppState.addEventListener("change", (next) => {
       if (next === "active") this._initAudioMode();
     });
@@ -73,11 +79,21 @@ class AfuMusicPlayerSingleton {
     return () => this._listeners.delete(listener);
   }
 
+  private _lastNotifIndex: number | null = undefined as any;
+  private _lastNotifPlaying: boolean = false;
+
   private _emit() {
     const snap = { ...this._state };
     this._listeners.forEach((l) => {
       try { l(snap); } catch {}
     });
+    const indexChanged = snap.currentIndex !== this._lastNotifIndex;
+    const playingChanged = snap.isPlaying !== this._lastNotifPlaying;
+    if (indexChanged || playingChanged) {
+      this._lastNotifIndex = snap.currentIndex;
+      this._lastNotifPlaying = snap.isPlaying;
+      updateMusicNotification(snap).catch(() => {});
+    }
   }
 
   // ── State accessors ───────────────────────────────────────────────────────

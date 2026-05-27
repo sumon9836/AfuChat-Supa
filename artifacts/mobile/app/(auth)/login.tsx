@@ -352,7 +352,6 @@ export default function LoginScreen() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
-  const [forgotVisible, setForgotVisible] = useState(false);
   const [verifyVisible, setVerifyVisible] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState("");
   const oauthHandledRef = useRef(false);
@@ -554,7 +553,7 @@ export default function LoginScreen() {
               </View>
 
               {/* Forgot password */}
-              <TouchableOpacity onPress={() => setForgotVisible(true)} style={{ alignSelf: "flex-end", marginTop: -2 }}>
+              <TouchableOpacity onPress={() => router.push("/(auth)/reset-password")} style={{ alignSelf: "flex-end", marginTop: -2 }}>
                 <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>Forgot password?</Text>
               </TouchableOpacity>
 
@@ -612,7 +611,6 @@ export default function LoginScreen() {
       </KeyboardAvoidingView>
 
       {/* Modals */}
-      <ForgotPasswordModal visible={forgotVisible} onClose={() => setForgotVisible(false)} isDark={isDark} />
       <EmailVerifyModal visible={verifyVisible} email={verifyEmail} onClose={() => setVerifyVisible(false)} onVerified={() => { setVerifyVisible(false); router.replace("/(tabs)/chats"); }} isDark={isDark} />
     </View>
   );

@@ -1,76 +1,119 @@
 import React, { useState } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/hooks/useTheme";
+import { showAlert } from "@/lib/alert";
+
+type Step = "email" | "code";
 
 export default function ResetPasswordNative() {
   const { colors } = useTheme();
+  const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [code, setCode] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [sent, setSent] = useState(false);
 
-  const handleSubmit = async () => {
+  async function sendCode() {
     const trimmed = email.trim();
     if (!trimmed) { setError("Please enter your email address."); return; }
     setError("");
-    setSubmitting(true);
+    setLoading(true);
     try {
       const { error: sbErr } = await supabase.auth.resetPasswordForEmail(trimmed, {
-        redirectTo: "https://afuchat.com/update-password",
+        redirectTo: "https://afuchat.com/",
       });
       if (sbErr) throw sbErr;
-      setSent(true);
+      setStep("code");
     } catch (e: any) {
-      setError(e.message || "Failed to send reset email.");
+      setError(e.message || "Failed to send reset code.");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
-  };
+  }
+
+  async function doReset() {
+    if (!code.trim()) { setError("Please enter the code from your email."); return; }
+    if (newPwd.length < 6) { setError("Password must be at least 6 characters."); return; }
+    if (newPwd !== confirmPwd) { setError("Passwords don't match."); return; }
+    setError("");
+    setLoading(true);
+    try {
+      const { error: e1 } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: code.trim(),
+        type: "recovery",
+      });
+      if (e1) throw new Error("The code is invalid or expired.");
+      const { error: e2 } = await supabase.auth.updateUser({ password: newPwd });
+      if (e2) throw e2;
+      await supabase.auth.signOut();
+      showAlert("Password updated", "Your password has been changed. Please sign in.");
+      router.replace("/(auth)/login");
+    } catch (e: any) {
+      setError(e.message || "Failed to reset password.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const accent = "#00BCD4";
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={[s.root, { backgroundColor: colors.background }]} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity style={s.back} onPress={() => router.back()}>
+      <ScrollView
+        contentContainerStyle={[s.root, { backgroundColor: colors.background }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Back */}
+        <TouchableOpacity style={s.back} onPress={() => step === "code" ? setStep("email") : router.back()}>
           <Ionicons name="chevron-back" size={22} color={colors.text} />
-          <Text style={[s.backTxt, { color: colors.text }]}>Back</Text>
+          <Text style={[s.backTxt, { color: colors.text }]}>
+            {step === "code" ? "Back" : "Sign in"}
+          </Text>
         </TouchableOpacity>
 
+        {/* Icon */}
         <View style={[s.iconWrap, { backgroundColor: "rgba(0,188,212,.12)", borderColor: "rgba(0,188,212,.22)" }]}>
-          <Ionicons name="key-outline" size={28} color="#00BCD4" />
+          <Ionicons name={step === "email" ? "key-outline" : "lock-closed-outline"} size={28} color={accent} />
         </View>
 
-        <Text style={[s.title, { color: colors.text }]}>Forgot password?</Text>
+        {/* Title */}
+        <Text style={[s.title, { color: colors.text }]}>
+          {step === "email" ? "Forgot password?" : "Create new password"}
+        </Text>
         <Text style={[s.sub, { color: colors.textMuted }]}>
-          Enter your email and we'll send a reset link.
+          {step === "email"
+            ? "Enter your email and we'll send a 6-digit reset code."
+            : `Code sent to ${email}. Enter it below with your new password.`}
         </Text>
 
+        {/* Error */}
         {error !== "" && (
           <View style={s.errBox}>
             <Text style={s.errTxt}>{error}</Text>
           </View>
         )}
 
-        {sent ? (
-          <>
-            <View style={[s.successBox, { backgroundColor: "rgba(52,199,89,.12)", borderColor: "rgba(52,199,89,.25)" }]}>
-              <Text style={{ color: "#34C759", fontSize: 14, textAlign: "center", lineHeight: 22 }}>
-                ✅ Reset link sent! Check your inbox and spam folder, then click the link to set your new password.
-              </Text>
-            </View>
-            <TouchableOpacity style={[s.btn, { backgroundColor: "#00BCD4" }]} onPress={() => router.replace("/(auth)/login")}>
-              <Text style={s.btnTxt}>Back to sign in</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
+        {step === "email" ? (
           <>
             <View style={[s.inputWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
               <Ionicons name="mail-outline" size={17} color={colors.textMuted} style={{ marginRight: 8 }} />
@@ -84,15 +127,81 @@ export default function ResetPasswordNative() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoFocus
+                onSubmitEditing={sendCode}
+                returnKeyType="go"
               />
             </View>
             <TouchableOpacity
-              style={[s.btn, { backgroundColor: "#00BCD4", opacity: submitting ? 0.6 : 1 }]}
-              onPress={handleSubmit}
-              disabled={submitting}
+              style={[s.btn, { backgroundColor: accent, opacity: loading ? 0.6 : 1 }]}
+              onPress={sendCode}
+              disabled={loading}
               activeOpacity={0.85}
             >
-              <Text style={s.btnTxt}>{submitting ? "Sending…" : "Send reset link"}</Text>
+              {loading
+                ? <ActivityIndicator color="#000" size="small" />
+                : <Text style={s.btnTxt}>Send Reset Code</Text>}
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            {/* OTP code */}
+            <View style={[s.inputWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+              <Ionicons name="keypad-outline" size={17} color={colors.textMuted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={[s.input, { color: colors.text }]}
+                placeholder="6-digit code from email"
+                placeholderTextColor={colors.textMuted}
+                value={code}
+                onChangeText={setCode}
+                keyboardType="number-pad"
+                autoFocus
+              />
+            </View>
+            {/* New password */}
+            <View style={[s.inputWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+              <Ionicons name="lock-closed-outline" size={17} color={colors.textMuted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={[s.input, { color: colors.text }]}
+                placeholder="New password"
+                placeholderTextColor={colors.textMuted}
+                value={newPwd}
+                onChangeText={setNewPwd}
+                secureTextEntry={!showPwd}
+              />
+              <TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}>
+                <Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={17} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            {/* Confirm password */}
+            <View style={[s.inputWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+              <Ionicons name="lock-closed-outline" size={17} color={colors.textMuted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={[s.input, { color: colors.text }]}
+                placeholder="Confirm new password"
+                placeholderTextColor={colors.textMuted}
+                value={confirmPwd}
+                onChangeText={setConfirmPwd}
+                secureTextEntry={!showPwd}
+                onSubmitEditing={doReset}
+                returnKeyType="go"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[s.btn, { backgroundColor: accent, opacity: loading ? 0.6 : 1 }]}
+              onPress={doReset}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading
+                ? <ActivityIndicator color="#000" size="small" />
+                : <Text style={s.btnTxt}>Update Password</Text>}
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={sendCode} style={{ alignSelf: "center", paddingVertical: 8 }}>
+              <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>
+                ← Resend code
+              </Text>
             </TouchableOpacity>
           </>
         )}
@@ -102,16 +211,15 @@ export default function ResetPasswordNative() {
 }
 
 const s = StyleSheet.create({
-  root: { flexGrow: 1, padding: 28, paddingTop: 60 },
+  root: { flexGrow: 1, padding: 28, paddingTop: 56 },
   back: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 32, alignSelf: "flex-start" },
   backTxt: { fontSize: 16, fontFamily: "Inter_500Medium" },
   iconWrap: { width: 60, height: 60, borderRadius: 18, borderWidth: 1, alignItems: "center", justifyContent: "center", marginBottom: 20 },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", marginBottom: 8 },
-  sub: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, marginBottom: 28 },
+  sub: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, marginBottom: 24 },
   errBox: { backgroundColor: "rgba(192,57,43,.12)", borderColor: "rgba(192,57,43,.3)", borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 14 },
   errTxt: { color: "#FF6B6B", fontSize: 13, fontFamily: "Inter_400Regular" },
-  successBox: { borderWidth: 1, borderRadius: 10, padding: 16, marginBottom: 20 },
-  inputWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14 },
+  inputWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 },
   input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
   btn: { borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
   btnTxt: { color: "#000", fontSize: 15, fontFamily: "Inter_700Bold" },

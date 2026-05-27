@@ -18,7 +18,7 @@
         "buildType": "apk"
       },
       "distribution": "internal",
-      "autoIncrement": true,
+      "autoIncrement": false,
       "env": {
         "EXPO_PUBLIC_EAS_PROJECT_ID": "363a3c64-5a90-4aae-86b5-aa54014921ef",
         "EXPO_PUBLIC_SUPABASE_URL": "https://rhnsjqqtdzlkvqazfcbg.supabase.co",
