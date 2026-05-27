@@ -92,6 +92,7 @@
     "react-native-nitro-modules": "^0.35.6",
     "react-native-play-install-referrer": "^1.1.9",
     "react-native-qrcode-svg": "^6.3.21",
+    "react-native-track-player": "^4.1.2",
     "react-native-url-polyfill": "^3.0.0",
     "react-native-view-shot": "^4.0.3",
     "react-native-webview": "~13.15.0",

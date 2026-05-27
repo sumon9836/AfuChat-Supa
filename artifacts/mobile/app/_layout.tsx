@@ -44,6 +44,19 @@ if (Platform.OS !== "web") {
   SplashScreen.preventAutoHideAsync().catch(() => {});
 }
 
+// Register react-native-track-player's background playback service.
+// Must happen at module-evaluation time (before any component renders) so the
+// foreground service survives app-kill and Bluetooth/notification controls
+// continue to work when the user is not actively using the app.
+// The Platform guard + dynamic require keeps this out of the web bundle.
+if (Platform.OS !== "web") {
+  try {
+    const TrackPlayer = require("react-native-track-player").default;
+    const { PlaybackService } = require("@/lib/musicService");
+    TrackPlayer.registerPlaybackService(() => PlaybackService);
+  } catch {}
+}
+
 // Lock out system-level font scaling so the app always renders at its
 // intended sizes regardless of the device's accessibility font-size setting.
 (Text as any).defaultProps = { ...((Text as any).defaultProps ?? {}), allowFontScaling: false };
