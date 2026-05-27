@@ -539,8 +539,6 @@ export default function OnboardingScreen() {
         } else if (rpcResult && !rpcResult.ok) {
           console.warn("[referral] not rewarded:", rpcResult.reason);
         } else if (rpcResult?.ok) {
-          console.log("[referral] referrer rewarded with 2000 XP:", rpcResult.referrer_id);
-
           // Fetch referrer's profile so we can personalise the modal
           let referrerName = "Your friend";
           let referrerHandle = refHandle;

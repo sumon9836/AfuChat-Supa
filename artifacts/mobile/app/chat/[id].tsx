@@ -4963,7 +4963,6 @@ STRICT RULES:
           </View>
         </TouchableOpacity>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-          {/* voice/video calls disabled */}
           {chatInfo && (
             <TouchableOpacity style={st.headerAction} hitSlop={8} onPress={() => setShowChatOptions(true)}>
               <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
@@ -6512,9 +6511,6 @@ STRICT RULES:
         onApply={(t) => { setInput(t); setShowAiEditor(false); saveDraft(t); }}
         onApplyAndSend={(t) => { setInput(t); setShowAiEditor(false); saveDraft(t); sendMessage(t); }}
       />
-
-      {/* legacy showAttachMenu kept so TypeScript is happy; panel is now inline */}
-      {showAttachMenu && null}
 
       <MediaGalleryPicker
         visible={showMediaPicker}

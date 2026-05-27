@@ -32,8 +32,8 @@ if (Platform.OS !== "web") {
       const notifData = data?.notification?.request?.content?.data ?? {};
       if (notifData.type === "missed_call") {
         // The FCM backend already built and delivered the system tray
-        // notification. We just log here — no local notification needed.
-        console.log("[CallService] Missed call background wakeup:", notifData.callId);
+        // notification. No local notification needed — handled by backend.
+        void notifData.callId;
       }
     });
   } catch {

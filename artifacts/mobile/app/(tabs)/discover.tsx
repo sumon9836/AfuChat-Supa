@@ -42,7 +42,7 @@ import OfflineBanner from "@/components/ui/OfflineBanner";
 import PostUploadBanner from "@/components/ui/PostUploadBanner";
 import { isOnline, onConnectivityChange } from "@/lib/offlineStore";
 import { getLocalFeedPosts, saveFeedPosts, getNewestFeedPostDate, type FeedTab as LocalFeedTab } from "@/lib/storage/localFeed";
-import { getCachedFeedTab, cacheFeedTab, getCachedMoments, cacheMoments, cacheFeedCursor } from "@/lib/offlineStore";
+import { getCachedFeedTab, cacheFeedTab, getCachedMoments, cacheMoments } from "@/lib/offlineStore";
 import { notifyPostLike } from "@/lib/notifyUser";
 import { timeAgo as formatRelative } from "@/lib/timeAgo";
 import { sharePost, shareVideo } from "@/lib/share";
