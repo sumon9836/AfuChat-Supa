@@ -275,13 +275,14 @@ const vpStyles = StyleSheet.create({
 // ─── VideoReplyItem ───────────────────────────────────────────────────────────
 
 function VideoReplyItem({
-  reply: r, depth, onReplyTo, isCreator, isNew, accent,
+  reply: r, depth, onReplyTo, isCreator, isNew, accent, likedSet, onLike,
 }: {
   reply: Reply; depth: number; onReplyTo: (r: Reply) => void;
   isCreator: boolean; isNew: boolean; accent: string;
+  likedSet: Set<string>; onLike: (id: string, wasLiked: boolean) => void;
 }) {
   const indent = Math.min(depth, 4) * 20;
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(() => likedSet.has(r.id));
   const [localLikes, setLocalLikes] = useState(r.like_count);
   const [collapsed, setCollapsed] = useState(false);
   const [imgExpanded, setImgExpanded] = useState(false);
@@ -301,9 +302,10 @@ function VideoReplyItem({
   }, []);
 
   function handleLike() {
-    const next = !liked;
-    setLiked(next);
-    setLocalLikes((c) => (next ? c + 1 : Math.max(0, c - 1)));
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLocalLikes((c) => (!wasLiked ? c + 1 : Math.max(0, c - 1)));
+    onLike(r.id, wasLiked);
     Animated.sequence([
       Animated.spring(likeScale, { toValue: 1.5, tension: 350, friction: 7, useNativeDriver: USE_NATIVE }),
       Animated.spring(likeScale, { toValue: 1, tension: 350, friction: 7, useNativeDriver: USE_NATIVE }),
@@ -392,7 +394,7 @@ function VideoReplyItem({
         <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.05)", marginLeft: indent + 46, marginTop: 4 }} />
       )}
       {!collapsed && r.children?.map((child) => (
-        <VideoReplyItem key={child.id} reply={child} depth={depth + 1} onReplyTo={onReplyTo} isCreator={isCreator} isNew={false} accent={accent} />
+        <VideoReplyItem key={child.id} reply={child} depth={depth + 1} onReplyTo={onReplyTo} isCreator={isCreator} isNew={false} accent={accent} likedSet={likedSet} onLike={onLike} />
       ))}
     </Animated.View>
   );
@@ -487,6 +489,7 @@ export function VideoCommentsSheet({
   const insets = useSafeAreaInsets();
 
   const [replies, setReplies] = useState<Reply[]>([]);
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -525,16 +528,31 @@ export function VideoCommentsSheet({
       .eq("post_id", postId)
       .order("created_at", { ascending: true })
       .limit(50)
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (error) console.error("[VideoCommentsSheet] loadReplies:", error.message, error.code);
         if (data) {
+          const replyIds = data.map((r: any) => r.id);
+          const [likesRes, myLikesRes] = await Promise.all([
+            replyIds.length > 0
+              ? supabase.from("post_reply_likes").select("reply_id").in("reply_id", replyIds)
+              : { data: [] as any[] },
+            replyIds.length > 0 && user
+              ? supabase.from("post_reply_likes").select("reply_id").in("reply_id", replyIds).eq("user_id", user.id)
+              : { data: [] as any[] },
+          ]);
+          const likeCountMap: Record<string, number> = {};
+          for (const l of likesRes.data || []) {
+            likeCountMap[l.reply_id] = (likeCountMap[l.reply_id] || 0) + 1;
+          }
+          const myLikedSet = new Set<string>((myLikesRes.data || []).map((l: any) => l.reply_id as string));
+          setLikedIds(myLikedSet);
           setReplies(data.map((r: any) => ({
             id: r.id,
             author_id: r.author_id,
             content: r.content || "",
             created_at: r.created_at,
             parent_reply_id: r.parent_reply_id || null,
-            like_count: 0,
+            like_count: likeCountMap[r.id] || 0,
             voice_url: r.voice_url || null,
             voice_duration: r.voice_duration ?? null,
             image_url: r.image_url || null,
@@ -547,7 +565,7 @@ export function VideoCommentsSheet({
         }
         setLoading(false);
       });
-  }, [postId]);
+  }, [postId, user?.id]);
 
   useEffect(() => {
     if (!visible || !postId) return;
@@ -571,6 +589,19 @@ export function VideoCommentsSheet({
     setReplyingTo(reply);
     setText("");
     setTimeout(() => inputRef.current?.focus(), 100);
+  }
+
+  function handleReplyLike(id: string, wasLiked: boolean) {
+    if (!user) return;
+    if (wasLiked) {
+      setLikedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
+      setReplies((prev) => prev.map((r) => r.id === id ? { ...r, like_count: Math.max(0, r.like_count - 1) } : r));
+      supabase.from("post_reply_likes").delete().eq("reply_id", id).eq("user_id", user.id).then(() => {});
+    } else {
+      setLikedIds((prev) => new Set([...prev, id]));
+      setReplies((prev) => prev.map((r) => r.id === id ? { ...r, like_count: r.like_count + 1 } : r));
+      supabase.from("post_reply_likes").insert({ reply_id: id, user_id: user.id }).then(() => {});
+    }
   }
 
   function getSortedTree(): Reply[] {
@@ -862,6 +893,7 @@ export function VideoCommentsSheet({
                     reply={r} depth={0} onReplyTo={handleReplyTo}
                     isCreator={r.author_id === postAuthorId}
                     isNew={newCommentIds.has(r.id)} accent={accent}
+                    likedSet={likedIds} onLike={handleReplyLike}
                   />
                 )}
               />

@@ -199,7 +199,7 @@ export default function NotificationsScreen() {
       .limit(100);
 
     if (error) {
-      console.error("[Notifications] query error:", error.message);
+      console.warn("[Notifications] query error (table may need migration):", error.message);
       if (!silent) { setFetchError(error.message ?? "Failed to load notifications"); setLoading(false); }
       return;
     }

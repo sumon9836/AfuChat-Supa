@@ -1359,9 +1359,15 @@ export default function DiscoverScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auth/profile change — refresh active tab in background if posts already showing
+  // Auth/profile change — refresh active tab in background if posts already showing.
+  // Uses a stable key (userId + interests) so this only fires when auth identity or
+  // interests actually change, not on every AuthContext re-render.
+  const _authKeyRef = useRef("");
   useEffect(() => {
-    if (!user && !profile) return;
+    const key = `${user?.id ?? ""}:${JSON.stringify(profile?.interests ?? [])}`;
+    if (key === _authKeyRef.current) return;
+    _authKeyRef.current = key;
+    if (!user?.id && !profile) return;
     const hasPosts = tabPostsCache.current[feedTabRef.current].length > 0;
     loadPostsRef.current(feedTabRef.current, hasPosts);
   }, [user, profile]);

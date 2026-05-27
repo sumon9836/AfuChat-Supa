@@ -251,11 +251,14 @@ export function SuggestedUsers({
   const [followersSet, setFollowersSet] = useState<Set<string>>(new Set());
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const mountedRef = useRef(true);
+  const usersRef = useRef<SuggestedUser[]>([]);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
+
+  useEffect(() => { usersRef.current = users; }, [users]);
 
   const load = useCallback(async (force = false) => {
     if (!user) { setLoading(false); return; }
@@ -274,7 +277,9 @@ export function SuggestedUsers({
       return;
     }
 
-    setLoading(true);
+    // Only show skeleton if there are no users currently displayed.
+    // When re-fetching in background with existing suggestions, keep them visible.
+    if (usersRef.current.length === 0) setLoading(true);
 
     const [dis, followRes, followersRes] = await Promise.all([
       loadDismissed(),
@@ -443,6 +448,24 @@ export function SuggestedUsers({
   }, [user, profile?.interests, maxCards]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Auto-rotate the displayed slice from the cached pool every 45 seconds.
+  // This shuffles suggestions in the background so they always feel fresh without
+  // any visible loading state.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!mountedRef.current) return;
+      if (
+        _cachedResult &&
+        _cachedResult.userId === user?.id &&
+        Date.now() < _cachedResult.expiresAt &&
+        _cachedResult.users.length > 0
+      ) {
+        setUsers(shuffle(_cachedResult.users).slice(0, maxCards));
+      }
+    }, 45_000);
+    return () => clearInterval(id);
+  }, [user?.id, maxCards]);
 
   async function handleFollow(targetId: string) {
     if (!user) return;
