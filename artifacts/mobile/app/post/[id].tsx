@@ -708,6 +708,7 @@ export default function PostDetailScreen() {
     const channel = supabase
       .channel(`post-detail:${id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "post_replies", filter: `post_id=eq.${id}` }, () => loadReplies())
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "post_replies", filter: `post_id=eq.${id}` }, () => loadReplies())
       .on("postgres_changes", { event: "*", schema: "public", table: "post_acknowledgments", filter: `post_id=eq.${id}` }, (payload: any) => {
         const evType = payload.eventType;
         if (evType !== "INSERT" && evType !== "DELETE") return;
@@ -1109,7 +1110,7 @@ export default function PostDetailScreen() {
                     {/* Author byline */}
                     <View style={[styles.authorByline, { borderColor: colors.border }]}>
                       <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: post.author.id, init_name: post.author.display_name, init_handle: post.author.handle, init_avatar: post.author.avatar_url ?? "", init_verified: post.author.is_verified ? "1" : "0", init_org_verified: post.author.is_organization_verified ? "1" : "0" } })}>
-                        <Avatar uri={post.author.avatar_url} name={post.author.display_name} size={38} square={!!(post.author.is_organization_verified)} />
+                        <Avatar uri={post.author.avatar_url} name={post.author.display_name} size={32} square={!!(post.author.is_organization_verified)} />
                       </TouchableOpacity>
                       <View style={{ flex: 1 }}>
                         <View style={styles.nameRow}>
@@ -1166,7 +1167,7 @@ export default function PostDetailScreen() {
                   {/* Author row */}
                   <View style={styles.postHeader}>
                     <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: post.author.id, init_name: post.author.display_name, init_handle: post.author.handle, init_avatar: post.author.avatar_url ?? "", init_verified: post.author.is_verified ? "1" : "0", init_org_verified: post.author.is_organization_verified ? "1" : "0" } })}>
-                      <Avatar uri={post.author.avatar_url} name={post.author.display_name} size={46} square={!!(post.author.is_organization_verified)} />
+                      <Avatar uri={post.author.avatar_url} name={post.author.display_name} size={36} square={!!(post.author.is_organization_verified)} />
                     </TouchableOpacity>
                     <View style={{ flex: 1 }}>
                       <View style={styles.nameRow}>
@@ -1285,7 +1286,7 @@ export default function PostDetailScreen() {
               {recordState === "recording" ? (
                 <RecordingBar elapsed={recordElapsed} onStop={() => stopRecording()} accent={accent} colors={colors} />
               ) : (
-                <View style={[styles.composerPill, { backgroundColor: colors.inputBg }]}>
+                <View style={{ flex: 1, position: "relative" }}>
                   <TextInput
                     ref={replyInputRef}
                     style={[styles.composerInput, { color: colors.text }]}
@@ -1455,7 +1456,7 @@ const styles = StyleSheet.create({
 
   /* Article hero */
   heroWrap: { position: "relative" },
-  articleHero: { width: "100%", height: 280 },
+  articleHero: { width: "100%", height: 200 },
   heroOverlayContent: {
     position: "absolute",
     bottom: 0,
@@ -1466,28 +1467,28 @@ const styles = StyleSheet.create({
   },
   articleNoHeroPad: { padding: 18, paddingBottom: 4 },
   articleHeadingOnHero: {
-    fontSize: 24,
+    fontSize: 18,
     fontFamily: "Inter_700Bold",
-    lineHeight: 32,
-    marginTop: 8,
+    lineHeight: 26,
+    marginTop: 6,
   },
   articleHeading: {
-    fontSize: 26,
+    fontSize: 20,
     fontFamily: "Inter_700Bold",
-    lineHeight: 34,
-    marginTop: 10,
+    lineHeight: 28,
+    marginTop: 8,
   },
 
   /* Article content */
-  articleContentPad: { padding: 16, paddingTop: 14 },
+  articleContentPad: { padding: 12, paddingTop: 10 },
   articleBadgeRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   articleBadgeTxt: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.8 },
   readingTime: { fontSize: 11, fontFamily: "Inter_400Regular" },
   articleBodyText: {
-    fontSize: 17,
+    fontSize: 15,
     fontFamily: "Inter_400Regular",
-    lineHeight: 30,
-    marginBottom: 20,
+    lineHeight: 24,
+    marginBottom: 14,
   },
 
   /* Author byline */
@@ -1495,22 +1496,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingVertical: 14,
-    marginBottom: 18,
+    paddingVertical: 10,
+    marginBottom: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
+    marginHorizontal: -12,
+    paddingHorizontal: 12,
   },
   authorName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   authorMeta: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
 
   /* Regular post */
-  postSection: { padding: 16, gap: 12 },
+  postSection: { padding: 12, gap: 8 },
   postHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
   nameRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap" },
   authorHandle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 1 },
-  postContent: { fontSize: 18, fontFamily: "Inter_400Regular", lineHeight: 28 },
+  postContent: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },
   postTimestamp: { fontSize: 13, fontFamily: "Inter_400Regular" },
 
   /* Image grid */
@@ -1528,16 +1529,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderTopWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    marginVertical: 14,
-    paddingVertical: 2,
+    marginVertical: 8,
+    paddingVertical: 1,
   },
   engagementBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
+    gap: 5,
+    paddingVertical: 7,
   },
   engagementDivider: { width: StyleSheet.hairlineWidth, marginVertical: 6 },
   engagementCount: { fontSize: 14, fontFamily: "Inter_500Medium" },
@@ -1565,9 +1566,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingVertical: 10,
-    marginTop: 8,
-    marginHorizontal: -16,
+    paddingVertical: 6,
+    marginTop: 4,
+    marginHorizontal: -12,
     paddingHorizontal: 0,
   },
   repliesHeaderLine: { flex: 1, height: StyleSheet.hairlineWidth },
@@ -1648,25 +1649,16 @@ const styles = StyleSheet.create({
     gap: 7,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  composerPill: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 6,
-    minHeight: 36,
-  },
   composerInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "Inter_400Regular",
-    lineHeight: 20,
+    lineHeight: 21,
     borderWidth: 0,
     outlineStyle: "none" as any,
     maxHeight: 90,
-    paddingVertical: 0,
+    paddingVertical: 2,
+    textAlignVertical: "top",
   },
   charCount: { fontSize: 11, fontFamily: "Inter_500Medium" },
   attachBtn: {
