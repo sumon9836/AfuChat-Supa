@@ -1062,15 +1062,7 @@ const UserRow = React.memo(function UserRow({
           },
         ]}
         onPress={() =>
-          router.push({
-            pathname: "/contact/[id]",
-            params: {
-              id: item.id,
-              init_name: item.display_name,
-              init_handle: item.handle,
-              init_avatar: item.avatar_url ?? "",
-            },
-          })
+          router.push(`/@${item.handle}` as any)
         }
       >
         {/* Avatar */}

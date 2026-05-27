@@ -151,7 +151,7 @@ export default function MiniProfilePopup({ userId, visible, onClose, currentChat
     onClose();
     if (profile) {
       setProfileCache(userId, profile as any);
-      router.push({ pathname: "/contact/[id]", params: { id: userId, init_name: profile.display_name, init_handle: profile.handle, init_avatar: profile.avatar_url ?? "", init_verified: profile.is_verified ? "1" : "0", init_org_verified: profile.is_organization_verified ? "1" : "0" } });
+      router.push(`/@${profile.handle}` as any);
     } else {
       router.push({ pathname: "/contact/[id]", params: { id: userId } });
     }

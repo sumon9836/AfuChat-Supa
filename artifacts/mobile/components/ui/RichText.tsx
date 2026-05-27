@@ -202,19 +202,7 @@ export function RichText({
         break;
       case "mention": {
         const handle = span.text.replace("@", "");
-        supabase
-          .from("profiles")
-          .select("id")
-          .eq("handle", handle)
-          .maybeSingle()
-          .then(({ data }) => {
-            if (data?.id) {
-              router.push({
-                pathname: "/contact/[id]",
-                params: { id: data.id },
-              });
-            }
-          });
+        router.push(`/@${handle}` as any);
         break;
       }
       case "hashtag": {

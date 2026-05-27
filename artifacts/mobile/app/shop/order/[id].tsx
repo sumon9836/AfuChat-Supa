@@ -403,7 +403,7 @@ export default function OrderDetailScreen() {
               style={st.personRow}
               onPress={() => {
                 const id = isBuyer ? order.seller_id : order.buyer_id;
-                router.push(`/contact/${id}` as any);
+                router.push({ pathname: "/contact/[id]", params: { id } });
               }}
               activeOpacity={0.8}
             >

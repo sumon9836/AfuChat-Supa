@@ -342,7 +342,7 @@ function ReplyCard({
         )}
 
         {/* Avatar */}
-        <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: item.author.id, init_name: item.author.display_name, init_handle: item.author.handle, init_avatar: item.author.avatar_url ?? "", init_verified: item.author.is_verified ? "1" : "0", init_org_verified: item.author.is_organization_verified ? "1" : "0" } })} activeOpacity={0.8} style={{ marginRight: 9, marginTop: 1 }}>
+        <TouchableOpacity onPress={() => router.push(`/@${item.author.handle}` as any)} activeOpacity={0.8} style={{ marginRight: 9, marginTop: 1 }}>
           <Avatar uri={item.author.avatar_url} name={item.author.display_name} size={avatarSize} square={!!(item.author.is_organization_verified)} />
         </TouchableOpacity>
 
@@ -350,7 +350,7 @@ function ReplyCard({
         <View style={{ flex: 1 }}>
           {/* Header row */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap", marginBottom: 2 }}>
-            <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: item.author.id, init_name: item.author.display_name, init_handle: item.author.handle, init_avatar: item.author.avatar_url ?? "", init_verified: item.author.is_verified ? "1" : "0", init_org_verified: item.author.is_organization_verified ? "1" : "0" } })} activeOpacity={0.8}>
+            <TouchableOpacity onPress={() => router.push(`/@${item.author.handle}` as any)} activeOpacity={0.8}>
               <Text style={{ color: colors.text, fontSize: 13, fontFamily: "Inter_700Bold" }} numberOfLines={1}>{item.author.display_name}</Text>
             </TouchableOpacity>
             {item.author.is_organization_verified && <Ionicons name="checkmark-circle" size={12} color={Colors.gold} />}
@@ -1110,12 +1110,12 @@ export default function PostDetailScreen() {
                   <View style={styles.articleContentPad}>
                     {/* Author byline */}
                     <View style={[styles.authorByline, { borderColor: colors.border }]}>
-                      <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: post.author.id, init_name: post.author.display_name, init_handle: post.author.handle, init_avatar: post.author.avatar_url ?? "", init_verified: post.author.is_verified ? "1" : "0", init_org_verified: post.author.is_organization_verified ? "1" : "0" } })}>
+                      <TouchableOpacity onPress={() => router.push(`/@${post.author.handle}` as any)}>
                         <Avatar uri={post.author.avatar_url} name={post.author.display_name} size={32} square={!!(post.author.is_organization_verified)} />
                       </TouchableOpacity>
                       <View style={{ flex: 1 }}>
                         <View style={styles.nameRow}>
-                          <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: post.author.id, init_name: post.author.display_name, init_handle: post.author.handle, init_avatar: post.author.avatar_url ?? "", init_verified: post.author.is_verified ? "1" : "0", init_org_verified: post.author.is_organization_verified ? "1" : "0" } })}>
+                          <TouchableOpacity onPress={() => router.push(`/@${post.author.handle}` as any)}>
                             <Text style={[styles.authorName, { color: colors.text }]}>{post.author.display_name}</Text>
                           </TouchableOpacity>
                           {post.author.is_organization_verified && <Ionicons name="checkmark-circle" size={14} color={Colors.gold} style={{ marginLeft: 4 }} />}
@@ -1167,12 +1167,12 @@ export default function PostDetailScreen() {
                 <View style={[styles.postSection, { backgroundColor: colors.surface }]}>
                   {/* Author row */}
                   <View style={styles.postHeader}>
-                    <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: post.author.id, init_name: post.author.display_name, init_handle: post.author.handle, init_avatar: post.author.avatar_url ?? "", init_verified: post.author.is_verified ? "1" : "0", init_org_verified: post.author.is_organization_verified ? "1" : "0" } })}>
+                    <TouchableOpacity onPress={() => router.push(`/@${post.author.handle}` as any)}>
                       <Avatar uri={post.author.avatar_url} name={post.author.display_name} size={36} square={!!(post.author.is_organization_verified)} />
                     </TouchableOpacity>
                     <View style={{ flex: 1 }}>
                       <View style={styles.nameRow}>
-                        <TouchableOpacity onPress={() => router.push({ pathname: "/contact/[id]", params: { id: post.author.id, init_name: post.author.display_name, init_handle: post.author.handle, init_avatar: post.author.avatar_url ?? "", init_verified: post.author.is_verified ? "1" : "0", init_org_verified: post.author.is_organization_verified ? "1" : "0" } })}>
+                        <TouchableOpacity onPress={() => router.push(`/@${post.author.handle}` as any)}>
                           <Text style={[styles.authorName, { color: colors.text }]}>{post.author.display_name}</Text>
                         </TouchableOpacity>
                         {post.author.is_organization_verified && <Ionicons name="checkmark-circle" size={14} color={Colors.gold} style={{ marginLeft: 4 }} />}

@@ -425,7 +425,7 @@ export default function MeScreen() {
         {/* ── Quick Actions ──────────────────────────────────────────────── */}
         <View style={[s.quickRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {[
-            { icon: "person-circle-outline", label: "View Profile", color: accent,       onPress: () => profile?.id && router.push({ pathname: "/contact/[id]", params: { id: profile.id, init_name: profile.display_name ?? "", init_handle: profile.handle ?? "", init_avatar: profile.avatar_url ?? "" } }) },
+            { icon: "person-circle-outline", label: "View Profile", color: accent,       onPress: () => profile?.handle && router.push(`/@${profile.handle}` as any) },
             { icon: "create-outline",        label: "Edit Profile", color: colors.icon, onPress: () => router.push("/profile/edit") },
             { icon: "card-outline",          label: "Digital ID",   color: colors.icon, onPress: () => router.push("/digital-id" as any) },
             { icon: "qr-code-outline",       label: "QR Code",      color: colors.icon, onPress: () => router.push("/qr-scanner" as any) },

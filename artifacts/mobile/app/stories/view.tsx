@@ -447,7 +447,7 @@ export default function ViewStoryScreen() {
       {/* ── Top bar — avatar, name, time, share, close ───────────────────── */}
       <View style={[styles.topBar, { top: insets.top + 20 }]}>
         <TouchableOpacity
-          onPress={() => router.push({ pathname: "/contact/[id]", params: { id: story.user_id, init_name: story.profile.display_name, init_handle: story.profile.handle, init_avatar: story.profile.avatar_url ?? "" } })}
+          onPress={() => router.push(`/@${story.profile.handle}` as any)}
           activeOpacity={0.8}
         >
           <Avatar uri={story.profile.avatar_url} name={story.profile.display_name} size={36} />

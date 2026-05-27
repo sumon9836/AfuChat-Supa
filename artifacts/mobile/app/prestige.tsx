@@ -459,7 +459,7 @@ export default function PrestigeScreen() {
                       {idx > 0 && <View style={[s.sep, { backgroundColor: colors.border }]} />}
                       <TouchableOpacity
                         style={[s.richRow, isMe && { backgroundColor: tier.color + "0A" }]}
-                        onPress={() => router.push({ pathname: "/contact/[id]", params: { id: u.id, init_name: u.display_name, init_handle: u.handle, init_avatar: u.avatar_url ?? "" } })}
+                        onPress={() => router.push(`/@${u.handle}` as any)}
                         activeOpacity={0.75}
                       >
                         <Text style={[s.richRankText, { color: idx < 3 ? Colors.gold : colors.textMuted, width: 28 }]}>

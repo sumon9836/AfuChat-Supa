@@ -143,7 +143,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
       { key: "open",    label: "Open post",                     icon: "open-outline",     onSelect: () => openPost() },
       { key: "like",    label: item.liked ? "Unlike" : "Like",  icon: item.liked ? "heart" : "heart-outline", onSelect: () => { if (!currentUser) { onRequireAuth?.(); return; } onToggleLike(item.id); } },
       { key: "save",    label: item.bookmarked ? "Unsave" : "Save", icon: item.bookmarked ? "bookmark" : "bookmark-outline", onSelect: () => { if (!currentUser) { onRequireAuth?.(); return; } onToggleBookmark(item.id); } },
-      { key: "profile", label: `View @${item.profile.handle}`, icon: "person-outline",   onSelect: () => safeRouter.push({ pathname: "/contact/[id]", params: { id: item.author_id, init_name: item.profile.display_name, init_handle: item.profile.handle, init_avatar: item.profile.avatar_url ?? "" } } as any) },
+      { key: "profile", label: `View @${item.profile.handle}`, icon: "person-outline",   onSelect: () => safeRouter.push(`/@${item.profile.handle}` as any) },
     ],
     [
       { key: "copy",  label: "Copy link", icon: "link-outline",  onSelect: () => { if (typeof window !== "undefined") navigator.clipboard?.writeText(`${window.location.origin}/p/${item.id}`); } },
@@ -262,7 +262,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                onPress={() => safeRouter.push({ pathname: "/contact/[id]", params: { id: item.author_id, init_name: item.profile.display_name, init_handle: item.profile.handle, init_avatar: item.profile.avatar_url ?? "" } })}
+                onPress={() => safeRouter.push(`/@${item.profile.handle}` as any)}
                 activeOpacity={0.8}
               >
                 <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={isDesktop ? 44 : 40} square={!!(item.is_organization_verified)} />

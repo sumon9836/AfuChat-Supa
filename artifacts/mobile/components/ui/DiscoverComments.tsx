@@ -278,7 +278,7 @@ const CommentRow = React.memo(function CommentRow({
       >
         {/* Avatar */}
         <TouchableOpacity
-          onPress={() => router.push({ pathname: "/contact/[id]", params: { id: c.author_id, init_name: c.profile.display_name, init_handle: c.profile.handle, init_avatar: c.profile.avatar_url ?? "" } })}
+          onPress={() => router.push(`/@${c.profile.handle}` as any)}
           activeOpacity={0.8}
           style={{ marginTop: 3 }}
         >
@@ -298,7 +298,7 @@ const CommentRow = React.memo(function CommentRow({
           {/* Name row */}
           <View style={st.nameLine}>
             <TouchableOpacity
-              onPress={() => router.push({ pathname: "/contact/[id]", params: { id: c.author_id, init_name: c.profile.display_name, init_handle: c.profile.handle, init_avatar: c.profile.avatar_url ?? "" } })}
+              onPress={() => router.push(`/@${c.profile.handle}` as any)}
               activeOpacity={0.8}
             >
               <Text style={[st.name, { color: colors.text }]} numberOfLines={1}>{c.profile.display_name}</Text>

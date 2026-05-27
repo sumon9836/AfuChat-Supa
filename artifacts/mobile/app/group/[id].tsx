@@ -677,10 +677,7 @@ export default function GroupManageScreen() {
                   ]}
                   onPress={() => {
                     if (isMe || !iAmAdmin) {
-                      router.push({
-                        pathname: "/contact/[id]",
-                        params: { id: member.profile.id || member.user_id },
-                      });
+                      router.push(`/@${member.profile.handle}` as any);
                     } else {
                       setSelectedMember(member);
                       setShowMemberSheet(true);
@@ -840,7 +837,7 @@ export default function GroupManageScreen() {
                 style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 14 }}
                 onPress={() => {
                   setShowMemberSheet(false);
-                  router.push({ pathname: "/contact/[id]", params: { id: selectedMember.profile.id } });
+                  router.push(`/@${selectedMember.profile.handle}` as any);
                 }}
               >
                 <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#007AFF18", alignItems: "center", justifyContent: "center" }}>

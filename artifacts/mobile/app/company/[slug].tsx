@@ -864,7 +864,7 @@ export default function CompanyPageScreen() {
             return (
               <TouchableOpacity
                 style={[styles.followerRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                onPress={() => router.push(`/${p.handle}` as any)}
+                onPress={() => router.push(`/@${p.handle}` as any)}
                 activeOpacity={0.8}
               >
                 <View style={styles.followerAvatarWrap}>
