@@ -704,7 +704,15 @@ export function DiscoverCommentsSheet({
       setText(""); setReplyingTo(null);
       if (!wasThread) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 180);
     } else if (error && mounted.current) {
-      showAlert("Comment failed", "Could not post your comment. Please try again.", [{ text: "OK" }]);
+      console.error("[DiscoverComments] sendReply:", error.message, error.code);
+      const isSchemaErr = error.code === "42703" && error.message?.includes("notifications");
+      showAlert(
+        "Comment failed",
+        isSchemaErr
+          ? "A database schema update is needed. Please contact support."
+          : "Could not post your comment. Please try again.",
+        [{ text: "OK" }],
+      );
     }
     if (mounted.current) setSending(false);
   }

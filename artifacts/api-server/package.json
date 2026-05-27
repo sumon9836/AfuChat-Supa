@@ -14,6 +14,7 @@
     "@aws-sdk/lib-storage": "^3.1037.0",
     "@aws-sdk/s3-request-presigner": "^3.1037.0",
     "@supabase/supabase-js": "^2.99.3",
+    "@types/pg": "^8.20.0",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "cookie-parser": "^1.4.7",
@@ -21,6 +22,7 @@
     "drizzle-orm": "catalog:",
     "express": "^5",
     "openai": "^6.32.0",
+    "pg": "^8.20.0",
     "pino": "^9",
     "pino-http": "^10"
   },
