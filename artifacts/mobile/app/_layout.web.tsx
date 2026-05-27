@@ -596,6 +596,7 @@ function isNoShell(pathname: string): boolean {
     pathname.startsWith("/stories/view") ||
     pathname.startsWith("/stories/camera") ||
     pathname.startsWith("/video/") ||
+    pathname.startsWith("/update-password") ||
     pathname === "/+not-found"
   );
 }

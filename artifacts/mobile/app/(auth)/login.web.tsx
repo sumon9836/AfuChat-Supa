@@ -363,7 +363,7 @@ export default function DesktopLoginPage() {
                 <button
                   type="button"
                   className="dl-forgot"
-                  onClick={() => alert("To reset your password, open the AfuChat mobile app and use 'Forgot password?' — or contact support at support@afuchat.com.")}
+                  onClick={() => router.push("/(auth)/reset-password" as any)}
                 >
                   Forgot password?
                 </button>

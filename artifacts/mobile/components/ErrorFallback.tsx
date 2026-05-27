@@ -35,6 +35,16 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   const handleRestart = async () => {
+    // On web, reloadAppAsync is not available in production builds.
+    // Use window.location.reload() instead for a guaranteed full page reload.
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      } else {
+        resetError();
+      }
+      return;
+    }
     try {
       await reloadAppAsync();
     } catch (restartError) {
