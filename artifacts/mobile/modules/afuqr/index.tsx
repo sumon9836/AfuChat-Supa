@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Clipboard,
   Linking,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -218,7 +219,7 @@ const s = StyleSheet.create({
   bottomMask: { flex: 1 },
   hintWrap: { position: "absolute", left: 0, right: 0, alignItems: "center" },
   hintText: { color: "rgba(255,255,255,0.85)", fontFamily: "Inter_500Medium", fontSize: 14, backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 18, paddingVertical: 9, borderRadius: 22 },
-  resultCard: { position: "absolute", left: 12, right: 12, borderRadius: 22, padding: 16, gap: 14, shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 16, elevation: 12 },
+  resultCard: { position: "absolute", left: 12, right: 12, borderRadius: 22, padding: 16, gap: 14, ...Platform.select({ web: { boxShadow: "0 6px 16px rgba(0,0,0,0.30)" } as any, default: { shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 16, elevation: 12 } }) },
   resultTop: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   resultIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   resultType: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, marginBottom: 3 },

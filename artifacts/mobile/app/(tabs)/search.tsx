@@ -17,7 +17,6 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import Animated, { FadeIn, FadeInDown, FadeInRight } from "react-native-reanimated";
-import * as VideoThumbnails from "expo-video-thumbnails";
 import * as Haptics from "@/lib/haptics";
 
 import { useTheme } from "@/hooks/useTheme";
@@ -227,14 +226,17 @@ function VideoThumbnailImage({ videoUrl, imageUrl, style }: { videoUrl: string; 
   const [tried, setTried] = useState(false);
 
   useEffect(() => {
+    if (Platform.OS === "web") return;
     if (thumbUri || tried) return;
     setTried(true);
     if (thumbCache.has(videoUrl)) {
       setThumbUri(thumbCache.get(videoUrl)!);
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const VideoThumbnails = require("expo-video-thumbnails");
     VideoThumbnails.getThumbnailAsync(videoUrl, { time: 1500 })
-      .then(({ uri }) => {
+      .then(({ uri }: { uri: string }) => {
         thumbCache.set(videoUrl, uri);
         setThumbUri(uri);
       })

@@ -647,8 +647,9 @@ function LensContextCard({ msg, onSuggestionTap }: {
       <View style={{
         backgroundColor: colors.surface, borderRadius: 20, overflow: "hidden",
         borderWidth: 1, borderColor: BRAND_C + "30",
-        shadowColor: BRAND_C, shadowOpacity: 0.1, shadowRadius: 10,
-        shadowOffset: { width: 0, height: 3 }, elevation: 4,
+        ...(Platform.OS !== "web"
+          ? { shadowColor: BRAND_C, shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 4 }
+          : { boxShadow: `0 3px 10px ${BRAND_C}1A` } as any),
       }}>
         {/* Header */}
         <View style={{

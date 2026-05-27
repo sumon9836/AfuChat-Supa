@@ -492,7 +492,7 @@ const s = StyleSheet.create({
   trackInfo: { flex: 1 },
   trackTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
   trackArtist: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  miniPlayer: { position: "absolute", left: 12, right: 12, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, gap: 10, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 12, elevation: 8, overflow: "hidden" },
+  miniPlayer: { position: "absolute", left: 12, right: 12, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, gap: 10, ...Platform.select({ web: { boxShadow: "0 4px 12px rgba(0,0,0,0.15)" } as any, default: { shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 } }), overflow: "hidden" },
   miniThumb: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   miniInfo: { flex: 1 },
   miniTitle: { fontSize: 13, fontFamily: "Inter_600SemiBold" },

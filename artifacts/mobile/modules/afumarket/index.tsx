@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -686,7 +687,10 @@ const s = StyleSheet.create({
     position: "absolute", top: 16, left: 16,
     width: 36, height: 36, borderRadius: 18,
     alignItems: "center", justifyContent: "center",
-    shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, elevation: 4,
+    ...Platform.select({
+      web: { boxShadow: "0 2px 4px rgba(0,0,0,0.15)" } as any,
+      default: { shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
+    }),
   },
   thumbRow: {
     position: "absolute", bottom: 12, left: 0, right: 0,

@@ -98,8 +98,10 @@ const s = StyleSheet.create({
     width: "100%", maxWidth: 380,
     borderRadius: 24, padding: 28,
     alignItems: "center",
-    shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
+    ...Platform.select({
+      web: { boxShadow: "0 8px 20px rgba(0,0,0,0.25)" } as any,
+      default: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 12 },
+    }),
   },
   iconWrap: {
     width: 72, height: 72, borderRadius: 36,
