@@ -36,6 +36,12 @@ config.resolver = {
           type: "sourceFile",
         };
       }
+      if (moduleName === "react-native-track-player") {
+        return {
+          filePath: path.resolve(__dirname, "lib/track-player-web-shim.js"),
+          type: "sourceFile",
+        };
+      }
     }
     return context.resolveRequest(context, moduleName, platform);
   },
