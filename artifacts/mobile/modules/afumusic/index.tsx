@@ -1,18 +1,15 @@
 /**
  * AfuMusic — offline device music player.
  *
- * Design goals:
- *  - Fully offline: reads only from the device's MediaLibrary, no network calls.
- *  - No loading spinner: tracks stream into the list as each page loads.
- *  - No stale closures: all playback-control callbacks read from refs so
- *    repeat/shuffle changes are reflected immediately even mid-song.
- *  - No 3rd-party push notifications: playing status lives only in the UI.
+ * All audio state lives in the module-level `afuMusicPlayer` singleton
+ * (lib/afuMusicPlayer.ts).  This component is purely a view — it subscribes
+ * to singleton state and delegates every control action.  Unmounting the
+ * component (mini-app close, route navigation) never stops playback.
  */
 
 import React, {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -29,16 +26,15 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Audio } from "expo-av";
 import * as MediaLibrary from "expo-media-library";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { useTheme } from "@/hooks/useTheme";
 import * as Haptics from "@/lib/haptics";
+import { afuMusicPlayer, type MusicPlayerState } from "@/lib/afuMusicPlayer";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type AppView = "library" | "player";
-type RepeatMode = "none" | "one" | "all";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -75,8 +71,6 @@ export default function AfuMusicApp() {
   const insets = useSafeAreaInsets();
 
   // ── Permission ──────────────────────────────────────────────────────────────
-  // We never show a spinner for the permission check — we just show
-  // "Allow Access" immediately if not granted.
   const [permGranted, setPermGranted] = useState(false);
   const [permChecked, setPermChecked] = useState(false);
 
@@ -102,15 +96,31 @@ export default function AfuMusicApp() {
     })();
   }, []);
 
-  // ── Library ─────────────────────────────────────────────────────────────────
-  const [tracks, setTracks] = useState<MediaLibrary.Asset[]>([]);
+  // ── Subscribe to singleton player state ─────────────────────────────────────
+  // Unsubscribing on unmount only removes the listener — it does NOT stop audio.
+  const [ps, setPs] = useState<MusicPlayerState>(() => afuMusicPlayer.getState());
+
+  useEffect(() => {
+    const unsub = afuMusicPlayer.subscribe(setPs);
+    return unsub; // removes listener; sound keeps playing
+  }, []);
+
+  // ── View / search (purely local UI state) ───────────────────────────────────
   const [view, setView] = useState<AppView>("library");
   const [search, setSearch] = useState("");
 
-  // Stream tracks in progressively — each page of 100 is appended immediately
-  // so the list populates as the scan runs, with no blocking spinner.
+  // ── Load device tracks into singleton ───────────────────────────────────────
+  // If the singleton already has tracks (e.g. component remounted after minimize
+  // or close) skip the scan so we don't flicker the list.
+  const scanStartedRef = useRef(false);
+
   useEffect(() => {
     if (!permGranted) return;
+    // Tracks already loaded from a previous mount — nothing to do.
+    if (ps.tracks.length > 0) return;
+    if (scanStartedRef.current) return;
+    scanStartedRef.current = true;
+
     let cancelled = false;
     (async () => {
       let after: string | undefined;
@@ -124,7 +134,7 @@ export default function AfuMusicApp() {
             after,
           });
           if (!cancelled && page.assets.length > 0) {
-            setTracks(prev => [...prev, ...page.assets]);
+            afuMusicPlayer.appendTracks(page.assets);
           }
           hasMore = page.hasNextPage;
           after = page.endCursor;
@@ -133,192 +143,54 @@ export default function AfuMusicApp() {
         }
       }
     })();
+
     return () => { cancelled = true; };
-  }, [permGranted]);
+  }, [permGranted, ps.tracks.length]);
 
-  // ── Playback state ──────────────────────────────────────────────────────────
-  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [shuffle, setShuffle] = useState(false);
-  const [repeat, setRepeat] = useState<RepeatMode>("none");
-
-  const soundRef = useRef<Audio.Sound | null>(null);
-
-  // ── Refs so finish/next/prev callbacks are never stale ─────────────────────
-  const repeatRef = useRef<RepeatMode>("none");
-  const shuffleRef = useRef(false);
-  const tracksRef = useRef<MediaLibrary.Asset[]>([]);
-  const currentIndexRef = useRef<number | null>(null);
-  const shuffleOrderRef = useRef<number[]>([]);
-  const shufflePosRef = useRef(0);
-
-  useLayoutEffect(() => { repeatRef.current = repeat; }, [repeat]);
-  useLayoutEffect(() => { shuffleRef.current = shuffle; }, [shuffle]);
-  useLayoutEffect(() => { tracksRef.current = tracks; }, [tracks]);
-  useLayoutEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
-
-  // ── Audio session setup ─────────────────────────────────────────────────────
-  useEffect(() => {
-    Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      staysActiveInBackground: true,
-      playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
-      playThroughEarpieceAndroid: false,
-    }).catch(() => {});
-    return () => {
-      soundRef.current?.unloadAsync().catch(() => {});
-    };
-  }, []);
-
-  // ── Shuffle helper ──────────────────────────────────────────────────────────
-  function buildShuffleOrder(length: number) {
-    const order = Array.from({ length }, (_, i) => i);
-    for (let i = order.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [order[i], order[j]] = [order[j], order[i]];
-    }
-    shuffleOrderRef.current = order;
-    shufflePosRef.current = 0;
-  }
-
-  // ── Core playback ───────────────────────────────────────────────────────────
-  // loadAndPlayRef lets handleFinish call the latest loadAndPlay without
-  // needing to capture it in the status callback closure at create time.
-  const loadAndPlayRef = useRef<(index: number) => Promise<void>>();
-
-  const handleFinish = useCallback(() => {
-    const rep = repeatRef.current;
-    const shuf = shuffleRef.current;
-    const trks = tracksRef.current;
-    const ci = currentIndexRef.current ?? 0;
-
-    if (rep === "one") {
-      soundRef.current?.replayAsync().catch(() => {});
-      return;
-    }
-    if (shuf) {
-      shufflePosRef.current = (shufflePosRef.current + 1) % shuffleOrderRef.current.length;
-      loadAndPlayRef.current?.(shuffleOrderRef.current[shufflePosRef.current]);
-    } else {
-      const next = (ci + 1) % trks.length;
-      if (rep === "all" || next !== 0) {
-        loadAndPlayRef.current?.(next);
-      } else {
-        setIsPlaying(false);
-      }
-    }
-  }, []);
-
-  const loadAndPlay = useCallback(async (index: number) => {
-    const trks = tracksRef.current;
-    if (index < 0 || index >= trks.length) return;
-    try {
-      if (soundRef.current) {
-        await soundRef.current.stopAsync().catch(() => {});
-        await soundRef.current.unloadAsync().catch(() => {});
-        soundRef.current = null;
-      }
-      setCurrentIndex(index);
-      setPosition(0);
-      setDuration(0);
-      setIsPlaying(false);
-
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: trks[index].uri },
-        { shouldPlay: true, progressUpdateIntervalMillis: 500 },
-        (status) => {
-          if (!status.isLoaded) return;
-          setPosition(status.positionMillis ?? 0);
-          setDuration((status as any).durationMillis ?? 0);
-          setIsPlaying(status.isPlaying ?? false);
-          if ((status as any).didJustFinish) handleFinish();
-        },
-      );
-      soundRef.current = sound;
-      setIsPlaying(true);
-    } catch {}
-  }, [handleFinish]);
-
-  useLayoutEffect(() => { loadAndPlayRef.current = loadAndPlay; }, [loadAndPlay]);
-
-  // ── Controls ────────────────────────────────────────────────────────────────
-  async function playPause() {
-    if (!soundRef.current) {
-      if (currentIndexRef.current !== null) await loadAndPlay(currentIndexRef.current);
-      return;
-    }
-    try {
-      const status = await soundRef.current.getStatusAsync();
-      if (!status.isLoaded) return;
-      if (status.isPlaying) await soundRef.current.pauseAsync();
-      else await soundRef.current.playAsync();
-    } catch {}
-    Haptics.selectionAsync();
-  }
-
-  async function playNext() {
-    const trks = tracksRef.current;
-    if (trks.length === 0) return;
-    const ci = currentIndexRef.current ?? 0;
-    if (shuffleRef.current) {
-      shufflePosRef.current = (shufflePosRef.current + 1) % shuffleOrderRef.current.length;
-      await loadAndPlay(shuffleOrderRef.current[shufflePosRef.current]);
-    } else {
-      await loadAndPlay((ci + 1) % trks.length);
-    }
-    Haptics.selectionAsync();
-  }
-
-  async function playPrev() {
-    const trks = tracksRef.current;
-    if (trks.length === 0) return;
-    if (position > 3000) {
-      await soundRef.current?.setPositionAsync(0);
-      return;
-    }
-    const ci = currentIndexRef.current ?? 0;
-    await loadAndPlay((ci - 1 + trks.length) % trks.length);
-    Haptics.selectionAsync();
-  }
-
-  async function seekTo(ratio: number) {
-    if (!soundRef.current || duration === 0) return;
-    const ms = Math.floor(ratio * duration);
-    await soundRef.current.setPositionAsync(ms);
-    setPosition(ms);
-  }
-
-  function handleTrackTap(index: number) {
-    Haptics.selectionAsync();
-    if (shuffleRef.current && shuffleOrderRef.current.length !== tracksRef.current.length) {
-      buildShuffleOrder(tracksRef.current.length);
-    }
-    loadAndPlay(index);
-    setView("player");
-  }
-
-  function toggleShuffle() {
-    const next = !shuffleRef.current;
-    setShuffle(next);
-    if (next) buildShuffleOrder(tracksRef.current.length);
-    Haptics.selectionAsync();
-  }
-
-  function toggleRepeat() {
-    setRepeat(r => r === "none" ? "all" : r === "all" ? "one" : "none");
-    Haptics.selectionAsync();
-  }
-
-  // ── Derived ─────────────────────────────────────────────────────────────────
+  // ── Derive display values from singleton state ───────────────────────────────
+  const { tracks, currentIndex, isPlaying, position, duration, shuffle, repeat } = ps;
   const currentTrack = currentIndex !== null ? tracks[currentIndex] : null;
   const progress = duration > 0 ? position / duration : 0;
   const accentColor = currentTrack ? colorForTrack(currentTrack.filename) : "#5856D6";
   const filtered = search.trim()
     ? tracks.filter(t => t.filename.toLowerCase().includes(search.toLowerCase()))
     : tracks;
+
+  // ── Controls (all delegate to singleton) ────────────────────────────────────
+  function handleTrackTap(index: number) {
+    Haptics.selectionAsync();
+    afuMusicPlayer.tapTrack(index);
+    setView("player");
+  }
+
+  function handlePlayPause() {
+    Haptics.selectionAsync();
+    afuMusicPlayer.playPause();
+  }
+
+  function handleNext() {
+    Haptics.selectionAsync();
+    afuMusicPlayer.playNext();
+  }
+
+  function handlePrev() {
+    Haptics.selectionAsync();
+    afuMusicPlayer.playPrev();
+  }
+
+  function handleSeek(ratio: number) {
+    afuMusicPlayer.seekTo(ratio);
+  }
+
+  function handleToggleShuffle() {
+    Haptics.selectionAsync();
+    afuMusicPlayer.toggleShuffle();
+  }
+
+  function handleToggleRepeat() {
+    Haptics.selectionAsync();
+    afuMusicPlayer.toggleRepeat();
+  }
 
   // ── Web stub ─────────────────────────────────────────────────────────────────
   if (Platform.OS === "web") {
@@ -335,9 +207,7 @@ export default function AfuMusicApp() {
     );
   }
 
-  // ── Permission wall (shown only if not yet granted) ──────────────────────────
-  // We wait until `permChecked` to avoid flashing the permission screen briefly
-  // before the async check finishes. Until then, render nothing (blank).
+  // ── Permission wall ──────────────────────────────────────────────────────────
   if (!permChecked) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
   if (!permGranted) {
@@ -392,17 +262,17 @@ export default function AfuMusicApp() {
             duration={duration}
             accentColor={accentColor}
             colors={colors}
-            onSeek={seekTo}
+            onSeek={handleSeek}
           />
 
           <View style={s.controls}>
-            <TouchableOpacity hitSlop={16} onPress={toggleShuffle}>
+            <TouchableOpacity hitSlop={16} onPress={handleToggleShuffle}>
               <Ionicons name="shuffle" size={22} color={shuffle ? accentColor : colors.textMuted} />
             </TouchableOpacity>
-            <TouchableOpacity hitSlop={12} onPress={playPrev}>
+            <TouchableOpacity hitSlop={12} onPress={handlePrev}>
               <Ionicons name="play-skip-back" size={30} color={colors.text} />
             </TouchableOpacity>
-            <TouchableOpacity style={[s.playBtn, { backgroundColor: accentColor }]} onPress={playPause}>
+            <TouchableOpacity style={[s.playBtn, { backgroundColor: accentColor }]} onPress={handlePlayPause}>
               <Ionicons
                 name={isPlaying ? "pause" : "play"}
                 size={30}
@@ -410,10 +280,10 @@ export default function AfuMusicApp() {
                 style={!isPlaying && { marginLeft: 3 }}
               />
             </TouchableOpacity>
-            <TouchableOpacity hitSlop={12} onPress={playNext}>
+            <TouchableOpacity hitSlop={12} onPress={handleNext}>
               <Ionicons name="play-skip-forward" size={30} color={colors.text} />
             </TouchableOpacity>
-            <TouchableOpacity hitSlop={16} onPress={toggleRepeat} style={{ alignItems: "center" }}>
+            <TouchableOpacity hitSlop={16} onPress={handleToggleRepeat} style={{ alignItems: "center" }}>
               <Ionicons
                 name={repeat === "one" ? "repeat-outline" : "repeat"}
                 size={22}
@@ -464,7 +334,6 @@ export default function AfuMusicApp() {
       </View>
 
       {filtered.length === 0 && tracks.length === 0 ? (
-        // Still scanning — show empty list with a subtle hint (no spinner)
         <View style={s.center}>
           <Ionicons name="musical-notes-outline" size={56} color={colors.textMuted} />
           <Text style={[s.emptyTitle, { color: colors.text }]}>Scanning your music…</Text>
@@ -540,14 +409,14 @@ export default function AfuMusicApp() {
               {trackArtist(currentTrack)}
             </Text>
           </View>
-          <TouchableOpacity hitSlop={12} onPress={playPause} style={s.miniPlayBtn}>
+          <TouchableOpacity hitSlop={12} onPress={handlePlayPause} style={s.miniPlayBtn}>
             <Ionicons
               name={isPlaying ? "pause-circle" : "play-circle"}
               size={36}
               color={accentColor}
             />
           </TouchableOpacity>
-          <TouchableOpacity hitSlop={12} onPress={playNext} style={s.miniNextBtn}>
+          <TouchableOpacity hitSlop={12} onPress={handleNext} style={s.miniNextBtn}>
             <Ionicons name="play-skip-forward" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
           <View style={[s.miniProgress, { backgroundColor: colors.border }]}>
