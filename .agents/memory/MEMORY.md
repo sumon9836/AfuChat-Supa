@@ -1,3 +1,4 @@
 - [Chat keyboard avoidance](chat-keyboard-avoidance.md) — effectiveBottom must use keyboardHeight on BOTH platforms; Android adjustResize does not move absolute children.
 - [Unread badge shared store](unread-badge-store.md) — tab bar reads from in-memory store (chatUnreadEvents.ts), not SQLite; ChatsScreen pushes on every chats state change.
 - [Post replies trigger bug](post-replies-trigger.md) — stale DB trigger on post_replies caused comment inserts to fail (42703); migrations applied to drop it.
+- [Edge function deploy from Replit](edge-fn-deploy.md) — Replit container has no outbound DNS; use `supabase functions deploy --use-api` to bundle server-side. `ALTER DATABASE` is also blocked; embed token fallback directly in PL/pgSQL function body.
