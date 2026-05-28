@@ -2,7 +2,7 @@
 //
 // Called by PostgreSQL pg_net triggers on INSERT into:
 //   • messages       → chat push to all non-sender members
-//   • calls          → incoming-call push to callee
+//   • calls          → incoming-call push to callee (BYPASSES quiet hours)
 //   • notifications  → social/system push to target user
 //
 // Security: every request must carry the header
@@ -19,6 +19,41 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-webhook-token",
 };
+
+// ── Quiet hours check ────────────────────────────────────────────────────────
+// Returns true if the current time in `tz` falls inside the [start, end) window.
+// Handles overnight windows (e.g. 22:00 → 08:00) correctly.
+
+function isQuietNow(
+  start: string, // "HH:MM"
+  end: string,   // "HH:MM"
+  tz: string,
+): boolean {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    // "HH:MM" string in the user's local timezone
+    const parts = formatter.formatToParts(new Date());
+    const h = parts.find((p) => p.type === "hour")?.value ?? "00";
+    const m = parts.find((p) => p.type === "minute")?.value ?? "00";
+    const now = `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
+
+    if (start <= end) {
+      // Same-day window e.g. 09:00 → 17:00
+      return now >= start && now < end;
+    } else {
+      // Overnight window e.g. 22:00 → 08:00
+      return now >= start || now < end;
+    }
+  } catch {
+    // Unknown timezone — don't silence
+    return false;
+  }
+}
 
 // ── Expo push channel routing ────────────────────────────────────────────────
 
@@ -64,7 +99,7 @@ async function sendExpoPush(payload: Record<string, unknown>): Promise<string | 
   return ticket?.id ?? null;
 }
 
-// ── Lookup push token and fire push ─────────────────────────────────────────
+// ── Notification preference keys ─────────────────────────────────────────────
 
 type NotifPrefs = {
   push_enabled: boolean;
@@ -74,7 +109,13 @@ type NotifPrefs = {
   push_gifts: boolean;
   push_mentions: boolean;
   push_replies: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  quiet_hours_timezone: string;
 };
+
+// ── Lookup push token, check prefs & quiet hours, then fire push ─────────────
 
 async function pushToUser(
   supabase: ReturnType<typeof createClient>,
@@ -87,8 +128,10 @@ async function pushToUser(
     type?: string;
     collapseKey?: string;
     prefKey?: keyof NotifPrefs;
+    bypassQuietHours?: boolean; // true for calls
   },
 ): Promise<void> {
+  // 1. Fetch profile with push token
   const { data: profile } = await supabase
     .from("profiles")
     .select("expo_push_token")
@@ -97,22 +140,44 @@ async function pushToUser(
 
   if (!profile?.expo_push_token) return;
 
-  if (push.prefKey) {
-    try {
-      const { data: prefs } = await supabase
-        .from("notification_preferences")
-        .select("push_enabled, " + push.prefKey)
-        .eq("user_id", userId)
-        .single();
+  // 2. Fetch notification prefs (single query covers push flags + quiet hours)
+  let prefs: Partial<NotifPrefs> | null = null;
+  try {
+    const { data } = await supabase
+      .from("notification_preferences")
+      .select(
+        "push_enabled, push_messages, push_likes, push_follows, push_gifts, " +
+        "push_mentions, push_replies, quiet_hours_enabled, quiet_hours_start, " +
+        "quiet_hours_end, quiet_hours_timezone",
+      )
+      .eq("user_id", userId)
+      .single();
+    prefs = data;
+  } catch {
+    // table may not exist yet — proceed with defaults
+  }
 
-      if (prefs?.push_enabled === false) return;
-      if (prefs?.[push.prefKey] === false) return;
-    } catch {
-      // table may not exist yet — proceed
+  // 3. Master push toggle
+  if (prefs?.push_enabled === false) return;
+
+  // 4. Per-type toggle
+  if (push.prefKey && prefs?.[push.prefKey] === false) return;
+
+  // 5. Quiet hours check (calls are always urgent — they bypass quiet hours)
+  if (!push.bypassQuietHours && prefs?.quiet_hours_enabled) {
+    const tz    = prefs.quiet_hours_timezone || "UTC";
+    const start = prefs.quiet_hours_start    || "22:00";
+    const end   = prefs.quiet_hours_end      || "08:00";
+
+    if (isQuietNow(start, end, tz)) {
+      console.log(
+        `[push-trigger] Quiet hours active for user ${userId} (${tz} ${start}–${end}); push suppressed`,
+      );
+      return;
     }
   }
 
-  const type = push.type ?? (push.data?.type as string | undefined);
+  const type   = push.type ?? (push.data?.type as string | undefined);
   const isCall = type === "call";
 
   const payload: Record<string, unknown> = {
@@ -162,7 +227,6 @@ function messagePreview(
   if (!content) return "Sent a message";
 
   const trimmed = content.trim();
-  // Ciphertext heuristic — base64-looking blob with no spaces
   if (trimmed.length > 80 && !/\s/.test(trimmed) && /^[A-Za-z0-9+/=]+$/.test(trimmed)) {
     return "New message";
   }
@@ -251,10 +315,12 @@ async function handleCall(
 
   const callerName = (caller?.display_name || caller?.handle || "Someone") as string;
 
+  // Calls always bypass quiet hours — they're urgent
   await pushToUser(supabase, calleeId, {
     title: `Incoming ${callType === "video" ? "Video" : "Voice"} Call`,
     body: `${callerName} is calling you`,
     type: "call",
+    bypassQuietHours: true,
     data: {
       type: "call",
       callId,
@@ -498,7 +564,6 @@ Deno.serve(async (req) => {
       });
     }
   } else {
-    // Fallback: accept service-role Bearer when no dedicated token is set
     const auth = req.headers.get("authorization");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     if (auth !== `Bearer ${serviceKey}`) {
