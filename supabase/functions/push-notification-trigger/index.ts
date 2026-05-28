@@ -273,7 +273,32 @@ async function handleMessage(
     : senderName;
 
   const members    = (chat.chat_members as { user_id: string }[] | null) ?? [];
-  const recipients = members.filter((m) => m.user_id !== senderId);
+  const allRecipients = members.filter((m) => m.user_id !== senderId);
+
+  // Check per-conversation mute state for each recipient
+  let mutedUserIds = new Set<string>();
+  if (allRecipients.length > 0) {
+    try {
+      const { data: muteRows } = await supabase
+        .from("chat_mutes")
+        .select("user_id, muted_until")
+        .eq("chat_id", chatId)
+        .in("user_id", allRecipients.map((m) => m.user_id));
+
+      const now = new Date().toISOString();
+      mutedUserIds = new Set(
+        (muteRows ?? [])
+          .filter((m: { user_id: string; muted_until: string | null }) =>
+            m.muted_until === null || m.muted_until > now,
+          )
+          .map((m: { user_id: string }) => m.user_id),
+      );
+    } catch {
+      // chat_mutes may not exist yet — skip silently
+    }
+  }
+
+  const recipients = allRecipients.filter((m) => !mutedUserIds.has(m.user_id));
 
   await Promise.allSettled(
     recipients.map((m) =>

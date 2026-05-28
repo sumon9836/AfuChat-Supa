@@ -1602,7 +1602,10 @@ function ChatScreen() {
     return () => { onShow.remove(); onHide.remove(); };
   }, []);
   const [showChatOptions, setShowChatOptions] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [muteUntil, setMuteUntil] = useState<string | null | undefined>(undefined);
+  const [showMutePicker, setShowMutePicker] = useState(false);
+  // null = muted forever; ISO string = muted until that time; undefined = not loaded / not muted
+  const isMuted = muteUntil === null || (muteUntil !== undefined && new Date(muteUntil) > new Date());
   const [disappearingEnabled, setDisappearingEnabled] = useState(false);
   const [disappearingTimer, setDisappearingTimer] = useState(86400); // seconds; 0 = off
   const [showDisappearingPicker, setShowDisappearingPicker] = useState(false);
@@ -3021,7 +3024,11 @@ function ChatScreen() {
   useEffect(() => {
     const chatId = isDraft ? realChatId : id;
     if (!chatId || !user) return;
-    AsyncStorage.getItem(`afu_muted_${chatId}`).then((v) => setIsMuted(v === "1")).catch(() => {});
+    supabase.from("chat_mutes").select("muted_until").eq("user_id", user.id).eq("chat_id", chatId).maybeSingle()
+      .then(({ data }) => {
+        if (!data) { setMuteUntil(undefined); return; }
+        setMuteUntil(data.muted_until ?? null);
+      }).catch(() => {});
     AsyncStorage.getItem(`afu_disappearing_${chatId}`).then((v) => setDisappearingEnabled(v === "1")).catch(() => {});
     AsyncStorage.getItem(`afu_disappearing_timer_${chatId}`).then((v) => { if (v) setDisappearingTimer(parseInt(v, 10)); }).catch(() => {});
     if (chatInfo?.other_id && !chatInfo.is_group && !chatInfo.is_channel) {
@@ -3042,12 +3049,38 @@ function ChatScreen() {
     AsyncStorage.setItem(`afu_disappearing_timer_${chatId}`, String(secs)).catch(() => {});
   }, [advancedFeatures.temp_chat_enabled, chatInfo?.is_group, chatInfo?.is_channel]);
 
-  async function handleMuteToggle() {
+  async function handleMuteChat(hours: number | null) {
     const chatId = isDraft ? realChatId : id;
-    if (!chatId) return;
-    const next = !isMuted;
-    setIsMuted(next);
-    await AsyncStorage.setItem(`afu_muted_${chatId}`, next ? "1" : "0");
+    if (!chatId || !user) return;
+    const muteUntilVal = hours === null ? null : new Date(Date.now() + hours * 3600_000).toISOString();
+    setMuteUntil(muteUntilVal);
+    setShowMutePicker(false);
+    await supabase.from("chat_mutes").upsert(
+      { user_id: user.id, chat_id: chatId, muted_until: muteUntilVal, created_at: new Date().toISOString() },
+      { onConflict: "user_id,chat_id" },
+    );
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  async function handleUnmuteChat() {
+    const chatId = isDraft ? realChatId : id;
+    if (!chatId || !user) return;
+    setMuteUntil(undefined);
+    setShowMutePicker(false);
+    await supabase.from("chat_mutes").delete().eq("user_id", user.id).eq("chat_id", chatId);
+    Haptics.selectionAsync();
+  }
+
+  function muteLabel(): string {
+    if (!isMuted || muteUntil === undefined) return "";
+    if (muteUntil === null) return "Muted forever";
+    const diff = new Date(muteUntil).getTime() - Date.now();
+    if (diff <= 0) return "";
+    const h = Math.floor(diff / 3_600_000);
+    const m = Math.floor((diff % 3_600_000) / 60_000);
+    if (h >= 24 * 6) return `Muted for ${Math.floor(h / 24)}d`;
+    if (h > 0) return `Muted for ${h}h ${m}m`;
+    return `Muted for ${m}m`;
   }
 
   async function handleDisappearingToggle() {
@@ -6827,18 +6860,50 @@ STRICT RULES:
               {/* ── SECTION: Privacy ─────────────────────────────────────── */}
               <Text style={[st.optionsSection, { color: colors.textMuted, marginTop: 8 }]}>PRIVACY</Text>
 
+              {/* Mute — expandable duration picker */}
               <TouchableOpacity
                 style={[st.optionsRow, { borderBottomColor: colors.border }]}
-                onPress={handleMuteToggle}
+                onPress={() => {
+                  if (isMuted) { handleUnmuteChat(); }
+                  else { setShowMutePicker((v) => !v); }
+                }}
               >
                 <View style={[st.optionsIcon, { backgroundColor: isMuted ? "#8E8E93" : "#007AFF" }]}>
                   <Ionicons name={isMuted ? "notifications-off" : "notifications"} size={16} color="#fff" />
                 </View>
-                <Text style={[st.optionsLabel, { color: colors.text }]}>{isMuted ? "Unmute Notifications" : "Mute Notifications"}</Text>
-                <View style={[st.optionsToggle, { backgroundColor: isMuted ? BRAND : colors.border }]}>
-                  <View style={[st.optionsToggleThumb, { transform: [{ translateX: isMuted ? 14 : 0 }] }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[st.optionsLabel, { color: isMuted ? "#8E8E93" : colors.text }]}>
+                    {isMuted ? "Unmute Notifications" : "Mute Notifications"}
+                  </Text>
+                  {isMuted && muteLabel() ? (
+                    <Text style={{ fontSize: 12, color: "#8E8E93", marginTop: 1 }}>{muteLabel()}</Text>
+                  ) : null}
                 </View>
+                {!isMuted && (
+                  <Ionicons name={showMutePicker ? "chevron-up" : "chevron-down"} size={16} color={colors.textMuted} />
+                )}
               </TouchableOpacity>
+              {showMutePicker && !isMuted && (
+                <View style={{ backgroundColor: colors.backgroundSecondary, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                  {([
+                    { label: "For 1 hour",  hours: 1 },
+                    { label: "For 8 hours", hours: 8 },
+                    { label: "For 1 week",  hours: 24 * 7 },
+                    { label: "Always",      hours: null },
+                  ] as { label: string; hours: number | null }[]).map((opt) => (
+                    <TouchableOpacity
+                      key={opt.label}
+                      style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}
+                      onPress={() => handleMuteChat(opt.hours)}
+                    >
+                      <Ionicons name="notifications-off-outline" size={16} color={colors.textMuted} style={{ marginRight: 12 }} />
+                      <Text style={{ flex: 1, fontSize: 14, color: colors.text, fontFamily: "Inter_400Regular" }}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               {!chatInfo?.is_channel && (() => {
                 const DISAPPEAR_OPTIONS = [

@@ -146,6 +146,8 @@ type ChatItem = {
   other_show_online: boolean;
   /** Unsent draft text for this chat (empty string = no draft) */
   draft?: string;
+  /** null = muted forever; ISO string = muted until that time; undefined = not muted */
+  muted_until?: string | null;
 };
 
 function TypingDots({ color }: { color: string }) {
@@ -217,7 +219,7 @@ function ChatRow({
   item: ChatItem;
   onPress: () => void;
   onAction?: (
-    action: "togglePin" | "toggleArchive" | "delete" | "open",
+    action: "togglePin" | "toggleArchive" | "delete" | "open" | "mute" | "unmute",
     item: ChatItem,
   ) => void;
   isActive?: boolean;
@@ -230,6 +232,7 @@ function ChatRow({
 }) {
   const { colors } = useTheme();
   const isSpecial = item.kind === "notes" || item.kind === "channel_broadcast";
+  const isChatMuted = item.muted_until !== undefined && (item.muted_until === null || new Date(item.muted_until) > new Date());
   const { bind, menuProps } = useContextMenu(
     isSpecial
       ? [[{ key: "open", label: "Open", icon: "open-outline", onSelect: () => onAction?.("open", item) }]]
@@ -238,6 +241,7 @@ function ChatRow({
             { key: "open", label: "Open chat", icon: "open-outline", onSelect: () => onAction?.("open", item) },
             { key: "pin", label: item.is_pinned ? "Unpin chat" : "Pin chat", icon: item.is_pinned ? "pin" : "pin-outline", onSelect: () => onAction?.("togglePin", item) },
             { key: "archive", label: item.is_archived ? "Unarchive" : "Archive", icon: item.is_archived ? "archive" : "archive-outline", onSelect: () => onAction?.("toggleArchive", item) },
+            { key: "mute", label: isChatMuted ? "Unmute" : "Mute", icon: isChatMuted ? "notifications-outline" : "notifications-off-outline", onSelect: () => onAction?.(isChatMuted ? "unmute" : "mute", item) },
           ],
           [{ key: "delete", label: "Delete chat", icon: "trash-outline", destructive: true, onSelect: () => onAction?.("delete", item) }],
         ]
@@ -307,6 +311,9 @@ function ChatRow({
             )}
             {item.is_channel && (
               <Ionicons name="megaphone" size={12} color={colors.accent} style={{ marginLeft: 4 }} />
+            )}
+            {isChatMuted && (
+              <Ionicons name="notifications-off" size={12} color={colors.textMuted} style={{ marginLeft: 4 }} />
             )}
           </View>
           <View style={styles.rowTopRight}>
@@ -824,7 +831,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
       (id) => id !== activeChatId && !wasChatRecentlyVisited(id),
     );
 
-    const [chatResult, lastMsgsResult, unreadMsgsResult] = await Promise.all([
+    const [chatResult, lastMsgsResult, unreadMsgsResult, mutesResult] = await Promise.all([
       supabase
         .from("chats")
         .select(`
@@ -853,7 +860,21 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
             .order("sent_at", { ascending: false })
             .limit(500)
         : Promise.resolve({ data: [] }),
+      supabase
+        .from("chat_mutes")
+        .select("chat_id, muted_until")
+        .eq("user_id", user.id)
+        .in("chat_id", chatIds),
     ]);
+
+    // Build a map of chatId → muted_until (null = forever; string = ISO expiry; missing = not muted)
+    const now = new Date().toISOString();
+    const muteMap: Record<string, string | null> = {};
+    for (const row of ((mutesResult as any)?.data ?? [])) {
+      if (row.muted_until === null || row.muted_until > now) {
+        muteMap[row.chat_id] = row.muted_until ?? null;
+      }
+    }
 
     const chatRows = chatResult.data;
     if (!chatRows) { setLoading(false); setRefreshing(false); return; }
@@ -969,6 +990,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
         is_organization_verified: isSelfChat ? false : !!otherProfile?.is_organization_verified,
         other_last_seen: isSelfChat ? null : (otherProfile?.last_seen || null),
         other_show_online: isSelfChat ? false : (otherProfile?.show_online_status !== false),
+        muted_until: muteMap[c.id] !== undefined ? muteMap[c.id] : undefined,
       };
     });
 
@@ -1135,7 +1157,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
   // Right-click context-menu actions on chat list rows.
   const handleChatAction = useCallback(
     async (
-      action: "togglePin" | "toggleArchive" | "delete" | "open",
+      action: "togglePin" | "toggleArchive" | "delete" | "open" | "mute" | "unmute",
       item: ChatItem,
     ) => {
       if (action === "open") {
@@ -1241,8 +1263,29 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
         }
         return;
       }
+      if (action === "mute" || action === "unmute") {
+        if (!user) return;
+        if (action === "unmute") {
+          setChats((prev) => prev.map((c) => c.id === item.id ? { ...c, muted_until: undefined } : c));
+          await supabase.from("chat_mutes").delete().eq("user_id", user.id).eq("chat_id", item.id);
+          showActionToast("Notifications unmuted", "", undefined, { type: "info", icon: "notifications-outline" });
+        } else {
+          // Quick mute: 8 hours by default from the list; full duration picker is inside the chat
+          const until = new Date(Date.now() + 8 * 3600_000).toISOString();
+          setChats((prev) => prev.map((c) => c.id === item.id ? { ...c, muted_until: until } : c));
+          await supabase.from("chat_mutes").upsert(
+            { user_id: user.id, chat_id: item.id, muted_until: until, created_at: new Date().toISOString() },
+            { onConflict: "user_id,chat_id" },
+          );
+          showActionToast("Muted for 8 hours", "Undo", async () => {
+            setChats((prev) => prev.map((c) => c.id === item.id ? { ...c, muted_until: undefined } : c));
+            await supabase.from("chat_mutes").delete().eq("user_id", user.id).eq("chat_id", item.id);
+          }, { type: "info", icon: "notifications-off-outline" });
+        }
+        return;
+      }
     },
-    [loadChats],
+    [loadChats, user],
   );
 
   // ── Multi-select handlers ─────────────────────────────────────────────────
