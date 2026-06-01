@@ -296,13 +296,13 @@ function AnimatedSlide({
           onPress={onGoNext}
           activeOpacity={0.82}
         >
-          <Text style={s.nextBtnText}>
+          <Text style={[s.nextBtnText, isLast && s.nextBtnTextLast]}>
             {isLast ? "Get Started" : "Next"}
           </Text>
           <Ionicons
             name={isLast ? "rocket-outline" : "arrow-forward"}
             size={18}
-            color={isLast ? "#000" : "#fff"}
+            color={isLast ? "#006064" : "#fff"}
           />
         </TouchableOpacity>
       </View>
@@ -569,5 +569,8 @@ const s = StyleSheet.create({
     fontSize: 17,
     fontFamily: "Inter_700Bold",
     color: "#fff",
+  },
+  nextBtnTextLast: {
+    color: "#006064",
   },
 });
