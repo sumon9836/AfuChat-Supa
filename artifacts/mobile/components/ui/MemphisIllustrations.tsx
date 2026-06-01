@@ -1,12 +1,15 @@
 /**
- * MemphisIllustrations — motion-graphics illustrations for the onboarding carousel.
+ * AfuChat Owl Mascot — motion-graphics illustrations for the onboarding carousel.
  *
- * Every illustration is a self-contained animated scene built with:
- *   • react-native-reanimated v4 (UI-thread worklets, 60 fps)
- *   • react-native-svg v15  (AnimatedG / AnimatedCircle etc.)
+ * The owl IS the platform identity.
  *
- * Characters are full cartoon humans (not dolls) with skin tones, hair, clothes.
- * Animations are choreographed per-slide to tell a story.
+ * Built with:
+ *   • Reanimated v4  — UI-thread worklets, 60 fps, zero JS thread
+ *   • react-native-svg v15
+ *
+ * ⚠  transformOrigin is intentionally avoided throughout.
+ *    Scaling around a pivot (px,py) uses the standard SVG trick:
+ *      translate(px,py) scale(s) translate(-px,-py)
  */
 
 import React, { useEffect } from "react";
@@ -15,9 +18,7 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
-  withSequence,
   withDelay,
-  withSpring,
   Easing,
 } from "react-native-reanimated";
 import Svg, {
@@ -28,32 +29,31 @@ import Svg, {
 const AnimG       = Animated.createAnimatedComponent(G);
 const AnimCircle  = Animated.createAnimatedComponent(Circle);
 const AnimEllipse = Animated.createAnimatedComponent(Ellipse);
-const AnimRect    = Animated.createAnimatedComponent(Rect);
 const AnimPath    = Animated.createAnimatedComponent(Path);
 const AnimLine    = Animated.createAnimatedComponent(Line);
 
-// ── Colour palette ────────────────────────────────────────────────────────────
+// ── Palette ───────────────────────────────────────────────────────────────────
 const W      = "#FFFFFF";
-const DARK   = "#1A1A2E";
+const DARK   = "#0D1321";
 const TEAL   = "#00BCD4";
 const CORAL  = "#FF7043";
 const GOLD   = "#FFB300";
-const INDIGO = "#5C6BC0";
 const GREEN  = "#66BB6A";
 const PINK   = "#E91E63";
+const INDIGO = "#5C6BC0";
 const PURPLE = "#AB47BC";
 
-const SKIN_LIGHT = "#FFDBB4";
-const SKIN_WARM  = "#E8A87C";
-const SKIN_MED   = "#C68642";
-const SKIN_DARK  = "#8D5524";
-const HAIR_BLACK = "#1A0A00";
-const HAIR_BROWN = "#5C3317";
-const HAIR_DARK  = "#2C1810";
+// Owl feather palettes
+const OWL_BLUE   = { feathers: "#1565C0", belly: "#BBDEFB", eye: TEAL,   beak: GOLD  };
+const OWL_TEAL   = { feathers: "#00838F", belly: "#B2EBF2", eye: "#FFEB3B", beak: GOLD };
+const OWL_BROWN  = { feathers: "#5D4037", belly: "#FFCCBC", eye: TEAL,   beak: GOLD  };
+const OWL_GREY   = { feathers: "#546E7A", belly: "#ECEFF1", eye: CORAL,  beak: GOLD  };
+const OWL_PURPLE = { feathers: "#6A1B9A", belly: "#E1BEE7", eye: GOLD,   beak: CORAL };
+const OWL_GREEN  = { feathers: "#2E7D32", belly: "#C8E6C9", eye: GOLD,   beak: CORAL };
 
 // ── Animation helpers ─────────────────────────────────────────────────────────
 
-/** Infinite smooth ping-pong between `a` and `b`. */
+/** Smooth infinite ping-pong between `a` and `b`. */
 function useBob(a: number, b: number, ms: number, delay = 0) {
   const v = useSharedValue(a);
   useEffect(() => {
@@ -68,12 +68,10 @@ function useBob(a: number, b: number, ms: number, delay = 0) {
   return v;
 }
 
-/** Infinite smooth ping-pong that goes a→b→a (easeInOut), good for opacity. */
-function usePulse(a: number, b: number, ms: number, delay = 0) {
-  return useBob(a, b, ms, delay);
-}
+/** Same as useBob but semantically for opacity/scale pulses. */
+const usePulse = useBob;
 
-/** One-direction infinite spin: 0 → 2π over `ms`. */
+/** Infinite linear spin from 0 → 2π. */
 function useSpin(ms: number, delay = 0) {
   const v = useSharedValue(0);
   useEffect(() => {
@@ -85,12 +83,7 @@ function useSpin(ms: number, delay = 0) {
   return v;
 }
 
-/** Bouncing dot for typing indicators: drops -amp and returns. */
-function useDot(amp: number, ms: number, delay = 0) {
-  return useBob(0, -amp, ms, delay);
-}
-
-// ── Star decorator ────────────────────────────────────────────────────────────
+// ── Decorative star ───────────────────────────────────────────────────────────
 function Star({ cx, cy, r, fill, opacity = 1 }: {
   cx: number; cy: number; r: number; fill: string; opacity?: number;
 }) {
@@ -99,235 +92,211 @@ function Star({ cx, cy, r, fill, opacity = 1 }: {
   return <Polygon points={pts} fill={fill} opacity={opacity} />;
 }
 
-// ── CartoonHuman — full human cartoon character ───────────────────────────────
-/**
- * All units are in the 200×200 SVG viewBox.
- * `cx`/`cy` = top-centre of the character.
- * `s`       = uniform scale factor (default 1 → ≈ 90px tall).
- */
-function CartoonHuman({
-  cx, cy,
-  s   = 1,
-  skin  = SKIN_LIGHT,
-  hair  = HAIR_BLACK,
-  shirt = TEAL,
-  pants = DARK,
-  hairStyle = "short" as "short" | "long" | "curly" | "bun",
-  facing    = "front" as "front" | "right" | "left",
+// ─────────────────────────────────────────────────────────────────────────────
+// AfuChat Owl Mascot
+//
+//  cx, cy = top-centre of the character in SVG units
+//  s      = uniform scale (default 1 → ≈ 88px tall in 200×200 viewBox)
+// ─────────────────────────────────────────────────────────────────────────────
+function Owl({
+  cx, cy, s = 1,
+  feathers = OWL_BLUE.feathers,
+  belly    = OWL_BLUE.belly,
+  eye      = OWL_BLUE.eye,
+  beak     = GOLD,
 }: {
   cx: number; cy: number; s?: number;
-  skin?: string; hair?: string; shirt?: string; pants?: string;
-  hairStyle?: "short" | "long" | "curly" | "bun";
-  facing?: "front" | "right" | "left";
+  feathers?: string; belly?: string; eye?: string; beak?: string;
 }) {
-  const HR  = 16 * s;
-  const HCx = cx;
-  const HCy = cy + HR;
+  // ── Geometry ──────────────────────────────────────────────
+  const hr  = 22 * s;   // head radius
+  const hcy = cy + hr;  // head centre y
 
-  const nW = 9 * s, nH = 8 * s;
-  const nX = cx - nW / 2, nY = HCy + HR - 2 * s;
+  const brx = 18 * s, bry = 25 * s;
+  const bcy = hcy + hr + bry - 6 * s;  // body centre y
 
-  const tW = 34 * s, tH = 30 * s;
-  const tX = cx - tW / 2, tY = nY + nH;
+  const er  = 9.5 * s;  // eye radius (big — owl!)
+  const eo  = 8.5 * s;  // eye x-offset
+  const eyY = hcy - 1 * s;
+  const pr  = 4.8 * s;  // pupil radius
 
-  const aW = 9 * s, aH = 26 * s, aY = tY + 4 * s;
-  const aLX = tX - aW + 1 * s, aRX = tX + tW - 1 * s;
-  const aLEx = facing === "right" ? aLX - 4 * s : aLX - 8 * s;
-  const aLEy = aY + aH * 0.7;
-  const aREx = facing === "left" ? aRX + aW + 4 * s : aRX + aW + 10 * s;
-  const aREy = facing === "left" ? aY + aH * 0.4 : aY + aH * 0.7;
-
-  const lW = 12 * s, lH = 28 * s, lG = 4 * s;
-  const lY = tY + tH - 2 * s;
-  const lLX = cx - lG / 2 - lW, lRX = cx + lG / 2;
-  const shW = 15 * s, shH = 8 * s;
-
-  const eX = 5.5 * s, eY = -1 * s, eR = 4.5 * s, pR = 2 * s;
-  const bW = 7 * s, bY = HCy + eY - eR - 3 * s;
-  const mY = HCy + HR * 0.38, mL = cx - 6 * s, mR = cx + 6 * s, mCY = mY + 4 * s;
-  const blY = HCy + eY + eR + 2 * s;
-
-  function Hair() {
-    if (hairStyle === "long") {
-      return (
-        <G>
-          <Path d={`M${cx - HR * 1.1},${HCy} Q${cx - HR * 1.3},${HCy + HR * 0.5} ${cx - HR * 1.1},${HCy + HR * 1.8}`}
-            stroke={hair} strokeWidth={10 * s} fill="none" strokeLinecap="round" />
-          <Path d={`M${cx + HR * 1.1},${HCy} Q${cx + HR * 1.3},${HCy + HR * 0.5} ${cx + HR * 1.1},${HCy + HR * 1.8}`}
-            stroke={hair} strokeWidth={10 * s} fill="none" strokeLinecap="round" />
-          <Path d={`M${cx - HR},${HCy - HR * 0.8} Q${cx},${HCy - HR * 1.5} ${cx + HR},${HCy - HR * 0.8} L${cx + HR},${HCy} Q${cx},${HCy - HR * 0.4} ${cx - HR},${HCy} Z`}
-            fill={hair} />
-        </G>
-      );
-    }
-    if (hairStyle === "curly") {
-      return (
-        <G>
-          <Ellipse cx={cx} cy={HCy - HR * 0.7} rx={HR * 1.15} ry={HR * 0.8} fill={hair} />
-          <Ellipse cx={cx - HR * 0.9} cy={HCy - HR * 0.2} rx={HR * 0.45} ry={HR * 0.55} fill={hair} />
-          <Ellipse cx={cx + HR * 0.9} cy={HCy - HR * 0.2} rx={HR * 0.45} ry={HR * 0.55} fill={hair} />
-        </G>
-      );
-    }
-    if (hairStyle === "bun") {
-      return (
-        <G>
-          <Path d={`M${cx - HR},${HCy - HR * 0.6} Q${cx},${HCy - HR * 1.4} ${cx + HR},${HCy - HR * 0.6} L${cx + HR},${HCy} Q${cx},${HCy - HR * 0.3} ${cx - HR},${HCy} Z`}
-            fill={hair} />
-          <Circle cx={cx} cy={HCy - HR * 1.5} r={HR * 0.38} fill={hair} />
-        </G>
-      );
-    }
-    return (
-      <Path
-        d={`M${cx - HR},${HCy - HR * 0.5} Q${cx - HR * 0.2},${HCy - HR * 1.55} ${cx + HR * 0.2},${HCy - HR * 1.5} Q${cx + HR},${HCy - HR * 1.2} ${cx + HR},${HCy - HR * 0.5} Z`}
-        fill={hair}
-      />
-    );
-  }
-
-  const noseFill = skin === SKIN_LIGHT ? "#E8A87C" : "#6B3E26";
-  const mouthC   = hair === HAIR_BLACK ? "#5C3317" : HAIR_BROWN;
+  const footY = bcy + bry - 2 * s;
 
   return (
     <G>
-      {/* legs */}
-      <Rect x={lLX} y={lY} width={lW} height={lH} rx={5 * s} fill={pants} />
-      <Rect x={lRX} y={lY} width={lW} height={lH} rx={5 * s} fill={pants} />
-      {/* shoes */}
-      <Rect x={lLX - 2 * s} y={lY + lH - 2 * s} width={shW} height={shH} rx={4 * s} fill={DARK} />
-      <Rect x={lRX - 1 * s} y={lY + lH - 2 * s} width={shW} height={shH} rx={4 * s} fill={DARK} />
-      {/* arm paths */}
-      <Path d={`M${aLX + aW / 2},${aY} Q${aLX - 4 * s},${aY + aH * 0.5} ${aLEx + aW / 2},${aLEy}`}
-        stroke={skin} strokeWidth={aW} fill="none" strokeLinecap="round" />
-      <Path d={`M${aRX + aW / 2},${aY} Q${aRX + aW + 8 * s},${aY + aH * 0.5} ${aREx},${aREy}`}
-        stroke={skin} strokeWidth={aW} fill="none" strokeLinecap="round" />
-      {/* shirt sleeves */}
-      <Path d={`M${aLX + aW / 2},${aY} Q${aLX - 4 * s},${aY + aH * 0.35} ${aLEx + aW / 2},${aY + aH * 0.44}`}
-        stroke={shirt} strokeWidth={aW * 0.9} fill="none" strokeLinecap="round" />
-      <Path d={`M${aRX + aW / 2},${aY} Q${aRX + aW + 8 * s},${aY + aH * 0.35} ${aREx},${aY + aH * 0.44}`}
-        stroke={shirt} strokeWidth={aW * 0.9} fill="none" strokeLinecap="round" />
-      {/* torso */}
-      <Rect x={tX} y={tY} width={tW} height={tH} rx={7 * s} fill={shirt} />
-      {/* neck */}
-      <Rect x={nX} y={nY} width={nW} height={nH + 2 * s} rx={3 * s} fill={skin} />
-      {/* head */}
-      <Ellipse cx={HCx} cy={HCy} rx={HR} ry={HR * 1.05} fill={skin} />
-      <Hair />
-      {/* ears */}
-      <Ellipse cx={cx - HR} cy={HCy + 1 * s} rx={3.5 * s} ry={4.5 * s} fill={skin} />
-      <Ellipse cx={cx + HR} cy={HCy + 1 * s} rx={3.5 * s} ry={4.5 * s} fill={skin} />
-      {/* eyebrows */}
-      <Path d={`M${cx - eX - bW / 2},${bY} Q${cx - eX},${bY - 2.5 * s} ${cx - eX + bW / 2},${bY}`}
-        stroke={hair} strokeWidth={2 * s} fill="none" strokeLinecap="round" />
-      <Path d={`M${cx + eX - bW / 2},${bY} Q${cx + eX},${bY - 2.5 * s} ${cx + eX + bW / 2},${bY}`}
-        stroke={hair} strokeWidth={2 * s} fill="none" strokeLinecap="round" />
-      {/* eyes */}
-      <Circle cx={cx - eX} cy={HCy + eY} r={eR} fill={W} />
-      <Circle cx={cx + eX} cy={HCy + eY} r={eR} fill={W} />
-      <Circle cx={cx - eX + 0.8 * s} cy={HCy + eY + 0.5 * s} r={pR + 0.8 * s} fill="#2C4A6E" />
-      <Circle cx={cx + eX + 0.8 * s} cy={HCy + eY + 0.5 * s} r={pR + 0.8 * s} fill="#2C4A6E" />
-      <Circle cx={cx - eX + 0.8 * s} cy={HCy + eY + 0.5 * s} r={pR} fill={DARK} />
-      <Circle cx={cx + eX + 0.8 * s} cy={HCy + eY + 0.5 * s} r={pR} fill={DARK} />
-      <Circle cx={cx - eX - 1.2 * s} cy={HCy + eY - 1.8 * s} r={1.2 * s} fill={W} />
-      <Circle cx={cx + eX - 1.2 * s} cy={HCy + eY - 1.8 * s} r={1.2 * s} fill={W} />
-      {/* blush */}
-      <Ellipse cx={cx - eX - 2 * s} cy={blY} rx={4.5 * s} ry={2.5 * s} fill={CORAL} opacity={0.3} />
-      <Ellipse cx={cx + eX + 2 * s} cy={blY} rx={4.5 * s} ry={2.5 * s} fill={CORAL} opacity={0.3} />
-      {/* nose */}
-      <Ellipse cx={cx} cy={HCy + HR * 0.18} rx={2 * s} ry={1.5 * s} fill={noseFill} opacity={0.5} />
-      {/* smile */}
-      <Path d={`M${mL},${mY} Q${cx},${mCY} ${mR},${mY}`}
-        stroke={mouthC} strokeWidth={2 * s} fill="none" strokeLinecap="round" />
+      {/* ── Body ── */}
+      <Ellipse cx={cx} cy={bcy} rx={brx} ry={bry} fill={feathers} />
+
+      {/* ── Belly (lighter oval) ── */}
+      <Ellipse cx={cx} cy={bcy + 4 * s} rx={brx * 0.58} ry={bry * 0.72} fill={belly} opacity={0.88} />
+
+      {/* ── Feather-stripe details on belly ── */}
+      <Path
+        d={`M${cx - 7 * s},${bcy - 4 * s} Q${cx},${bcy - 8 * s} ${cx + 7 * s},${bcy - 4 * s}`}
+        stroke={feathers} strokeWidth={1.5 * s} fill="none" opacity={0.4}
+      />
+      <Path
+        d={`M${cx - 6 * s},${bcy + 4 * s} Q${cx},${bcy} ${cx + 6 * s},${bcy + 4 * s}`}
+        stroke={feathers} strokeWidth={1.5 * s} fill="none" opacity={0.4}
+      />
+
+      {/* ── Wings ── */}
+      <Path
+        d={`M${cx - brx + 2 * s},${bcy - bry * 0.35} Q${cx - brx * 2.1},${bcy + 2 * s} ${cx - brx * 1.3},${bcy + bry * 0.75}`}
+        stroke={feathers} strokeWidth={10 * s} fill="none" strokeLinecap="round"
+      />
+      <Path
+        d={`M${cx + brx - 2 * s},${bcy - bry * 0.35} Q${cx + brx * 2.1},${bcy + 2 * s} ${cx + brx * 1.3},${bcy + bry * 0.75}`}
+        stroke={feathers} strokeWidth={10 * s} fill="none" strokeLinecap="round"
+      />
+      {/* Wing highlights */}
+      <Path
+        d={`M${cx - brx + 2 * s},${bcy - bry * 0.35} Q${cx - brx * 1.8},${bcy} ${cx - brx * 1.2},${bcy + bry * 0.5}`}
+        stroke={belly} strokeWidth={3 * s} fill="none" strokeLinecap="round" opacity={0.4}
+      />
+      <Path
+        d={`M${cx + brx - 2 * s},${bcy - bry * 0.35} Q${cx + brx * 1.8},${bcy} ${cx + brx * 1.2},${bcy + bry * 0.5}`}
+        stroke={belly} strokeWidth={3 * s} fill="none" strokeLinecap="round" opacity={0.4}
+      />
+
+      {/* ── Head ── */}
+      <Circle cx={cx} cy={hcy} r={hr} fill={feathers} />
+
+      {/* ── Facial disc (lighter ring on face) ── */}
+      <Ellipse cx={cx} cy={hcy + 2 * s} rx={hr * 0.78} ry={hr * 0.82}
+        fill={belly} opacity={0.42} />
+
+      {/* ── Ear tufts ── */}
+      <Path
+        d={`M${cx - 12 * s},${cy + 2 * s} L${cx - 7 * s},${cy - 10 * s} L${cx - 2 * s},${cy + 2 * s}`}
+        fill={feathers}
+      />
+      <Path
+        d={`M${cx + 2 * s},${cy + 2 * s} L${cx + 7 * s},${cy - 10 * s} L${cx + 12 * s},${cy + 2 * s}`}
+        fill={feathers}
+      />
+
+      {/* ── Eyes: sclera ── */}
+      <Circle cx={cx - eo} cy={eyY} r={er + 1.5 * s} fill={W} />
+      <Circle cx={cx + eo} cy={eyY} r={er + 1.5 * s} fill={W} />
+
+      {/* ── Eyes: iris ── */}
+      <Circle cx={cx - eo} cy={eyY} r={er} fill={eye} />
+      <Circle cx={cx + eo} cy={eyY} r={er} fill={eye} />
+
+      {/* ── Eyes: pupil ── */}
+      <Circle cx={cx - eo + 1.2 * s} cy={eyY + 1 * s} r={pr} fill={DARK} />
+      <Circle cx={cx + eo + 1.2 * s} cy={eyY + 1 * s} r={pr} fill={DARK} />
+
+      {/* ── Eyes: shine ── */}
+      <Circle cx={cx - eo - 2.5 * s} cy={eyY - 3 * s} r={2.2 * s} fill={W} />
+      <Circle cx={cx + eo - 2.5 * s} cy={eyY - 3 * s} r={2.2 * s} fill={W} />
+
+      {/* ── Beak ── */}
+      <Path
+        d={`M${cx},${eyY + er * 0.6} L${cx - 5.5 * s},${eyY + er * 1.6} L${cx + 5.5 * s},${eyY + er * 1.6} Z`}
+        fill={beak}
+      />
+      {/* beak ridge */}
+      <Line
+        x1={cx} y1={eyY + er * 0.6}
+        x2={cx} y2={eyY + er * 1.6}
+        stroke={DARK} strokeWidth={0.8 * s} opacity={0.3}
+      />
+
+      {/* ── Feet / talons ── */}
+      <Path
+        d={`M${cx - 7 * s},${footY} L${cx - 12 * s},${footY + 9 * s} M${cx - 7 * s},${footY} L${cx - 7 * s},${footY + 9 * s} M${cx - 7 * s},${footY} L${cx - 2 * s},${footY + 9 * s}`}
+        stroke={beak} strokeWidth={2.2 * s} fill="none" strokeLinecap="round"
+      />
+      <Path
+        d={`M${cx + 7 * s},${footY} L${cx + 2 * s},${footY + 9 * s} M${cx + 7 * s},${footY} L${cx + 7 * s},${footY + 9 * s} M${cx + 7 * s},${footY} L${cx + 12 * s},${footY + 9 * s}`}
+        stroke={beak} strokeWidth={2.2 * s} fill="none" strokeLinecap="round"
+      />
     </G>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SLIDE 1 — Chat
-// Scene: Two people face each other; speech bubbles with animated typing dots;
-//         a heart emoji floats up between them.
+// Two owls facing each other; left has animated typing dots; right bubble
+// pulses; a heart floats up between them.
 // ─────────────────────────────────────────────────────────────────────────────
 export function ChatIllustration({ size = 160 }: { size?: number }) {
-  // Character bobs
-  const bobL = useBob(0, -7, 2000, 0);
-  const bobR = useBob(0, -7, 2000, 1000);
+  const bobL  = useBob(0, -7, 2000, 0);
+  const bobR  = useBob(0, -7, 2000, 1000);
 
-  // Typing dots in left bubble (staggered bounce)
-  const d1 = useDot(5, 500, 0);
-  const d2 = useDot(5, 500, 160);
-  const d3 = useDot(5, 500, 320);
+  // Typing dots (staggered bounce)
+  const d1 = useBob(0, -5.5, 500, 0);
+  const d2 = useBob(0, -5.5, 500, 160);
+  const d3 = useBob(0, -5.5, 500, 320);
 
-  // Right bubble scale pulse (message received)
-  const bubR = usePulse(1, 1.06, 1200, 400);
+  // Right bubble heartbeat
+  const bubS = usePulse(1, 1.07, 1200, 400);
 
-  // Floating heart between them
-  const heartY  = useBob(0, -22, 2200, 600);
-  const heartOp = usePulse(0.9, 0.2, 2200, 600);
+  // Floating heart
+  const htY = useBob(0, -22, 2200, 600);
+  const htO = usePulse(0.9, 0.1, 2200, 600);
 
-  // Star twinkle
-  const tw1 = usePulse(0.3, 1, 900, 0);
-  const tw2 = usePulse(0.3, 1, 700, 300);
+  // Twinkle stars
+  const tw1 = usePulse(0.2, 1, 900, 0);
+  const tw2 = usePulse(0.2, 1, 700, 300);
 
-  // Animated props
-  const propsBobL   = useAnimatedProps(() => ({ transform: `translate(0, ${bobL.value})` }));
-  const propsBobR   = useAnimatedProps(() => ({ transform: `translate(0, ${bobR.value})` }));
-  const propsD1     = useAnimatedProps(() => ({ cy: 35 + d1.value }));
-  const propsD2     = useAnimatedProps(() => ({ cy: 35 + d2.value }));
-  const propsD3     = useAnimatedProps(() => ({ cy: 35 + d3.value }));
-  const propsBubR   = useAnimatedProps(() => ({ transform: `scale(${bubR.value})`, transformOrigin: "142 28" } as any));
-  const propsHrtY   = useAnimatedProps(() => ({ transform: `translate(0, ${heartY.value})` }));
-  const propsHrtOp  = useAnimatedProps(() => ({ opacity: heartOp.value }));
-  const propsTw1    = useAnimatedProps(() => ({ opacity: tw1.value }));
-  const propsTw2    = useAnimatedProps(() => ({ opacity: tw2.value }));
+  const pL   = useAnimatedProps(() => ({ transform: `translate(0,${bobL.value})` }));
+  const pR   = useAnimatedProps(() => ({ transform: `translate(0,${bobR.value})` }));
+  const pD1  = useAnimatedProps(() => ({ cy: 35 + d1.value }));
+  const pD2  = useAnimatedProps(() => ({ cy: 35 + d2.value }));
+  const pD3  = useAnimatedProps(() => ({ cy: 35 + d3.value }));
+  // bubble scale around its centre (55, 28)
+  const pBub = useAnimatedProps(() => ({
+    transform: `translate(55,28) scale(${bubS.value}) translate(-55,-28)`,
+  }));
+  const pHtY = useAnimatedProps(() => ({ transform: `translate(0,${htY.value})` }));
+  const pHtO = useAnimatedProps(() => ({ opacity: htO.value }));
+  const pTw1 = useAnimatedProps(() => ({ opacity: tw1.value }));
+  const pTw2 = useAnimatedProps(() => ({ opacity: tw2.value }));
 
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
-      {/* ── Decorative bg ── */}
-      <AnimCircle cx={22} cy={22} r={6} fill={GOLD} animatedProps={propsTw1} />
-      <AnimCircle cx={178} cy={170} r={5} fill={TEAL} animatedProps={propsTw2} />
-      <Circle cx={185} cy={90} r={5} fill={CORAL} opacity={0.35} />
+      <AnimCircle cx={22} cy={22} r={6} fill={GOLD}  animatedProps={pTw1} />
+      <AnimCircle cx={178} cy={170} r={5} fill={TEAL} animatedProps={pTw2} />
+      <Circle cx={185} cy={90} r={5} fill={CORAL} opacity={0.3} />
 
-      {/* ── Left person ── */}
-      <AnimG animatedProps={propsBobL}>
-        <CartoonHuman cx={58} cy={74} s={0.88}
-          skin={SKIN_WARM} hair={HAIR_BLACK}
-          shirt="#4FC3F7" pants="#37474F"
-          hairStyle="long" facing="right"
-        />
+      {/* ── Left owl (blue) ── */}
+      <AnimG animatedProps={pL}>
+        <Owl cx={58} cy={70} s={0.85}
+          feathers={OWL_BLUE.feathers} belly={OWL_BLUE.belly}
+          eye={OWL_BLUE.eye} beak={OWL_BLUE.beak} />
       </AnimG>
 
-      {/* ── Right person ── */}
-      <AnimG animatedProps={propsBobR}>
-        <CartoonHuman cx={142} cy={74} s={0.88}
-          skin={SKIN_MED} hair={HAIR_BROWN}
-          shirt={GREEN} pants="#455A64"
-          hairStyle="short" facing="left"
-        />
+      {/* ── Right owl (green) ── */}
+      <AnimG animatedProps={pR}>
+        <Owl cx={142} cy={70} s={0.85}
+          feathers={OWL_GREEN.feathers} belly={OWL_GREEN.belly}
+          eye={OWL_GREEN.eye} beak={OWL_GREEN.beak} />
       </AnimG>
 
-      {/* ── Left speech bubble (typing) ── */}
-      <Rect x={28} y={14} width={54} height={28} rx={12} fill={W} opacity={0.95} />
-      <Path d="M52,42 L48,52 L62,42" fill={W} opacity={0.95} />
-      <AnimCircle cx={42} animatedProps={propsD1} r={3.8} fill={TEAL} />
-      <AnimCircle cx={55} animatedProps={propsD2} r={3.8} fill={TEAL} />
-      <AnimCircle cx={68} animatedProps={propsD3} r={3.8} fill={TEAL} />
+      {/* ── Left bubble — typing ── */}
+      <Rect x={26} y={14} width={58} height={30} rx={13} fill={W} opacity={0.95} />
+      <Path d="M50,44 L46,54 L60,44" fill={W} opacity={0.95} />
+      <AnimCircle cx={40} animatedProps={pD1} r={4} fill={TEAL} />
+      <AnimCircle cx={55} animatedProps={pD2} r={4} fill={TEAL} />
+      <AnimCircle cx={70} animatedProps={pD3} r={4} fill={TEAL} />
 
-      {/* ── Right speech bubble (pulse) ── */}
-      <AnimG animatedProps={propsBubR}>
-        <Rect x={116} y={8} width={56} height={30} rx={12} fill={W} opacity={0.88} />
-        <Path d="M132,38 L128,48 L142,38" fill={W} opacity={0.88} />
-        <Circle cx={130} cy={23} r={3.5} fill={CORAL} />
-        <Circle cx={144} cy={23} r={3.5} fill={CORAL} />
-        <Circle cx={158} cy={23} r={3.5} fill={CORAL} />
+      {/* ── Right bubble — pulse ── */}
+      <AnimG animatedProps={pBub}>
+        <Rect x={116} y={8} width={58} height={30} rx={13} fill={W} opacity={0.88} />
+        <Path d="M136,38 L132,48 L146,38" fill={W} opacity={0.88} />
+        <Circle cx={130} cy={23} r={4} fill={CORAL} />
+        <Circle cx={145} cy={23} r={4} fill={CORAL} />
+        <Circle cx={160} cy={23} r={4} fill={CORAL} />
       </AnimG>
 
       {/* ── Floating heart ── */}
-      <AnimG animatedProps={propsHrtY}>
+      <AnimG animatedProps={pHtY}>
         <AnimPath
           d="M100,88 C100,88 106,82 110,86 C114,90 110,94 100,100 C90,94 86,90 90,86 C94,82 100,88 100,88 Z"
-          fill={CORAL}
-          animatedProps={propsHrtOp}
+          fill={CORAL} animatedProps={pHtO}
         />
       </AnimG>
     </Svg>
@@ -336,156 +305,155 @@ export function ChatIllustration({ size = 160 }: { size?: number }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SLIDE 2 — Security
-// Scene: Person gestures at a shield; shield emits sonar pulse rings;
-//         lock clicks shut; checkmark glows.
+// Owl beside a shield; sonar rings expand from shield centre;
+// checkmark pulses; lock gently rocks.
 // ─────────────────────────────────────────────────────────────────────────────
 export function SecurityIllustration({ size = 160 }: { size?: number }) {
-  const bobP = useBob(0, -6, 2100, 0);
+  const bobP  = useBob(0, -6, 2100, 0);
 
-  // Sonar ring 1 & 2 (staggered expand+fade)
-  const ring1S = useBob(1, 1.5,  1400, 0);
-  const ring1O = usePulse(0.7, 0,  1400, 0);
-  const ring2S = useBob(1, 1.5,  1400, 700);
-  const ring2O = usePulse(0.7, 0,  1400, 700);
+  // Sonar rings expanding from shield centre (152, 90)
+  const r1S = usePulse(1, 1.55, 1400, 0);
+  const r1O = usePulse(0.65, 0,  1400, 0);
+  const r2S = usePulse(1, 1.55, 1400, 700);
+  const r2O = usePulse(0.65, 0,  1400, 700);
 
-  // Checkmark glow
-  const ckOp = usePulse(0.6, 1, 1100, 200);
+  // Checkmark opacity glow
+  const ckO = usePulse(0.55, 1, 1100, 200);
 
-  // Lock subtle rock (settle animation)
-  const lockR = useBob(-4, 4, 600, 0);
+  // Lock rock
+  const lkR = useBob(-4, 4, 650, 0);
 
-  const tw1 = usePulse(0.4, 1, 800, 0);
+  const tw = usePulse(0.3, 1, 800, 0);
 
-  const propsBob   = useAnimatedProps(() => ({ transform: `translate(0, ${bobP.value})` }));
-  const propsR1    = useAnimatedProps(() => ({
-    transform: `scale(${ring1S.value})`,
-    transformOrigin: "152 90",
-    opacity: ring1O.value,
+  const pBob = useAnimatedProps(() => ({ transform: `translate(0,${bobP.value})` }));
+  // sonar rings scaled around shield centre (152, 90)
+  const pR1  = useAnimatedProps(() => ({
+    transform: `translate(152,90) scale(${r1S.value}) translate(-152,-90)`,
+    opacity: r1O.value,
   } as any));
-  const propsR2    = useAnimatedProps(() => ({
-    transform: `scale(${ring2S.value})`,
-    transformOrigin: "152 90",
-    opacity: ring2O.value,
+  const pR2  = useAnimatedProps(() => ({
+    transform: `translate(152,90) scale(${r2S.value}) translate(-152,-90)`,
+    opacity: r2O.value,
   } as any));
-  const propsCkOp  = useAnimatedProps(() => ({ opacity: ckOp.value }));
-  const propsLockR = useAnimatedProps(() => ({
-    transform: `rotate(${lockR.value}, 152, 90)`,
+  const pCk  = useAnimatedProps(() => ({ opacity: ckO.value }));
+  // lock rocked around its centre (152, 92)
+  const pLk  = useAnimatedProps(() => ({
+    transform: `translate(152,92) rotate(${lkR.value}) translate(-152,-92)`,
   }));
-  const propsTw    = useAnimatedProps(() => ({ opacity: tw1.value }));
+  const pTw  = useAnimatedProps(() => ({ opacity: tw.value }));
 
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
-      <AnimCircle cx={24} cy={26} r={7} fill={GOLD} animatedProps={propsTw} />
+      <AnimCircle cx={24} cy={26} r={7} fill={GOLD} animatedProps={pTw} />
       <Circle cx={18} cy={102} r={5} fill={W} opacity={0.3} />
 
-      {/* ── Person ── */}
-      <AnimG animatedProps={propsBob}>
-        <CartoonHuman cx={66} cy={66} s={0.92}
-          skin={SKIN_DARK} hair={HAIR_BLACK}
-          shirt={INDIGO} pants="#263238"
-          hairStyle="short" facing="right"
-        />
+      {/* ── Owl (dark indigo) ── */}
+      <AnimG animatedProps={pBob}>
+        <Owl cx={64} cy={64} s={0.9}
+          feathers={OWL_GREY.feathers} belly={OWL_GREY.belly}
+          eye={OWL_GREY.eye} beak={OWL_GREY.beak} />
       </AnimG>
 
       {/* ── Sonar rings behind shield ── */}
-      <AnimG animatedProps={propsR2}>
+      <AnimG animatedProps={pR2}>
         <Path d="M128,52 L176,52 L176,108 L152,130 L128,108 Z"
           fill="none" stroke={TEAL} strokeWidth={3} />
       </AnimG>
-      <AnimG animatedProps={propsR1}>
-        <Path d="M120,44 L184,44 L184,114 L152,138 L120,114 Z"
+      <AnimG animatedProps={pR1}>
+        <Path d="M120,44 L184,44 L184,116 L152,140 L120,116 Z"
           fill="none" stroke={TEAL} strokeWidth={2} />
       </AnimG>
 
       {/* ── Shield ── */}
       <Path d="M130,54 L174,54 L174,108 L152,130 L130,108 Z" fill={W} opacity={0.93} />
-      <Path d="M135,60 L169,60 L169,106 L152,124 L135,106 Z" fill={TEAL} opacity={0.22} />
+      <Path d="M135,60 L169,60 L169,106 L152,124 L135,106 Z" fill={TEAL} opacity={0.2} />
 
-      {/* ── Lock (rocks) ── */}
-      <AnimG animatedProps={propsLockR}>
+      {/* ── Lock (rocks around its centre) ── */}
+      <AnimG animatedProps={pLk}>
         <Rect x={140} y={84} width={24} height={18} rx={5} fill="#37474F" />
         <Path d="M143,84 Q143,72 152,72 Q161,72 161,84"
           stroke="#37474F" strokeWidth={4} fill="none" />
         <Circle cx={152} cy={93} r={4} fill={W} opacity={0.9} />
       </AnimG>
 
-      {/* ── Checkmark glow ── */}
+      {/* ── Animated checkmark ── */}
       <AnimPath
         d="M136,92 L147,103 L170,72"
         stroke={GREEN} strokeWidth={4.5} fill="none" strokeLinecap="round"
-        animatedProps={propsCkOp}
+        animatedProps={pCk}
       />
 
       <Star cx={180} cy={26} r={5} fill={GOLD} opacity={0.8} />
-      <Star cx={24} cy={168} r={5} fill={CORAL} opacity={0.6} />
+      <Star cx={24}  cy={168} r={5} fill={CORAL} opacity={0.6} />
     </Svg>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SLIDE 3 — Discover
-// Scene: Person explores; globe's longitude meridian rotates;
-//         magnifier sweeps; location pin bounces.
+// Owl on a branch; globe spins (meridian rx oscillates); magnifier sweeps;
+// pin bounces on the globe.
 // ─────────────────────────────────────────────────────────────────────────────
 export function DiscoverIllustration({ size = 160 }: { size?: number }) {
-  const bobP    = useBob(0, -6, 2200, 0);
-
-  // Meridian rotation: rx oscillates 45 → 0 → -45 to fake 3-D spin
-  const merRx   = useBob(46, -46, 3000, 0);
-
-  // Magnifier sweep left-right
-  const magTx   = useBob(-10, 10, 1800, 200);
-
+  const bobP   = useBob(0, -6, 2200, 0);
+  // Meridian rx: 46 → -46 gives a 3-D rotation illusion
+  const merRx  = useBob(46, -46, 3000, 0);
+  // Magnifier left-right sweep
+  const magTx  = useBob(-10, 10, 1800, 200);
   // Pin bounce
-  const pinCy   = useBob(0, -6, 700, 0);
+  const pinCy  = useBob(0, -7, 700, 0);
 
-  // Star twinkle
   const tw1 = usePulse(0.3, 1, 900, 0);
   const tw2 = usePulse(0.3, 1, 1100, 400);
 
-  const propsBob  = useAnimatedProps(() => ({ transform: `translate(0, ${bobP.value})` }));
-  const propsMer  = useAnimatedProps(() => ({ rx: Math.abs(merRx.value) }));
-  const propsMag  = useAnimatedProps(() => ({ transform: `translate(${magTx.value}, 0)` }));
-  const propsPin  = useAnimatedProps(() => ({ transform: `translate(0, ${pinCy.value})` }));
-  const propsTw1  = useAnimatedProps(() => ({ opacity: tw1.value }));
-  const propsTw2  = useAnimatedProps(() => ({ opacity: tw2.value }));
+  const pBob = useAnimatedProps(() => ({ transform: `translate(0,${bobP.value})` }));
+  const pMer = useAnimatedProps(() => ({ rx: Math.abs(merRx.value) }));
+  const pMag = useAnimatedProps(() => ({ transform: `translate(${magTx.value},0)` }));
+  const pPin = useAnimatedProps(() => ({ transform: `translate(0,${pinCy.value})` }));
+  const pTw1 = useAnimatedProps(() => ({ opacity: tw1.value }));
+  const pTw2 = useAnimatedProps(() => ({ opacity: tw2.value }));
 
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
-      <AnimCircle cx={20} cy={32} r={6} fill={GOLD} animatedProps={propsTw1} />
-      <AnimCircle cx={178} cy={22} r={5} fill={W}    animatedProps={propsTw2} />
+      <AnimCircle cx={20} cy={32} r={6} fill={GOLD} animatedProps={pTw1} />
+      <AnimCircle cx={178} cy={22} r={5} fill={W}   animatedProps={pTw2} />
       <Circle cx={186} cy={148} r={6} fill={CORAL} opacity={0.5} />
 
       {/* ── Globe ── */}
-      <Circle cx={142} cy={106} r={46} fill={W} opacity={0.14} />
+      <Circle cx={142} cy={106} r={46} fill={W} opacity={0.13} />
       <Circle cx={142} cy={106} r={46} fill="none" stroke={W} strokeWidth={2.5} />
-      <Ellipse cx={142} cy={106} rx={46} ry={14} fill="none" stroke={W} strokeWidth={1.4} opacity={0.55} />
-      {/* Animated meridian — rx oscillates to give rotation illusion */}
-      <AnimEllipse cx={142} cy={106} ry={46} fill="none" stroke={W} strokeWidth={1.4} opacity={0.55}
-        animatedProps={propsMer} />
-      <Line x1={142} y1={60} x2={142} y2={152} stroke={W} strokeWidth={0.8} opacity={0.4} />
+      <Ellipse cx={142} cy={106} rx={46} ry={14}
+        fill="none" stroke={W} strokeWidth={1.4} opacity={0.55} />
+      {/* Animated meridian — rx oscillates to fake 3-D spin */}
+      <AnimEllipse cx={142} cy={106} ry={46}
+        fill="none" stroke={W} strokeWidth={1.4} opacity={0.55}
+        animatedProps={pMer} />
+      <Line x1={142} y1={60}  x2={142} y2={152} stroke={W} strokeWidth={0.8} opacity={0.4} />
       <Line x1={96}  y1={106} x2={188} y2={106} stroke={W} strokeWidth={0.8} opacity={0.4} />
 
       {/* ── Bouncing location pin ── */}
-      <AnimG animatedProps={propsPin}>
+      <AnimG animatedProps={pPin}>
         <Circle cx={155} cy={86} r={7} fill={CORAL} />
-        <Path d="M155,93 L152,104 L155,100 L158,104 Z" fill={CORAL} />
-        <Circle cx={155} cy={86} r={3} fill={W} opacity={0.8} />
+        <Path d="M155,93 L151,104 L155,100 L159,104 Z" fill={CORAL} />
+        <Circle cx={155} cy={86} r={3} fill={W} opacity={0.85} />
       </AnimG>
 
-      {/* ── Person ── */}
-      <AnimG animatedProps={propsBob}>
-        <CartoonHuman cx={55} cy={68} s={0.88}
-          skin={SKIN_LIGHT} hair={HAIR_DARK}
-          shirt="#26A69A" pants="#37474F"
-          hairStyle="bun" facing="right"
-        />
+      {/* ── Branch for owl to perch on ── */}
+      <Path d="M14,138 Q40,128 70,134" stroke="#5D4037" strokeWidth={6} fill="none"
+        strokeLinecap="round" opacity={0.7} />
+
+      {/* ── Owl (brown) ── */}
+      <AnimG animatedProps={pBob}>
+        <Owl cx={46} cy={62} s={0.88}
+          feathers={OWL_BROWN.feathers} belly={OWL_BROWN.belly}
+          eye={OWL_BROWN.eye} beak={OWL_BROWN.beak} />
       </AnimG>
 
-      {/* ── Magnifier sweep ── */}
-      <AnimG animatedProps={propsMag}>
+      {/* ── Sweeping magnifier ── */}
+      <AnimG animatedProps={pMag}>
         <Circle cx={107} cy={106} r={13} fill="none" stroke={W} strokeWidth={3.5} />
-        <Line x1={116} y1={115} x2={124} y2={123} stroke={W} strokeWidth={3.5} strokeLinecap="round" />
+        <Line x1={116} y1={115} x2={124} y2={123} stroke={W} strokeWidth={3.5}
+          strokeLinecap="round" />
       </AnimG>
 
       <Star cx={20} cy={172} r={5} fill={TEAL} opacity={0.7} />
@@ -495,46 +463,34 @@ export function DiscoverIllustration({ size = 160 }: { size?: number }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SLIDE 4 — AfuAI
-// Scene: Robot with bobbing antenna; eyes pulse with glow;
-//         chest-panel lights cycle red→yellow→green;
-//         a particle orbits the robot.
+// Tech-owl: antenna bobs, eyes glow-pulse, chest lights cycle R→Y→G,
+// a particle orbits the owl, thinking bubbles drift upward.
 // ─────────────────────────────────────────────────────────────────────────────
 export function AfuAIIllustration({ size = 160 }: { size?: number }) {
-  // Antenna bob
-  const antY = useBob(0, -6, 900, 0);
+  const antY  = useBob(0, -7, 900, 0);
+  const eyeOp = usePulse(0.6, 1, 800, 0);
+  const l1Op  = usePulse(0.2, 1, 1500, 0);
+  const l2Op  = usePulse(0.2, 1, 1500, 500);
+  const l3Op  = usePulse(0.2, 1, 1500, 1000);
+  const orb   = useSpin(3500, 0);
+  const thkY  = useBob(0, -10, 1800, 200);
+  const thkO  = usePulse(0.5, 0.9, 1800, 200);
+  const bobH  = useBob(0, -5, 2000, 600);
 
-  // Eye glow pulse
-  const eyeOp = usePulse(0.7, 1, 800, 0);
-
-  // Chest light cycle (each light blinks in turn)
-  const l1Op = usePulse(0.2, 1, 1500, 0);
-  const l2Op = usePulse(0.2, 1, 1500, 500);
-  const l3Op = usePulse(0.2, 1, 1500, 1000);
-
-  // Orbiting particle (circular path around robot)
-  const orb  = useSpin(3500, 0);
-
-  // Human beside robot: gentle bob
-  const bobH = useBob(0, -5, 2000, 600);
-
-  // Thinking bubble float
-  const thkY = useBob(0, -8, 1800, 200);
-  const thkO = usePulse(0.5, 0.9, 1800, 200);
-
-  const propsAnt  = useAnimatedProps(() => ({ transform: `translate(0, ${antY.value})` }));
-  const propsEye  = useAnimatedProps(() => ({ opacity: eyeOp.value }));
-  const propsL1   = useAnimatedProps(() => ({ opacity: l1Op.value }));
-  const propsL2   = useAnimatedProps(() => ({ opacity: l2Op.value }));
-  const propsL3   = useAnimatedProps(() => ({ opacity: l3Op.value }));
-  const propsOrb  = useAnimatedProps(() => ({
-    cx: 100 + Math.cos(orb.value) * 60,
-    cy: 100 + Math.sin(orb.value) * 25,
+  const pAnt  = useAnimatedProps(() => ({ transform: `translate(0,${antY.value})` }));
+  const pEye  = useAnimatedProps(() => ({ opacity: eyeOp.value }));
+  const pL1   = useAnimatedProps(() => ({ opacity: l1Op.value }));
+  const pL2   = useAnimatedProps(() => ({ opacity: l2Op.value }));
+  const pL3   = useAnimatedProps(() => ({ opacity: l3Op.value }));
+  const pOrb  = useAnimatedProps(() => ({
+    cx: 100 + Math.cos(orb.value) * 62,
+    cy: 108 + Math.sin(orb.value) * 28,
   }));
-  const propsBobH = useAnimatedProps(() => ({ transform: `translate(0, ${bobH.value})` }));
-  const propsThk  = useAnimatedProps(() => ({
-    transform: `translate(0, ${thkY.value})`,
+  const pThk  = useAnimatedProps(() => ({
+    transform: `translate(0,${thkY.value})`,
     opacity: thkO.value,
   } as any));
+  const pBobH = useAnimatedProps(() => ({ transform: `translate(0,${bobH.value})` }));
 
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
@@ -543,63 +499,43 @@ export function AfuAIIllustration({ size = 160 }: { size?: number }) {
       <Star cx={32} cy={155} r={5} fill={CORAL} opacity={0.7} />
       <Star cx={168} cy={158} r={7} fill={GOLD} opacity={0.8} />
 
-      {/* ── Robot body ── */}
-      <Rect x={56} y={30} width={88} height={66} rx={12} fill={W} opacity={0.95} />
+      {/* ── Central tech-owl ── */}
+      <Owl cx={100} cy={44} s={0.92}
+        feathers="#263238" belly="#B2EBF2"
+        eye={TEAL} beak={GOLD} />
 
-      {/* ── Antenna (bobs) ── */}
-      <AnimG animatedProps={propsAnt}>
-        <Line x1={100} y1={30} x2={100} y2={14} stroke={W} strokeWidth={4} strokeLinecap="round" />
-        <Circle cx={100} cy={11} r={8} fill={TEAL} />
-        <Circle cx={100} cy={11} r={4} fill={W} />
+      {/* ── Extra glowing eye rings (pulse) ── */}
+      <AnimCircle cx={86}  cy={63} r={12} fill={TEAL} animatedProps={pEye} />
+      <AnimCircle cx={114} cy={63} r={12} fill={TEAL} animatedProps={pEye} />
+
+      {/* ── Animated antenna above ear tuft ── */}
+      <AnimG animatedProps={pAnt}>
+        <Line x1={100} y1={44} x2={100} y2={28}
+          stroke={TEAL} strokeWidth={3} strokeLinecap="round" />
+        <Circle cx={100} cy={26} r={6} fill={TEAL} />
+        <Circle cx={100} cy={26} r={3} fill={W} />
       </AnimG>
 
-      {/* ── Eyes (glow) ── */}
-      <Circle cx={78} cy={58} r={14} fill={TEAL} opacity={0.95} />
-      <Circle cx={122} cy={58} r={14} fill={TEAL} opacity={0.95} />
-      <AnimCircle cx={78} cy={58} r={16} fill={TEAL} animatedProps={propsEye} />
-      <AnimCircle cx={122} cy={58} r={16} fill={TEAL} animatedProps={propsEye} />
-      <Circle cx={78} cy={58} r={7} fill={W} />
-      <Circle cx={122} cy={58} r={7} fill={W} />
-      <Circle cx={78} cy={58} r={3.5} fill={DARK} />
-      <Circle cx={122} cy={58} r={3.5} fill={DARK} />
-
-      {/* ── Mouth ── */}
-      <Rect x={74} y={78} width={52} height={10} rx={5} fill={TEAL} opacity={0.8} />
-
-      {/* ── Ear bolts ── */}
-      <Circle cx={56} cy={60} r={7} fill={W} opacity={0.8} />
-      <Circle cx={144} cy={60} r={7} fill={W} opacity={0.8} />
-
-      {/* ── Body ── */}
-      <Rect x={64} y={98} width={72} height={62} rx={12} fill={W} opacity={0.9} />
-      <Rect x={76} y={110} width={48} height={28} rx={7} fill={TEAL} opacity={0.25} />
-
-      {/* ── Chest lights cycle ── */}
-      <AnimCircle cx={88} cy={124} r={5.5} fill={CORAL} animatedProps={propsL1} />
-      <AnimCircle cx={100} cy={124} r={5.5} fill={GOLD} animatedProps={propsL2} />
-      <AnimCircle cx={112} cy={124} r={5.5} fill={GREEN} animatedProps={propsL3} />
-
-      {/* ── Arms ── */}
-      <Rect x={40} y={102} width={24} height={38} rx={10} fill={W} opacity={0.88} />
-      <Rect x={136} y={102} width={24} height={38} rx={10} fill={W} opacity={0.88} />
+      {/* ── Chest panel lights (on belly) ── */}
+      <AnimCircle cx={88}  cy={118} r={5.5} fill={CORAL} animatedProps={pL1} />
+      <AnimCircle cx={100} cy={118} r={5.5} fill={GOLD}  animatedProps={pL2} />
+      <AnimCircle cx={112} cy={118} r={5.5} fill={GREEN} animatedProps={pL3} />
 
       {/* ── Orbiting particle ── */}
-      <AnimCircle r={5} fill={GOLD} opacity={0.85} animatedProps={propsOrb} />
+      <AnimCircle r={5} fill={GOLD} opacity={0.88} animatedProps={pOrb} />
 
       {/* ── Thinking bubbles ── */}
-      <AnimG animatedProps={propsThk}>
-        <Circle cx={56} cy={24} r={4} fill={W} opacity={0.6} />
-        <Circle cx={48} cy={16} r={3} fill={W} opacity={0.5} />
-        <Circle cx={42} cy={10} r={2} fill={W} opacity={0.4} />
+      <AnimG animatedProps={pThk}>
+        <Circle cx={56} cy={36} r={4} fill={W} opacity={0.6} />
+        <Circle cx={48} cy={26} r={3} fill={W} opacity={0.5} />
+        <Circle cx={42} cy={18} r={2} fill={W} opacity={0.4} />
       </AnimG>
 
-      {/* ── Human user beside robot ── */}
-      <AnimG animatedProps={propsBobH}>
-        <CartoonHuman cx={170} cy={98} s={0.6}
-          skin={SKIN_WARM} hair={HAIR_BROWN}
-          shirt={PURPLE} pants="#4A148C"
-          hairStyle="short" facing="left"
-        />
+      {/* ── Small helper owl beside ── */}
+      <AnimG animatedProps={pBobH}>
+        <Owl cx={168} cy={100} s={0.6}
+          feathers={OWL_PURPLE.feathers} belly={OWL_PURPLE.belly}
+          eye={OWL_PURPLE.eye} beak={OWL_PURPLE.beak} />
       </AnimG>
     </Svg>
   );
@@ -607,96 +543,80 @@ export function AfuAIIllustration({ size = 160 }: { size?: number }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SLIDE 5 — Wallet / ACoins
-// Scene: Coin flips (scaleX oscillates); sparkles float up and fade;
-//         two people reach toward the coin from opposite sides.
+// Two owls; coin flips (no transformOrigin — translate-scale-translate);
+// sparkles drift upward.
 // ─────────────────────────────────────────────────────────────────────────────
 export function WalletIllustration({ size = 160 }: { size?: number }) {
   const bobL = useBob(0, -6, 2100, 0);
   const bobR = useBob(0, -6, 2100, 1050);
-
-  // Coin flip: scaleX 1 → 0 → -1 → 0 → 1 (3-D flip)
+  // Coin flip: scaleX −1 → +1 → −1 (3-D spin)
   const flip = useBob(-1, 1, 1200, 0);
+  // Sparkles
+  const s1Y = useBob(0, -20, 1600, 0);
+  const s1O = usePulse(1, 0,   1600, 0);
+  const s2Y = useBob(0, -20, 1600, 530);
+  const s2O = usePulse(1, 0,   1600, 530);
+  const s3Y = useBob(0, -20, 1600, 1060);
+  const s3O = usePulse(1, 0,   1600, 1060);
 
-  // 3 sparkle particles: each floats up and fades
-  const sp1Y = useBob(0, -18, 1600, 0);
-  const sp1O = usePulse(1, 0,   1600, 0);
-  const sp2Y = useBob(0, -18, 1600, 530);
-  const sp2O = usePulse(1, 0,   1600, 530);
-  const sp3Y = useBob(0, -18, 1600, 1060);
-  const sp3O = usePulse(1, 0,   1600, 1060);
-
-  // Coin face rotate (A symbol)
-  const coinSpin = useSpin(3000, 0);
-
-  const propsBobL = useAnimatedProps(() => ({ transform: `translate(0, ${bobL.value})` }));
-  const propsBobR = useAnimatedProps(() => ({ transform: `translate(0, ${bobR.value})` }));
-  const propsFlip = useAnimatedProps(() => ({
-    transform: `scale(${flip.value}, 1)`,
-    transformOrigin: "100 104",
-  } as any));
-  const propsSp1  = useAnimatedProps(() => ({
-    transform: `translate(0, ${sp1Y.value})`,
-    opacity: sp1O.value,
-  } as any));
-  const propsSp2  = useAnimatedProps(() => ({
-    transform: `translate(0, ${sp2Y.value})`,
-    opacity: sp2O.value,
-  } as any));
-  const propsSp3  = useAnimatedProps(() => ({
-    transform: `translate(0, ${sp3Y.value})`,
-    opacity: sp3O.value,
-  } as any));
-  const propsALetter = useAnimatedProps(() => ({
-    transform: `rotate(${(coinSpin.value * 180) / Math.PI}, 100, 104)`,
+  const pBobL = useAnimatedProps(() => ({ transform: `translate(0,${bobL.value})` }));
+  const pBobR = useAnimatedProps(() => ({ transform: `translate(0,${bobR.value})` }));
+  // Coin flip: scale around coin centre (100, 104)
+  const pFlip = useAnimatedProps(() => ({
+    transform: `translate(100,104) scale(${flip.value},1) translate(-100,-104)`,
   }));
+  const pS1 = useAnimatedProps(() => ({
+    transform: `translate(0,${s1Y.value})`, opacity: s1O.value,
+  } as any));
+  const pS2 = useAnimatedProps(() => ({
+    transform: `translate(0,${s2Y.value})`, opacity: s2O.value,
+  } as any));
+  const pS3 = useAnimatedProps(() => ({
+    transform: `translate(0,${s3Y.value})`, opacity: s3O.value,
+  } as any));
 
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
-      <Star cx={22} cy={30} r={7} fill={GOLD} />
+      <Star cx={22}  cy={30}  r={7} fill={GOLD} />
       <Star cx={178} cy={165} r={6} fill={GOLD} opacity={0.8} />
       <Circle cx={18} cy={155} r={5} fill={CORAL} opacity={0.5} />
 
-      {/* ── Left person ── */}
-      <AnimG animatedProps={propsBobL}>
-        <CartoonHuman cx={46} cy={70} s={0.84}
-          skin={SKIN_DARK} hair={HAIR_BLACK}
-          shirt={CORAL} pants="#BF360C"
-          hairStyle="curly" facing="right"
-        />
+      {/* ── Left owl (teal) ── */}
+      <AnimG animatedProps={pBobL}>
+        <Owl cx={44} cy={68} s={0.82}
+          feathers={OWL_TEAL.feathers} belly={OWL_TEAL.belly}
+          eye={OWL_TEAL.eye} beak={OWL_TEAL.beak} />
       </AnimG>
 
-      {/* ── Right person ── */}
-      <AnimG animatedProps={propsBobR}>
-        <CartoonHuman cx={158} cy={70} s={0.84}
-          skin={SKIN_LIGHT} hair={HAIR_DARK}
-          shirt={GOLD} pants="#455A64"
-          hairStyle="long" facing="left"
-        />
+      {/* ── Right owl (purple) ── */}
+      <AnimG animatedProps={pBobR}>
+        <Owl cx={158} cy={68} s={0.82}
+          feathers={OWL_PURPLE.feathers} belly={OWL_PURPLE.belly}
+          eye={OWL_PURPLE.eye} beak={OWL_PURPLE.beak} />
       </AnimG>
 
       {/* ── Coin shadow ── */}
       <Ellipse cx={102} cy={114} rx={26} ry={7} fill={DARK} opacity={0.18} />
 
       {/* ── Flipping coin ── */}
-      <AnimG animatedProps={propsFlip}>
+      <AnimG animatedProps={pFlip}>
         <Circle cx={100} cy={104} r={30} fill={GOLD} opacity={0.93} />
         <Circle cx={100} cy={104} r={30} fill="none" stroke={W} strokeWidth={2} opacity={0.55} />
-        <AnimG animatedProps={propsALetter}>
-          <Path d="M91,118 L100,89 L109,118"
-            stroke={W} strokeWidth={3.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          <Line x1={94} y1={110} x2={106} y2={110} stroke={W} strokeWidth={3.2} strokeLinecap="round" />
-        </AnimG>
+        <Path d="M91,118 L100,89 L109,118"
+          stroke={W} strokeWidth={3.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <Line x1={94} y1={110} x2={106} y2={110}
+          stroke={W} strokeWidth={3.2} strokeLinecap="round" />
       </AnimG>
 
-      {/* ── Sparkles float up ── */}
-      <AnimG animatedProps={propsSp1}>
+      {/* ── Sparkles ── */}
+      <AnimG animatedProps={pS1}>
         <Star cx={100} cy={70} r={5} fill={GOLD} />
       </AnimG>
-      <AnimG animatedProps={propsSp2}>
-        <Star cx={115} cy={74} r={4} fill={W} />
+      <AnimG animatedProps={pS2}>
+        <Star cx={116} cy={74} r={4} fill={W} />
       </AnimG>
-      <AnimG animatedProps={propsSp3}>
-        <Star cx={85} cy={76} r={4} fill={CORAL} />
+      <AnimG animatedProps={pS3}>
+        <Star cx={84} cy={76} r={4} fill={CORAL} />
       </AnimG>
     </Svg>
   );
@@ -704,118 +624,105 @@ export function WalletIllustration({ size = 160 }: { size?: number }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SLIDE 6 — Community
-// Scene: Three diverse people bob at different rates; connection lines
-//         pulse; heart above centre person beats; small hearts float up.
+// Three owls bob at different rates; connection lines pulse; heart above
+// centre owl beats (translate-scale-translate, no transformOrigin);
+// small hearts float up from each owl.
 // ─────────────────────────────────────────────────────────────────────────────
 export function CommunityIllustration({ size = 160 }: { size?: number }) {
   const bobC = useBob(0, -7, 2000, 0);
   const bobL = useBob(0, -7, 2200, 700);
   const bobR = useBob(0, -7, 1900, 1300);
-
-  // Heart beat: quick compress then release
-  const heartS = usePulse(1, 1.3, 700, 0);
-
+  // Heart beat scaled around its centre (100, 40)
+  const htS  = usePulse(1, 1.35, 680, 0);
   // Connection line pulse
-  const lineO = usePulse(0.3, 0.8, 1500, 0);
+  const lnO  = usePulse(0.25, 0.85, 1500, 0);
+  // Floating hearts from each owl
+  const fh1Y = useBob(0, -22, 2000, 0);
+  const fh1O = usePulse(0.85, 0, 2000, 0);
+  const fh2Y = useBob(0, -22, 2000, 660);
+  const fh2O = usePulse(0.85, 0, 2000, 660);
+  const fh3Y = useBob(0, -22, 2000, 1320);
+  const fh3O = usePulse(0.85, 0, 2000, 1320);
 
-  // Floating hearts from each person
-  const fh1Y = useBob(0, -20, 2000, 0);
-  const fh1O = usePulse(0.8, 0,  2000, 0);
-  const fh2Y = useBob(0, -20, 2000, 660);
-  const fh2O = usePulse(0.8, 0,  2000, 660);
-  const fh3Y = useBob(0, -20, 2000, 1320);
-  const fh3O = usePulse(0.8, 0,  2000, 1320);
-
-  // Star twinkle
   const tw = usePulse(0.3, 1, 1000, 0);
 
-  const propsBobC  = useAnimatedProps(() => ({ transform: `translate(0, ${bobC.value})` }));
-  const propsBobL  = useAnimatedProps(() => ({ transform: `translate(0, ${bobL.value})` }));
-  const propsBobR  = useAnimatedProps(() => ({ transform: `translate(0, ${bobR.value})` }));
-  const propsHrtS  = useAnimatedProps(() => ({
-    transform: `scale(${heartS.value})`,
-    transformOrigin: "100 40",
+  const pBobC = useAnimatedProps(() => ({ transform: `translate(0,${bobC.value})` }));
+  const pBobL = useAnimatedProps(() => ({ transform: `translate(0,${bobL.value})` }));
+  const pBobR = useAnimatedProps(() => ({ transform: `translate(0,${bobR.value})` }));
+  // Heart scaled around (100,42)
+  const pHtS  = useAnimatedProps(() => ({
+    transform: `translate(100,42) scale(${htS.value}) translate(-100,-42)`,
+  }));
+  const pLnO  = useAnimatedProps(() => ({ opacity: lnO.value }));
+  const pFh1  = useAnimatedProps(() => ({
+    transform: `translate(0,${fh1Y.value})`, opacity: fh1O.value,
   } as any));
-  const propsLineO = useAnimatedProps(() => ({ opacity: lineO.value }));
-  const propsFh1   = useAnimatedProps(() => ({
-    transform: `translate(0, ${fh1Y.value})`,
-    opacity: fh1O.value,
+  const pFh2  = useAnimatedProps(() => ({
+    transform: `translate(0,${fh2Y.value})`, opacity: fh2O.value,
   } as any));
-  const propsFh2   = useAnimatedProps(() => ({
-    transform: `translate(0, ${fh2Y.value})`,
-    opacity: fh2O.value,
+  const pFh3  = useAnimatedProps(() => ({
+    transform: `translate(0,${fh3Y.value})`, opacity: fh3O.value,
   } as any));
-  const propsFh3   = useAnimatedProps(() => ({
-    transform: `translate(0, ${fh3Y.value})`,
-    opacity: fh3O.value,
-  } as any));
-  const propsTw    = useAnimatedProps(() => ({ opacity: tw.value }));
+  const pTw   = useAnimatedProps(() => ({ opacity: tw.value }));
 
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
-      <AnimCircle cx={25} cy={28} r={7} fill={GOLD} animatedProps={propsTw} />
+      <AnimCircle cx={25} cy={28} r={7} fill={GOLD} animatedProps={pTw} />
       <Circle cx={185} cy={68} r={5} fill={CORAL} opacity={0.4} />
 
-      {/* ── Connection lines (pulsing) ── */}
-      <AnimG animatedProps={propsLineO}>
-        <Line x1={60} y1={128} x2={100} y2={84} stroke={W} strokeWidth={2.5} strokeDasharray="5,5" />
-        <Line x1={140} y1={128} x2={100} y2={84} stroke={W} strokeWidth={2.5} strokeDasharray="5,5" />
+      {/* ── Pulsing connection lines ── */}
+      <AnimG animatedProps={pLnO}>
+        <Line x1={60}  y1={128} x2={100} y2={86}  stroke={W} strokeWidth={2.5} strokeDasharray="5,5" />
+        <Line x1={140} y1={128} x2={100} y2={86}  stroke={W} strokeWidth={2.5} strokeDasharray="5,5" />
         <Line x1={60}  y1={128} x2={140} y2={128} stroke={W} strokeWidth={2.5} strokeDasharray="5,5" />
       </AnimG>
 
-      {/* ── Centre person ── */}
-      <AnimG animatedProps={propsBobC}>
-        <CartoonHuman cx={100} cy={56} s={0.82}
-          skin={SKIN_WARM} hair={HAIR_BLACK}
-          shirt={PINK} pants="#880E4F"
-          hairStyle="bun" facing="front"
-        />
+      {/* ── Centre owl (pink) ── */}
+      <AnimG animatedProps={pBobC}>
+        <Owl cx={100} cy={54} s={0.82}
+          feathers="#AD1457" belly="#FCE4EC"
+          eye={GOLD} beak={GOLD} />
       </AnimG>
 
-      {/* ── Beating heart ── */}
-      <AnimG animatedProps={propsHrtS}>
+      {/* ── Beating heart above centre owl ── */}
+      <AnimG animatedProps={pHtS}>
         <Path
           d="M100,42 C100,42 106,36 110,40 C114,44 110,48 100,54 C90,48 86,44 90,40 C94,36 100,42 100,42 Z"
           fill={CORAL} opacity={0.9}
         />
       </AnimG>
 
-      {/* ── Bottom-left person ── */}
-      <AnimG animatedProps={propsBobL}>
-        <CartoonHuman cx={48} cy={112} s={0.76}
-          skin={SKIN_DARK} hair={HAIR_BLACK}
-          shirt={TEAL} pants="#006064"
-          hairStyle="curly" facing="right"
-        />
+      {/* ── Left owl (blue) ── */}
+      <AnimG animatedProps={pBobL}>
+        <Owl cx={48} cy={110} s={0.76}
+          feathers={OWL_BLUE.feathers} belly={OWL_BLUE.belly}
+          eye={OWL_BLUE.eye} beak={OWL_BLUE.beak} />
       </AnimG>
 
-      {/* ── Bottom-right person ── */}
-      <AnimG animatedProps={propsBobR}>
-        <CartoonHuman cx={152} cy={112} s={0.76}
-          skin={SKIN_MED} hair={HAIR_BROWN}
-          shirt={GREEN} pants="#1B5E20"
-          hairStyle="short" facing="left"
-        />
+      {/* ── Right owl (teal) ── */}
+      <AnimG animatedProps={pBobR}>
+        <Owl cx={152} cy={110} s={0.76}
+          feathers={OWL_TEAL.feathers} belly={OWL_TEAL.belly}
+          eye={OWL_TEAL.eye} beak={OWL_TEAL.beak} />
       </AnimG>
 
-      {/* ── Floating hearts from each person ── */}
-      <AnimG animatedProps={propsFh1}>
+      {/* ── Floating hearts ── */}
+      <AnimG animatedProps={pFh1}>
         <Path d="M100,56 C100,56 103,53 105,55 C107,57 105,59 100,62 C95,59 93,57 95,55 C97,53 100,56 100,56 Z"
           fill={CORAL} />
       </AnimG>
-      <AnimG animatedProps={propsFh2}>
+      <AnimG animatedProps={pFh2}>
         <Path d="M48,112 C48,112 51,109 53,111 C55,113 53,115 48,118 C43,115 41,113 43,111 C45,109 48,112 48,112 Z"
           fill={CORAL} />
       </AnimG>
-      <AnimG animatedProps={propsFh3}>
+      <AnimG animatedProps={pFh3}>
         <Path d="M152,112 C152,112 155,109 157,111 C159,113 157,115 152,118 C147,115 145,113 147,111 C149,109 152,112 152,112 Z"
           fill={CORAL} />
       </AnimG>
 
-      {/* Stars above side characters */}
-      <Star cx={48}  cy={100} r={5} fill={GOLD}  opacity={0.8} />
-      <Star cx={152} cy={100} r={5} fill={TEAL}  opacity={0.8} />
-      <Star cx={175} cy={162} r={6} fill={TEAL}  opacity={0.7} />
+      <Star cx={48}  cy={98}  r={5} fill={GOLD} opacity={0.8} />
+      <Star cx={152} cy={98}  r={5} fill={TEAL} opacity={0.8} />
+      <Star cx={175} cy={162} r={6} fill={TEAL} opacity={0.7} />
     </Svg>
   );
 }
