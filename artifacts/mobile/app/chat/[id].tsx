@@ -35,8 +35,6 @@ import * as Haptics from "@/lib/haptics";
 import { ImageViewer, useImageViewer } from "@/components/ImageViewer";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import * as MediaLibrary from "expo-media-library";
-import MediaGalleryPicker, { type GalleryAsset } from "@/components/MediaGalleryPicker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
@@ -1872,48 +1870,12 @@ function ChatScreen() {
   }));
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showAttachPanel, setShowAttachPanel] = useState(false);
-  const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [attachTab, setAttachTab] = useState<"Gallery" | "Wallet" | "File" | "Poll" | "Contact">("Gallery");
-  const [galleryAssets, setGalleryAssets] = useState<MediaLibrary.Asset[]>([]);
-  const [galleryLoading, setGalleryLoading] = useState(false);
-  const [galleryEndCursor, setGalleryEndCursor] = useState<string | undefined>(undefined);
-  const [galleryHasMore, setGalleryHasMore] = useState(true);
-  const [galleryLoadingMore, setGalleryLoadingMore] = useState(false);
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [cameraPermission] = useCameraPermissions();
   const [contactList, setContactList] = useState<{ id: string; name: string; phone: string; initials: string }[]>([]);
   const [contactSearch, setContactSearch] = useState("");
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactSending, setContactSending] = useState<string | null>(null);
-
-  const GALLERY_PAGE = 60;
-
-  useEffect(() => {
-    if (!showAttachPanel) return;
-    if (attachTab !== "Gallery" || Platform.OS === "web") return;
-    // Reset and load fresh
-    setGalleryAssets([]);
-    setGalleryEndCursor(undefined);
-    setGalleryHasMore(true);
-    (async () => {
-      setGalleryLoading(true);
-      try {
-        const { status } = await MediaLibrary.requestPermissionsAsync();
-        if (status === "granted") {
-          const result = await MediaLibrary.getAssetsAsync({
-            mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
-            first: GALLERY_PAGE,
-            sortBy: MediaLibrary.SortBy.creationTime,
-          });
-          setGalleryAssets(result.assets);
-          setGalleryEndCursor(result.endCursor);
-          setGalleryHasMore(result.hasNextPage);
-        }
-      } catch { /* permission denied */ }
-      setGalleryLoading(false);
-    })();
-    // Also request camera permission so the live preview is ready
-    if (!cameraPermission?.granted) requestCameraPermission();
-  }, [showAttachPanel, attachTab]);
 
   useEffect(() => {
     if (!showAttachPanel || attachTab !== "Contact" || Platform.OS === "web") return;
@@ -1944,22 +1906,6 @@ function ChatScreen() {
     })();
   }, [showAttachPanel, attachTab]);
 
-  async function loadMoreGalleryAssets() {
-    if (galleryLoadingMore || !galleryHasMore || !galleryEndCursor) return;
-    setGalleryLoadingMore(true);
-    try {
-      const result = await MediaLibrary.getAssetsAsync({
-        mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
-        first: GALLERY_PAGE,
-        after: galleryEndCursor,
-        sortBy: MediaLibrary.SortBy.creationTime,
-      });
-      setGalleryAssets((prev) => [...prev, ...result.assets]);
-      setGalleryEndCursor(result.endCursor);
-      setGalleryHasMore(result.hasNextPage);
-    } catch { /* ignore */ }
-    setGalleryLoadingMore(false);
-  }
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [gifSearch, setGifSearch] = useState("");
   const [attachmentPreview, setAttachmentPreview] = useState<{ uri: string; type: string; name?: string; mimeType?: string } | null>(null);
@@ -5740,10 +5686,8 @@ STRICT RULES:
         onRequestClose={() => setShowAttachPanel(false)}
       >
         {(() => {
-          const THUMB_COLS = 3;
           const SW2 = Dimensions.get("window").width;
           const SH2 = Dimensions.get("window").height;
-          const thumbSize = Math.floor(SW2 / THUMB_COLS) - 2;
           const SHEET_H = Math.round(SH2 * 0.55);
           const TAB_PILL_H = 58;
           const TAB_PILL_MARGIN_BOTTOM = 10;
@@ -5831,110 +5775,80 @@ STRICT RULES:
                 );
               }
 
-              if (galleryLoading) {
-                return (
-                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                    <ActivityIndicator color={colors.accent} size="large" />
-                    <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 10, fontFamily: "Inter_400Regular" }}>Loading media…</Text>
-                  </View>
-                );
-              }
-              const fmtDur = (s: number) => {
-                const m = Math.floor(s / 60);
-                const sec = Math.floor(s % 60);
-                return `${m}:${sec.toString().padStart(2, "0")}`;
-              };
-              const thumbData: Array<{ id: string; uri?: string; isCamera?: boolean; mediaType?: string; duration?: number }> = [
-                { id: "__camera__", isCamera: true },
-                ...galleryAssets.map((a) => ({ id: a.id, uri: a.uri, mediaType: a.mediaType, duration: a.duration })),
+              // Native: clean picker cards — opens the device's native gallery/file picker
+              const NATIVE_PICKS = [
+                {
+                  label: "Photos & Videos",
+                  icon: "images-outline" as const,
+                  color: "#007AFF",
+                  onPress: async () => {
+                    setShowAttachPanel(false);
+                    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                    if (!perm.granted) return;
+                    const res = await ImagePicker.launchImageLibraryAsync({
+                      mediaTypes: ["images", "videos"] as any,
+                      allowsEditing: false,
+                      quality: pickerQuality,
+                      videoMaxDuration: 120,
+                    });
+                    if (!res.canceled && res.assets?.[0]) {
+                      const a = res.assets[0];
+                      setAttachmentPreview({ uri: a.uri, type: a.type === "video" ? "video" : "image", mimeType: a.mimeType || (a.type === "video" ? "video/mp4" : "image/jpeg") });
+                    }
+                  },
+                },
+                {
+                  label: "Camera",
+                  icon: "camera-outline" as const,
+                  color: "#EF4444",
+                  onPress: () => { setShowAttachPanel(false); pickFromCamera(); },
+                },
+                {
+                  label: "Audio File",
+                  icon: "musical-notes-outline" as const,
+                  color: "#10B981",
+                  onPress: async () => {
+                    setShowAttachPanel(false);
+                    try {
+                      const res = await DocumentPicker.getDocumentAsync({ type: "audio/*", copyToCacheDirectory: true });
+                      if (!res.canceled && res.assets?.[0]) {
+                        const d = res.assets[0];
+                        setAttachmentPreview({ uri: d.uri, type: "file", name: d.name, mimeType: d.mimeType ?? "audio/mpeg" });
+                      }
+                    } catch { /* ignore */ }
+                  },
+                },
+                {
+                  label: "Document",
+                  icon: "document-text-outline" as const,
+                  color: "#3B82F6",
+                  onPress: async () => {
+                    setShowAttachPanel(false);
+                    try {
+                      const res = await DocumentPicker.getDocumentAsync({ type: "*/*", copyToCacheDirectory: true });
+                      if (!res.canceled && res.assets?.[0]) {
+                        const d = res.assets[0];
+                        setAttachmentPreview({ uri: d.uri, type: "file", name: d.name, mimeType: d.mimeType ?? "application/octet-stream" });
+                      }
+                    } catch { /* ignore */ }
+                  },
+                },
               ];
               return (
-                <View style={{ flex: 1 }}>
-                  {/* Browse all button — works in Expo Go where media library is limited */}
-                  <TouchableOpacity
-                    activeOpacity={0.75}
-                    onPress={() => setShowMediaPicker(true)}
-                    style={{ flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 6, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.inputBg }}
-                  >
-                    <Ionicons name="albums-outline" size={18} color={colors.accent} />
-                    <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.accent }}>Browse all photos, videos & audio</Text>
-                  </TouchableOpacity>
-                  <FlatList
-                    data={thumbData}
-                    keyExtractor={(i) => i.id}
-                    key={`thumb-${THUMB_COLS}`}
-                    numColumns={THUMB_COLS}
-                    style={{ flex: 1 }}
-                    contentContainerStyle={{ gap: 2 }}
-                    columnWrapperStyle={{ gap: 2 }}
-                    showsVerticalScrollIndicator={false}
-                    onEndReached={loadMoreGalleryAssets}
-                    onEndReachedThreshold={0.4}
-                    ListEmptyComponent={
-                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 32 }}>
-                        <Ionicons name="images-outline" size={36} color={colors.textMuted} />
-                        <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8, fontFamily: "Inter_400Regular" }}>No media found</Text>
-                        <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 24 }}>
-                          Use "Browse all" above or check your device settings to allow media access.
-                        </Text>
+                <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 20, paddingTop: 20, gap: 14, justifyContent: "center" }}>
+                  {NATIVE_PICKS.map((pick) => (
+                    <TouchableOpacity
+                      key={pick.label}
+                      activeOpacity={0.75}
+                      onPress={pick.onPress}
+                      style={{ width: (SW2 - 74) / 2, alignItems: "center", paddingVertical: 20, borderRadius: 18, backgroundColor: colors.inputBg, gap: 10 }}
+                    >
+                      <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: pick.color + "20", alignItems: "center", justifyContent: "center" }}>
+                        <Ionicons name={pick.icon} size={28} color={pick.color} />
                       </View>
-                    }
-                    ListFooterComponent={
-                      galleryLoadingMore ? (
-                        <View style={{ paddingVertical: 12, alignItems: "center" }}>
-                          <ActivityIndicator size="small" color={colors.accent} />
-                        </View>
-                      ) : null
-                    }
-                    renderItem={({ item }) => {
-                      if (item.isCamera) {
-                        return (
-                          <TouchableOpacity
-                            activeOpacity={0.9}
-                            onPress={() => { setShowAttachPanel(false); pickFromCamera(); }}
-                            style={{ width: thumbSize, height: thumbSize, overflow: "hidden", backgroundColor: "#000" }}
-                          >
-                            {cameraPermission?.granted ? (
-                              <CameraView
-                                style={{ width: thumbSize, height: thumbSize }}
-                                facing="back"
-                              />
-                            ) : (
-                              <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#111" }}>
-                                <Ionicons name="camera" size={26} color="#fff" />
-                              </View>
-                            )}
-                            <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, paddingVertical: 4, alignItems: "center", backgroundColor: "rgba(0,0,0,0.35)" }}>
-                              <Ionicons name="camera" size={14} color="#fff" />
-                            </View>
-                          </TouchableOpacity>
-                        );
-                      }
-                      const isVideo = item.mediaType === "video";
-                      return (
-                        <TouchableOpacity
-                          activeOpacity={0.85}
-                          onPress={() => {
-                            setShowAttachPanel(false);
-                            if (item.uri) setAttachmentPreview({ uri: item.uri, type: isVideo ? "video" : "image" });
-                          }}
-                          style={{ width: thumbSize, height: thumbSize }}
-                        >
-                          <Image source={{ uri: item.uri }} style={{ width: thumbSize, height: thumbSize }} resizeMode="cover" />
-                          {isVideo && (
-                            <View style={{ position: "absolute", bottom: 4, right: 4, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(0,0,0,0.60)", borderRadius: 5, paddingHorizontal: 5, paddingVertical: 3 }}>
-                              <Ionicons name="play" size={9} color="#fff" />
-                              {item.duration != null && item.duration > 0 && (
-                                <Text style={{ color: "#fff", fontSize: 9, fontFamily: "Inter_600SemiBold", letterSpacing: 0.2 }}>
-                                  {fmtDur(item.duration)}
-                                </Text>
-                              )}
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    }}
-                  />
+                      <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.text, textAlign: "center" }}>{pick.label}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               );
             }
@@ -6657,24 +6571,6 @@ STRICT RULES:
         onApplyAndSend={(t) => { setInput(t); setShowAiEditor(false); saveDraft(t); sendMessage(t); }}
       />
 
-      <MediaGalleryPicker
-        visible={showMediaPicker}
-        onClose={() => setShowMediaPicker(false)}
-        title="Select Media"
-        maxSelection={1}
-        onSelect={(assets: GalleryAsset[]) => {
-          const asset = assets[0];
-          if (!asset) return;
-          const isVideo = asset.mediaType === MediaLibrary.MediaType.video;
-          const isAudio = asset.mediaType === MediaLibrary.MediaType.audio;
-          setAttachmentPreview({
-            uri: asset.uri,
-            type: isVideo ? "video" : isAudio ? "file" : "image",
-            name: isAudio ? asset.filename : undefined,
-            mimeType: isAudio ? "audio/mpeg" : isVideo ? "video/mp4" : "image/jpeg",
-          });
-        }}
-      />
 
       <BottomSheet visible={showGifPicker} onClose={() => { setShowGifPicker(false); setGifSearch(""); }}>
         <Text style={[st.sheetTitle, { color: colors.text }]}>Send GIF</Text>
