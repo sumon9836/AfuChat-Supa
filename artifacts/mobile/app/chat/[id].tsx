@@ -5173,6 +5173,8 @@ STRICT RULES:
               inverted
               contentContainerStyle={[st.listContent, { paddingTop: floatingInputHeight + effectiveBottom + 16 }]}
               showsVerticalScrollIndicator={false}
+              keyboardDismissMode="none"
+              keyboardShouldPersistTaps="always"
               onScroll={handleScroll}
               scrollEventThrottle={16}
               onEndReached={loadMoreMessages}

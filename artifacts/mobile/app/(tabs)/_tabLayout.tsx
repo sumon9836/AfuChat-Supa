@@ -25,7 +25,7 @@ import { emitShortsRefresh } from "@/lib/shortsRefresh";
 import { getTotalUnread, subscribeUnread } from "@/lib/chatUnreadEvents";
 
 const TABS = [
-  { route: "/(tabs)/chats",         label: "Chats",    mdOn: "chatbubble",       mdOff: "chatbubble-outline"       },
+  { route: "/(tabs)/chats",         label: "Chats",    mdOn: "chatbubbles",      mdOff: "chatbubbles-outline"      },
   { route: "/(tabs)/discover",      label: "Discover", mdOn: "compass",          mdOff: "compass-outline"          },
   { route: "/(tabs)/shorts",        label: "Shorts",   mdOn: "play-circle",      mdOff: "play-circle-outline"      },
   { route: "/(tabs)/apps",          label: "Apps",     mdOn: "grid",             mdOff: "grid-outline"             },
