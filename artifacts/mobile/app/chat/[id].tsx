@@ -634,6 +634,16 @@ function AiConfirmationCard({ exec: ea, colors: c, onConfirm, onCancel }: { exec
 
 const SWIPE_THRESHOLD = 60;
 
+/** Perceived brightness of a 6-digit hex color (0 = black, 1 = white). */
+function hexLuminance(hex: string): number {
+  const h = hex.replace("#", "");
+  if (h.length !== 6) return 0.4;
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
 function LensContextCard({ msg, onSuggestionTap }: {
   msg: Message;
   onSuggestionTap?: (text: string) => void;
@@ -976,6 +986,15 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   const isSticker = msg.attachment_type === "sticker";
   const bubbleColor = isSticker ? "transparent" : (isMe ? meBubbleColor : otherBubbleColor);
   const textColor = isMe ? "#FFFFFF" : colors.bubbleIncomingText;
+
+  // Adaptive receipt colours — computed from the actual bubble background so they
+  // are always legible regardless of the user's chosen accent colour.
+  const bubbleLum = hexLuminance(meBubbleColor);
+  const darkBubble = bubbleLum < 0.55;        // teal / deep colours → use whites
+  const myTimeColor   = darkBubble ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.45)";
+  const rcptSent      = darkBubble ? "rgba(255,255,255,0.68)" : "rgba(0,0,0,0.42)";
+  const rcptDelivered = darkBubble ? "rgba(255,255,255,0.92)" : "rgba(0,0,0,0.65)";
+  const rcptRead      = "#53BDEB";             // always the distinctive WhatsApp-blue
   const isPending = msg._pending || msg.status === "sending";
 
   const fadeIn = useRef(new Animated.Value(0)).current;
@@ -1336,9 +1355,9 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
           {/* metaRow: timestamp + status — always below content for guaranteed separation */}
           <View style={[st.metaRow, useInlineTimestamp && { marginTop: 4 }]}>
             {msg.edited_at && (
-              <Text style={[st.msgTime, { color: isMe ? "rgba(255,255,255,0.55)" : colors.textMuted, marginRight: 4 }]}>edited</Text>
+              <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 4 }]}>edited</Text>
             )}
-            <Text style={[st.msgTime, { color: isMe ? "rgba(255,255,255,0.55)" : colors.textMuted }]}>
+            <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted }]}>
               {formatMsgTime(msg.sent_at)}
             </Text>
             {isMe && (
@@ -1353,9 +1372,10 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                   size={17}
                   color={
                     msg.status === "failed" ? "#FF4444" :
-                    msg.status === "read" ? "#53BDEB" :
-                    msg.status === "delivered" ? "rgba(255,255,255,0.85)" :
-                    "rgba(255,255,255,0.55)"
+                    isPending ? rcptSent :
+                    msg.status === "read" ? rcptRead :
+                    msg.status === "delivered" ? rcptDelivered :
+                    rcptSent
                   }
                   style={{ marginLeft: 3 }}
                 />
