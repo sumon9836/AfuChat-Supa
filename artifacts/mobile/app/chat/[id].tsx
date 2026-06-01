@@ -17,6 +17,7 @@ import {
   TextInput,
   UIManager,
   useWindowDimensions,
+  Pressable,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -1004,7 +1005,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   if (isRedEnvelope) {
     return (
       <View style={[st.msgRow, isMe ? st.msgRowMe : st.msgRowOther]}>
-        <TouchableOpacity onPress={() => onTapEnvelope?.(msg)} activeOpacity={0.7} style={st.specialMsgTap}>
+        <TouchableOpacity onPress={() => onTapEnvelope?.(msg)} onLongPress={() => onLongPress(msg)} delayLongPress={300} activeOpacity={0.7} style={st.specialMsgTap}>
           <Text style={st.specialMsgEmoji}>🧧</Text>
         </TouchableOpacity>
       </View>
@@ -1018,7 +1019,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
 
     return (
       <View style={[st.msgRow, isMe ? st.msgRowMe : st.msgRowOther]}>
-        <TouchableOpacity onPress={() => onTapGift?.(msg)} activeOpacity={0.7} style={st.specialMsgTap}>
+        <TouchableOpacity onPress={() => onTapGift?.(msg)} onLongPress={() => onLongPress(msg)} delayLongPress={300} activeOpacity={0.7} style={st.specialMsgTap}>
           <Text style={st.specialMsgEmoji}>{giftEmoji}</Text>
         </TouchableOpacity>
       </View>
@@ -1057,16 +1058,18 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
       <View style={[st.bubbleContainer, isMe ? st.bubbleContainerMe : st.bubbleContainerOther]}>
         {showTail && <BubbleTail isMe={isMe} color={bubbleColor} />}
 
-        <View style={[
-          st.bubble,
-          { backgroundColor: bubbleColor, borderRadius: chatRadius ?? 18 },
-          isMe ? st.bubbleMe : st.bubbleOther,
-          showTail ? (isMe ? st.bubbleTailMe : st.bubbleTailOther) : null,
-          replyPreview ? st.bubbleWithReply : null,
-          isPending && { opacity: 0.6 },
-          // Extra bottom padding reserves space for the absolutely-positioned inline timestamp
-          useInlineTimestamp && { paddingBottom: 22 },
-        ]}>
+        <Pressable
+          onLongPress={() => onLongPress(msg)}
+          delayLongPress={300}
+          style={[
+            st.bubble,
+            { backgroundColor: bubbleColor, borderRadius: chatRadius ?? 18 },
+            isMe ? st.bubbleMe : st.bubbleOther,
+            showTail ? (isMe ? st.bubbleTailMe : st.bubbleTailOther) : null,
+            replyPreview ? st.bubbleWithReply : null,
+            isPending && { opacity: 0.6 },
+            useInlineTimestamp && { paddingBottom: 22 },
+          ]}>
           {isPremiumSender && <PremiumBubbleShimmer />}
           {!isMe && showName && (
             onSenderPress ? (
@@ -1134,7 +1137,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
               </View>
             </TouchableOpacity>
           ) : hasAudio ? (
-            <View>
+            <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={300} activeOpacity={1}>
               <AudioPlayer uri={attachUri || msg.attachment_url!} tintColor={textColor} waveColor={isMe ? "#FFFFFF" : BRAND} />
               {canTranscribe && (
                 <TouchableOpacity
@@ -1155,7 +1158,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
               {showTranscript && transcript && (
                 <Text style={[st.bubbleText, { color: textColor, marginTop: 6, fontStyle: "italic", fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]}>{transcript}</Text>
               )}
-            </View>
+            </TouchableOpacity>
           ) : hasFile ? (
             <TouchableOpacity
               onPress={handleFileTap}
@@ -1396,7 +1399,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        </Pressable>
 
         {msg.reactions && msg.reactions.length > 0 && (
           <View style={[st.reactionsRow, isMe ? st.reactionsMe : st.reactionsOther]}>
@@ -4961,7 +4964,7 @@ STRICT RULES:
             isMe={isMe}
             showTail={shouldShowTail(index)}
             showName={shouldShowName(index)}
-            onLongPress={(m) => { if (!advancedFeatures.quick_action_menu) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowReactions(m); }}
+            onLongPress={(m) => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowReactions(m); }}
             onReply={(m) => { setReplyTo(m); setTimeout(() => chatInputRef.current?.focus(), 50); }}
             replyPreview={getReplyPreview(item.reply_to_message_id)}
             onTapReply={item.reply_to_message_id ? () => scrollToMessage(item.reply_to_message_id!) : undefined}
