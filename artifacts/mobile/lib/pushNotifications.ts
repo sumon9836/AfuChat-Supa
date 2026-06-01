@@ -242,7 +242,6 @@ export async function setupNotificationChannels(): Promise<void> {
       name: "AfuChat",
       description: "General AfuChat notifications",
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
       lightColor: "#00BCD4",
       ...base,
     });
@@ -251,7 +250,6 @@ export async function setupNotificationChannels(): Promise<void> {
       name: "Messages",
       description: "Chat messages from your contacts",
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250],
       lightColor: "#00BCD4",
       ...base,
     });
@@ -268,7 +266,6 @@ export async function setupNotificationChannels(): Promise<void> {
       name: "Marketplace & Payments",
       description: "Orders, escrow releases, disputes and payments",
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
       lightColor: "#34C759",
       ...base,
     });
@@ -286,7 +283,6 @@ export async function setupNotificationChannels(): Promise<void> {
       name: "Incoming Calls",
       description: "Voice and video call alerts",
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 400, 200, 400, 200, 400],
       lightColor: "#34C759",
       bypassDnd: true,
       showBadge: true,
