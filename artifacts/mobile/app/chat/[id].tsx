@@ -1252,24 +1252,26 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
             </TouchableOpacity>
           ) : (
             <>
-              {/* Relative wrapper so the ghost-tail + absolute timestamp align correctly */}
+              {/* Relative wrapper so the absolute timestamp aligns to the bubble bottom-right */}
               <View style={{ position: "relative" }}>
                 <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
                   {msg._isAi
                     ? <AiRichContent content={displayText} colors={colors} isUser={isMe} />
                     : (
                       <RichText
-                        style={[st.bubbleText, { color: textColor, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]}
+                        style={[st.bubbleText, {
+                          color: textColor,
+                          fontSize: chatPrefsLocal?.font_size ?? 15,
+                          lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5,
+                          // Reserve space at the end so the absolute timestamp never
+                          // overlaps the last word. More reliable than a transparent
+                          // ghost <Text> (which can bleed through on some RN engines).
+                          paddingRight: useInlineTimestamp
+                            ? (msg.edited_at ? (isMe ? 96 : 76) : (isMe ? 60 : 46))
+                            : 0,
+                        }]}
                         linkColor={isMe ? "#FFFFFF" : BRAND}
                         selectable={true}
-                        tail={
-                          /* Transparent ghost that mirrors the real timestamp, forcing
-                             the text engine to wrap before the timestamp area so the
-                             timestamp sits on the same visual line as the last word. */
-                          <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "transparent" }}>
-                            {`\u00A0${msg.edited_at ? "edited\u00A0" : ""}${formatMsgTime(msg.sent_at)}${isMe ? "\u00A0\u00A0\u00A0" : "\u00A0\u00A0"}`}
-                          </Text>
-                        }
                       >
                         {displayText}
                       </RichText>
