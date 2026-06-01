@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import * as Location from "expo-location";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
+import { showAlert } from "@/lib/alert";
 
 export interface NearbyCoords {
   lat: number;
@@ -85,7 +86,7 @@ export function useNearbyLocation(): UseNearbyLocationResult {
 
     if (!granted) {
       await new Promise<void>((resolve) => {
-        Alert.alert(
+        showAlert(
           "Find Nearby Friends",
           "AfuChat will use your device location to show AfuChat users near you.\n\nYour location is only used while the Nearby tab is open and is never shared with other users without your consent.",
           [
@@ -103,7 +104,6 @@ export function useNearbyLocation(): UseNearbyLocationResult {
               },
             },
           ],
-          { cancelable: false }
         );
       });
     }
