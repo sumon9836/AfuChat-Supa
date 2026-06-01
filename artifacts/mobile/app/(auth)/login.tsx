@@ -257,7 +257,7 @@ function EmailVerifyModal({ visible, email, onClose, onVerified, isDark }: { vis
 
 // ─── SignInScreen ─────────────────────────────────────────────────────────────
 export default function SignInScreen() {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const { accent } = useAppAccent();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
