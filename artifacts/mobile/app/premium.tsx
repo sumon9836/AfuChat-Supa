@@ -764,7 +764,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     height: 56,
-    borderRadius: 18,
+    borderRadius: 999,
   },
   ctaText: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" },
   legal: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center" },

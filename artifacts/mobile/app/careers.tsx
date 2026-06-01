@@ -267,6 +267,6 @@ const st = StyleSheet.create({
   ctaSection:  { backgroundColor: "#0A0D14", borderRadius: 20, padding: 40, marginVertical: 40, alignItems: "center" },
   ctaHeading:  { fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center", marginBottom: 12 },
   ctaSub:      { fontSize: 15, fontFamily: "Inter_400Regular", color: "#94A3B8", textAlign: "center", lineHeight: 23, maxWidth: 440 },
-  ctaBtn:      { marginTop: 20, backgroundColor: TEAL, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 12 },
+  ctaBtn:      { marginTop: 20, backgroundColor: TEAL, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 999 },
   ctaBtnText:  { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });

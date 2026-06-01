@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   summaryTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginBottom: 12 },
   summaryRows: { gap: 4 },
   ctaWrap: { marginTop: 32 },
-  nextBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: BRAND, borderRadius: 18, paddingVertical: 18 },
+  nextBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: BRAND, borderRadius: 999, paddingVertical: 18 },
   nextBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
   skipText: { fontSize: 14, fontFamily: "Inter_400Regular" },
 });

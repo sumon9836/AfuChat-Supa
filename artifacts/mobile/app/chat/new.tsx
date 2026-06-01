@@ -1298,7 +1298,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   phoneHint: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
-  retryBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 22, marginTop: 4 },
+  retryBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 999, marginTop: 4 },
   retryBtnText: { color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 14 },
   phoneSectionRow: {
     flexDirection: "row",

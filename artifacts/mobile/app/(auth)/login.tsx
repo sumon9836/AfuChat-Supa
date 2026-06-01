@@ -520,12 +520,12 @@ export default function SignInScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const sc = StyleSheet.create({
   card: { borderRadius: 24, overflow: "hidden" },
-  primaryBtn: { borderRadius: 14, overflow: "hidden" },
+  primaryBtn: { borderRadius: 999, overflow: "hidden" },
   primaryGrad: { height: 52, alignItems: "center", justifyContent: "center" },
   primaryText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold", letterSpacing: 0.2 },
   googleBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 10, height: 50, borderRadius: 12,
+    gap: 10, height: 50, borderRadius: 999,
     backgroundColor: "#FFFFFF",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(0,0,0,0.12)",

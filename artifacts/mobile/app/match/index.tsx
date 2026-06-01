@@ -453,7 +453,7 @@ const matchStyles = StyleSheet.create({
   locRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 16 },
   locText: { fontSize: 13, fontFamily: "Inter_400Regular" },
   actions: { width: "100%" },
-  sendMsgBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: BRAND, borderRadius: 14, paddingVertical: 14 },
+  sendMsgBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: BRAND, borderRadius: 999, paddingVertical: 14 },
   sendMsgText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
   dismiss: { paddingVertical: 14, alignItems: "center", borderTopWidth: StyleSheet.hairlineWidth },
   dismissText: { fontSize: 14, fontFamily: "Inter_400Regular" },

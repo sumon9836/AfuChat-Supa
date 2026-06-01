@@ -526,7 +526,7 @@ const st = StyleSheet.create({
   catLabel: { fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 17 },
 
   primaryBtn: {
-    borderRadius: 14, paddingVertical: 14,
+    borderRadius: 999, paddingVertical: 14,
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
     marginBottom: 16,
   },

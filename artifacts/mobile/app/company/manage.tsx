@@ -822,7 +822,7 @@ const verSt = StyleSheet.create({
   inlineInput: { fontSize: 14, fontFamily: "Inter_400Regular", paddingVertical: 4 },
   notesLabel: { fontSize: 12, fontFamily: "Inter_500Medium" },
   notes: { borderRadius: 12, borderWidth: 1, padding: 12, fontSize: 14, fontFamily: "Inter_400Regular", minHeight: 80, textAlignVertical: "top" },
-  submitBtn: { borderRadius: 12, paddingVertical: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
+  submitBtn: { borderRadius: 999, paddingVertical: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
   submitBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
   pickerSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   pickerTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginBottom: 8 },
@@ -861,6 +861,6 @@ const styles = StyleSheet.create({
   verifyCard: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 14, borderWidth: 1, padding: 14 },
   verifyCardTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   verifyCardSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  saveBtn: { borderRadius: 14, paddingVertical: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, marginTop: 8 },
+  saveBtn: { borderRadius: 999, paddingVertical: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, marginTop: 8 },
   saveBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
 });

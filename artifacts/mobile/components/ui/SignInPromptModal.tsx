@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   primaryBtn: {
     width: "100%",
     paddingVertical: 15,
-    borderRadius: 14,
+    borderRadius: 999,
     alignItems: "center",
     marginTop: 4,
   },
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   secondaryBtn: {
     width: "100%",
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 999,
     alignItems: "center",
     borderWidth: 1.5,
   },

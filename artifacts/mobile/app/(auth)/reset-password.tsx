@@ -221,6 +221,6 @@ const s = StyleSheet.create({
   errTxt: { color: "#FF6B6B", fontSize: 13, fontFamily: "Inter_400Regular" },
   inputWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 },
   input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
-  btn: { borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
+  btn: { borderRadius: 999, paddingVertical: 14, alignItems: "center", marginTop: 4 },
   btnTxt: { color: "#000", fontSize: 15, fontFamily: "Inter_700Bold" },
 });

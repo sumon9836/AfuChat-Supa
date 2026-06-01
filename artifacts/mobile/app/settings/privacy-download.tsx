@@ -198,6 +198,6 @@ const styles = StyleSheet.create({
   successIcon: { width: 100, height: 100, borderRadius: 50, alignItems: "center", justifyContent: "center" },
   successTitle: { fontSize: 24, fontFamily: "Inter_700Bold", textAlign: "center" },
   successDesc: { fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
-  doneBtn: { paddingHorizontal: 40, paddingVertical: 14, borderRadius: 24, marginTop: 8 },
+  doneBtn: { paddingHorizontal: 40, paddingVertical: 14, borderRadius: 999, marginTop: 8 },
   doneBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
 });

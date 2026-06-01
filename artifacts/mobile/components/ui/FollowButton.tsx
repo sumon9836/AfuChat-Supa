@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    borderRadius: 20,
+    borderRadius: 999,
   },
   btnMd: { paddingHorizontal: 16, paddingVertical: 7 },
   btnSm: { paddingHorizontal: 10, paddingVertical: 5 },

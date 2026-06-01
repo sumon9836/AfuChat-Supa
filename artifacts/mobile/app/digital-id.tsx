@@ -576,7 +576,7 @@ const s = StyleSheet.create({
   sideDot: { width: 6, height: 6, borderRadius: 3, marginLeft: 4 },
   sideLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 1 },
   actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center" },
-  actionBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9 },
+  actionBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
   actionBtnDim: { opacity: 0.4 },
   actionBtnTxt: { fontSize: 13, fontWeight: "600" },
   tip: { flexDirection: "row", alignItems: "flex-start", gap: 8, borderRadius: 10, padding: 12, borderWidth: 0.5, maxWidth: 360, width: "90%" },

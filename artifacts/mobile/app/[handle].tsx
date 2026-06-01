@@ -427,7 +427,7 @@ const pub = StyleSheet.create({
   statDivider: { width: StyleSheet.hairlineWidth, marginVertical: 10 },
 
   ctaRow: { flexDirection: "row", gap: 10, paddingHorizontal: 20, marginBottom: 16 },
-  ctaBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13, borderRadius: 14 },
+  ctaBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13, borderRadius: 999 },
   ctaBtnOutline: { borderWidth: 1 },
   ctaBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
 
@@ -444,7 +444,7 @@ const pub = StyleSheet.create({
   joinLogo: { width: 60, height: 60, borderRadius: 10 },
   joinTitle: { fontSize: 14, fontFamily: "Inter_700Bold", marginBottom: 2 },
   joinSub: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 16 },
-  joinBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  joinBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 },
   joinBtnText: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" },
 
   gradePill: {

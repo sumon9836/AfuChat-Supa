@@ -2581,7 +2581,7 @@ const styles = StyleSheet.create({
   postHandle: { fontSize: 12, fontFamily: "Inter_400Regular" },
   postContent: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
   postActions: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
   actionBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   filterInput: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: "transparent" },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },

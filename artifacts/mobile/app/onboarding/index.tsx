@@ -1207,7 +1207,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
   },
-  nextBtn:     { backgroundColor: Colors.brand, height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  nextBtn:     { backgroundColor: Colors.brand, height: 52, borderRadius: 999, alignItems: "center", justifyContent: "center" },
   nextBtnText: { color: "#fff", fontSize: 17, fontFamily: "Inter_600SemiBold" },
 
   // Modals

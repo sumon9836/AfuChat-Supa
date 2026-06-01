@@ -265,7 +265,7 @@ const bottomSt = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
     height: 52,
-    borderRadius: 14,
+    borderRadius: 999,
   },
   nextText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
 });

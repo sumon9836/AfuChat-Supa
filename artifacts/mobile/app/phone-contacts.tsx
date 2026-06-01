@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 15, fontFamily: "Inter_400Regular", marginTop: 8 },
   emptyTitle: { fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" },
   emptySub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
-  retryBtn: { paddingHorizontal: 28, paddingVertical: 12, borderRadius: 24, marginTop: 8 },
+  retryBtn: { paddingHorizontal: 28, paddingVertical: 12, borderRadius: 999, marginTop: 8 },
   retryBtnText: { color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 15 },
   sectionHeader: {
     flexDirection: "row",

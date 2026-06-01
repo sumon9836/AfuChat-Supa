@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 28,
     paddingVertical: 14,
-    borderRadius: 16,
+    borderRadius: 999,
     marginTop: 8,
   },
   upgradeBtnText: {

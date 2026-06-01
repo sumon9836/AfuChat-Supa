@@ -712,7 +712,7 @@ const sheet = StyleSheet.create({
   detailValue: { fontSize: 13, fontFamily: "Inter_600SemiBold", maxWidth: "60%", textAlign: "right" },
 
   actions: { gap: 10 },
-  actionBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 14 },
+  actionBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 999 },
   actionBtnSecondary: { backgroundColor: "transparent", borderWidth: 1 },
   actionBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
 });

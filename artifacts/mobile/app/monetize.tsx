@@ -1322,6 +1322,6 @@ const cs = StyleSheet.create({
   modalBtns:  { flexDirection: "row", gap: 12 },
   cancelBtn:  { flex: 1, borderRadius: 14, borderWidth: 1, paddingVertical: 14, alignItems: "center" },
   cancelText: { fontSize: 15, fontFamily: "Inter_500Medium" },
-  saveBtn:    { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  saveBtn:    { flex: 1, borderRadius: 999, paddingVertical: 14, alignItems: "center" },
   saveBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
 });
