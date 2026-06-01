@@ -1,154 +1,205 @@
 import { useEffect, useRef, useState } from "react";
 import "./owl.css";
 
+type BF = "open" | "blinking";
+
 export function Smooth2D() {
-  const [blink, setBlink] = useState(false);
-  const [wink, setWink] = useState(false);
+  const t = useRef(0);
+  const raf = useRef<number>(0);
+  const [, setTick] = useState(0);
+  const [blink, setBlink] = useState<BF>("open");
   const [excited, setExcited] = useState(false);
-  const blinkRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    function schedBlink() {
-      const gap = 2200 + Math.random() * 3500;
-      blinkRef.current = setTimeout(() => {
-        if (Math.random() < 0.15) {
-          setWink(true);
-          setTimeout(() => setWink(false), 160);
-        } else {
-          setBlink(true);
-          setTimeout(() => setBlink(false), 150);
-        }
-        schedBlink();
-      }, gap);
+    function frame() {
+      t.current += 0.016;
+      setTick(n => n + 1);
+      raf.current = requestAnimationFrame(frame);
     }
-    schedBlink();
-    return () => { if (blinkRef.current) clearTimeout(blinkRef.current); };
+    raf.current = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf.current);
   }, []);
 
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    function schedBlink() {
+      timer = setTimeout(() => {
+        setBlink("blinking");
+        setTimeout(() => { setBlink("open"); schedBlink(); }, 150);
+      }, 2400 + Math.random() * 3600);
+    }
+    schedBlink();
+    return () => clearTimeout(timer);
+  }, []);
+
+  const lookX = Math.sin(t.current * 0.38) * 5;
+  const lookY = Math.sin(t.current * 0.55) * 4;
+  const wingFlopL = Math.sin(t.current * 0.8) * 5;
+  const wingFlopR = Math.sin(t.current * 0.8 + Math.PI * 0.4) * 5;
+  const earL = Math.sin(t.current * 1.2 + 0.5) * 2.5;
+  const earR = Math.sin(t.current * 1.1) * 2.5;
+  const breatheX = 1 + Math.sin(t.current * 1.4) * 0.015;
+  const breatheY = 1 + Math.sin(t.current * 1.4 + Math.PI) * 0.012;
+
   return (
-    <div className="owl-stage" style={{ background: "linear-gradient(160deg, #00BCD4 0%, #006064 100%)" }}>
-      <div className="owl-label">A — Smooth 2D</div>
+    <div
+      className="owl-stage"
+      style={{ background: "linear-gradient(160deg, #00BCD4 0%, #006064 100%)", overflow: "hidden" }}
+    >
+      {/* Ambient orbs */}
+      <div style={{ position:"absolute", top:40, left:40, width:120, height:120, borderRadius:"50%", background:"radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)", pointerEvents:"none" }} />
+      <div style={{ position:"absolute", bottom:60, right:40, width:80, height:80, borderRadius:"50%", background:"radial-gradient(circle, rgba(255,183,0,0.12) 0%, transparent 70%)", pointerEvents:"none" }} />
+
+      <div className="owl-label" style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.5 }}>A — Smooth 2D</div>
       <div className="owl-sub">Telegram-style animated character</div>
 
-      <div className={`owl-wrap ${excited ? "excited" : ""}`}>
-        {/* Shadow */}
+      <div
+        className={`owl-wrap ${excited ? "excited" : ""}`}
+        onClick={() => { setExcited(true); setTimeout(() => setExcited(false), 620); }}
+        style={{ cursor: "pointer" }}
+      >
         <div className="owl-shadow" />
 
-        {/* Body */}
         <svg
           viewBox="0 0 220 280"
-          width="220"
-          height="280"
-          className="owl-svg"
-          style={{ filter: "drop-shadow(0 18px 32px rgba(0,0,0,0.35))" }}
-          onClick={() => { setExcited(true); setTimeout(() => setExcited(false), 600); }}
+          width={220} height={280}
+          style={{ filter: "drop-shadow(0 20px 36px rgba(0,0,0,0.38)) drop-shadow(0 4px 8px rgba(0,0,0,0.2))", overflow: "visible" }}
         >
           <defs>
-            <radialGradient id="bodyGrad" cx="38%" cy="30%" r="65%">
-              <stop offset="0%" stopColor="#42A5F5" />
-              <stop offset="100%" stopColor="#1565C0" />
+            {/* ── 3D sphere gradients ── */}
+            <radialGradient id="headG" cx="32%" cy="24%" fx="32%" fy="24%" r="68%">
+              <stop offset="0%"   stopColor="#64B5F6" />
+              <stop offset="40%"  stopColor="#1E88E5" />
+              <stop offset="100%" stopColor="#0A2845" />
             </radialGradient>
-            <radialGradient id="bellyGrad" cx="40%" cy="30%" r="65%">
-              <stop offset="0%" stopColor="#E3F2FD" />
-              <stop offset="100%" stopColor="#BBDEFB" />
+            <radialGradient id="bodyG" cx="32%" cy="22%" fx="32%" fy="22%" r="70%">
+              <stop offset="0%"   stopColor="#42A5F5" />
+              <stop offset="42%"  stopColor="#1565C0" />
+              <stop offset="100%" stopColor="#051A30" />
             </radialGradient>
-            <radialGradient id="eyeGradL" cx="35%" cy="30%" r="65%">
-              <stop offset="0%" stopColor="#00E5FF" />
-              <stop offset="100%" stopColor="#00ACC1" />
+            <radialGradient id="bellyG" cx="38%" cy="28%" fx="38%" fy="28%" r="62%">
+              <stop offset="0%"   stopColor="#E3F2FD" />
+              <stop offset="55%"  stopColor="#BBDEFB" />
+              <stop offset="100%" stopColor="#1565C0" stopOpacity="0.5" />
             </radialGradient>
-            <radialGradient id="eyeGradR" cx="35%" cy="30%" r="65%">
-              <stop offset="0%" stopColor="#00E5FF" />
-              <stop offset="100%" stopColor="#00ACC1" />
+            <radialGradient id="wingLG" cx="62%" cy="28%" r="70%">
+              <stop offset="0%"   stopColor="#1E88E5" />
+              <stop offset="100%" stopColor="#051A30" />
             </radialGradient>
-            <radialGradient id="headGrad" cx="38%" cy="28%" r="65%">
-              <stop offset="0%" stopColor="#42A5F5" />
-              <stop offset="100%" stopColor="#1565C0" />
+            <radialGradient id="wingRG" cx="38%" cy="28%" r="70%">
+              <stop offset="0%"   stopColor="#1E88E5" />
+              <stop offset="100%" stopColor="#051A30" />
             </radialGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            <radialGradient id="irisG" cx="30%" cy="26%" fx="30%" fy="26%" r="68%">
+              <stop offset="0%"   stopColor="#00E5FF" />
+              <stop offset="50%"  stopColor="#00ACC1" />
+              <stop offset="100%" stopColor="#002B33" />
+            </radialGradient>
+            <radialGradient id="pupilG" cx="24%" cy="24%" r="68%">
+              <stop offset="0%"   stopColor="#1A237E" />
+              <stop offset="100%" stopColor="#000000" />
+            </radialGradient>
+            <linearGradient id="beakG" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%"   stopColor="#FFD54F" />
+              <stop offset="100%" stopColor="#E65100" />
+            </linearGradient>
+            <filter id="glow2d" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="3.5" result="b" />
+              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
             </filter>
           </defs>
 
-          {/* Wings */}
-          <ellipse cx="32" cy="178" rx="28" ry="48" fill="url(#bodyGrad)" transform="rotate(-18,32,178)" />
-          <ellipse cx="188" cy="178" rx="28" ry="48" fill="url(#bodyGrad)" transform="rotate(18,188,178)" />
-          {/* Wing highlight */}
-          <ellipse cx="32" cy="165" rx="10" ry="20" fill="#64B5F6" opacity="0.35" transform="rotate(-18,32,165)" />
-          <ellipse cx="188" cy="165" rx="10" ry="20" fill="#64B5F6" opacity="0.35" transform="rotate(18,188,165)" />
+          {/* ── Wings (behind body) ── */}
+          <ellipse
+            cx={40} cy={192 + wingFlopL} rx={28} ry={54}
+            fill="url(#wingLG)" transform="rotate(-20,40,185)"
+          />
+          <ellipse
+            cx={180} cy={192 + wingFlopR} rx={28} ry={54}
+            fill="url(#wingRG)" transform="rotate(20,180,185)"
+          />
+          {/* Wing rim highlights */}
+          <ellipse cx={42} cy={178 + wingFlopL} rx={9} ry={22} fill="white" opacity={0.1} transform="rotate(-20,42,178)" />
+          <ellipse cx={178} cy={178 + wingFlopR} rx={9} ry={22} fill="white" opacity={0.1} transform="rotate(20,178,178)" />
 
-          {/* Body */}
-          <ellipse cx="110" cy="200" rx="68" ry="82" fill="url(#bodyGrad)" />
+          {/* ── Body ── */}
+          <ellipse
+            cx={110} cy={202} rx={68 * breatheX} ry={82 * breatheY}
+            fill="url(#bodyG)"
+          />
+          {/* Body rim light */}
+          <ellipse cx={110} cy={202} rx={68} ry={82} fill="none" stroke="#42A5F5" strokeWidth={2} opacity={0.12} />
 
-          {/* Belly */}
-          <ellipse cx="110" cy="210" rx="42" ry="58" fill="url(#bellyGrad)" />
+          {/* ── Belly ── */}
+          <ellipse cx={110} cy={213} rx={42} ry={58} fill="url(#bellyG)" />
+          {/* Belly feather stripes */}
+          <path d="M82,197 Q110,187 138,197" stroke="#90CAF9" strokeWidth={2} fill="none" opacity={0.45} />
+          <path d="M86,214 Q110,205 134,214" stroke="#90CAF9" strokeWidth={1.5} fill="none" opacity={0.35} />
+          <path d="M90,230 Q110,222 130,230" stroke="#90CAF9" strokeWidth={1} fill="none" opacity={0.28} />
 
-          {/* Belly stripes */}
-          <path d="M80,195 Q110,185 140,195" stroke="#90CAF9" strokeWidth="2.5" fill="none" opacity="0.6" />
-          <path d="M84,212 Q110,203 136,212" stroke="#90CAF9" strokeWidth="2" fill="none" opacity="0.5" />
-          <path d="M88,228 Q110,220 132,228" stroke="#90CAF9" strokeWidth="1.5" fill="none" opacity="0.4" />
+          {/* ── Feet ── */}
+          <path d="M88,272 L74,284 M88,272 L88,286 M88,272 L102,284" stroke="#FFB300" strokeWidth={4.5} strokeLinecap="round" />
+          <path d="M132,272 L118,284 M132,272 L132,286 M132,272 L146,284" stroke="#FFB300" strokeWidth={4.5} strokeLinecap="round" />
 
-          {/* Feet */}
-          <path d="M86,272 L72,282 M86,272 L86,284 M86,272 L100,282" stroke="#FFB300" strokeWidth="4.5" strokeLinecap="round" />
-          <path d="M134,272 L120,282 M134,272 L134,284 M134,272 L148,282" stroke="#FFB300" strokeWidth="4.5" strokeLinecap="round" />
-
-          {/* Head */}
-          <circle cx="110" cy="112" r="72" fill="url(#headGrad)" />
+          {/* ── Head ── */}
+          <circle cx={110} cy={108} r={74} fill="url(#headG)" />
           {/* Facial disc */}
-          <ellipse cx="110" cy="118" rx="52" ry="56" fill="#BBDEFB" opacity="0.28" />
+          <ellipse cx={110} cy={115} rx={53} ry={57} fill="#BBDEFB" opacity={0.14} />
+          {/* Head rim light */}
+          <circle cx={110} cy={108} r={74} fill="none" stroke="#64B5F6" strokeWidth={2.5} opacity={0.18} />
 
-          {/* Ear tufts */}
-          <path d="M68,55 L78,28 L92,55" fill="#1565C0" />
-          <path d="M128,55 L142,28 L152,55" fill="#1565C0" />
-          {/* Tuft highlight */}
-          <path d="M74,52 L81,34 L87,52" fill="#42A5F5" opacity="0.4" />
-          <path d="M134,52 L141,34 L147,52" fill="#42A5F5" opacity="0.4" />
+          {/* ── Ear tufts ── */}
+          <path
+            d={`M${72 + earL},50 L${82 + earL},20 L${94 + earL},48`}
+            fill="#1565C0"
+          />
+          <path
+            d={`M${126 + earR},48 L${138 + earR},20 L${148 + earR},50`}
+            fill="#1565C0"
+          />
+          {/* Tuft highlights */}
+          <path d={`M${76 + earL},48 L${84 + earL},26 L${90 + earL},46`} fill="#42A5F5" opacity={0.35} />
+          <path d={`M${130 + earR},46 L${140 + earR},26 L${144 + earR},48`} fill="#42A5F5" opacity={0.35} />
 
-          {/* Eye whites */}
-          <circle cx="83" cy="110" r="28" fill="white" />
-          <circle cx="137" cy="110" r="28" fill="white" />
+          {/* ── Eye sockets (depth) ── */}
+          <circle cx={82} cy={106} r={30} fill="#051A30" opacity={0.35} />
+          <circle cx={138} cy={106} r={30} fill="#051A30" opacity={0.35} />
 
-          {/* Eye irises */}
-          <circle cx="83" cy="110" r="22" fill="url(#eyeGradL)" />
-          <circle cx="137" cy="110" r="22" fill="url(#eyeGradR)" />
+          {/* ── Eye whites ── */}
+          <circle cx={82} cy={104} r={26} fill="white" />
+          <circle cx={138} cy={104} r={26} fill="white" />
 
-          {/* Pupils */}
-          {!blink && !wink && (
+          {/* ── Irises (3D gradient) ── */}
+          <circle cx={82} cy={104} r={20} fill="url(#irisG)" />
+          <circle cx={138} cy={104} r={20} fill="url(#irisG)" />
+
+          {/* ── Pupils + shine (or blink) ── */}
+          {blink === "open" ? (
             <>
-              <circle cx="86" cy="112" r="13" fill="#0D1321" />
-              <circle cx="140" cy="112" r="13" fill="#0D1321" />
-              {/* Eye shine */}
-              <circle cx="80" cy="105" r="5" fill="white" opacity="0.9" />
-              <circle cx="134" cy="105" r="5" fill="white" opacity="0.9" />
-              <circle cx="89" cy="117" r="2.5" fill="white" opacity="0.5" />
-              <circle cx="143" cy="117" r="2.5" fill="white" opacity="0.5" />
+              <circle cx={82 + lookX} cy={104 + lookY} r={11} fill="url(#pupilG)" />
+              <circle cx={138 + lookX} cy={104 + lookY} r={11} fill="url(#pupilG)" />
+              <circle cx={76 + lookX * 0.3} cy={97 + lookY * 0.3} r={5} fill="white" opacity={0.95} />
+              <circle cx={132 + lookX * 0.3} cy={97 + lookY * 0.3} r={5} fill="white" opacity={0.95} />
+              <circle cx={85 + lookX * 0.3} cy={109 + lookY * 0.3} r={2.2} fill="white" opacity={0.5} />
+              <circle cx={141 + lookX * 0.3} cy={109 + lookY * 0.3} r={2.2} fill="white" opacity={0.5} />
+            </>
+          ) : (
+            <>
+              <rect x={57} y={97} width={50} height={18} rx={9} fill="#1565C0" />
+              <rect x={113} y={97} width={50} height={18} rx={9} fill="#1565C0" />
             </>
           )}
-          {/* Blink */}
-          {(blink || wink) && (
-            <>
-              <rect x="61" y="104" width="44" height="16" rx="8" fill="#1565C0" />
-              {wink ? (
-                <circle cx="140" cy="112" r="13" fill="#0D1321" />
-              ) : (
-                <rect x="115" y="104" width="44" height="16" rx="8" fill="#1565C0" />
-              )}
-              {!blink && <circle cx="134" cy="105" r="5" fill="white" opacity="0.9" />}
-            </>
-          )}
 
-          {/* Eye glow ring */}
-          <circle cx="83" cy="110" r="24" fill="none" stroke="#00E5FF" strokeWidth="1.5" opacity="0.4" filter="url(#glow)" />
-          <circle cx="137" cy="110" r="24" fill="none" stroke="#00E5FF" strokeWidth="1.5" opacity="0.4" filter="url(#glow)" />
+          {/* ── Eye glow rings ── */}
+          <circle cx={82} cy={104} r={22} fill="none" stroke="#00E5FF" strokeWidth={1.5} opacity={0.3} filter="url(#glow2d)" />
+          <circle cx={138} cy={104} r={22} fill="none" stroke="#00E5FF" strokeWidth={1.5} opacity={0.3} filter="url(#glow2d)" />
 
-          {/* Beak */}
-          <path d="M110,128 L98,146 L122,146 Z" fill="#FFB300" />
-          <path d="M110,128 L110,146" stroke="#E65100" strokeWidth="1.5" opacity="0.5" />
-          {/* Beak highlight */}
-          <path d="M104,132 L108,143" stroke="#FFE082" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+          {/* ── Beak ── */}
+          <path d="M110,128 L97,150 L123,150 Z" fill="url(#beakG)" />
+          <path d="M110,128 L110,150" stroke="#BF360C" strokeWidth={1.5} opacity={0.55} />
+          <path d="M103,133 Q110,128 117,133" stroke="rgba(255,255,255,0.55)" strokeWidth={2} fill="none" strokeLinecap="round" />
         </svg>
 
-        {/* Click hint */}
         <div className="owl-hint">tap to react ✨</div>
       </div>
     </div>
