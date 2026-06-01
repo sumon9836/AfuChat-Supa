@@ -23,6 +23,7 @@ import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { supabase } from "@/lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -30,6 +31,7 @@ import { useAppAccent } from "@/context/AppAccentContext";
 import { showAlert } from "@/lib/alert";
 import { GoogleLogo } from "@/components/ui/OAuthLogos";
 import { googleSignIn } from "@/lib/googleAuth";
+import WelcomeGuide, { WELCOME_GUIDE_KEY } from "@/components/ui/WelcomeGuide";
 
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
@@ -347,6 +349,15 @@ export default function LoginScreen() {
 
   useEffect(() => { if (user) router.replace("/(tabs)/chats"); }, [user]);
 
+  // ─── Pre-login Welcome Guide (native only, shown once on first launch) ──────
+  const [showGuide, setShowGuide] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    AsyncStorage.getItem(WELCOME_GUIDE_KEY)
+      .then((seen) => { if (!seen) setShowGuide(true); })
+      .catch(() => {});
+  }, []);
+
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -612,6 +623,9 @@ export default function LoginScreen() {
 
       {/* Modals */}
       <EmailVerifyModal visible={verifyVisible} email={verifyEmail} onClose={() => setVerifyVisible(false)} onVerified={() => { setVerifyVisible(false); router.replace("/(tabs)/chats"); }} isDark={isDark} />
+
+      {/* Pre-login Welcome Guide — native only, full screen, shown once */}
+      <WelcomeGuide visible={showGuide} onDismiss={() => setShowGuide(false)} />
     </View>
   );
 }

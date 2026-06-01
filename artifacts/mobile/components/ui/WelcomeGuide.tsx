@@ -1,3 +1,8 @@
+/**
+ * WelcomeGuide — full-screen animated onboarding carousel.
+ * Native ONLY (returns null on web). Shows once before the user logs in.
+ * Persists "seen" state in AsyncStorage under WELCOME_GUIDE_KEY.
+ */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -7,6 +12,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -16,13 +22,14 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useTheme } from "@/hooks/useTheme";
 import { SLIDE_ILLUSTRATIONS } from "@/components/ui/MemphisIllustrations";
 
-const { width: SCREEN_W } = Dimensions.get("window");
+// ── Constants ─────────────────────────────────────────────────────────────────
 export const WELCOME_GUIDE_KEY = "afu_welcome_guide_v2_seen";
-const USE_ND = Platform.OS !== "web";
+const USE_ND = true; // always native driver on native (this file is native-only)
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
+// ── Slide data ────────────────────────────────────────────────────────────────
 type SlideItem = {
   id: string;
   gradient: readonly [string, string, ...string[]];
@@ -36,93 +43,93 @@ type SlideItem = {
 const SLIDES: SlideItem[] = [
   {
     id: "welcome",
-    gradient: ["#00BCD4", "#006064"],
-    accentColor: "#80DEEA",
-    title: "Welcome to AfuChat!",
+    gradient: ["#00BCD4", "#00838F", "#006064"],
+    accentColor: "#B2EBF2",
+    title: "Welcome to AfuChat",
     subtitle: "The social platform built for real, meaningful conversations.",
     features: ["Chat, post & discover content", "Connect with people worldwide", "Earn rewards as you engage"],
   },
   {
     id: "chat",
-    gradient: ["#5C6BC0", "#283593"],
-    accentColor: "#9FA8DA",
+    gradient: ["#5C6BC0", "#3949AB", "#283593"],
+    accentColor: "#C5CAE9",
     title: "Private & Secure Chats",
     subtitle: "Message anyone with confidence — your conversations stay yours.",
     features: ["Send voice notes instantly", "Share photos, videos & files", "Group chats & communities"],
   },
   {
     id: "discover",
-    gradient: ["#26A69A", "#004D40"],
-    accentColor: "#80CBC4",
+    gradient: ["#26A69A", "#00897B", "#004D40"],
+    accentColor: "#B2DFDB",
     title: "Discover Your World",
-    subtitle: "A content feed curated around your interests and passions.",
-    features: ["Read articles from creators", "Watch short-form videos", "Follow topics you love"],
+    subtitle: "A personalised feed of articles, videos, and stories you'll love.",
+    features: ["Read articles from top creators", "Watch short-form videos", "Follow topics you care about"],
   },
   {
     id: "afuai",
-    gradient: ["#AB47BC", "#4A148C"],
-    accentColor: "#CE93D8",
+    gradient: ["#AB47BC", "#8E24AA", "#4A148C"],
+    accentColor: "#E1BEE7",
     title: "Meet AfuAI",
     subtitle: "Your always-on intelligent assistant, ready when you need it.",
     features: ["Ask questions, get smart answers", "Summarise long threads instantly", "Generate posts & captions"],
   },
   {
     id: "wallet",
-    gradient: ["#FF7043", "#BF360C"],
-    accentColor: "#FFAB91",
+    gradient: ["#FF7043", "#E64A19", "#BF360C"],
+    accentColor: "#FFCCBC",
     title: "Earn ACoins Daily",
     subtitle: "Your activity on AfuChat earns you real in-app rewards.",
     features: ["Daily check-in for ACoins", "Unlock premium features", "Send & receive between friends"],
   },
   {
     id: "community",
-    gradient: ["#00BCD4", "#006064"],
-    accentColor: "#80DEEA",
-    title: "You're Part of the Family",
+    gradient: ["#00BCD4", "#0097A7", "#006064"],
+    accentColor: "#B2EBF2",
+    title: "Join the Family",
     subtitle: "A growing community of creators, learners, and connectors.",
-    features: ["Join our global community", "Get support from the AfuChat team", "Help shape the future of the app"],
+    features: ["Public & private groups", "Follow broadcast channels", "Global leaderboards & badges"],
     isLast: true,
   },
 ];
 
-// ── Animated slide ────────────────────────────────────────────────────────────
-
+// ── Individual animated slide ─────────────────────────────────────────────────
 function AnimatedSlide({
   item,
-  width,
   isActive,
-  displayName,
   slideIndex,
+  onGoNext,
+  onSkip,
+  currentIndex,
+  total,
+  insets,
 }: {
   item: SlideItem;
-  width: number;
   isActive: boolean;
-  displayName?: string;
   slideIndex: number;
+  onGoNext: () => void;
+  onSkip: () => void;
+  currentIndex: number;
+  total: number;
+  insets: { top: number; bottom: number };
 }) {
-  const title = item.id === "welcome" && displayName
-    ? `Welcome, ${displayName.split(" ")[0]}!`
-    : item.title;
-
   const IllustrationComp = SLIDE_ILLUSTRATIONS[slideIndex % SLIDE_ILLUSTRATIONS.length];
 
-  // Animation refs — stable across re-renders
-  const illOpacity  = useRef(new Animated.Value(0)).current;
-  const illScale    = useRef(new Animated.Value(0.65)).current;
-  const illBobY     = useRef(new Animated.Value(0)).current;
+  const illOpacity   = useRef(new Animated.Value(0)).current;
+  const illScale     = useRef(new Animated.Value(0.6)).current;
+  const illBobY      = useRef(new Animated.Value(0)).current;
   const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleY      = useRef(new Animated.Value(22)).current;
-  const subOpacity  = useRef(new Animated.Value(0)).current;
-  const f0Opacity   = useRef(new Animated.Value(0)).current;
-  const f0X         = useRef(new Animated.Value(-20)).current;
-  const f1Opacity   = useRef(new Animated.Value(0)).current;
-  const f1X         = useRef(new Animated.Value(-20)).current;
-  const f2Opacity   = useRef(new Animated.Value(0)).current;
-  const f2X         = useRef(new Animated.Value(-20)).current;
+  const titleY       = useRef(new Animated.Value(24)).current;
+  const subOpacity   = useRef(new Animated.Value(0)).current;
+  const f0Opacity    = useRef(new Animated.Value(0)).current;
+  const f0X          = useRef(new Animated.Value(-22)).current;
+  const f1Opacity    = useRef(new Animated.Value(0)).current;
+  const f1X          = useRef(new Animated.Value(-22)).current;
+  const f2Opacity    = useRef(new Animated.Value(0)).current;
+  const f2X          = useRef(new Animated.Value(-22)).current;
 
-  const entranceRef = useRef<Animated.CompositeAnimation | null>(null);
-  const bobRef      = useRef<Animated.CompositeAnimation | null>(null);
-  const bobTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const entranceRef  = useRef<Animated.CompositeAnimation | null>(null);
+  const bobRef       = useRef<Animated.CompositeAnimation | null>(null);
+  const bobTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopAll = useCallback(() => {
     entranceRef.current?.stop();
@@ -133,67 +140,59 @@ function AnimatedSlide({
   useEffect(() => {
     if (!isActive) { stopAll(); return; }
 
-    // Reset
     illOpacity.setValue(0);
-    illScale.setValue(0.65);
+    illScale.setValue(0.6);
     illBobY.setValue(0);
     titleOpacity.setValue(0);
-    titleY.setValue(22);
+    titleY.setValue(24);
     subOpacity.setValue(0);
-    f0Opacity.setValue(0); f0X.setValue(-20);
-    f1Opacity.setValue(0); f1X.setValue(-20);
-    f2Opacity.setValue(0); f2X.setValue(-20);
+    f0Opacity.setValue(0); f0X.setValue(-22);
+    f1Opacity.setValue(0); f1X.setValue(-22);
+    f2Opacity.setValue(0); f2X.setValue(-22);
 
-    // Staggered entrance
     entranceRef.current = Animated.parallel([
-      // Illustration
-      Animated.spring(illScale, { toValue: 1, tension: 55, friction: 8, useNativeDriver: USE_ND }),
-      Animated.timing(illOpacity, { toValue: 1, duration: 320, easing: Easing.out(Easing.quad), useNativeDriver: USE_ND }),
-      // Title (150ms delay)
+      Animated.spring(illScale, { toValue: 1, tension: 52, friction: 8, useNativeDriver: USE_ND }),
+      Animated.timing(illOpacity, { toValue: 1, duration: 330, easing: Easing.out(Easing.quad), useNativeDriver: USE_ND }),
       Animated.sequence([
-        Animated.delay(150),
+        Animated.delay(160),
         Animated.parallel([
-          Animated.spring(titleY, { toValue: 0, tension: 65, friction: 11, useNativeDriver: USE_ND }),
-          Animated.timing(titleOpacity, { toValue: 1, duration: 290, useNativeDriver: USE_ND }),
+          Animated.spring(titleY, { toValue: 0, tension: 62, friction: 11, useNativeDriver: USE_ND }),
+          Animated.timing(titleOpacity, { toValue: 1, duration: 300, useNativeDriver: USE_ND }),
         ]),
       ]),
-      // Subtitle (260ms)
       Animated.sequence([
-        Animated.delay(260),
+        Animated.delay(280),
         Animated.timing(subOpacity, { toValue: 1, duration: 280, useNativeDriver: USE_ND }),
       ]),
-      // Features stagger (380, 480, 580ms)
       Animated.sequence([
-        Animated.delay(380),
-        Animated.stagger(100, [
+        Animated.delay(400),
+        Animated.stagger(110, [
           Animated.parallel([
             Animated.timing(f0Opacity, { toValue: 1, duration: 240, useNativeDriver: USE_ND }),
-            Animated.spring(f0X, { toValue: 0, tension: 90, friction: 11, useNativeDriver: USE_ND }),
+            Animated.spring(f0X, { toValue: 0, tension: 88, friction: 11, useNativeDriver: USE_ND }),
           ]),
           Animated.parallel([
             Animated.timing(f1Opacity, { toValue: 1, duration: 240, useNativeDriver: USE_ND }),
-            Animated.spring(f1X, { toValue: 0, tension: 90, friction: 11, useNativeDriver: USE_ND }),
+            Animated.spring(f1X, { toValue: 0, tension: 88, friction: 11, useNativeDriver: USE_ND }),
           ]),
           Animated.parallel([
             Animated.timing(f2Opacity, { toValue: 1, duration: 240, useNativeDriver: USE_ND }),
-            Animated.spring(f2X, { toValue: 0, tension: 90, friction: 11, useNativeDriver: USE_ND }),
+            Animated.spring(f2X, { toValue: 0, tension: 88, friction: 11, useNativeDriver: USE_ND }),
           ]),
         ]),
       ]),
     ]);
     entranceRef.current.start();
 
-    // Gentle float bob — starts after entrance settles
-    const startBob = () => {
+    bobTimerRef.current = setTimeout(() => {
       bobRef.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(illBobY, { toValue: -9, duration: 1700, easing: Easing.inOut(Easing.sin), useNativeDriver: USE_ND }),
-          Animated.timing(illBobY, { toValue: 0, duration: 1700, easing: Easing.inOut(Easing.sin), useNativeDriver: USE_ND }),
+          Animated.timing(illBobY, { toValue: -10, duration: 1800, easing: Easing.inOut(Easing.sin), useNativeDriver: USE_ND }),
+          Animated.timing(illBobY, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.sin), useNativeDriver: USE_ND }),
         ])
       );
       bobRef.current.start();
-    };
-    bobTimerRef.current = setTimeout(startBob, 520);
+    }, 540);
 
     return stopAll;
   }, [isActive]);
@@ -204,95 +203,138 @@ function AnimatedSlide({
     { opacity: f2Opacity, x: f2X },
   ];
 
+  const isLast = slideIndex === total - 1;
+
   return (
     <LinearGradient
       colors={item.gradient}
-      style={[styles.slide, { width }]}
+      style={[s.slide, { width: SCREEN_W, height: SCREEN_H }]}
       start={{ x: 0.2, y: 0 }}
       end={{ x: 0.8, y: 1 }}
     >
-      <View style={styles.slideInner}>
+      {/* ── Header row: count + skip ─────────────────────── */}
+      <View style={[s.header, { paddingTop: insets.top + 12 }]}>
+        <View style={s.countBadge}>
+          <Text style={s.countText}>{slideIndex + 1} / {total}</Text>
+        </View>
+        <TouchableOpacity style={s.skipBtn} onPress={onSkip} hitSlop={12}>
+          <Text style={s.skipText}>Skip</Text>
+          <Ionicons name="close" size={15} color="rgba(255,255,255,0.8)" />
+        </TouchableOpacity>
+      </View>
 
+      {/* ── Main content ────────────────────────────────────── */}
+      <View style={s.slideContent}>
         {/* Illustration */}
         <Animated.View
           style={{
             opacity: illOpacity,
             transform: [{ scale: illScale }, { translateY: illBobY }],
-            marginBottom: 20,
+            marginBottom: 28,
           }}
         >
-          <View style={styles.illContainer}>
-            {/* Decorative ring */}
-            <View style={[styles.illRing, { borderColor: "rgba(255,255,255,0.22)" }]} />
-            <IllustrationComp size={148} />
+          <View style={s.illContainer}>
+            <View style={s.illRing} />
+            <View style={s.illInner}>
+              <IllustrationComp size={156} />
+            </View>
           </View>
         </Animated.View>
 
         {/* Title */}
         <Animated.Text
-          style={[
-            styles.slideTitle,
-            { opacity: titleOpacity, transform: [{ translateY: titleY }] },
-          ]}
+          style={[s.title, { opacity: titleOpacity, transform: [{ translateY: titleY }] }]}
         >
-          {title}
+          {item.title}
         </Animated.Text>
 
         {/* Subtitle */}
-        <Animated.Text style={[styles.slideSubtitle, { opacity: subOpacity }]}>
+        <Animated.Text style={[s.subtitle, { opacity: subOpacity }]}>
           {item.subtitle}
         </Animated.Text>
 
-        {/* Feature list */}
-        <View style={styles.featureList}>
+        {/* Feature bullets */}
+        <View style={s.featureList}>
           {item.features.map((f, i) => (
             <Animated.View
               key={i}
               style={[
-                styles.featureRow,
+                s.featureRow,
                 {
                   opacity: featureAnims[i]?.opacity ?? 1,
                   transform: [{ translateX: featureAnims[i]?.x ?? new Animated.Value(0) }],
                 },
               ]}
             >
-              <View style={[styles.featureBullet, { backgroundColor: item.accentColor + "40" }]}>
+              <View style={[s.bullet, { backgroundColor: item.accentColor + "33" }]}>
                 <Ionicons name="checkmark" size={14} color="#fff" />
               </View>
-              <Text style={styles.featureText}>{f}</Text>
+              <Text style={s.featureText}>{f}</Text>
             </Animated.View>
           ))}
         </View>
+      </View>
 
+      {/* ── Bottom controls ──────────────────────────────────── */}
+      <View style={[s.controls, { paddingBottom: insets.bottom + 20 }]}>
+        {/* Dots */}
+        <View style={s.dotsRow}>
+          {Array.from({ length: total }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                s.dot,
+                i === currentIndex ? s.dotActive : s.dotInactive,
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Next / Get Started */}
+        <TouchableOpacity
+          style={[s.nextBtn, isLast && s.nextBtnLast]}
+          onPress={onGoNext}
+          activeOpacity={0.82}
+        >
+          <Text style={s.nextBtnText}>
+            {isLast ? "Get Started" : "Next"}
+          </Text>
+          <Ionicons
+            name={isLast ? "rocket-outline" : "arrow-forward"}
+            size={18}
+            color={isLast ? "#000" : "#fff"}
+          />
+        </TouchableOpacity>
       </View>
     </LinearGradient>
   );
 }
 
-// ── Main modal ────────────────────────────────────────────────────────────────
-
+// ── Main component ────────────────────────────────────────────────────────────
 interface WelcomeGuideProps {
   visible: boolean;
   onDismiss: () => void;
-  displayName?: string;
 }
 
-export default function WelcomeGuide({ visible, onDismiss, displayName }: WelcomeGuideProps) {
+export default function WelcomeGuide({ visible, onDismiss }: WelcomeGuideProps) {
+  // Native only — never render on web
+  if (Platform.OS === "web") return null;
+
   const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const enterAnim = useRef(new Animated.Value(0)).current;
-  const slideW = Math.min(SCREEN_W, 500);
 
   useEffect(() => {
     if (visible) {
       setCurrentIndex(0);
+      flatListRef.current?.scrollToIndex({ index: 0, animated: false });
       enterAnim.setValue(0);
-      Animated.spring(enterAnim, {
+      Animated.timing(enterAnim, {
         toValue: 1,
+        duration: 380,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: USE_ND,
-        tension: 55,
-        friction: 10,
       }).start();
     }
   }, [visible]);
@@ -300,10 +342,11 @@ export default function WelcomeGuide({ visible, onDismiss, displayName }: Welcom
   async function handleDismiss() {
     Animated.timing(enterAnim, {
       toValue: 0,
-      duration: 220,
+      duration: 240,
+      easing: Easing.in(Easing.quad),
       useNativeDriver: USE_ND,
     }).start(async () => {
-      await AsyncStorage.setItem(WELCOME_GUIDE_KEY, "1");
+      await AsyncStorage.setItem(WELCOME_GUIDE_KEY, "1").catch(() => {});
       onDismiss();
     });
   }
@@ -319,267 +362,212 @@ export default function WelcomeGuide({ visible, onDismiss, displayName }: Welcom
   }
 
   function handleScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const idx = Math.round(e.nativeEvent.contentOffset.x / slideW);
+    const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
     if (idx >= 0 && idx < SLIDES.length) setCurrentIndex(idx);
   }
 
   if (!visible) return null;
 
-  const isLast = currentIndex === SLIDES.length - 1;
-
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <Animated.View
         style={[
-          styles.container,
+          StyleSheet.absoluteFillObject,
           {
+            zIndex: 9999,
             opacity: enterAnim,
             transform: [
-              { scale: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) },
-              { translateY: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [36, 0] }) },
+              { translateY: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) },
             ],
           },
         ]}
       >
-        <View style={[styles.backdrop, { paddingBottom: insets.bottom }]}>
-
-          {/* Skip button */}
-          <TouchableOpacity
-            style={[styles.skipBtn, { top: insets.top + 14 }]}
-            onPress={handleDismiss}
-            hitSlop={12}
-          >
-            <Text style={styles.skipText}>Skip</Text>
-            <Ionicons name="close" size={16} color="rgba(255,255,255,0.8)" />
-          </TouchableOpacity>
-
-          {/* Slide count badge */}
-          <View style={[styles.countBadge, { top: insets.top + 18 }]}>
-            <Text style={styles.countText}>{currentIndex + 1} / {SLIDES.length}</Text>
-          </View>
-
-          <FlatList
-            ref={flatListRef}
-            data={SLIDES}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            bounces={false}
-            onMomentumScrollEnd={handleScroll}
-            getItemLayout={(_, index) => ({ length: slideW, offset: slideW * index, index })}
-            keyExtractor={(s) => s.id}
-            renderItem={({ item, index }) => (
-              <AnimatedSlide
-                item={item}
-                width={slideW}
-                isActive={index === currentIndex}
-                displayName={displayName}
-                slideIndex={index}
-              />
-            )}
-            style={{ flexGrow: 0 }}
-          />
-
-          {/* Dot indicators + Next button */}
-          <View style={styles.controls}>
-            <View style={styles.dotsRow}>
-              {SLIDES.map((_, i) => (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => {
-                    flatListRef.current?.scrollToIndex({ index: i, animated: true });
-                    setCurrentIndex(i);
-                  }}
-                  hitSlop={8}
-                >
-                  <Animated.View
-                    style={[
-                      styles.dot,
-                      i === currentIndex ? styles.dotActive : styles.dotInactive,
-                    ]}
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.nextBtn, isLast && styles.nextBtnLast]}
-              onPress={goNext}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.nextBtnText}>
-                {isLast ? "Get Started" : "Next"}
-              </Text>
-              <Ionicons
-                name={isLast ? "rocket-outline" : "arrow-forward"}
-                size={18}
-                color="#fff"
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <FlatList
+          ref={flatListRef}
+          data={SLIDES}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          bounces={false}
+          scrollEnabled={true}
+          onMomentumScrollEnd={handleScroll}
+          getItemLayout={(_, index) => ({ length: SCREEN_W, offset: SCREEN_W * index, index })}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <AnimatedSlide
+              item={item}
+              isActive={index === currentIndex}
+              slideIndex={index}
+              onGoNext={goNext}
+              onSkip={handleDismiss}
+              currentIndex={currentIndex}
+              total={SLIDES.length}
+              insets={insets}
+            />
+          )}
+        />
       </Animated.View>
-    </View>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 9999,
-    elevation: 99,
-  },
-  backdrop: {
+// ── Styles ────────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  slide: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.72)",
+    justifyContent: "space-between",
+  },
+  header: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 4,
+  },
+  countBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.20)",
+  },
+  countText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
   skipBtn: {
-    position: "absolute",
-    right: 20,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    zIndex: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.13)",
+    backgroundColor: "rgba(0,0,0,0.20)",
   },
   skipText: {
     color: "rgba(255,255,255,0.85)",
     fontSize: 14,
     fontFamily: "Inter_500Medium",
   },
-  countBadge: {
-    position: "absolute",
-    left: 20,
-    zIndex: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.13)",
-  },
-  countText: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-  },
-  slide: {
+  slideContent: {
+    flex: 1,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 28,
-    overflow: "hidden",
-  },
-  slideInner: {
-    alignItems: "center",
-    paddingHorizontal: 30,
-    paddingVertical: 40,
-    maxWidth: 420,
-    width: "100%",
+    paddingHorizontal: 32,
+    paddingBottom: 24,
   },
   illContainer: {
-    width: 164,
-    height: 164,
+    width: 180,
+    height: 180,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
   illRing: {
     position: "absolute",
-    inset: -6,
-    borderRadius: 90,
+    inset: -10,
+    borderRadius: 100,
     borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.18)",
   },
-  slideTitle: {
-    fontSize: 26,
+  illInner: {
+    width: 160,
+    height: 160,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 80,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  title: {
+    fontSize: 30,
     fontFamily: "Inter_700Bold",
     color: "#fff",
     textAlign: "center",
-    marginBottom: 10,
-    lineHeight: 34,
+    marginBottom: 12,
+    lineHeight: 38,
+    letterSpacing: -0.5,
   },
-  slideSubtitle: {
-    fontSize: 15,
+  subtitle: {
+    fontSize: 16,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.85)",
+    color: "rgba(255,255,255,0.82)",
     textAlign: "center",
-    lineHeight: 23,
-    marginBottom: 26,
+    lineHeight: 25,
+    marginBottom: 32,
+    maxWidth: 320,
   },
   featureList: {
-    gap: 12,
+    gap: 14,
     alignSelf: "stretch",
+    maxWidth: 340,
   },
   featureRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 13,
   },
-  featureBullet: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  bullet: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.25)",
+    borderColor: "rgba(255,255,255,0.22)",
+    flexShrink: 0,
   },
   featureText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.92)",
-    lineHeight: 21,
+    color: "rgba(255,255,255,0.93)",
+    lineHeight: 22,
   },
   controls: {
     alignItems: "center",
-    gap: 18,
-    paddingTop: 20,
-    paddingBottom: 6,
-    width: "100%",
+    gap: 20,
     paddingHorizontal: 28,
+    paddingTop: 8,
   },
   dotsRow: {
     flexDirection: "row",
-    gap: 7,
+    gap: 8,
     alignItems: "center",
   },
   dot: {
-    borderRadius: 4,
     height: 8,
+    borderRadius: 4,
   },
   dotActive: {
-    width: 28,
+    width: 30,
     backgroundColor: "#fff",
   },
   dotInactive: {
     width: 8,
-    backgroundColor: "rgba(255,255,255,0.32)",
+    backgroundColor: "rgba(255,255,255,0.30)",
   },
   nextBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#00BCD4",
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 28,
+    gap: 9,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.45)",
+    paddingVertical: 16,
+    paddingHorizontal: 44,
+    borderRadius: 32,
     width: "100%",
-    maxWidth: 360,
-    ...Platform.select({
-      web: { boxShadow: "0 4px 12px rgba(0,0,0,0.35)" } as any,
-      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.32, shadowRadius: 10, elevation: 8 },
-    }),
+    maxWidth: 380,
   },
   nextBtnLast: {
-    backgroundColor: "#00BCD4",
+    backgroundColor: "#fff",
+    borderColor: "#fff",
   },
   nextBtnText: {
     fontSize: 17,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_700Bold",
     color: "#fff",
   },
 });

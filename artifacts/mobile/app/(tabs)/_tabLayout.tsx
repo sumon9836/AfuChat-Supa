@@ -15,8 +15,6 @@ import { router, usePathname } from "expo-router";
 import { safeRouter } from "@/lib/navUtils";
 import type { Session } from "@supabase/supabase-js";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -25,7 +23,6 @@ import { getLocalConversations } from "@/lib/storage/localConversations";
 import { supabase } from "@/lib/supabase";
 import { emitShortsRefresh } from "@/lib/shortsRefresh";
 import { getTotalUnread, subscribeUnread } from "@/lib/chatUnreadEvents";
-import WelcomeGuide, { WELCOME_GUIDE_KEY } from "@/components/ui/WelcomeGuide";
 
 const afuSymbol = require("@/assets/images/afu-symbol.png");
 
@@ -392,8 +389,6 @@ export default function TabLayout() {
   const isLoggedIn     = !!session;
   const prevSessionRef = useRef<Session | null>(null);
 
-  const [showWelcomeGuide, setShowWelcomeGuide] = useState(false);
-
   useEffect(() => {
     if (loading) return;
     const hadSession = prevSessionRef.current !== null;
@@ -409,14 +404,6 @@ export default function TabLayout() {
     }
   }, [session, profile, loading]);
 
-  // Show the animated welcome guide once after the user completes onboarding.
-  useEffect(() => {
-    if (!session || !profile?.onboarding_completed) return;
-    AsyncStorage.getItem(WELCOME_GUIDE_KEY).then((seen) => {
-      if (!seen) setShowWelcomeGuide(true);
-    }).catch(() => {});
-  }, [session?.user.id, profile?.onboarding_completed]);
-
   return (
     <TabSwipeProvider>
       <View style={{ flex: 1 }}>
@@ -427,11 +414,6 @@ export default function TabLayout() {
             avatarUrl={profile?.avatar_url}
           />
         )}
-        <WelcomeGuide
-          visible={showWelcomeGuide}
-          onDismiss={() => setShowWelcomeGuide(false)}
-          displayName={profile?.display_name ?? undefined}
-        />
       </View>
     </TabSwipeProvider>
   );
