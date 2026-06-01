@@ -1,16 +1,17 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Platform, View } from "react-native";
 const ND = Platform.OS !== "web";
-import Svg, { Circle } from "react-native-svg";
+import Svg, { Circle, Rect } from "react-native-svg";
 import Colors from "@/constants/colors";
 import { useAppAccent } from "@/context/AppAccentContext";
 
 type Props = {
   size: number;
   children: React.ReactNode;
+  square?: boolean;
 };
 
-export function PremiumRing({ size, children }: Props) {
+export function PremiumRing({ size, children, square }: Props) {
   const { accent } = useAppAccent();
   const spin = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(1)).current;
@@ -36,10 +37,90 @@ export function PremiumRing({ size, children }: Props) {
   const gap = 2;
   const outerSize = size + (ring + gap) * 2;
   const center = outerSize / 2;
-  const radius = (outerSize - ring) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const halfCirc = circumference / 2;
   const arcGap = 5;
+
+  let ringShape: React.ReactNode;
+
+  if (square) {
+    // Rounded-rect ring that matches the avatar's corner radius (size * 0.2)
+    const avatarRadius = size * 0.2;
+    const rx = avatarRadius + gap + ring / 2;
+    const rectW = outerSize - ring;
+    const rectH = outerSize - ring;
+    // Perimeter of rounded rect with corner radius rx
+    const straight = 2 * (rectW + rectH) - 8 * rx;
+    const curved = 2 * Math.PI * rx;
+    const perimeter = straight + curved;
+    const halfPerim = perimeter / 2;
+
+    ringShape = (
+      <Svg width={outerSize} height={outerSize}>
+        <Rect
+          x={ring / 2}
+          y={ring / 2}
+          width={rectW}
+          height={rectH}
+          rx={rx}
+          ry={rx}
+          stroke={Colors.gold}
+          strokeWidth={ring}
+          fill="none"
+          strokeDasharray={`${halfPerim - arcGap} ${halfPerim + arcGap}`}
+          strokeDashoffset={0}
+          strokeLinecap="round"
+        />
+        <Rect
+          x={ring / 2}
+          y={ring / 2}
+          width={rectW}
+          height={rectH}
+          rx={rx}
+          ry={rx}
+          stroke={accent}
+          strokeWidth={ring}
+          fill="none"
+          strokeDasharray={`${halfPerim - arcGap} ${halfPerim + arcGap}`}
+          strokeDashoffset={-(halfPerim)}
+          strokeLinecap="round"
+        />
+      </Svg>
+    );
+  } else {
+    const radius = (outerSize - ring) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const halfCirc = circumference / 2;
+
+    ringShape = (
+      <Svg width={outerSize} height={outerSize}>
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={Colors.gold}
+          strokeWidth={ring}
+          fill="none"
+          strokeDasharray={`${halfCirc - arcGap} ${halfCirc + arcGap}`}
+          strokeDashoffset={0}
+          strokeLinecap="round"
+          rotation={-90}
+          origin={`${center}, ${center}`}
+        />
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={accent}
+          strokeWidth={ring}
+          fill="none"
+          strokeDasharray={`${halfCirc - arcGap} ${halfCirc + arcGap}`}
+          strokeDashoffset={-(halfCirc)}
+          strokeLinecap="round"
+          rotation={-90}
+          origin={`${center}, ${center}`}
+        />
+      </Svg>
+    );
+  }
 
   return (
     <Animated.View
@@ -59,34 +140,7 @@ export function PremiumRing({ size, children }: Props) {
           transform: [{ rotate }],
         }}
       >
-        <Svg width={outerSize} height={outerSize}>
-          <Circle
-            cx={center}
-            cy={center}
-            r={radius}
-            stroke={Colors.gold}
-            strokeWidth={ring}
-            fill="none"
-            strokeDasharray={`${halfCirc - arcGap} ${halfCirc + arcGap}`}
-            strokeDashoffset={0}
-            strokeLinecap="round"
-            rotation={-90}
-            origin={`${center}, ${center}`}
-          />
-          <Circle
-            cx={center}
-            cy={center}
-            r={radius}
-            stroke={accent}
-            strokeWidth={ring}
-            fill="none"
-            strokeDasharray={`${halfCirc - arcGap} ${halfCirc + arcGap}`}
-            strokeDashoffset={-(halfCirc)}
-            strokeLinecap="round"
-            rotation={-90}
-            origin={`${center}, ${center}`}
-          />
-        </Svg>
+        {ringShape}
       </Animated.View>
       <View style={{ position: "absolute" }}>
         {children}

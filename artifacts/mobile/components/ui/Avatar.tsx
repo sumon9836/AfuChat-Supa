@@ -83,7 +83,7 @@ export function Avatar({ uri, name, size = 44, style, online, premium, square }:
   if (premium) {
     return (
       <View style={[{ width: outerSize, height: outerSize }, style]}>
-        <PremiumRing size={size}>
+        <PremiumRing size={size} square={square}>
           {innerNode}
         </PremiumRing>
       </View>
