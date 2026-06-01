@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import { getCachedUserId } from "@/lib/offlineStore";
 
 function hasOAuthCallbackInUrl(): boolean {
   if (typeof window === "undefined") return false;
@@ -23,9 +24,13 @@ export default function IndexScreen() {
   function doRedirect(hasSession: boolean, profileReady: boolean, profileOnboarded: boolean, userId?: string) {
     if (redirected.current) return;
     redirected.current = true;
-    if (hasSession) {
-      if (profileReady && !profileOnboarded && userId) {
-        router.replace({ pathname: "/onboarding", params: { userId } });
+    // A user is "logged in" if there's a live Supabase session OR a cached user
+    // ID from a previous session (MMKV sync read — works offline, zero I/O).
+    const isLoggedIn = hasSession || Boolean(getCachedUserId());
+    if (isLoggedIn) {
+      const resolvedUserId = userId ?? getCachedUserId() ?? undefined;
+      if (profileReady && !profileOnboarded && resolvedUserId) {
+        router.replace({ pathname: "/onboarding", params: { userId: resolvedUserId } });
       } else {
         router.replace("/(tabs)/chats");
       }
@@ -94,6 +99,9 @@ export default function IndexScreen() {
         router.replace(`/${handle}` as any);
       } else if (Platform.OS === "web") {
         router.replace("/landing");
+      } else if (getCachedUserId()) {
+        // Previously logged-in user — send to app even if session not yet restored
+        router.replace("/(tabs)/chats");
       } else {
         router.replace("/welcome");
       }

@@ -113,9 +113,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const _syncProfile = getCachedProfileSync();
+  const _syncUserId = getCachedUserId();
   const [profile, setProfile] = useState<Profile | null>(_syncProfile as Profile | null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(!_syncProfile);
+  // Don't block on loading if we already know who the user is (MMKV sync read).
+  // This lets index.tsx route to tabs immediately for previously-logged-in users.
+  const [loading, setLoading] = useState(!_syncProfile && !_syncUserId);
   const [linkedAccounts, setLinkedAccounts] = useState<StoredAccount[]>([]);
 
   // ── Guard refs ──────────────────────────────────────────────────────────────
@@ -123,6 +126,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // operation — otherwise a race condition can write the wrong tokens.
   const isSwitchingRef = useRef(false);
   const isLinkingRef = useRef(false);
+  // Tracks explicit user-initiated sign-out so we can distinguish it from
+  // involuntary sign-outs (expired token, server error, network failure).
+  // onAuthStateChange ignores SIGNED_OUT unless this is true.
+  const isUserSigningOut = useRef(false);
 
   // ── Profile fetch ───────────────────────────────────────────────────────────
 
@@ -446,7 +453,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Sign Out ────────────────────────────────────────────────────────────────
 
   const signOut = useCallback(async () => {
-    isSwitchingRef.current = true; // suppress saveCurrentSession
+    isUserSigningOut.current = true; // mark as intentional before any state changes
+    isSwitchingRef.current = true;  // suppress saveCurrentSession
     try {
       if (user) await clearPushToken(user.id);
 
@@ -471,6 +479,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       router.replace("/discover");
     } finally {
       isSwitchingRef.current = false;
+      isUserSigningOut.current = false;
     }
   }, [user]);
 
@@ -562,21 +571,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // SIGNED_OUT while offline — keep state, the session will come back.
-      if (!newSession?.user && !isOnline()) return;
-
-      const newUserId = newSession?.user?.id ?? null;
-
-      setSession((prev) => (prev?.user?.id === newUserId ? prev : newSession));
-      setUser((prev) => (prev?.id === newUserId ? prev : newSession?.user ?? null));
-
-      if (newSession?.user) setCachedUserId(newSession.user.id);
-
+      // Never clear auth state on involuntary sign-outs (offline, token refresh
+      // failure, server error). Only a user-initiated signOut() call sets
+      // isUserSigningOut=true, which is the only case where we allow clearing.
       if (!newSession?.user) {
+        if (!isUserSigningOut.current) return;
+        // Intentional sign-out — clear everything and stop.
         setProfile(null);
         setSubscription(null);
+        setSession(null);
+        setUser(null);
         return;
       }
+
+      const newUserId = newSession.user.id;
+
+      setSession((prev) => (prev?.user?.id === newUserId ? prev : newSession));
+      setUser((prev) => (prev?.id === newUserId ? prev : newSession.user));
+      setCachedUserId(newUserId);
 
       if (event === "SIGNED_IN") {
         registerDeviceSession(newSession.user.id).catch(() => {});
