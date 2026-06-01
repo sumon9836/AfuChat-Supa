@@ -349,14 +349,18 @@ export default function LoginScreen() {
 
   useEffect(() => { if (user) router.replace("/(tabs)/chats"); }, [user]);
 
-  // ─── Pre-login Welcome Guide (native only, shown once on first launch) ──────
+  // ─── Pre-login Welcome Guide (native only, shown once before any auth) ─────
   const [showGuide, setShowGuide] = useState(false);
   useEffect(() => {
-    if (Platform.OS === "web") return;
+    if (Platform.OS === "web" || user) return; // never show if already authenticated
     AsyncStorage.getItem(WELCOME_GUIDE_KEY)
       .then((seen) => { if (!seen) setShowGuide(true); })
       .catch(() => {});
   }, []);
+  // Dismiss immediately if a session is restored while the guide is open
+  useEffect(() => {
+    if (user && showGuide) setShowGuide(false);
+  }, [user]);
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
