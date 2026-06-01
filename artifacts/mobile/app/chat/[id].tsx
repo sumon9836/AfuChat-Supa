@@ -991,10 +991,12 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   // are always legible regardless of the user's chosen accent colour.
   const bubbleLum = hexLuminance(meBubbleColor);
   const darkBubble = bubbleLum < 0.55;        // teal / deep colours → use whites
-  const myTimeColor   = darkBubble ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.45)";
-  const rcptSent      = darkBubble ? "rgba(255,255,255,0.68)" : "rgba(0,0,0,0.42)";
-  const rcptDelivered = darkBubble ? "rgba(255,255,255,0.92)" : "rgba(0,0,0,0.65)";
-  const rcptRead      = "#53BDEB";             // always the distinctive WhatsApp-blue
+  // Use solid, high-contrast colours so receipts are clearly visible on ANY bubble colour
+  const myTimeColor   = darkBubble ? "rgba(255,255,255,0.80)" : "rgba(0,0,0,0.55)";
+  const rcptSent      = darkBubble ? "rgba(255,255,255,0.80)" : "rgba(0,0,0,0.50)";
+  const rcptDelivered = darkBubble ? "#FFFFFF"                : "rgba(0,0,0,0.72)";
+  // rcptRead: high-visibility blue — stays readable on dark AND light bubble colours
+  const rcptRead      = darkBubble ? "#7DD3FC" : "#0284C7";
   const isPending = msg._pending || msg.status === "sending";
 
   const fadeIn = useRef(new Animated.Value(0)).current;
@@ -1036,7 +1038,9 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   // Plain text messages get an inline (WhatsApp-style) timestamp.
   // All other types (image, audio, file, sticker, AI) keep the metaRow below.
   const isPlainText = !hasImage && !hasVideo && !hasAudio && !hasFile && !hasStoryReply && !isSticker;
-  const useInlineTimestamp = isPlainText && !msg._isAi;
+  // Use inline timestamp only for bare text — exclude AI messages and messages
+  // that show translate/speak chips (chips follow the text, absolute metaRow would overlap them).
+  const useInlineTimestamp = isPlainText && !msg._isAi && !canTranslate && !canSpeak;
 
   const replyIconOpacity = swipeX.interpolate({
     inputRange: isMe ? [-SWIPE_THRESHOLD, -10, 0] : [0, 10, SWIPE_THRESHOLD],
@@ -1063,6 +1067,8 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
           showTail ? (isMe ? st.bubbleTailMe : st.bubbleTailOther) : null,
           replyPreview ? st.bubbleWithReply : null,
           isPending && { opacity: 0.6 },
+          // Extra bottom padding reserves space for the absolutely-positioned inline timestamp
+          useInlineTimestamp && { paddingBottom: 22 },
         ]}>
           {isPremiumSender && <PremiumBubbleShimmer />}
           {!isMe && showName && (
@@ -1281,6 +1287,9 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                         color: textColor,
                         fontSize: chatPrefsLocal?.font_size ?? 15,
                         lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5,
+                        // Reserve right-side space so the absolutely-positioned
+                        // inline timestamp never overlaps the last word of the text.
+                        paddingRight: useInlineTimestamp ? 58 : 0,
                       }]}
                       linkColor={isMe ? "#FFFFFF" : BRAND}
                       selectable={true}
@@ -1352,8 +1361,16 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
             </TouchableOpacity>
           )}
 
-          {/* metaRow: timestamp + status — always below content for guaranteed separation */}
-          <View style={[st.metaRow, useInlineTimestamp && { marginTop: 4 }]}>
+          {/* metaRow: timestamp + status
+              - Plain text (useInlineTimestamp): absolutely positioned at bottom-right of bubble
+                so it appears on the same line as the last word (WhatsApp-style).
+              - All other types: normal flow row below the content. */}
+          <View style={[
+            st.metaRow,
+            useInlineTimestamp
+              ? { position: "absolute", bottom: 5, right: 8 }
+              : { marginTop: 3 },
+          ]}>
             {msg.edited_at && (
               <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 4 }]}>edited</Text>
             )}
@@ -1369,7 +1386,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                     msg.status === "read" ? "checkmark-done" :
                     msg.status === "delivered" ? "checkmark-done" : "checkmark"
                   }
-                  size={17}
+                  size={16}
                   color={
                     msg.status === "failed" ? "#FF4444" :
                     isPending ? rcptSent :
@@ -1377,7 +1394,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                     msg.status === "delivered" ? rcptDelivered :
                     rcptSent
                   }
-                  style={{ marginLeft: 3 }}
+                  style={{ marginLeft: 2 }}
                 />
               </TouchableOpacity>
             )}
@@ -4881,16 +4898,29 @@ STRICT RULES:
   );
 
   function shouldShowTail(index: number): boolean {
-    if (index >= listData.length - 1) return true;
     const current = listData[index];
-    const next = listData[index + 1];
-    if (!current || !next) return true;
-    return current.sender_id !== next.sender_id;
+    // Replied messages always show a tail regardless of group position
+    if (current?.reply_to_message_id) return true;
+    // The FlatList is inverted: index 0 = bottom (most recent).
+    // We want the tail on the BOTTOM message of each consecutive group —
+    // i.e. when the message rendered BELOW (index - 1, more recent) belongs
+    // to a different sender, or when this is already the bottom-most message.
+    if (index === 0) return true;
+    const below = listData[index - 1]; // newer, rendered below this one
+    if (!current || !below) return true;
+    return current.sender_id !== below.sender_id;
   }
 
   function shouldShowName(index: number): boolean {
     if (!chatInfo?.is_group) return false;
-    return shouldShowTail(index);
+    // Show sender name on the TOP message of each group (oldest in sequence).
+    // In the inverted list that's when the message ABOVE (index + 1, older)
+    // belongs to a different sender.
+    if (index >= listData.length - 1) return true;
+    const current = listData[index];
+    const above = listData[index + 1]; // older, rendered above this one
+    if (!current || !above) return true;
+    return current.sender_id !== above.sender_id;
   }
 
   function shouldShowDate(index: number): boolean {
