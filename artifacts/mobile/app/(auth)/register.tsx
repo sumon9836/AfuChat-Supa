@@ -299,110 +299,104 @@ export default function SignUpScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? "#0F0F0F" : "#F5F0E8" }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32, gap: 28 }}
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28, paddingTop: insets.top + 32, paddingBottom: insets.bottom + 40 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {/* Logo */}
-          <View style={{ alignItems: "center", gap: 8 }}>
-            <AfuLogo size={80} />
-            <Text style={{ fontSize: 30, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginTop: 4, color: textColor }}>AfuChat</Text>
-            <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: mutedColor }}>Connect · Discover · Create</Text>
+          <View style={{ alignItems: "center", marginBottom: 36 }}>
+            <AfuLogo size={72} />
+            <Text style={{ fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginTop: 12, color: textColor }}>AfuChat</Text>
+            <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: mutedColor, marginTop: 4 }}>Connect · Discover · Create</Text>
           </View>
 
-          {/* Card */}
-          <View style={[sc.card, { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF", borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)", borderWidth: StyleSheet.hairlineWidth }]}>
-            <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 }}>
-              <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", letterSpacing: -0.4, color: textColor }}>Create account</Text>
-              <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: mutedColor, marginTop: 4 }}>Join AfuChat — it's free</Text>
-            </View>
+          {/* Heading */}
+          <Text style={{ fontSize: 24, fontFamily: "Inter_700Bold", letterSpacing: -0.4, color: textColor, marginBottom: 4 }}>Create account</Text>
+          <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: mutedColor, marginBottom: 24 }}>Join AfuChat — it's free</Text>
 
-            <View style={{ paddingHorizontal: 20, paddingBottom: 24, gap: 14 }}>
-              {/* Fields */}
-              <View style={{ gap: 10 }}>
-                <AuthInput
-                  icon="mail-outline" placeholder="Email address"
-                  value={email} onChangeText={setEmail}
-                  keyboardType="email-address" autoComplete="email"
-                  isDark={isDark} returnKeyType="next"
-                  onSubmitEditing={() => pwdRef.current?.focus()}
-                />
-                <AuthInput
-                  inputRef={pwdRef}
-                  icon="lock-closed-outline" placeholder="Password (min. 8 characters)"
-                  value={password} onChangeText={setPassword}
-                  secureTextEntry={!showPwd} autoComplete="new-password"
-                  isDark={isDark} returnKeyType="go" onSubmitEditing={handleSignup}
-                  rightElement={
-                    <TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}>
-                      <Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={17} color={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.30)"} />
-                    </TouchableOpacity>
-                  }
-                />
-              </View>
-
-              {/* Legal checkboxes */}
-              <View style={{ gap: 10 }}>
-                <Checkbox checked={ageOk} onToggle={() => setAgeOk(p => !p)} isDark={isDark} accent={accent}>
-                  <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: mutedColor, lineHeight: 19 }}>
-                    I confirm I am{" "}
-                    <Text style={{ fontFamily: "Inter_600SemiBold", color: textColor }}>13 years of age or older</Text>
-                  </Text>
-                </Checkbox>
-
-                <Checkbox checked={termsOk} onToggle={() => setTermsOk(p => !p)} isDark={isDark} accent={accent}>
-                  <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: mutedColor, lineHeight: 19 }}>
-                    I agree to the{" "}
-                    <Text style={{ color: accent, fontFamily: "Inter_500Medium" }} onPress={() => router.push("/terms")}>Terms of Service</Text>
-                    {" "}and{" "}
-                    <Text style={{ color: accent, fontFamily: "Inter_500Medium" }} onPress={() => router.push("/privacy")}>Privacy Policy</Text>
-                  </Text>
-                </Checkbox>
-              </View>
-
-              {/* Create Account button */}
-              <TouchableOpacity style={[sc.primaryBtn, loading && { opacity: 0.6 }]} onPress={handleSignup} disabled={loading} activeOpacity={0.85}>
-                <LinearGradient colors={[accent, "#0097A7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
-                  {loading
-                    ? <ActivityIndicator color="#fff" size="small" />
-                    : <Text style={sc.primaryText}>Create Account</Text>
-                  }
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <OrDivider isDark={isDark} />
-
-              {/* Google */}
-              <TouchableOpacity style={sc.googleBtn} onPress={handleGoogle} disabled={oauthLoading} activeOpacity={0.75}>
-                {oauthLoading
-                  ? <ActivityIndicator size="small" color="#3C4043" />
-                  : <><GoogleLogo size={20} /><Text style={sc.googleText}>Continue with Google</Text></>
-                }
-              </TouchableOpacity>
-
-              {/* Switch to login */}
-              <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 2 }}>
-                <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: mutedColor }}>Already have an account?</Text>
-                <TouchableOpacity onPress={() => router.replace("/(auth)/login")} activeOpacity={0.7}>
-                  <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: accent }}>Sign In</Text>
+          {/* Fields */}
+          <View style={{ gap: 12, marginBottom: 20 }}>
+            <AuthInput
+              icon="mail-outline" placeholder="Email address"
+              value={email} onChangeText={setEmail}
+              keyboardType="email-address" autoComplete="email"
+              isDark={isDark} returnKeyType="next"
+              onSubmitEditing={() => pwdRef.current?.focus()}
+            />
+            <AuthInput
+              inputRef={pwdRef}
+              icon="lock-closed-outline" placeholder="Password (min. 8 characters)"
+              value={password} onChangeText={setPassword}
+              secureTextEntry={!showPwd} autoComplete="new-password"
+              isDark={isDark} returnKeyType="go" onSubmitEditing={handleSignup}
+              rightElement={
+                <TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}>
+                  <Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={17} color={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.30)"} />
                 </TouchableOpacity>
-              </View>
+              }
+            />
+          </View>
 
-              {/* Footer */}
-              <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)", paddingTop: 14, gap: 8 }}>
-                <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 }}>
-                  <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/terms")}>Terms</Text>
-                  <Text style={{ color: mutedColor, fontSize: 12 }}>·</Text>
-                  <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/privacy")}>Privacy</Text>
-                </View>
-                <Text style={{ fontSize: 10.5, fontFamily: "Inter_400Regular", textAlign: "center", color: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)" }}>
-                  © {new Date().getFullYear()} AfuChat Technologies Limited
-                </Text>
-              </View>
+          {/* Legal checkboxes */}
+          <View style={{ gap: 12, marginBottom: 24 }}>
+            <Checkbox checked={ageOk} onToggle={() => setAgeOk(p => !p)} isDark={isDark} accent={accent}>
+              <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: mutedColor, lineHeight: 19, flex: 1 }}>
+                I confirm I am{" "}
+                <Text style={{ fontFamily: "Inter_600SemiBold", color: textColor }}>13 years of age or older</Text>
+              </Text>
+            </Checkbox>
+
+            <Checkbox checked={termsOk} onToggle={() => setTermsOk(p => !p)} isDark={isDark} accent={accent}>
+              <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: mutedColor, lineHeight: 19, flex: 1 }}>
+                I agree to the{" "}
+                <Text style={{ color: accent, fontFamily: "Inter_500Medium" }} onPress={() => router.push("/terms")}>Terms of Service</Text>
+                {" "}and{" "}
+                <Text style={{ color: accent, fontFamily: "Inter_500Medium" }} onPress={() => router.push("/privacy")}>Privacy Policy</Text>
+              </Text>
+            </Checkbox>
+          </View>
+
+          {/* Create Account button */}
+          <TouchableOpacity style={[sc.primaryBtn, loading && { opacity: 0.6 }, { marginBottom: 20 }]} onPress={handleSignup} disabled={loading} activeOpacity={0.85}>
+            <LinearGradient colors={[accent, "#0097A7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
+              {loading
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={sc.primaryText}>Create Account</Text>
+              }
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <OrDivider isDark={isDark} />
+
+          {/* Google */}
+          <TouchableOpacity style={[sc.googleBtn, { marginTop: 20 }]} onPress={handleGoogle} disabled={oauthLoading} activeOpacity={0.75}>
+            {oauthLoading
+              ? <ActivityIndicator size="small" color="#3C4043" />
+              : <><GoogleLogo size={20} /><Text style={sc.googleText}>Continue with Google</Text></>
+            }
+          </TouchableOpacity>
+
+          {/* Switch to login */}
+          <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 28 }}>
+            <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: mutedColor }}>Already have an account?</Text>
+            <TouchableOpacity onPress={() => router.replace("/(auth)/login")} activeOpacity={0.7}>
+              <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: accent }}>Sign In</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Footer */}
+          <View style={{ marginTop: 36, paddingTop: 20, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)", gap: 8 }}>
+            <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 }}>
+              <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/terms")}>Terms</Text>
+              <Text style={{ color: mutedColor, fontSize: 12 }}>·</Text>
+              <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/privacy")}>Privacy</Text>
             </View>
+            <Text style={{ fontSize: 10.5, fontFamily: "Inter_400Regular", textAlign: "center", color: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)" }}>
+              © {new Date().getFullYear()} AfuChat Technologies Limited
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -423,7 +417,6 @@ export default function SignUpScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const sc = StyleSheet.create({
-  card: { borderRadius: 24, overflow: "hidden" },
   primaryBtn: { borderRadius: 999, overflow: "hidden" },
   primaryGrad: { height: 52, alignItems: "center", justifyContent: "center" },
   primaryText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold", letterSpacing: 0.2 },

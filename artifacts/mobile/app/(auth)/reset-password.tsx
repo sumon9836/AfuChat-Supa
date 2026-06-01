@@ -82,6 +82,7 @@ export default function ResetPasswordNative() {
       <ScrollView
         contentContainerStyle={[s.root, { backgroundColor: colors.background }]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* Back */}
         <TouchableOpacity style={s.back} onPress={() => step === "code" ? setStep("email") : router.back()}>
@@ -91,10 +92,13 @@ export default function ResetPasswordNative() {
           </Text>
         </TouchableOpacity>
 
-        {/* Icon */}
-        <View style={[s.iconWrap, { backgroundColor: "rgba(0,188,212,.12)", borderColor: "rgba(0,188,212,.22)" }]}>
-          <Ionicons name={step === "email" ? "key-outline" : "lock-closed-outline"} size={28} color={accent} />
-        </View>
+        {/* Icon — flat, no box */}
+        <Ionicons
+          name={step === "email" ? "key-outline" : "lock-closed-outline"}
+          size={40}
+          color={accent}
+          style={{ marginBottom: 20 }}
+        />
 
         {/* Title */}
         <Text style={[s.title, { color: colors.text }]}>
@@ -214,7 +218,6 @@ const s = StyleSheet.create({
   root: { flexGrow: 1, padding: 28, paddingTop: 56 },
   back: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 32, alignSelf: "flex-start" },
   backTxt: { fontSize: 16, fontFamily: "Inter_500Medium" },
-  iconWrap: { width: 60, height: 60, borderRadius: 18, borderWidth: 1, alignItems: "center", justifyContent: "center", marginBottom: 20 },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", marginBottom: 8 },
   sub: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, marginBottom: 24 },
   errBox: { backgroundColor: "rgba(192,57,43,.12)", borderColor: "rgba(192,57,43,.3)", borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 14 },
