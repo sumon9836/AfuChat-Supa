@@ -172,6 +172,7 @@ function renderProfilePage(profile: any, posts: any[], isPrivate = false): strin
   <meta name="fediverse:creator" content="@${handle}@afuchat.com" />
 
   <meta name="theme-color" content="${BRAND_COLOR}" />
+  <link rel="icon" type="image/svg+xml" href="${SITE_URL}/logo.svg" />
   <link rel="icon" type="image/png" href="${SITE_URL}/favicon.png" />
 
   <script type="application/ld+json">${JSON.stringify(jsonLd).replace(/<\//g, "<\\/")}</script>

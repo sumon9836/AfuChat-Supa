@@ -1,15 +1,14 @@
 import React from "react";
-import { Image, Platform, StyleProp, useColorScheme, ViewStyle } from "react-native";
+import { Image as RNImage, Platform, StyleProp, useColorScheme, ViewStyle } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 
-const LIGHT_PNG = require("@/assets/images/afuchat-logo-light.png");
-const DARK_PNG  = require("@/assets/images/afuchat-logo-dark.png");
+const API_BASE = (process.env.EXPO_PUBLIC_API_URL || "https://afuchat.com").replace(/\/$/, "");
 
 /**
  * AfuChat brand logo — dark-mode aware.
  *
- * Native  (iOS / Android): pre-converted PNG (light or dark) — avoids
- *   react-native-svg bridging costs with 496 complex vector paths.
- * Web: SVG served from /public via Image URI for crisp vector output.
+ * Native  (iOS / Android): SVG served from the API server — crisp at any size.
+ * Web: SVG served from /public via relative URI.
  *
  * Automatically switches between light and dark variants using the
  * system colour-scheme. Pass `forceDark` to override.
@@ -28,7 +27,7 @@ export function AfuLogo({
 
   if (Platform.OS === "web") {
     return (
-      <Image
+      <RNImage
         source={{ uri: isDark ? "/logo-dark.svg" : "/logo.svg" }}
         style={[{ width: size, height: size }, style as any]}
         resizeMode="contain"
@@ -38,11 +37,12 @@ export function AfuLogo({
   }
 
   return (
-    <Image
-      source={isDark ? DARK_PNG : LIGHT_PNG}
+    <ExpoImage
+      source={{ uri: `${API_BASE}/${isDark ? "logo-dark.svg" : "logo.svg"}` }}
       style={[{ width: size, height: size }, style as any]}
-      resizeMode="contain"
+      contentFit="contain"
       accessibilityLabel="AfuChat logo"
+      cachePolicy="disk"
     />
   );
 }

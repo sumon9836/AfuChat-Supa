@@ -55,8 +55,8 @@ export default function Root({ children }: PropsWithChildren) {
 
         {/* PWA */}
         <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" type="image/svg+xml" href="/logo.svg" />
         <link rel="icon" type="image/png" href="/favicon.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
         <link rel="apple-touch-icon" href="/favicon.png" />
 
         {/* Preconnect for performance */}

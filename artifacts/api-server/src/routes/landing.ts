@@ -57,7 +57,8 @@ router.get("/", async (_req, res) => {
 <meta name="twitter:image" content="${URL_}/og-default.png"/>
 <meta name="twitter:image:alt" content="AfuChat — The Social Super App"/>
 <meta name="theme-color" content="${BRAND}"/>
-<link rel="icon" type="image/png" href="/logo.png"/>
+<link rel="icon" type="image/svg+xml" href="/logo.svg"/>
+<link rel="icon" type="image/png" href="/favicon.png"/>
 <script type="text/javascript" src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async></script>
 <script type="application/ld+json">${JSON.stringify({
   "@context": "https://schema.org",
@@ -471,7 +472,7 @@ footer{
 <!-- NAV -->
 <nav class="nav" aria-label="Main navigation">
   <a class="nav-logo" href="/">
-    <img src="/logo.png" alt="${SITE} logo" width="32" height="32"/>
+    <img src="/logo.svg" alt="${SITE} logo" width="32" height="32"/>
     <span class="nav-logo-name">${SITE}</span>
   </a>
   <div class="nav-links" role="list">
@@ -799,7 +800,7 @@ footer{
 <footer>
   <div class="container">
     <div class="footer-top">
-      <img src="/logo.png" alt="${SITE} logo" width="30" height="30"/>
+      <img src="/logo.svg" alt="${SITE} logo" width="30" height="30"/>
       <strong>${SITE}</strong>
     </div>
     <nav class="footer-links" aria-label="Footer navigation">
