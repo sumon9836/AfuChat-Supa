@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Image,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -23,7 +22,6 @@ import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { supabase } from "@/lib/supabase";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -31,29 +29,17 @@ import { useAppAccent } from "@/context/AppAccentContext";
 import { showAlert } from "@/lib/alert";
 import { GoogleLogo } from "@/components/ui/OAuthLogos";
 import { googleSignIn } from "@/lib/googleAuth";
-import WelcomeGuide, { WELCOME_GUIDE_KEY } from "@/components/ui/WelcomeGuide";
 import AfuLogo from "@/components/ui/AfuLogo";
 
-// ─── Glass input field ─────────────────────────────────────────────────────────
+// ─── Input field ───────────────────────────────────────────────────────────────
 function AuthInput({
-  icon,
-  placeholder,
-  value,
-  onChangeText,
-  secureTextEntry,
-  keyboardType,
-  autoCapitalize,
-  autoComplete,
-  isDark,
-  rightElement,
-  onSubmitEditing,
-  returnKeyType,
-  inputRef,
+  icon, placeholder, value, onChangeText, secureTextEntry,
+  keyboardType, autoCapitalize, autoComplete, isDark, rightElement,
+  onSubmitEditing, returnKeyType, inputRef,
 }: any) {
   const [focused, setFocused] = useState(false);
   const { accent } = useAppAccent();
   const borderColor = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)";
-
   return (
     <View
       style={[
@@ -101,10 +87,16 @@ const inputSt = StyleSheet.create({
     height: 52,
   },
   icon: { marginRight: 10 },
-  text: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", height: 52, outlineStyle: "none" } as any,
+  text: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    height: 52,
+    outlineStyle: "none",
+  } as any,
 });
 
-// ─── Or divider ────────────────────────────────────────────────────────────────
+// ─── OR divider ────────────────────────────────────────────────────────────────
 function OrDivider({ isDark }: { isDark: boolean }) {
   const divColor = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
   return (
@@ -116,57 +108,17 @@ function OrDivider({ isDark }: { isDark: boolean }) {
   );
 }
 
-// ─── OAuth button ─────────────────────────────────────────────────────────────
-function OAuthBtn({ label, logo, onPress, loading, isDark }: any) {
-  return (
-    <View
-      style={[
-        oauthSt.card,
-        {
-          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)",
-        },
-      ]}
-    >
-      <TouchableOpacity
-        accessibilityLabel={`Continue with ${label}`}
-        style={oauthSt.btn}
-        onPress={onPress}
-        disabled={loading}
-        activeOpacity={0.65}
-      >
-        {loading ? <ActivityIndicator size="small" color={isDark ? "#fff" : "#333"} /> : logo}
-      </TouchableOpacity>
-    </View>
-  );
-}
-const oauthSt = StyleSheet.create({
-  card: { borderRadius: 14, overflow: "hidden", width: 52, height: 52 },
-  btn: { width: 52, height: 52, alignItems: "center", justifyContent: "center" },
-});
-
-// ─── Glass modal base ──────────────────────────────────────────────────────────
+// ─── Glass modal ───────────────────────────────────────────────────────────────
 function GlassModal({ visible, onClose, isDark, children }: { visible: boolean; onClose: () => void; isDark: boolean; children: React.ReactNode }) {
   const opacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(opacity, { toValue: visible ? 1 : 0, duration: 220, useNativeDriver: true }).start();
   }, [visible]);
-
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View style={[modalSt.overlay, { opacity, backgroundColor: isDark ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.48)" }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View
-          style={[
-            modalSt.card,
-            {
-              backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
-            },
-          ]}
-        >
+        <View style={[modalSt.card, { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF", borderWidth: StyleSheet.hairlineWidth, borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)" }]}>
           {children}
         </View>
       </Animated.View>
@@ -217,25 +169,15 @@ function ForgotPasswordModal({ visible, onClose, isDark }: { visible: boolean; o
     const { error: e2 } = await supabase.auth.updateUser({ password: newPwd });
     setLoading(false);
     if (e2) showAlert("Error", e2.message);
-    else {
-      showAlert("Password updated", "Your password has been changed. Please sign in.");
-      await supabase.auth.signOut();
-      onClose();
-    }
+    else { showAlert("Password updated", "Your password has been changed. Please sign in."); await supabase.auth.signOut(); onClose(); }
   }
-
-  const colors = { text: textColor, textSecondary: mutedColor, textMuted: mutedColor };
 
   return (
     <GlassModal visible={visible} onClose={onClose} isDark={isDark}>
       <View style={fgSt.header}>
         <View style={{ flex: 1 }}>
-          <Text style={[fgSt.title, { color: textColor }]}>
-            {step === "email" ? "Reset Password" : "Create New Password"}
-          </Text>
-          <Text style={[fgSt.subtitle, { color: mutedColor }]}>
-            {step === "email" ? "Enter your email to receive a reset code" : `Code sent to ${email}`}
-          </Text>
+          <Text style={[fgSt.title, { color: textColor }]}>{step === "email" ? "Reset Password" : "Create New Password"}</Text>
+          <Text style={[fgSt.subtitle, { color: mutedColor }]}>{step === "email" ? "Enter your email to receive a reset code" : `Code sent to ${email}`}</Text>
         </View>
         <TouchableOpacity onPress={onClose} style={fgSt.closeBtn}>
           <Ionicons name="close" size={18} color={mutedColor} />
@@ -253,11 +195,11 @@ function ForgotPasswordModal({ visible, onClose, isDark }: { visible: boolean; o
           </>
         ) : (
           <>
-            <AuthInput icon="keypad-outline" placeholder="6-digit code from email" value={code} onChangeText={setCode} keyboardType="number-pad" isDark={isDark} colors={colors} />
-            <AuthInput icon="lock-closed-outline" placeholder="New password" value={newPwd} onChangeText={setNewPwd} secureTextEntry={!showPwd} isDark={isDark} colors={colors}
+            <AuthInput icon="keypad-outline" placeholder="6-digit code from email" value={code} onChangeText={setCode} keyboardType="number-pad" isDark={isDark} />
+            <AuthInput icon="lock-closed-outline" placeholder="New password" value={newPwd} onChangeText={setNewPwd} secureTextEntry={!showPwd} isDark={isDark}
               rightElement={<TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}><Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={17} color={mutedColor} /></TouchableOpacity>}
             />
-            <AuthInput icon="lock-closed-outline" placeholder="Confirm new password" value={confirmPwd} onChangeText={setConfirmPwd} secureTextEntry={!showPwd} isDark={isDark} colors={colors} returnKeyType="go" onSubmitEditing={doReset} />
+            <AuthInput icon="lock-closed-outline" placeholder="Confirm new password" value={confirmPwd} onChangeText={setConfirmPwd} secureTextEntry={!showPwd} isDark={isDark} returnKeyType="go" onSubmitEditing={doReset} />
             <TouchableOpacity style={[fgSt.btn, loading && { opacity: 0.6 }]} onPress={doReset} disabled={loading} activeOpacity={0.85}>
               <LinearGradient colors={[accent, isDark ? "#005E6E" : "#007A8A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={fgSt.btnGrad}>
                 {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={fgSt.btnText}>Update Password</Text>}
@@ -283,7 +225,7 @@ const fgSt = StyleSheet.create({
   btnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
 
-// ─── Email verification modal ──────────────────────────────────────────────────
+// ─── Email verify modal ────────────────────────────────────────────────────────
 function EmailVerifyModal({ visible, email, onClose, onVerified, isDark }: { visible: boolean; email: string; onClose: () => void; onVerified: () => void; isDark: boolean }) {
   const { accent } = useAppAccent();
   const textColor = isDark ? "#F1F1F1" : "#0F0F0F";
@@ -331,47 +273,74 @@ function EmailVerifyModal({ visible, email, onClose, onVerified, isDark }: { vis
           </LinearGradient>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => { setCode(""); setSent(false); sendCode(); }} disabled={sending} style={{ alignSelf: "center", paddingVertical: 4 }}>
-          <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>
-            {sending ? "Sending…" : "Resend code"}
-          </Text>
+          <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>{sending ? "Sending…" : "Resend code"}</Text>
         </TouchableOpacity>
       </View>
     </GlassModal>
   );
 }
 
-// ─── Main screen ───────────────────────────────────────────────────────────────
-export default function LoginScreen() {
-  const { isDark, accent } = useTheme();
+// ─── Terms row ─────────────────────────────────────────────────────────────────
+function TermsRow({ agreed, onToggle, isDark, accent }: { agreed: boolean; onToggle: () => void; isDark: boolean; accent: string }) {
+  const mutedColor = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)";
+  return (
+    <TouchableOpacity style={termsSt.row} onPress={onToggle} activeOpacity={0.7}>
+      <View style={[termsSt.box, { borderColor: agreed ? accent : isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)", backgroundColor: agreed ? accent : "transparent" }]}>
+        {agreed && <Ionicons name="checkmark" size={13} color="#fff" />}
+      </View>
+      <Text style={[termsSt.text, { color: mutedColor }]}>
+        I agree to the{" "}
+        <Text style={{ color: accent }} onPress={() => Linking.openURL("https://afuchat.com/terms")}>Terms of Service</Text>
+        {" "}and{" "}
+        <Text style={{ color: accent }} onPress={() => Linking.openURL("https://afuchat.com/privacy")}>Privacy Policy</Text>
+      </Text>
+    </TouchableOpacity>
+  );
+}
+const termsSt = StyleSheet.create({
+  row: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  box: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, alignItems: "center", justifyContent: "center", marginTop: 1, flexShrink: 0 },
+  text: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
+});
+
+// ─── Main auth screen ──────────────────────────────────────────────────────────
+export default function AuthScreen() {
+  const { isDark } = useTheme();
+  const { accent } = useAppAccent();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
   useEffect(() => { if (user) router.replace("/(tabs)/chats"); }, [user]);
 
-  // ─── Pre-login Welcome Guide (native only, shown once before any auth) ─────
-  const [showGuide, setShowGuide] = useState(false);
-  useEffect(() => {
-    if (Platform.OS === "web" || user) return; // never show if already authenticated
-    AsyncStorage.getItem(WELCOME_GUIDE_KEY)
-      .then((seen) => { if (!seen) setShowGuide(true); })
-      .catch(() => {});
-  }, []);
-  // Dismiss immediately if a session is restored while the guide is open
-  useEffect(() => {
-    if (user && showGuide) setShowGuide(false);
-  }, [user]);
+  const [mode, setMode] = useState<"login" | "signup">("login");
 
+  // Login fields
   const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
+  const [loginPwd, setLoginPwd] = useState("");
+
+  // Signup fields
+  const [email, setEmail] = useState("");
+  const [signupPwd, setSignupPwd] = useState("");
+  const [agreed, setAgreed] = useState(false);
+
+  // Shared
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
+  const [oauthLoading, setOauthLoading] = useState(false);
+  const [forgotVisible, setForgotVisible] = useState(false);
   const [verifyVisible, setVerifyVisible] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState("");
+  const [signupUserId, setSignupUserId] = useState<string | null>(null);
   const oauthHandledRef = useRef(false);
   const pwdRef = useRef<TextInput>(null);
+  const signupPwdRef = useRef<TextInput>(null);
 
-  // ─── Identifier type detection ──────────────────────────────────────────
+  function switchMode(m: "login" | "signup") {
+    setMode(m);
+    setShowPwd(false);
+  }
+
+  // ─── Identifier helpers ──────────────────────────────────────────────────────
   function detectIdentifierType(raw: string): "email" | "handle" | "phone" {
     const s = raw.trim();
     if (s.includes("@") && /\.\w+$/.test(s.split("@")[1] ?? "")) return "email";
@@ -396,29 +365,29 @@ export default function LoginScreen() {
     } catch { return null; }
   }
 
-  // ─── Login ──────────────────────────────────────────────────────────────
+  // ─── Login ───────────────────────────────────────────────────────────────────
   async function handleLogin() {
     const raw = identifier.trim();
-    if (!raw || !password) return showAlert("Missing fields", "Please enter your credentials and password.");
+    if (!raw || !loginPwd) return showAlert("Missing fields", "Please enter your credentials and password.");
     setLoading(true);
-    let email = raw;
+    let resolvedEmail = raw;
     const type = detectIdentifierType(raw);
     if (type !== "email") {
-      const resolved = await resolveIdentifierToEmail(raw);
-      if (!resolved) {
+      const found = await resolveIdentifierToEmail(raw);
+      if (!found) {
         setLoading(false);
-        showAlert("Account not found", type === "handle" ? "No account found with that username." : "No account found with that phone number.");
+        showAlert("Account not found", type === "handle" ? "No account with that username." : "No account with that phone number.");
         return;
       }
-      email = resolved;
+      resolvedEmail = found;
     }
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: resolvedEmail, password: loginPwd });
     if (error) { setLoading(false); showAlert("Sign in failed", error.message); return; }
     if (data.user) {
       if (!data.user.email_confirmed_at) {
         await supabase.auth.signOut();
         setLoading(false);
-        setVerifyEmail(email); setVerifyVisible(true); return;
+        setVerifyEmail(resolvedEmail); setVerifyVisible(true); return;
       }
       const { data: prof } = await supabase.from("profiles").select("scheduled_deletion_at, account_deleted").eq("id", data.user.id).single();
       if (prof?.account_deleted) {
@@ -434,38 +403,69 @@ export default function LoginScreen() {
         ]); return;
       }
     }
-    setLoading(false); router.replace("/(tabs)/chats");
+    setLoading(false);
+    router.replace("/(tabs)/chats");
   }
 
-  // ─── OAuth ──────────────────────────────────────────────────────────────
+  // ─── Sign up ─────────────────────────────────────────────────────────────────
+  async function handleSignup() {
+    const e = email.trim();
+    if (!e || !signupPwd) return showAlert("Missing fields", "Please enter your email and a password.");
+    if (!agreed) return showAlert("Terms required", "You must agree to the Terms of Service and Privacy Policy.");
+    if (signupPwd.length < 6) return showAlert("Password too short", "Password must be at least 6 characters.");
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({ email: e, password: signupPwd });
+    setLoading(false);
+    if (error) { showAlert("Sign up failed", error.message); return; }
+    if (data.user) {
+      if (data.user.identities && data.user.identities.length === 0) {
+        showAlert("Account exists", "An account with this email already exists. Please sign in instead.");
+        switchMode("login");
+        setIdentifier(e);
+        return;
+      }
+      setSignupUserId(data.user.id);
+      if (!data.session) {
+        setVerifyEmail(e);
+        setVerifyVisible(true);
+      } else {
+        router.replace({ pathname: "/onboarding", params: { userId: data.user.id } } as any);
+      }
+    }
+  }
+
+  // ─── Google OAuth ─────────────────────────────────────────────────────────────
   async function nativeGoogleSignIn(): Promise<void> {
-    setOauthLoading("google");
+    setOauthLoading(true);
     const result = await googleSignIn();
     if (!result.ok) {
-      setOauthLoading(null);
-      // User consciously dismissed the picker — stop here.
+      setOauthLoading(false);
       if (result.cancelled) return;
-      // Native Google Sign-In unavailable (Expo Go, SHA-1 mismatch, missing module,
-      // or any other error) — seamlessly fall back to the web-based OAuth flow,
-      // which works identically to GitHub sign-in.
-      return signInWithProvider("google", false);
+      return webGoogleSignIn();
     }
     const uid = result.userId;
     if (uid) {
       const { data: prof } = await supabase.from("profiles").select("onboarding_completed").eq("id", uid).maybeSingle();
-      if (!prof?.onboarding_completed) { router.replace({ pathname: "/onboarding", params: { userId: uid } } as any); return; }
+      if (!prof?.onboarding_completed) {
+        setOauthLoading(false);
+        router.replace({ pathname: "/onboarding", params: { userId: uid } } as any);
+        return;
+      }
     }
+    setOauthLoading(false);
     router.replace("/(tabs)/chats");
   }
 
-  async function signInWithProvider(provider: string, useNativeFlow = true) {
+  async function webGoogleSignIn(): Promise<void> {
     try {
-      if (useNativeFlow && provider === "google") return nativeGoogleSignIn();
-      setOauthLoading(provider);
+      setOauthLoading(true);
       const redirectUrl = makeRedirectUri({ native: "afuchat://(auth)/login" });
-      const { data, error } = await supabase.auth.signInWithOAuth({ provider: provider as any, options: { redirectTo: redirectUrl, skipBrowserRedirect: true } });
-      if (error) { showAlert("Error", error.message); setOauthLoading(null); return; }
-      if (!data?.url) { setOauthLoading(null); return; }
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: redirectUrl, skipBrowserRedirect: true, queryParams: { prompt: "select_account" } },
+      });
+      if (error) { showAlert("Error", error.message); setOauthLoading(false); return; }
+      if (!data?.url) { setOauthLoading(false); return; }
       oauthHandledRef.current = false;
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl, { showInRecents: false });
       if (result.type === "success" && result.url) {
@@ -478,18 +478,36 @@ export default function LoginScreen() {
             const uid = sd.user?.id;
             if (uid) {
               const { data: prof } = await supabase.from("profiles").select("onboarding_completed").eq("id", uid).maybeSingle();
-              if (!prof?.onboarding_completed) { setOauthLoading(null); router.replace({ pathname: "/onboarding", params: { userId: uid } } as any); return; }
+              if (!prof?.onboarding_completed) {
+                setOauthLoading(false);
+                router.replace({ pathname: "/onboarding", params: { userId: uid } } as any);
+                return;
+              }
             }
-            setOauthLoading(null); router.replace("/(tabs)/chats"); return;
+            setOauthLoading(false);
+            router.replace("/(tabs)/chats");
+            return;
           }
         }
         let at = url.hash ? new URLSearchParams(url.hash.substring(1)).get("access_token") : null;
         let rt = url.hash ? new URLSearchParams(url.hash.substring(1)).get("refresh_token") : null;
         if (!at) { at = url.searchParams.get("access_token"); rt = url.searchParams.get("refresh_token"); }
-        if (at && rt) { const { error: e } = await supabase.auth.setSession({ access_token: at, refresh_token: rt }); if (e) showAlert("Error", e.message); else router.replace("/(tabs)/chats"); }
+        if (at && rt) {
+          const { error: e } = await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+          if (e) showAlert("Error", e.message);
+          else router.replace("/(tabs)/chats");
+        }
       }
-      setOauthLoading(null);
-    } catch { setOauthLoading(null); showAlert("Error", "Could not complete sign in."); }
+      setOauthLoading(false);
+    } catch { setOauthLoading(false); showAlert("Error", "Could not complete Google sign-in."); }
+  }
+
+  function handleGoogle() {
+    if (Platform.OS === "web") {
+      webGoogleSignIn();
+    } else {
+      nativeGoogleSignIn();
+    }
   }
 
   const identifierType = detectIdentifierType(identifier);
@@ -499,181 +517,229 @@ export default function LoginScreen() {
     <View style={{ flex: 1, backgroundColor: isDark ? "#0F0F0F" : "#F5F0E8" }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }]}
+          contentContainerStyle={[
+            sc.scroll,
+            { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo */}
-          <View style={styles.logoWrap}>
-            <View
-              style={[
-                styles.logoCircle,
-                {
-                  backgroundColor: isDark ? "rgba(0,188,212,0.15)" : "rgba(0,188,212,0.10)",
-                  borderColor: isDark ? "rgba(0,188,212,0.30)" : "rgba(0,188,212,0.20)",
-                },
-              ]}
-            >
+          {/* Logo area */}
+          <View style={sc.logoWrap}>
+            <View style={[sc.logoCircle, { backgroundColor: isDark ? "rgba(0,188,212,0.15)" : "rgba(0,188,212,0.10)", borderColor: isDark ? "rgba(0,188,212,0.30)" : "rgba(0,188,212,0.20)" }]}>
               <AfuLogo size={72} />
             </View>
-            <Text style={[styles.appName, { color: isDark ? "#F1F1F1" : "#0F0F0F" }]}>AfuChat</Text>
-            <Text style={[styles.tagline, { color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }]}>
+            <Text style={[sc.appName, { color: isDark ? "#F1F1F1" : "#0F0F0F" }]}>AfuChat</Text>
+            <Text style={[sc.tagline, { color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }]}>
               Connect. Discover. Create.
             </Text>
           </View>
 
           {/* Form card */}
-          <View
-            style={[
-              styles.formCard,
-              {
-                backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF",
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)",
-              },
-            ]}
-          >
-            <View style={styles.formInner}>
-              {/* Fields */}
-              <View style={{ gap: 10 }}>
-                <AuthInput
-                  icon={identifierIcon}
-                  placeholder="Email, @username, or phone"
-                  value={identifier}
-                  onChangeText={setIdentifier}
-                  keyboardType={identifierType === "phone" ? "phone-pad" : "email-address"}
-                  autoComplete="username"
-                  isDark={isDark}
-                  returnKeyType="next"
-                  onSubmitEditing={() => pwdRef.current?.focus()}
-                />
-                <AuthInput
-                  inputRef={pwdRef}
-                  icon="lock-closed-outline"
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPwd}
-                  autoComplete="current-password"
-                  isDark={isDark}
-                  returnKeyType="go"
-                  onSubmitEditing={handleLogin}
-                  rightElement={
-                    <TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}>
-                      <Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={17} color={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.30)"} />
-                    </TouchableOpacity>
-                  }
-                />
-              </View>
+          <View style={[sc.card, { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF", borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)", borderWidth: StyleSheet.hairlineWidth }]}>
 
-              {/* Forgot password */}
-              <TouchableOpacity onPress={() => router.push("/(auth)/reset-password")} style={{ alignSelf: "flex-end", marginTop: -2 }}>
-                <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>Forgot password?</Text>
-              </TouchableOpacity>
+            {/* Tab switcher */}
+            <View style={[sc.tabs, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)" }]}>
+              {(["login", "signup"] as const).map((m) => {
+                const active = mode === m;
+                return (
+                  <TouchableOpacity
+                    key={m}
+                    style={[sc.tab, active && { backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF", ...Platform.select({ web: { boxShadow: "0 1px 4px rgba(0,0,0,0.10)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 } }) }]}
+                    onPress={() => switchMode(m)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[sc.tabText, { color: active ? (isDark ? "#F1F1F1" : "#0F0F0F") : (isDark ? "rgba(255,255,255,0.40)" : "rgba(0,0,0,0.38)"), fontFamily: active ? "Inter_600SemiBold" : "Inter_400Regular" }]}>
+                      {m === "login" ? "Sign In" : "Sign Up"}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-              {/* Primary sign-in button */}
+            <View style={sc.formInner}>
+              {mode === "login" ? (
+                <>
+                  {/* Login fields */}
+                  <View style={{ gap: 10 }}>
+                    <AuthInput
+                      icon={identifierIcon}
+                      placeholder="Email, @username, or phone"
+                      value={identifier}
+                      onChangeText={setIdentifier}
+                      keyboardType={identifierType === "phone" ? "phone-pad" : "email-address"}
+                      autoComplete="username"
+                      isDark={isDark}
+                      returnKeyType="next"
+                      onSubmitEditing={() => pwdRef.current?.focus()}
+                    />
+                    <AuthInput
+                      inputRef={pwdRef}
+                      icon="lock-closed-outline"
+                      placeholder="Password"
+                      value={loginPwd}
+                      onChangeText={setLoginPwd}
+                      secureTextEntry={!showPwd}
+                      autoComplete="current-password"
+                      isDark={isDark}
+                      returnKeyType="go"
+                      onSubmitEditing={handleLogin}
+                      rightElement={
+                        <TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}>
+                          <Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={17} color={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.30)"} />
+                        </TouchableOpacity>
+                      }
+                    />
+                  </View>
+                  <TouchableOpacity onPress={() => setForgotVisible(true)} style={{ alignSelf: "flex-end", marginTop: -4 }}>
+                    <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>Forgot password?</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  {/* Signup fields */}
+                  <View style={{ gap: 10 }}>
+                    <AuthInput
+                      icon="mail-outline"
+                      placeholder="Email address"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoComplete="email"
+                      isDark={isDark}
+                      returnKeyType="next"
+                      onSubmitEditing={() => signupPwdRef.current?.focus()}
+                    />
+                    <AuthInput
+                      inputRef={signupPwdRef}
+                      icon="lock-closed-outline"
+                      placeholder="Password (min. 6 characters)"
+                      value={signupPwd}
+                      onChangeText={setSignupPwd}
+                      secureTextEntry={!showPwd}
+                      autoComplete="new-password"
+                      isDark={isDark}
+                      returnKeyType="go"
+                      onSubmitEditing={handleSignup}
+                      rightElement={
+                        <TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}>
+                          <Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={17} color={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.30)"} />
+                        </TouchableOpacity>
+                      }
+                    />
+                  </View>
+                  <TermsRow agreed={agreed} onToggle={() => setAgreed(p => !p)} isDark={isDark} accent={accent} />
+                </>
+              )}
+
+              {/* Primary button */}
               <TouchableOpacity
-                style={[styles.signInBtn, loading && { opacity: 0.6 }]}
-                onPress={handleLogin}
+                style={[sc.primaryBtn, loading && { opacity: 0.6 }]}
+                onPress={mode === "login" ? handleLogin : handleSignup}
                 disabled={loading}
                 activeOpacity={0.85}
               >
-                <LinearGradient colors={[accent, "#0097A7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.signInGrad}>
+                <LinearGradient colors={[accent, "#0097A7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
                   {loading
                     ? <ActivityIndicator color="#fff" size="small" />
-                    : <Text style={styles.signInText}>Sign In</Text>
+                    : <Text style={sc.primaryText}>{mode === "login" ? "Sign In" : "Create Account"}</Text>
                   }
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* Or divider */}
               <OrDivider isDark={isDark} />
 
-              {/* Google sign-in bar */}
+              {/* Google button — always white background so the logo is always consistent */}
               <TouchableOpacity
-                style={[styles.googleBar, { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF", borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)" }]}
-                onPress={() => signInWithProvider("google")}
-                disabled={oauthLoading === "google"}
+                style={[sc.googleBtn, { backgroundColor: "#FFFFFF", borderColor: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)" }]}
+                onPress={handleGoogle}
+                disabled={oauthLoading}
                 activeOpacity={0.75}
               >
-                {oauthLoading === "google"
-                  ? <ActivityIndicator size="small" color={isDark ? "#fff" : "#333"} />
-                  : <><GoogleLogo size={20} /><Text style={[styles.googleBarText, { color: isDark ? "#F1F1F1" : "#1A1208" }]}>Continue with Google</Text></>
+                {oauthLoading
+                  ? <ActivityIndicator size="small" color="#1A1208" />
+                  : (
+                    <>
+                      <GoogleLogo size={20} />
+                      <Text style={sc.googleText}>Continue with Google</Text>
+                    </>
+                  )
                 }
               </TouchableOpacity>
 
-              {/* Switch to register */}
-              <View style={styles.switchRow}>
-                <Text style={[styles.switchText, { color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }]}>
-                  Don't have an account?
+              {/* Legal */}
+              <View style={sc.termsRow}>
+                <Text style={[sc.termsText, { color: isDark ? "rgba(255,255,255,0.30)" : "rgba(0,0,0,0.30)" }]}>
+                  By continuing you agree to our{" "}
                 </Text>
-                <TouchableOpacity onPress={() => router.replace("/(auth)/register")}>
-                  <Text style={[styles.switchLink, { color: accent }]}>Sign up</Text>
+                <TouchableOpacity onPress={() => Linking.openURL("https://afuchat.com/terms")}>
+                  <Text style={[sc.termsLink, { color: accent }]}>Terms</Text>
                 </TouchableOpacity>
-              </View>
-
-              {/* Terms & Privacy */}
-              <View style={styles.termsRow}>
-                <Text style={[styles.termsText, { color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }]}>By signing in you agree to our </Text>
-                <TouchableOpacity onPress={() => Linking.openURL("https://afuchat.com/terms")}><Text style={[styles.termsLink, { color: accent }]}>Terms</Text></TouchableOpacity>
-                <Text style={[styles.termsText, { color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }]}> and </Text>
-                <TouchableOpacity onPress={() => Linking.openURL("https://afuchat.com/privacy")}><Text style={[styles.termsLink, { color: accent }]}>Privacy Policy</Text></TouchableOpacity>
+                <Text style={[sc.termsText, { color: isDark ? "rgba(255,255,255,0.30)" : "rgba(0,0,0,0.30)" }]}> &amp; </Text>
+                <TouchableOpacity onPress={() => Linking.openURL("https://afuchat.com/privacy")}>
+                  <Text style={[sc.termsLink, { color: accent }]}>Privacy Policy</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Modals */}
-      <EmailVerifyModal visible={verifyVisible} email={verifyEmail} onClose={() => setVerifyVisible(false)} onVerified={() => { setVerifyVisible(false); router.replace("/(tabs)/chats"); }} isDark={isDark} />
-
-      {/* Pre-login Welcome Guide — native only, full screen, shown once */}
-      <WelcomeGuide visible={showGuide} onDismiss={() => setShowGuide(false)} />
+      <ForgotPasswordModal visible={forgotVisible} onClose={() => setForgotVisible(false)} isDark={isDark} />
+      <EmailVerifyModal
+        visible={verifyVisible}
+        email={verifyEmail}
+        onClose={() => setVerifyVisible(false)}
+        onVerified={() => {
+          setVerifyVisible(false);
+          if (mode === "signup" && signupUserId) {
+            router.replace({ pathname: "/onboarding", params: { userId: signupUserId } } as any);
+          } else {
+            router.replace("/(tabs)/chats");
+          }
+        }}
+        isDark={isDark}
+      />
     </View>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 20, gap: 32 },
+const sc = StyleSheet.create({
+  scroll: { paddingHorizontal: 20, gap: 28 },
 
-  // logo section
   logoWrap: { alignItems: "center", gap: 8 },
-  logoCircle: {
-    width: 80, height: 80, borderRadius: 24,
-    alignItems: "center", justifyContent: "center",
-    overflow: "hidden",
-    borderWidth: 1,
-  },
-  logoImg: { width: 72, height: 72 },
+  logoCircle: { width: 80, height: 80, borderRadius: 24, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 1 },
   appName: { fontSize: 30, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
   tagline: { fontSize: 14, fontFamily: "Inter_400Regular" },
 
-  // form card
-  formCard: { borderRadius: 24, overflow: "hidden" },
-  formInner: { padding: 24, gap: 16 },
+  card: { borderRadius: 24, overflow: "hidden" },
 
-  // sign-in button
-  signInBtn: { borderRadius: 12, overflow: "hidden" },
-  signInGrad: { height: 52, alignItems: "center", justifyContent: "center" },
-  signInText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold", letterSpacing: 0.2 },
+  tabs: { flexDirection: "row", margin: 12, borderRadius: 14, padding: 4, gap: 4 },
+  tab: { flex: 1, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  tabText: { fontSize: 14 },
 
-  // Google bar
-  googleBar: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 10, height: 50, borderRadius: 12,
+  formInner: { paddingHorizontal: 20, paddingBottom: 24, gap: 14 },
+
+  primaryBtn: { borderRadius: 12, overflow: "hidden" },
+  primaryGrad: { height: 52, alignItems: "center", justifyContent: "center" },
+  primaryText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold", letterSpacing: 0.2 },
+
+  googleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    height: 50,
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    ...Platform.select({ web: { boxShadow: "0 1px 4px rgba(0,0,0,0.08)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4, elevation: 2 } }),
+    ...Platform.select({
+      web: { boxShadow: "0 1px 4px rgba(0,0,0,0.10)" } as any,
+      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.10, shadowRadius: 4, elevation: 2 },
+    }),
   },
-  googleBarText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  googleText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#1A1208" },
 
-  // switch link
-  switchRow: { flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" },
-  switchText: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  switchLink: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-
-  // terms row
-  termsRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 0 },
+  termsRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center" },
   termsText: { fontSize: 11.5, fontFamily: "Inter_400Regular" },
   termsLink: { fontSize: 11.5, fontFamily: "Inter_600SemiBold" },
 });
