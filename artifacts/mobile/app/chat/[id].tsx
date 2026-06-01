@@ -35,7 +35,6 @@ import * as Haptics from "@/lib/haptics";
 import { ImageViewer, useImageViewer } from "@/components/ImageViewer";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
 import { Video, ResizeMode } from "expo-av";
@@ -1871,7 +1870,6 @@ function ChatScreen() {
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showAttachPanel, setShowAttachPanel] = useState(false);
   const [attachTab, setAttachTab] = useState<"Gallery" | "Wallet" | "File" | "Poll" | "Contact">("Gallery");
-  const [cameraPermission] = useCameraPermissions();
   const [contactList, setContactList] = useState<{ id: string; name: string; phone: string; initials: string }[]>([]);
   const [contactSearch, setContactSearch] = useState("");
   const [contactsLoading, setContactsLoading] = useState(false);
