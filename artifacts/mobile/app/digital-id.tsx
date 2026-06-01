@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Easing,
   Image,
   Platform,
   ScrollView,
@@ -142,7 +143,7 @@ export default function DigitalIdScreen() {
   const [showBack,     setShowBack]      = useState(false);
   const [dlState,      setDlState]       = useState<"idle"|"front"|"back"|"print">("idle");
 
-  const flipVal = useSharedValue(0);
+  const flipVal = useRef(new Animated.Value(0)).current;
   const frontDomRef  = useRef<View>(null);
   const backDomRef   = useRef<View>(null);
   const frontShotRef = useRef<any>(null);
@@ -183,20 +184,28 @@ export default function DigitalIdScreen() {
 
   function flip() {
     const next = showBack ? 0 : 1;
-    flipVal.value = withTiming(next, { duration: 600, easing: Easing.out(Easing.cubic) });
+    Animated.timing(flipVal, {
+      toValue: next,
+      duration: 600,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
     setShowBack(!showBack);
   }
 
-  const frontFace = useAnimatedStyle(() => ({
-    transform: [{ perspective: 1600 }, { rotateY: `${interpolate(flipVal.value, [0,1], [0, 180])}deg` }],
-    backfaceVisibility: "hidden" as any,
-    position: "absolute" as any, top: 0, left: 0, right: 0, bottom: 0,
-  }));
-  const backFace = useAnimatedStyle(() => ({
-    transform: [{ perspective: 1600 }, { rotateY: `${interpolate(flipVal.value, [0,1], [-180, 0])}deg` }],
-    backfaceVisibility: "hidden" as any,
-    position: "absolute" as any, top: 0, left: 0, right: 0, bottom: 0,
-  }));
+  const frontRotateY = flipVal.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] });
+  const backRotateY  = flipVal.interpolate({ inputRange: [0, 1], outputRange: ["-180deg", "0deg"] });
+
+  const frontFace = {
+    transform: [{ perspective: 1600 }, { rotateY: frontRotateY }],
+    backfaceVisibility: "hidden" as const,
+    position: "absolute" as const, top: 0, left: 0, right: 0, bottom: 0,
+  };
+  const backFace = {
+    transform: [{ perspective: 1600 }, { rotateY: backRotateY }],
+    backfaceVisibility: "hidden" as const,
+    position: "absolute" as const, top: 0, left: 0, right: 0, bottom: 0,
+  };
 
   async function download(side: "front" | "back") {
     setDlState(side);

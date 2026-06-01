@@ -95,16 +95,18 @@ function PinKeypad({
   const { colors } = useTheme();
   const [digits, setDigits] = useState<string[]>([]);
   const [error, setError] = useState(false);
-  const shakeX = useSharedValue(0);
-  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeX.value }] }));
+  const shakeX = useRef(new Animated.Value(0)).current;
+  const shakeStyle = { transform: [{ translateX: shakeX }] };
 
   function shake() {
     Vibration.vibrate(200);
-    shakeX.value = withSequence(
-      withTiming(-10, { duration: 50 }), withTiming(10, { duration: 50 }),
-      withTiming(-8, { duration: 50 }), withTiming(8, { duration: 50 }),
-      withTiming(0, { duration: 50 }),
-    );
+    Animated.sequence([
+      Animated.timing(shakeX, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue:  10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue:  -8, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue:   8, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue:   0, duration: 50, useNativeDriver: true }),
+    ]).start();
     setError(true);
     setTimeout(() => { setError(false); setDigits([]); }, 800);
   }
