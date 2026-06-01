@@ -33,7 +33,7 @@ export default function IndexScreen() {
       if (Platform.OS === "web") {
         router.replace("/landing");
       } else {
-        router.replace("/login");
+        router.replace("/welcome");
       }
     }
   }
@@ -95,7 +95,7 @@ export default function IndexScreen() {
       } else if (Platform.OS === "web") {
         router.replace("/landing");
       } else {
-        router.replace("/login");
+        router.replace("/welcome");
       }
     }, delay);
 
