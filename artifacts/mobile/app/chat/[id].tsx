@@ -1013,6 +1013,10 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   const hasStoryReply = msg.attachment_url && msg.attachment_type === "story_reply";
   const hasTextContent = msg.encrypted_content && !["📷 Photo", "🎥 Video", "GIF"].includes(msg.encrypted_content);
 
+  // Plain text messages get an inline (WhatsApp-style) timestamp.
+  // All other types (image, audio, file, sticker, AI) keep the metaRow below.
+  const isPlainText = !hasImage && !hasVideo && !hasAudio && !hasFile && !hasStoryReply && !isSticker;
+  const useInlineTimestamp = isPlainText && !msg._isAi;
 
   const replyIconOpacity = swipeX.interpolate({
     inputRange: isMe ? [-SWIPE_THRESHOLD, -10, 0] : [0, 10, SWIPE_THRESHOLD],
@@ -1247,15 +1251,70 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
               <Text style={{ fontSize: 64, lineHeight: 74 }}>{msg.encrypted_content ?? ""}</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
-              {msg._isAi
-                ? <AiRichContent content={displayText} colors={colors} isUser={isMe} />
-                : <RichText style={[st.bubbleText, { color: textColor, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND} selectable={true}>{displayText}</RichText>
-              }
+            <>
+              {/* Relative wrapper so the ghost-tail + absolute timestamp align correctly */}
+              <View style={{ position: "relative" }}>
+                <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
+                  {msg._isAi
+                    ? <AiRichContent content={displayText} colors={colors} isUser={isMe} />
+                    : (
+                      <RichText
+                        style={[st.bubbleText, { color: textColor, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]}
+                        linkColor={isMe ? "#FFFFFF" : BRAND}
+                        selectable={true}
+                        tail={
+                          /* Transparent ghost that mirrors the real timestamp, forcing
+                             the text engine to wrap before the timestamp area so the
+                             timestamp sits on the same visual line as the last word. */
+                          <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: "transparent" }}>
+                            {`\u00A0${msg.edited_at ? "edited\u00A0" : ""}${formatMsgTime(msg.sent_at)}${isMe ? "\u00A0\u00A0\u00A0" : "\u00A0\u00A0"}`}
+                          </Text>
+                        }
+                      >
+                        {displayText}
+                      </RichText>
+                    )
+                  }
+                </TouchableOpacity>
+
+                {/* Real inline timestamp — sits on top of the ghost tail area */}
+                {useInlineTimestamp && (
+                  <View style={{ position: "absolute", bottom: 1, right: 0, flexDirection: "row", alignItems: "center", gap: 2 }}>
+                    {msg.edited_at && (
+                      <Text style={[st.msgTime, { color: isMe ? "rgba(255,255,255,0.55)" : colors.textMuted }]}>edited</Text>
+                    )}
+                    <Text style={[st.msgTime, { color: isMe ? "rgba(255,255,255,0.55)" : colors.textMuted }]}>
+                      {formatMsgTime(msg.sent_at)}
+                    </Text>
+                    {isMe && (
+                      <TouchableOpacity onPress={() => onStatusPress?.(msg)} hitSlop={8} activeOpacity={0.65} disabled={!onStatusPress}>
+                        <Ionicons
+                          name={
+                            msg.status === "failed" ? "alert-circle-outline" :
+                            isPending ? "time-outline" :
+                            msg.status === "read" ? "checkmark-done" :
+                            msg.status === "delivered" ? "checkmark-done" : "checkmark"
+                          }
+                          size={14}
+                          color={
+                            msg.status === "failed" ? "#FF4444" :
+                            msg.status === "read" ? "#53BDEB" :
+                            msg.status === "delivered" ? "rgba(255,255,255,0.85)" :
+                            "rgba(255,255,255,0.55)"
+                          }
+                          style={{ marginLeft: 1 }}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              {/* Link preview lives outside the relative wrapper so it never shifts the timestamp */}
               {!msg._isAi && !isSpecial && chatPrefsLocal?.link_previews !== false && msgBubbleFeatures.interactive_link_preview && (
                 <LinkPreview text={displayText} isMe={isMe} />
               )}
-            </TouchableOpacity>
+            </>
           )}
 
           {/* AI invoice cards */}
@@ -1312,6 +1371,8 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
             </TouchableOpacity>
           )}
 
+          {/* metaRow: only for media/audio/file/sticker/AI — text uses inline timestamp */}
+          {!useInlineTimestamp && (
           <View style={st.metaRow}>
             {msg.edited_at && (
               <Text style={[st.msgTime, { color: isMe ? "rgba(255,255,255,0.55)" : colors.textMuted, marginRight: 4 }]}>edited</Text>
@@ -1340,6 +1401,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
               </TouchableOpacity>
             )}
           </View>
+          )}
         </View>
 
         {msg.reactions && msg.reactions.length > 0 && (

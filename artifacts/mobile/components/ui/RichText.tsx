@@ -176,6 +176,10 @@ type RichTextProps = {
   linkColor?: string;
   numberOfLines?: number;
   selectable?: boolean;
+  /** Transparent inline spacer appended after all spans — used for the
+   *  WhatsApp-style timestamp ghost: reserves horizontal space on the last
+   *  line so the real (absolute-positioned) timestamp never overlaps text. */
+  tail?: React.ReactNode;
 };
 
 export function RichText({
@@ -184,6 +188,7 @@ export function RichText({
   linkColor,
   numberOfLines,
   selectable,
+  tail,
 }: RichTextProps) {
   const { accent } = useAppAccent();
   const openLink = useOpenLink();
@@ -317,6 +322,7 @@ export function RichText({
             );
         }
       })}
+      {tail}
     </Text>
   );
 }
