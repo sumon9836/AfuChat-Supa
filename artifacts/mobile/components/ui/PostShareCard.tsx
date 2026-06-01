@@ -1,7 +1,7 @@
+import { showAlert } from "@/lib/alert";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Platform,
   ScrollView,
@@ -351,7 +351,7 @@ export function PostShareCaptureModal({
         }
       }
     } catch (_err) {
-      Alert.alert(
+      showAlert(
         "Save failed",
         "Could not save the post image. If the issue persists, check the Status page under Settings.",
         [{ text: "OK" }],

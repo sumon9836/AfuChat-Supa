@@ -1,7 +1,7 @@
+import { showAlert } from "@/lib/alert";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Platform,
@@ -102,7 +102,7 @@ export default function OfflineVideosScreen() {
   useEffect(() => { load(); }, [load]);
 
   function handleClearAll() {
-    Alert.alert(
+    showAlert(
       "Clear Offline Videos",
       "All saved videos will be removed from this device.",
       [

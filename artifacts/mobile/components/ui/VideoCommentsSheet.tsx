@@ -3,6 +3,7 @@
  * Shared comment sheet for the video feed and discover.
  * Supports: text · voice notes (≤ 60 s) · image attachments
  */
+import { showAlert } from "@/lib/alert";
 import React, {
   useCallback,
   useEffect,
@@ -12,7 +13,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   FlatList,
   Image,
@@ -634,12 +634,12 @@ export function VideoCommentsSheet({
 
   async function startRecording() {
     if (Platform.OS === "web") {
-      Alert.alert("Not supported", "Voice recording is not available on web.");
+      showAlert("Not supported", "Voice recording is not available on web.");
       return;
     }
     const { granted } = await Audio.requestPermissionsAsync();
     if (!granted) {
-      Alert.alert("Microphone access needed", "Please enable microphone access in Settings to record voice notes.");
+      showAlert("Microphone access needed", "Please enable microphone access in Settings to record voice notes.");
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -664,7 +664,7 @@ export function VideoCommentsSheet({
         });
       }, 1000);
     } catch (e: any) {
-      Alert.alert("Could not start recording", e?.message || "Please try again.");
+      showAlert("Could not start recording", e?.message || "Please try again.");
     }
   }
 
@@ -699,7 +699,7 @@ export function VideoCommentsSheet({
     if (Platform.OS !== "web") {
       const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!granted) {
-        Alert.alert("Photos access needed", "Please enable photo library access in Settings.");
+        showAlert("Photos access needed", "Please enable photo library access in Settings.");
         return;
       }
     }
@@ -735,7 +735,7 @@ export function VideoCommentsSheet({
       const path = `${user.id}/comment_${Date.now()}.${ext}`;
       const { publicUrl, error } = await uploadToStorage("voice-messages", path, recordedUri, "audio/mp4");
       if (error || !publicUrl) {
-        Alert.alert("Upload failed", "Could not upload voice note. Please try again.");
+        showAlert("Upload failed", "Could not upload voice note. Please try again.");
         setSending(false);
         return;
       }
@@ -749,7 +749,7 @@ export function VideoCommentsSheet({
       const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
       const { publicUrl, error } = await uploadToStorage("post-images", path, attachedImage.uri, mime);
       if (error || !publicUrl) {
-        Alert.alert("Upload failed", "Could not upload image. Please try again.");
+        showAlert("Upload failed", "Could not upload image. Please try again.");
         setSending(false);
         return;
       }
@@ -813,7 +813,7 @@ export function VideoCommentsSheet({
       // Fix: run  ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS post_id uuid;
       // in the Supabase SQL Editor, then re-deploy migration 20260527_drop_post_replies_notification_trigger.sql
       const isSchemaErr = error.code === "42703" && error.message?.includes("notifications");
-      Alert.alert(
+      showAlert(
         "Comment failed",
         isSchemaErr
           ? "A database schema update is needed. Please contact support or run the pending migration."

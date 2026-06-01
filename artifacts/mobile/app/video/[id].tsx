@@ -11,6 +11,7 @@
  *  4. onViewableItemsChanged stored in a stable ref — FlatList never re-wires.
  *  5. windowSize=3, removeClippedSubviews=false so neighbours preload smoothly.
  */
+import { showAlert } from "@/lib/alert";
 import React, {
   useCallback,
   useEffect,
@@ -19,7 +20,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   FlatList,
   Keyboard,
@@ -1422,7 +1422,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== "granted") {
         setDownloading(false); setDownloadToast(null);
-        Alert.alert("Permission needed", "Please allow media library access in Settings to save videos.");
+        showAlert("Permission needed", "Please allow media library access in Settings to save videos.");
         return;
       }
       const url = await resolveDownloadUrl();
@@ -1435,7 +1435,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     } catch (err) {
       setDownloading(false); setDownloadToast(null);
       console.error("[download]", err);
-      Alert.alert("Download failed", "Could not save the video. If the issue persists, check the Status page under Settings → Help & About.");
+      showAlert("Download failed", "Could not save the video. If the issue persists, check the Status page under Settings → Help & About.");
     }
   }
 
@@ -1455,7 +1455,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     );
   }
   function handleReport(item: VideoPost) {
-    Alert.alert("Report video", "Why are you reporting this?", [
+    showAlert("Report video", "Why are you reporting this?", [
       { text: "Spam", onPress: () => showToast("Report submitted — thanks") },
       { text: "Inappropriate", onPress: () => showToast("Report submitted — thanks") },
       { text: "Misinformation", onPress: () => showToast("Report submitted — thanks") },

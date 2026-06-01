@@ -21,8 +21,8 @@ import * as Haptics from "@/lib/haptics";
 
 // react-native-reanimated entering animations crash on web — use null-safe wrappers
 const _FI  = Platform.OS !== "web" ? FadeIn      : null;
-const _FID = Platform.OS !== "web" ? FadeInDown  : null;
-const _FIR = Platform.OS !== "web" ? FadeInRight : null;
+const _FID = Platform.OS === "ios" ? FadeInDown  : null;
+const _FIR = Platform.OS === "ios" ? FadeInRight : null;
 
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";

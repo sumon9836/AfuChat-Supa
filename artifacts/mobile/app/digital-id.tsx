@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Image,
   Platform,
   ScrollView,
@@ -15,14 +16,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProfileSkeleton } from "@/components/ui/Skeleton";
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
 import * as Sharing from "expo-sharing";
 import QRCode from "react-native-qrcode-svg";
 import { useAuth } from "@/context/AuthContext";

@@ -1,7 +1,7 @@
+import { showAlert } from "@/lib/alert";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -106,7 +106,7 @@ export default function StorageSettingsScreen() {
 
   const clearVideos = useCallback(() => {
     const { videoCount, videoBytes } = deviceStats;
-    Alert.alert(
+    showAlert(
       "Clear Offline Videos",
       `This will delete all ${videoCount} cached video${videoCount === 1 ? "" : "s"} (${fmtBytes(videoBytes)}) from your device. They'll re-download when watched online.`,
       [
@@ -127,7 +127,7 @@ export default function StorageSettingsScreen() {
 
   const clearMedia = useCallback(() => {
     const { mediaCount, mediaBytes } = deviceStats;
-    Alert.alert(
+    showAlert(
       "Clear Thumbnail Cache",
       `This will delete ${mediaCount} cached thumbnail${mediaCount === 1 ? "" : "s"} (${fmtBytes(mediaBytes)}). They'll be re-downloaded as you browse.`,
       [
@@ -147,7 +147,7 @@ export default function StorageSettingsScreen() {
   }, [deviceStats, refreshDevice]);
 
   const clearImageCache = useCallback(() => {
-    Alert.alert(
+    showAlert(
       "Clear App Image Cache",
       "This will remove profile photos, post thumbnails, and other images stored by the app. They'll be re-downloaded automatically as you browse. Your chat attachments and offline videos are not affected.",
       [
@@ -171,7 +171,7 @@ export default function StorageSettingsScreen() {
 
   const clearTemp = useCallback(() => {
     const { tempCacheBytes, tempCacheCount } = deviceStats;
-    Alert.alert(
+    showAlert(
       "Clear Temporary Cache",
       `This will remove ${tempCacheCount} temporary file${tempCacheCount === 1 ? "" : "s"} (${fmtBytes(tempCacheBytes)}) — upload staging, feed preloads, and previews. Nothing permanent is deleted.`,
       [

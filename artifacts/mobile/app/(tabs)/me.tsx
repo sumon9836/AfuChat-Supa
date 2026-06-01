@@ -4,7 +4,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Modal,
   Platform,
@@ -292,7 +291,7 @@ export default function MeScreen() {
       }
       router.push({ pathname: "/chat/[id]", params: { id: notesId, otherId: user.id, otherName: "My Notes" } } as any);
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Could not open notes");
+      showAlert("Error", err.message || "Could not open notes");
     } finally {
       setNotesLoading(false);
     }

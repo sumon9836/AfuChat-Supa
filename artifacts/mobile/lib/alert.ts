@@ -35,9 +35,14 @@ export function showAlert(
   message?: string,
   buttons?: AlertButton[],
 ) {
-  // On native (Android / iOS) always use the OS-level alert dialog.
-  // Never route through a custom React modal on native — that adds a layer
-  // of web-like UI and can break if the modal isn't mounted yet.
+  // Always prefer the custom AlertModal — it gives an iOS-style appearance on
+  // every platform (Android, iOS, and web).
+  if (_listener) {
+    _listener({ visible: true, title, message, buttons });
+    return;
+  }
+
+  // Fallback: AlertModal not yet registered (very early startup edge case).
   if (Platform.OS !== "web") {
     const nativeButtons =
       buttons && buttons.length > 0
@@ -51,13 +56,7 @@ export function showAlert(
     return;
   }
 
-  // On web: route through the custom AlertModal if it's registered.
-  if (_listener) {
-    _listener({ visible: true, title, message, buttons });
-    return;
-  }
-
-  // Web last-resort (AlertModal not yet mounted).
+  // Web last-resort.
   _webFallback(title, message, buttons);
 }
 

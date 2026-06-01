@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Platform,
@@ -316,7 +315,7 @@ export default function GroupManageScreen() {
   async function removeMember(memberId: string, memberName: string) {
     setShowMemberSheet(false);
     if (!iAmAdmin || !isOnline()) return;
-    Alert.alert(
+    showAlert(
       "Remove member",
       `Remove ${memberName} from this ${isChannel ? "channel" : "group"}?`,
       [
@@ -358,7 +357,7 @@ export default function GroupManageScreen() {
   async function leaveGroup() {
     if (!user || !isOnline()) return;
     const type = isChannel ? "channel" : "group";
-    Alert.alert(
+    showAlert(
       `Leave ${type}`,
       `Are you sure you want to leave "${group?.name}"?`,
       [
@@ -382,7 +381,7 @@ export default function GroupManageScreen() {
   async function deleteGroup() {
     if (!isCreator || !isOnline()) return;
     const type = isChannel ? "channel" : "group";
-    Alert.alert(
+    showAlert(
       `Delete ${type}`,
       `This will permanently delete "${group?.name}" and all its messages. This cannot be undone.`,
       [

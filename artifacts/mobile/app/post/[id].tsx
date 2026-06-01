@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   FlatList,
   Image,
@@ -766,12 +765,12 @@ export default function PostDetailScreen() {
 
   async function startRecording() {
     if (Platform.OS === "web") {
-      Alert.alert("Not supported", "Voice recording is not available on web.");
+      showAlert("Not supported", "Voice recording is not available on web.");
       return;
     }
     const { granted } = await Audio.requestPermissionsAsync();
     if (!granted) {
-      Alert.alert("Microphone access needed", "Please enable microphone access in Settings to record voice notes.");
+      showAlert("Microphone access needed", "Please enable microphone access in Settings to record voice notes.");
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -789,7 +788,7 @@ export default function PostDetailScreen() {
         });
       }, 1000);
     } catch (e: any) {
-      Alert.alert("Could not start recording", e?.message || "Please try again.");
+      showAlert("Could not start recording", e?.message || "Please try again.");
     }
   }
 
@@ -823,7 +822,7 @@ export default function PostDetailScreen() {
   async function pickImage() {
     if (Platform.OS !== "web") {
       const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!granted) { Alert.alert("Photos access needed", "Please enable photo library access in Settings."); return; }
+      if (!granted) { showAlert("Photos access needed", "Please enable photo library access in Settings."); return; }
     }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.82, allowsEditing: false });
     if (!result.canceled && result.assets.length > 0) {
@@ -853,7 +852,7 @@ export default function PostDetailScreen() {
       const path = `${user.id}/comment_${Date.now()}.m4a`;
       const { publicUrl, error } = await uploadToStorage("voice-messages", path, recordedUri, "audio/mp4");
       if (error || !publicUrl) {
-        Alert.alert("Upload failed", "Could not upload voice note. Please try again.");
+        showAlert("Upload failed", "Could not upload voice note. Please try again.");
         setSending(false);
         return;
       }
@@ -867,7 +866,7 @@ export default function PostDetailScreen() {
       const path = `${user.id}/comment_${id}_${Date.now()}.${ext}`;
       const { publicUrl, error } = await uploadToStorage("post-images", path, attachedImage.uri, mime);
       if (error || !publicUrl) {
-        Alert.alert("Upload failed", "Could not upload image. Please try again.");
+        showAlert("Upload failed", "Could not upload image. Please try again.");
         setSending(false);
         return;
       }

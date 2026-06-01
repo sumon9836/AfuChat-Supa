@@ -4,6 +4,7 @@
  * Opens when the draft message is > 50 characters.
  * Three modes: Style (tone presets) · Fix (grammar/spelling) · Translate
  */
+import { showAlert } from "@/lib/alert";
 import React, {
   useCallback,
   useEffect,
@@ -12,7 +13,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Modal,
   Platform,
@@ -126,7 +126,7 @@ export default function AiEditorSheet({
       setResult(r.trim());
       prevResultRef.current = r.trim();
     } catch {
-      Alert.alert("AI error", "Could not transform the text. Please try again.");
+      showAlert("AI error", "Could not transform the text. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -141,7 +141,7 @@ export default function AiEditorSheet({
       setResult(r.trim());
       prevResultRef.current = r.trim();
     } catch {
-      Alert.alert("AI error", "Could not fix the text. Please try again.");
+      showAlert("AI error", "Could not fix the text. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -157,7 +157,7 @@ export default function AiEditorSheet({
       setResult(r.trim());
       prevResultRef.current = r.trim();
     } catch {
-      Alert.alert("AI error", "Could not translate. Please try again.");
+      showAlert("AI error", "Could not translate. Please try again.");
     } finally {
       setLoading(false);
     }
