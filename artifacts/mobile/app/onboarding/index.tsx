@@ -16,16 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Reanimated, {
-  Extrapolation,
-  interpolate,
-  runOnJS,
-  SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -55,9 +45,6 @@ import { CHAT_THEME_COLORS, type ChatTheme } from "@/context/ChatPreferencesCont
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const TOTAL_STEPS  = 5;
-
-// Spring matching the tab-swipe architecture in (tabs)/_layout.tsx
-const SPRING_CONF = { damping: 26, stiffness: 340, mass: 0.75, overshootClamping: false } as const;
 
 const INTERESTS = [
   { id: "technology", label: "Technology",   icon: "laptop-outline"         },
@@ -100,27 +87,21 @@ const ACCENT_THEMES: { name: ChatTheme; hex: string }[] = [
 ];
 
 // ─── Dot indicator ─────────────────────────────────────────────────────────────
-// Driven directly by translateX so it animates live while the user drags.
-function DotIndicator({
-  index,
-  translateX,
-  accent,
-}: {
-  index:      number;
-  translateX: SharedValue<number>;
-  accent:     string;
-}) {
-  const style = useAnimatedStyle(() => {
-    // Current fractional page position (0 = step1, 1 = step2, …)
-    const pos  = -translateX.value / SCREEN_WIDTH;
-    const dist = Math.abs(pos - index);
-    return {
-      width:        interpolate(dist, [0, 0.55, 1], [20, 7, 7],   Extrapolation.CLAMP),
-      borderRadius: interpolate(dist, [0, 0.55, 1], [5,  3.5, 3.5], Extrapolation.CLAMP),
-      opacity:      interpolate(dist, [0, 0.55, 1], [1,  0.38, 0.3], Extrapolation.CLAMP),
-    };
-  });
-  return <Reanimated.View style={[st.dot, style, { backgroundColor: accent }]} />;
+function DotIndicator({ index, step, accent }: { index: number; step: number; accent: string }) {
+  const isActive = index === step - 1;
+  return (
+    <View
+      style={[
+        st.dot,
+        {
+          width:        isActive ? 20 : 7,
+          borderRadius: isActive ? 5 : 3.5,
+          opacity:      isActive ? 1 : 0.3,
+          backgroundColor: accent,
+        },
+      ]}
+    />
+  );
 }
 
 // ─── Main screen ───────────────────────────────────────────────────────────────
@@ -181,22 +162,14 @@ export default function OnboardingScreen() {
 
   const userId = params.userId || user?.id;
 
-  // ── Reanimated — page slide (same pattern as SwipeTabsWrapper in tabs) ───────
-  // translateX = 0 → step 1, -(SCREEN_WIDTH) → step 2, etc.
-  const translateX = useSharedValue(0);
-  // stepSV mirrors `step` as a shared value so worklets can read it without
-  // capturing a stale closure — identical to tabIdxSV in the tabs layout.
-  const stepSV = useSharedValue(1);
+  // ── Pager — native horizontal ScrollView with pagingEnabled ──────────────────
+  // Uses React Native's built-in paging (no Reanimated transform arrays needed).
+  const pagerRef = useRef<ScrollView | null>(null);
 
-  // Sync animation whenever step state changes (same role as useEffect in tabs)
+  // Scroll to the current step whenever it changes
   useEffect(() => {
-    stepSV.value = step;
-    translateX.value = withSpring(-(step - 1) * SCREEN_WIDTH, SPRING_CONF);
+    pagerRef.current?.scrollTo({ x: (step - 1) * SCREEN_WIDTH, animated: true });
   }, [step]);
-
-  const pagerAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
 
   // ── Navigation helpers ────────────────────────────────────────────────────────
   function goNext() {
@@ -213,57 +186,25 @@ export default function OnboardingScreen() {
     setStep(step - 1);
   }
 
-  // Called by the gesture's onEnd via runOnJS when a swipe-left gesture completes.
-  // Checks canProceed() on the JS thread where all state is current.
-  function tryGoNext() {
-    if (canProceed()) {
-      goNext();
+  // Handle native swipe gestures from the pagingEnabled ScrollView
+  function handlePagerSwipeEnd(contentOffsetX: number) {
+    const swipedPage = Math.round(contentOffsetX / SCREEN_WIDTH);
+    const swipedStep = swipedPage + 1;
+    if (swipedStep === step) return;
+    if (swipedStep > step) {
+      if (canProceed()) {
+        Haptics.selectionAsync();
+        setStep(swipedStep);
+      } else {
+        // Snap back — user can't advance yet
+        pagerRef.current?.scrollTo({ x: (step - 1) * SCREEN_WIDTH, animated: true });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      }
     } else {
-      // Snap back — user can't advance yet
-      translateX.value = withSpring(-(step - 1) * SCREEN_WIDTH, SPRING_CONF);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Haptics.selectionAsync();
+      setStep(swipedStep);
     }
   }
-
-  // ── Pan gesture — same architecture as SwipeTabsWrapper ───────────────────────
-  const panGesture = useRef(
-    Gesture.Pan()
-      .activeOffsetX([-10, 10])
-      .failOffsetY([-20, 20])
-      .onUpdate((e) => {
-        "worklet";
-        const base   = -(stepSV.value - 1) * SCREEN_WIDTH;
-        const atStart = stepSV.value === 1;
-        const atEnd   = stepSV.value === TOTAL_STEPS;
-
-        // Rubber-band at first/last step — identical coefficient (0.15) as tabs
-        if (atStart && e.translationX > 0) {
-          translateX.value = base + e.translationX * 0.15;
-        } else if (atEnd && e.translationX < 0) {
-          translateX.value = base + e.translationX * 0.15;
-        } else {
-          translateX.value = base + e.translationX;
-        }
-      })
-      .onEnd((e) => {
-        "worklet";
-        const base      = -(stepSV.value - 1) * SCREEN_WIDTH;
-        const THRESHOLD = SCREEN_WIDTH * 0.28;
-        const isFling   = Math.abs(e.velocityX) > 350;
-        const isFar     = Math.abs(e.translationX) > THRESHOLD;
-
-        if (e.translationX < 0 && (isFling || isFar) && stepSV.value < TOTAL_STEPS) {
-          // Swiped left → try to advance (canProceed() checked on JS thread)
-          runOnJS(tryGoNext)();
-        } else if (e.translationX > 0 && (isFling || isFar) && stepSV.value > 1) {
-          // Swiped right → always allowed to go back
-          runOnJS(goBack)();
-        } else {
-          // Below threshold — snap back to current step
-          translateX.value = withSpring(base, SPRING_CONF);
-        }
-      })
-  ).current;
 
   // ── Validation (unchanged) ───────────────────────────────────────────────────
   function canProceed(): boolean {
@@ -1077,39 +1018,45 @@ export default function OnboardingScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* ── Page dot indicator — live-animated by translateX ── */}
+      {/* ── Page dot indicator ── */}
       <View style={st.dotsRow}>
         {stepRenderers.map((_, i) => (
-          <DotIndicator key={i} index={i} translateX={translateX} accent={colors.accent} />
+          <DotIndicator key={i} index={i} step={step} accent={colors.accent} />
         ))}
       </View>
 
       {/* ── Sliding page strip — identical pattern to SwipeTabsWrapper ── */}
       <View style={st.pagerOuter}>
-        <GestureDetector gesture={panGesture}>
-          <Reanimated.View style={[st.pagerStrip, pagerAnimStyle]}>
-            {stepRenderers.map((renderFn, i) => (
-              <ScrollView
-                key={i}
-                style={{ width: SCREEN_WIDTH }}
-                contentContainerStyle={[st.scrollContent, { paddingBottom: insets.bottom + 140 }]}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                // Prevent nested horizontal scroll from interfering with pan gesture
-                scrollEnabled
-              >
-                {renderFn()}
-              </ScrollView>
-            ))}
-          </Reanimated.View>
-        </GestureDetector>
+        <ScrollView
+          ref={pagerRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
+          onMomentumScrollEnd={(e) => handlePagerSwipeEnd(e.nativeEvent.contentOffset.x)}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ width: SCREEN_WIDTH * TOTAL_STEPS }}
+        >
+          {stepRenderers.map((renderFn, i) => (
+            <ScrollView
+              key={i}
+              style={{ width: SCREEN_WIDTH }}
+              contentContainerStyle={[st.scrollContent, { paddingBottom: insets.bottom + 140 }]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {renderFn()}
+            </ScrollView>
+          ))}
+        </ScrollView>
       </View>
 
       {/* ── Bottom action bar — positioned absolute so it floats above keyboard ── */}
       <View style={[st.bottomBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16, backgroundColor: colors.background }]}>
         <Pressable
           style={[st.nextBtn, { backgroundColor: colors.accent, opacity: canProceed() ? 1 : 0.4 }]}
-          onPress={step === TOTAL_STEPS ? handleComplete : tryGoNext}
+          onPress={step === TOTAL_STEPS ? handleComplete : goNext}
           disabled={!canProceed() || loading}
         >
           {loading ? (
@@ -1171,12 +1118,7 @@ const st = StyleSheet.create({
     // width animated per DotIndicator
   },
 
-  // Sliding pager — same overflow pattern as tabs SwipeTabsWrapper
-  pagerOuter: { flex: 1, overflow: "hidden" },
-  pagerStrip: {
-    flexDirection: "row",
-    width: SCREEN_WIDTH * TOTAL_STEPS,
-  },
+  pagerOuter: { flex: 1 },
 
   // Per-step scroll
   scrollContent: { paddingHorizontal: 24, paddingTop: 24 },
@@ -1239,7 +1181,7 @@ const st = StyleSheet.create({
   accentChipLabel:  { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
   accentSwatches:   { flexDirection: "row", gap: 10 },
   accentSwatch:     { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
-  accentSwatchActive: { ...Platform.select({ web: { boxShadow: "0 2px 4px rgba(0,0,0,0.3)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 } }), transform: [{ scale: 1.15 }] },
+  accentSwatchActive: { ...Platform.select({ web: { boxShadow: "0 2px 4px rgba(0,0,0,0.3)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 } }), borderWidth: 2.5, borderColor: "#fff" },
 
   // Avatar
   avatarSection:     { alignItems: "center", gap: 16, marginTop: 8 },
