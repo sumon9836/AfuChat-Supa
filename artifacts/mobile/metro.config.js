@@ -9,7 +9,10 @@ const config = getDefaultConfig(__dirname);
 // directories during a hot-reload cycle.
 config.resolver = {
   ...(config.resolver || {}),
-  blockList: /artifacts[\\/]mockup-sandbox[\\/].*/,
+  blockList: [
+    /artifacts[\\/]mockup-sandbox[\\/].*/,
+    /node_modules[\\/]\.pnpm[\\/].*_tmp_\d+/,
+  ],
   // Enable symlink following so Metro resolves pnpm's content-addressed store
   // correctly on Android (pnpm creates symlinks that Metro doesn't follow by default).
   unstable_enableSymlinks: true,
