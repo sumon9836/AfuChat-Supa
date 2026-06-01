@@ -360,7 +360,7 @@ export default function HandleScreen() {
       if (profileNotFound) return;
       hasNavigated.current = true;
       if (Platform.OS === "web" && typeof window !== "undefined") {
-        window.location.href = session ? "/" : "/register";
+        window.location.href = session ? "/" : "/login";
       } else {
         router.replace(session ? "/" : "/(auth)/login");
       }
