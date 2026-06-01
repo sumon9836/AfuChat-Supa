@@ -343,7 +343,7 @@ export function LandingNav({ active }: { active?: string }) {
     <>
       <nav className="lp-nav">
         <a href="/landing" className="lp-nav-brand">
-          <img src="/logo.png" alt="AfuChat" className="lp-nav-logo" />
+          <img src="/logo.svg" alt="AfuChat" className="lp-nav-logo" />
           <span className="lp-nav-name">Afu<em>Chat</em></span>
         </a>
         <ul className="lp-nav-links">
@@ -414,7 +414,7 @@ export function LandingFooter() {
       <div className="lp-footer-main">
         <div>
           <div className="lp-footer-logo-row">
-            <img src="/logo.png" alt="AfuChat" className="lp-footer-logo" />
+            <img src="/logo.svg" alt="AfuChat" className="lp-footer-logo" />
             <span className="lp-footer-logo-name">Afu<em>Chat</em></span>
           </div>
           <p className="lp-footer-tag">The super app built for Africa and the world — messaging, AI, payments, and community in one place.</p>

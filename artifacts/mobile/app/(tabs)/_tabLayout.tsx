@@ -23,7 +23,6 @@ import { getLocalConversations } from "@/lib/storage/localConversations";
 import { supabase } from "@/lib/supabase";
 import { emitShortsRefresh } from "@/lib/shortsRefresh";
 import { getTotalUnread, subscribeUnread } from "@/lib/chatUnreadEvents";
-import AfuLogo from "@/components/ui/AfuLogo";
 
 const TABS = [
   { route: "/(tabs)/chats",         label: "Chats",    mdOn: "chatbubble",       mdOff: "chatbubble-outline"       },
@@ -203,7 +202,6 @@ function CompactTabBar({
           const iconColor = focused
             ? colors.accent
             : isDark ? "rgba(95,93,105,1)" : "rgba(110,108,118,1)";
-          const isChats   = tab.route === "/(tabs)/chats";
           const isProfile = tab.route === "/(tabs)/me";
 
           return (
@@ -232,8 +230,6 @@ function CompactTabBar({
                       contentFit="cover"
                       cachePolicy="memory-disk"
                     />
-                  ) : isChats ? (
-                    <AfuLogo size={40} />
                   ) : (
                     <Ionicons
                       name={(focused ? tab.mdOn : tab.mdOff) as any}
@@ -254,7 +250,7 @@ function CompactTabBar({
                 </Text>
               </Pressable>
 
-              {isChats && totalUnread > 0 && (
+              {tab.route === "/(tabs)/chats" && totalUnread > 0 && (
                 <View style={[bar.badge, { backgroundColor: colors.accent }]}>
                   <Text style={bar.badgeText} numberOfLines={1}>
                     {totalUnread > 99 ? "99+" : String(totalUnread)}

@@ -81,7 +81,7 @@ export default function DownloadPage() {
 
               <div className="lp-qr lp-r" style={{ marginTop: 40 }}>
                 <div className="lp-qr-box">
-                  <img src="/afu-symbol.png" alt="AfuChat QR code" />
+                  <img src="/logo.svg" alt="AfuChat QR code" />
                 </div>
                 <div style={{ textAlign: "left" }}>
                   <div style={{ fontWeight: 600, fontSize: 13, color: "var(--txt)" }}>Scan to download</div>

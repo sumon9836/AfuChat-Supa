@@ -197,7 +197,7 @@ export default function UpdatePasswordPage() {
           <div className="up-brand-bg" />
           <div className="up-brand-top">
             <div className="up-brand-logo">
-              <img src="/logo.png" alt="AfuChat" />
+              <img src="/logo.svg" alt="AfuChat" />
               <span className="up-brand-logo-name">Afu<em>Chat</em></span>
             </div>
             <h1 className="up-brand-headline">

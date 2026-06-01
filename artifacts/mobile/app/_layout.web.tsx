@@ -858,7 +858,7 @@ function DesktopShell() {
 
           {/* Brand */}
           <div className="dt-brand">
-            <img src="/logo.png" alt="AfuChat" className="dt-brand-img"
+            <img src="/logo.svg" alt="AfuChat" className="dt-brand-img"
               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
             <span className="dt-brand-name">Afu<em>Chat</em></span>
             <button
@@ -1136,7 +1136,7 @@ function DesktopShell() {
                     />
                   ) : item.useAfuSymbol ? (
                     <img
-                      src="/afu-symbol-icon.png"
+                      src="/logo.svg"
                       alt="Chats"
                       style={{
                         width: 44, height: 44, objectFit: "contain",
