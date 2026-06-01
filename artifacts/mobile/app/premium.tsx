@@ -401,9 +401,7 @@ export default function PremiumScreen() {
           {/* glow orb */}
           <View style={[s.glowOrb, { backgroundColor: tierColor + "22" }]} />
 
-          <View style={[s.heroBadge, { backgroundColor: tierColor + "22", borderColor: tierColor + "44" }]}>
-            <AfuLogo size={52} />
-          </View>
+          <AfuLogo size={52} />
           <Text style={s.heroTitle}>AfuChat Premium</Text>
           <Text style={[s.heroSub, { color: tierColor + "CC" }]}>{cfg?.tagline ?? "Unlock everything"}</Text>
 
@@ -626,15 +624,6 @@ const s = StyleSheet.create({
     borderRadius: 130,
     top: -60,
     alignSelf: "center",
-  },
-  heroBadge: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
   },
   heroTitle: { fontSize: 28, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: -0.5 },
   heroSub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" },

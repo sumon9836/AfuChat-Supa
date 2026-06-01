@@ -30,8 +30,6 @@ import { googleSignIn } from "@/lib/googleAuth";
 import AfuLogo from "@/components/ui/AfuLogo";
 
 const BRAND_TEAL = "#00BCD4";
-const LOGO_BG = "rgba(0,188,212,0.15)";
-const LOGO_BORDER = "rgba(0,188,212,0.32)";
 
 // ─── AuthInput ────────────────────────────────────────────────────────────────
 function AuthInput({ icon, placeholder, value, onChangeText, secureTextEntry, keyboardType, autoCapitalize, autoComplete, isDark, rightElement, onSubmitEditing, returnKeyType, inputRef }: any) {
@@ -420,9 +418,7 @@ export default function SignInScreen() {
         >
           {/* Logo */}
           <View style={{ alignItems: "center", gap: 8 }}>
-            <View style={[sc.logoCircle, { backgroundColor: LOGO_BG, borderColor: LOGO_BORDER }]}>
-              <AfuLogo size={68} />
-            </View>
+            <AfuLogo size={80} />
             <Text style={{ fontSize: 30, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginTop: 4, color: textColor }}>AfuChat</Text>
             <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: mutedColor }}>Connect · Discover · Create</Text>
           </View>
@@ -523,11 +519,6 @@ export default function SignInScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const sc = StyleSheet.create({
-  logoCircle: {
-    width: 84, height: 84, borderRadius: 24,
-    alignItems: "center", justifyContent: "center",
-    overflow: "hidden", borderWidth: 1.5,
-  },
   card: { borderRadius: 24, overflow: "hidden" },
   primaryBtn: { borderRadius: 14, overflow: "hidden" },
   primaryGrad: { height: 52, alignItems: "center", justifyContent: "center" },

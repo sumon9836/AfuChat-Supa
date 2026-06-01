@@ -128,9 +128,7 @@ export default function AboutScreen() {
           colors={isDark ? ["#0D2137", "#0A1A2E"] : [accent, accent + "CC"]}
           style={st.hero}
         >
-          <View style={st.heroLogo}>
-            <AfuLogo size={88} />
-          </View>
+          <AfuLogo size={88} />
           <Text style={st.heroTitle}>AfuChat</Text>
           <Text style={st.heroTagline}>Connect with everyone, everywhere.</Text>
           <View style={st.heroPills}>
@@ -287,15 +285,6 @@ const st = StyleSheet.create({
     paddingBottom: 32,
     paddingHorizontal: 24,
     gap: 8,
-  },
-  heroLogo: {
-    width: 88,
-    height: 88,
-    borderRadius: 26,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
   },
   heroTitle: { fontSize: 32, fontWeight: "800", color: "#fff", letterSpacing: -0.5 },
   heroTagline: { fontSize: 15, color: "rgba(255,255,255,0.75)", textAlign: "center" },
