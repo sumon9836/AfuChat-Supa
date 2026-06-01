@@ -26,13 +26,12 @@ import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
 import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/lib/supabase";
+import AfuLogo from "@/components/ui/AfuLogo";
 
 let ViewShot: any = ({ children, style, ...rest }: any) => (
   <View style={style} {...rest}>{children}</View>
 );
 try { ViewShot = require("react-native-view-shot").default; } catch (_) {}
-
-const afuSymbol = require("@/assets/images/afu-symbol.png");
 
 const BRAND = "#00BCD4";
 const CEO_HANDLE = "amkaweesi";
@@ -459,7 +458,7 @@ function CardFront({ cardWidth: cw, cardHeight: ch, theme, profile, roleConf, me
       <FlagStrip colors={theme.flag} h={6} />
 
       <LinearGradient colors={theme.headerBg} style={c.hdr}>
-        <Image source={afuSymbol} style={{ width: 20, height: 20 }} tintColor={BRAND} resizeMode="contain" />
+        <AfuLogo size={20} />
         <View style={{ flex: 1, marginLeft: 7 }}>
           <Text style={c.hdrBrand}>AFUCHAT UNIVERSE</Text>
           <Text style={c.hdrSub}>DIGITAL IDENTITY CARD</Text>
@@ -511,7 +510,7 @@ function CardFront({ cardWidth: cw, cardHeight: ch, theme, profile, roleConf, me
           </Text>
         </View>
         <View style={[c.sigStamp, { borderColor: theme.primary + "40" }]}>
-          <Image source={afuSymbol} style={{ width: 14, height: 14, opacity: 0.5 }} tintColor={theme.primary} resizeMode="contain" />
+          <AfuLogo size={14} style={{ opacity: 0.5 }} />
           <Text style={[c.sigStampTxt, { color: theme.primary }]}>{"VALID"}</Text>
         </View>
       </View>
@@ -545,7 +544,7 @@ function CardBack({ cardWidth: cw, cardHeight: ch, theme, profile, memberNumber,
           ))}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 4, gap: 8 }}>
-          <Image source={afuSymbol} style={{ width: 13, height: 13 }} tintColor={BRAND} resizeMode="contain" />
+          <AfuLogo size={13} />
           <Text style={[c.panelTxt, { color: BRAND }]}>AFUCHAT UNIVERSE · DIGITAL FINGERPRINT</Text>
           <View style={{ flex: 1 }} />
           <View style={[c.secChip, { borderColor: theme.primary + "55" }]}>
@@ -560,7 +559,7 @@ function CardBack({ cardWidth: cw, cardHeight: ch, theme, profile, memberNumber,
       <View style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 8, gap: 12 }}>
         <View style={[c.qrBox, { borderColor: theme.primary + "44", backgroundColor: "#ffffff08" }]}>
           <QRCode value={qrValue} size={QR_SIZE} color="#ffffff" backgroundColor="transparent"
-            logo={afuSymbol} logoSize={QR_SIZE * 0.18} logoBackgroundColor="transparent" />
+            />
         </View>
         <View style={{ flex: 1, gap: 7 }}>
           <Field label="AFU ID" value={afuId} mono accent={theme.primary} />

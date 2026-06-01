@@ -34,6 +34,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { Avatar } from "@/components/ui/Avatar";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import AfuLogo from "@/components/ui/AfuLogo";
 
 const BRAND = "#00BCD4";
 const PAGE_SIZE = 40;
@@ -107,19 +108,13 @@ function groupByDate(messages: Message[]) {
 
 function ChatPlaceholder() {
   const { colors, isDark } = useTheme();
-  const afuSymbol = require("@/assets/images/afu-symbol.png");
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32, backgroundColor: colors.background }}>
       <LinearGradient
         colors={[BRAND + "20", BRAND + "06"]}
         style={{ width: 120, height: 120, borderRadius: 60, alignItems: "center", justifyContent: "center", marginBottom: 20 }}
       >
-        <Image
-          source={afuSymbol}
-          style={{ width: 72, height: 72 }}
-          resizeMode="contain"
-          tintColor={BRAND + "88"}
-        />
+        <AfuLogo size={72} />
       </LinearGradient>
       <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.text, marginBottom: 8, textAlign: "center" }}>
         Your messages

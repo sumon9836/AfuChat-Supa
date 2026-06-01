@@ -28,7 +28,7 @@ const SHOTS = {
   pay:      require("@/assets/screenshots/pay.png"),
 };
 
-const LOGO = require("@/assets/images/logo.png");
+import AfuLogo from "@/components/ui/AfuLogo";
 
 function makeColors(dark: boolean) {
   return {
@@ -158,7 +158,7 @@ export default function LandingPage() {
       {/* ── NAV ─────────────────────────────────────────── */}
       <View style={[s.nav, { paddingHorizontal: pH, backgroundColor: C.bg, borderBottomColor: C.border }]}>
         <TouchableOpacity onPress={() => router.replace("/")} style={s.brand}>
-          <Image source={LOGO} style={s.logoImg} resizeMode="contain" />
+          <AfuLogo size={32} />
           <Text style={[s.brandText, { color: C.text }]}>AfuChat</Text>
         </TouchableOpacity>
 
@@ -487,7 +487,7 @@ export default function LandingPage() {
         <View style={{ flexDirection: isDesktop ? "row" : "column" }}>
           <View style={{ flex: isDesktop ? 1.4 : 0, marginBottom: isDesktop ? 0 : 36 }}>
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-              <Image source={LOGO} style={{ width: 32, height: 32, borderRadius: 8 }} resizeMode="contain" />
+              <AfuLogo size={32} />
               <Text style={{ color: "#FFFFFF", fontSize: 18, fontFamily: "Inter_700Bold", marginLeft: 10 }}>AfuChat</Text>
             </View>
             <Text style={{ color: "#6B7280", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, maxWidth: 300, marginBottom: 8 }}>

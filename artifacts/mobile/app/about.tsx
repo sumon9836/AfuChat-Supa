@@ -15,8 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { useTheme } from "@/hooks/useTheme";
 import { useAppAccent } from "@/context/AppAccentContext";
-
-const afuSymbol = require("@/assets/images/afu-symbol.png");
+import AfuLogo from "@/components/ui/AfuLogo";
 
 const APP_VERSION = Constants.expoConfig?.version ?? "2.0.30";
 const BUILD = Constants.expoConfig?.android?.versionCode?.toString() ?? "2030";
@@ -130,7 +129,7 @@ export default function AboutScreen() {
           style={st.hero}
         >
           <View style={st.heroLogo}>
-            <Image source={afuSymbol} style={{ width: 88, height: 88 }} resizeMode="contain" tintColor="#fff" />
+            <AfuLogo size={88} />
           </View>
           <Text style={st.heroTitle}>AfuChat</Text>
           <Text style={st.heroTagline}>Connect with everyone, everywhere.</Text>
@@ -249,7 +248,7 @@ export default function AboutScreen() {
 
         {/* Footer — moved from Me tab */}
         <View style={st.footer}>
-          <Image source={afuSymbol} style={st.footerSymbol} tintColor={colors.accent} resizeMode="contain" />
+          <AfuLogo size={44} />
           <Text style={[st.footerName, { color: colors.text }]}>AfuChat</Text>
           <Text style={[st.footerVersion, { color: colors.textMuted }]}>Version {APP_VERSION} · Build {BUILD}</Text>
           <Text style={[st.footerCopy, { color: colors.textMuted }]}>

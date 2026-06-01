@@ -29,11 +29,10 @@ import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
 import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/lib/supabase";
+import AfuLogo from "@/components/ui/AfuLogo";
 
 let ViewShot: any = ({ children, style, ...rest }: any) => <View style={style} {...rest}>{children}</View>;
 try { ViewShot = require("react-native-view-shot").default; } catch (_) {}
-
-const afuSymbol = require("@/assets/images/afu-symbol.png");
 
 const BRAND = "#00BCD4";
 const CEO_HANDLE = "amkaweesi";
@@ -443,7 +442,7 @@ function CardFront({ cardWidth: cw, cardHeight: ch, theme, profile, roleConf, me
 
       {/* HEADER */}
       <View style={s.frontHdr}>
-        <Image source={afuSymbol} style={{ width: 28, height: 28 }} tintColor={BRAND} resizeMode="contain" />
+        <AfuLogo size={28} />
         <View style={{ flex: 1, marginLeft: 8 }}>
           <Text style={s.frontBrand}>AFUCHAT</Text>
           <Text style={s.frontSub}>UNIVERSE · DIGITAL IDENTITY CARD</Text>
@@ -513,7 +512,7 @@ function CardBack({ cardWidth: cw, cardHeight: ch, theme, profile, memberNumber,
 
       {/* HEADER */}
       <View style={s.backHdr}>
-        <Image source={afuSymbol} style={{ width: 18, height: 18 }} tintColor={BRAND} resizeMode="contain" />
+        <AfuLogo size={18} />
         <Text style={s.backBrand}> AFUCHAT</Text>
         <Text style={[s.backBrand, { color: "#ffffff55", fontWeight: "400" }]}> · DIGITAL</Text>
         <View style={{ flex: 1 }} />
@@ -535,9 +534,6 @@ function CardBack({ cardWidth: cw, cardHeight: ch, theme, profile, memberNumber,
             size={QR_SIZE}
             color="#000000"
             backgroundColor="#ffffff"
-            logo={afuSymbol}
-            logoSize={QR_SIZE * 0.18}
-            logoBackgroundColor="#ffffff"
           />
         </View>
 

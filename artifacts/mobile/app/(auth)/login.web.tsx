@@ -276,7 +276,7 @@ export default function DesktopLoginPage() {
 
           <div className="dl-brand-top">
             <div className="dl-brand-logo">
-              <img src="/logo.png" alt="AfuChat" />
+              <img src="/logo.svg" alt="AfuChat" />
               <span className="dl-brand-logo-name">Afu<em>Chat</em></span>
             </div>
             <h1 className="dl-brand-headline">

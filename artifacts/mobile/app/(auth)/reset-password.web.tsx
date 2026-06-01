@@ -149,7 +149,7 @@ export default function ResetPasswordPage() {
           <div className="rp-brand-bg" />
           <div className="rp-brand-top">
             <div className="rp-brand-logo">
-              <img src="/logo.png" alt="AfuChat" />
+              <img src="/logo.svg" alt="AfuChat" />
               <span className="rp-brand-logo-name">Afu<em>Chat</em></span>
             </div>
             <h1 className="rp-brand-headline">

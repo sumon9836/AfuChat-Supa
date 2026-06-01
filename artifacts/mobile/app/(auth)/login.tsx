@@ -32,8 +32,7 @@ import { showAlert } from "@/lib/alert";
 import { GoogleLogo } from "@/components/ui/OAuthLogos";
 import { googleSignIn } from "@/lib/googleAuth";
 import WelcomeGuide, { WELCOME_GUIDE_KEY } from "@/components/ui/WelcomeGuide";
-
-const afuSymbol = require("@/assets/images/afu-symbol.png");
+import AfuLogo from "@/components/ui/AfuLogo";
 
 // ─── Glass input field ─────────────────────────────────────────────────────────
 function AuthInput({
@@ -515,7 +514,7 @@ export default function LoginScreen() {
                 },
               ]}
             >
-              <Image source={afuSymbol} style={styles.logoImg} resizeMode="contain" tintColor={accent} />
+              <AfuLogo size={72} />
             </View>
             <Text style={[styles.appName, { color: isDark ? "#F1F1F1" : "#0F0F0F" }]}>AfuChat</Text>
             <Text style={[styles.tagline, { color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }]}>

@@ -30,8 +30,7 @@ import { useAppAccent } from "@/context/AppAccentContext";
 import { showAlert } from "@/lib/alert";
 import { GoogleLogo } from "@/components/ui/OAuthLogos";
 import { googleSignIn } from "@/lib/googleAuth";
-
-const afuSymbol = require("@/assets/images/afu-symbol.png");
+import AfuLogo from "@/components/ui/AfuLogo";
 
 // ─── Focused input ────────────────────────────────────────────────────────────
 function AuthInput({ icon, placeholder, value, onChangeText, secureTextEntry, keyboardType, autoCapitalize, autoComplete, colors, isDark, rightElement, onSubmitEditing, returnKeyType, inputRef }: any) {
@@ -334,7 +333,7 @@ export default function RegisterScreen() {
       <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={[mobSt.scroll, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={mobSt.logoArea}>
-            <Image source={afuSymbol} style={mobSt.logo} tintColor={accent} resizeMode="contain" />
+            <AfuLogo size={88} />
             <Text style={[mobSt.appName, { color: colors.text }]}>AfuChat</Text>
             <Text style={[mobSt.tagline, { color: colors.textSecondary }]}>Create your free account</Text>
           </View>

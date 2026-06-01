@@ -20,8 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { showAlert } from "@/lib/alert";
-
-const afuSymbol = require("@/assets/images/afu-symbol.png");
+import AfuLogo from "@/components/ui/AfuLogo";
 
 type Plan = {
   id: string;
@@ -403,7 +402,7 @@ export default function PremiumScreen() {
           <View style={[s.glowOrb, { backgroundColor: tierColor + "22" }]} />
 
           <View style={[s.heroBadge, { backgroundColor: tierColor + "22", borderColor: tierColor + "44" }]}>
-            <Image source={afuSymbol} style={{ width: 52, height: 52 }} tintColor={tierColor} resizeMode="contain" />
+            <AfuLogo size={52} />
           </View>
           <Text style={s.heroTitle}>AfuChat Premium</Text>
           <Text style={[s.heroSub, { color: tierColor + "CC" }]}>{cfg?.tagline ?? "Unlock everything"}</Text>

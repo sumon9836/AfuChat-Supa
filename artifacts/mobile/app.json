@@ -4,7 +4,7 @@
     "slug": "afuchat",
     "version": "2.0.78",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "afuchat",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -22,7 +22,7 @@
     "android": {
       "package": "com.afuchat.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/afu-symbol.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#00BCD4"
       },
       "googleServicesFile": "./google-services.json",
@@ -87,7 +87,7 @@
       "versionCode": 2078
     },
     "web": {
-      "favicon": "./assets/images/logo.png",
+      "favicon": "./assets/images/afuchat-logo.svg",
       "bundler": "metro",
       "output": "single",
       "name": "AfuChat",

@@ -23,8 +23,7 @@ import { getLocalConversations } from "@/lib/storage/localConversations";
 import { supabase } from "@/lib/supabase";
 import { emitShortsRefresh } from "@/lib/shortsRefresh";
 import { getTotalUnread, subscribeUnread } from "@/lib/chatUnreadEvents";
-
-const afuSymbol = require("@/assets/images/afu-symbol.png");
+import AfuLogo from "@/components/ui/AfuLogo";
 
 const TABS = [
   { route: "/(tabs)/chats",         label: "Chats",    mdOn: "chatbubble",       mdOff: "chatbubble-outline"       },
@@ -234,12 +233,7 @@ function CompactTabBar({
                       cachePolicy="memory-disk"
                     />
                   ) : isChats ? (
-                    <ExpoImage
-                      source={afuSymbol}
-                      style={{ width: 40, height: 40 }}
-                      contentFit="contain"
-                      tintColor={iconColor}
-                    />
+                    <AfuLogo size={40} />
                   ) : (
                     <Ionicons
                       name={(focused ? tab.mdOn : tab.mdOff) as any}

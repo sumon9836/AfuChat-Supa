@@ -30,9 +30,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { SidebarAIWidget } from "./SidebarAIWidget";
 
+import AfuLogo from "@/components/ui/AfuLogo";
 export const SIDEBAR_WIDTH = 240;
-
-const afuSymbol = require("@/assets/images/afu-symbol.png");
 
 type NavItem = {
   key: string;
@@ -196,7 +195,7 @@ export function DesktopSidebar() {
       >
         {/* Brand */}
         <View style={styles.brandRow}>
-          <Image source={afuSymbol} style={styles.brandLogo} tintColor={accent} />
+          <AfuLogo size={40} />
           <Text style={[styles.brandText, { color: theme.text }]}>AfuChat</Text>
         </View>
 

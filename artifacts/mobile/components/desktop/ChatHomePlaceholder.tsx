@@ -14,8 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 import { useTheme } from "@/hooks/useTheme";
-
-const afuLogo = require("@/assets/images/afu-symbol.png");
+import AfuLogo from "@/components/ui/AfuLogo";
 
 type Action = {
   key: string;
@@ -55,7 +54,7 @@ export function ChatHomePlaceholder() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={styles.center}>
         <View style={[styles.logoWrap, { backgroundColor: tileBg }]}>
-          <Image source={afuLogo} style={styles.logo} resizeMode="contain" tintColor={colors.accent} />
+          <AfuLogo size={64} />
         </View>
         <Text style={[styles.title, { color: colors.text }]}>AfuChat for desktop</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
