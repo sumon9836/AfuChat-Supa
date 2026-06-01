@@ -93,6 +93,7 @@ import { getDailyUsage, recordDailyUsage } from "@/lib/featureUsage";
 import EmojiStickerPicker from "@/components/chat/EmojiStickerPicker";
 import GiftPickerSheet, { DbGift } from "@/components/gifts/GiftPickerSheet";
 import AiEditorSheet from "@/components/ui/AiEditorSheet";
+import ChatBackground from "@/components/ui/ChatBackground";
 import FormatToolbar from "@/components/chat/FormatToolbar";
 import MiniProfilePopup from "@/components/chat/MiniProfilePopup";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -807,7 +808,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   onReactionPress?: (msg: Message, emoji: string) => void;
   onStatusPress?: (msg: Message) => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const BRAND = colors.accent;
   const { preferredLang, voiceToText, textToSpeech } = useLanguage();
   const { themeColors: chatTheme, bubbleRadius: chatRadius, prefs: chatPrefsLocal } = useChatPreferences();
@@ -1297,7 +1298,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                             msg.status === "read" ? "checkmark-done" :
                             msg.status === "delivered" ? "checkmark-done" : "checkmark"
                           }
-                          size={14}
+                          size={17}
                           color={
                             msg.status === "failed" ? "#FF4444" :
                             msg.status === "read" ? "#53BDEB" :
@@ -1391,7 +1392,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                     msg.status === "read" ? "checkmark-done" :
                     msg.status === "delivered" ? "checkmark-done" : "checkmark"
                   }
-                  size={14}
+                  size={17}
                   color={
                     msg.status === "failed" ? "#FF4444" :
                     msg.status === "read" ? "#53BDEB" :
@@ -1521,7 +1522,7 @@ function ChatScreen() {
   }>();
   const isDraft = id === "new";
   const { user, profile, isPremium, subscription, refreshProfile } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { isDesktop } = useIsDesktop();
   const BRAND = colors.accent;
   const { textToSpeech: ttsEnabled } = useLanguage();
@@ -5177,6 +5178,7 @@ STRICT RULES:
 
       {/* ── Message list — fills remaining space, padded so content clears the floating input ── */}
       <View style={{ flex: 1 }}>
+        <ChatBackground isDark={isDark} />
         {loading ? (
           <ChatLoadingSkeleton />
         ) : messages.length === 0 ? (
