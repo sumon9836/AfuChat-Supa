@@ -87,7 +87,7 @@
       "versionCode": 2078
     },
     "web": {
-      "favicon": "./assets/images/afuchat-logo.svg",
+      "favicon": "./assets/images/afuchat-favicon.png",
       "bundler": "metro",
       "output": "single",
       "name": "AfuChat",
