@@ -7,6 +7,7 @@
  * fall through to no-ops when RNTP is unavailable.
  */
 
+import { NativeModules } from "react-native";
 import type * as MediaLibraryTypes from "expo-media-library";
 
 export type RepeatMode = "none" | "one" | "all";
@@ -25,8 +26,13 @@ export type MusicPlayerState = {
 type Listener = (state: MusicPlayerState) => void;
 
 // ── Lazy RNTP loader ──────────────────────────────────────────────────────────
-// Dynamic require so the crash at import-time (Expo Go / missing native module)
-// is caught here instead of propagating to the module system.
+// react-native-track-player requires a custom native build (EAS APK).
+// In Expo Go the native module is NOT registered — require() throws a native
+// exception that JS try/catch CANNOT catch, crashing this whole module before
+// the export line runs (making the module export undefined).
+//
+// Fix: check NativeModules.TrackPlayerModule first (always safe, no crash).
+// Only call require() when the native module is confirmed present.
 
 let TrackPlayer: any = null;
 let Event: any = {};
@@ -36,17 +42,19 @@ let Capability: any = {};
 let AppKilledPlaybackBehavior: any = {};
 let rntpAvailable = false;
 
-try {
-  const rntp = require("react-native-track-player");
-  TrackPlayer = rntp.default ?? rntp;
-  Event = rntp.Event ?? {};
-  RNTPRepeatMode = rntp.RepeatMode ?? RNTPRepeatMode;
-  State = rntp.State ?? State;
-  Capability = rntp.Capability ?? {};
-  AppKilledPlaybackBehavior = rntp.AppKilledPlaybackBehavior ?? {};
-  rntpAvailable = true;
-} catch {
-  rntpAvailable = false;
+if (NativeModules.TrackPlayerModule) {
+  try {
+    const rntp = require("react-native-track-player");
+    TrackPlayer = rntp.default ?? rntp;
+    Event = rntp.Event ?? {};
+    RNTPRepeatMode = rntp.RepeatMode ?? RNTPRepeatMode;
+    State = rntp.State ?? State;
+    Capability = rntp.Capability ?? {};
+    AppKilledPlaybackBehavior = rntp.AppKilledPlaybackBehavior ?? {};
+    rntpAvailable = true;
+  } catch {
+    rntpAvailable = false;
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
