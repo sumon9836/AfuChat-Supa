@@ -84,7 +84,9 @@
           ]
         }
       ],
-      "versionCode": 2078
+      "versionCode": 2078,
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResources": true
     },
     "web": {
       "favicon": "./assets/images/icon.png",
