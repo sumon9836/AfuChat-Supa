@@ -314,7 +314,7 @@ const DT_CSS = `
 @media(max-width:820px){
   .dt-side{display:none}
   .dt-topbar{display:none!important}
-  .dt-body{padding-left:0;padding-top:0}
+  .dt-body{padding-left:0;padding-top:0;padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   .dt-bnav{display:flex}
 }
 .dt-bnav{
