@@ -192,6 +192,22 @@ export default function AfuMusicApp() {
     afuMusicPlayer.toggleRepeat();
   }
 
+  // ── Native module unavailable (Expo Go) ──────────────────────────────────────
+  if (ps.unavailable) {
+    return (
+      <View style={[s.center, { backgroundColor: colors.background, padding: 40 }]}>
+        <LinearGradient colors={["#5856D6", "#7B79E8"]} style={s.permIcon}>
+          <Ionicons name="musical-notes" size={40} color="#fff" />
+        </LinearGradient>
+        <Text style={[s.permTitle, { color: colors.text, textAlign: "center" }]}>AfuMusic</Text>
+        <Text style={[s.permSub, { color: colors.textMuted, textAlign: "center" }]}>
+          Music playback requires the AfuChat dev build or installed APK.{"\n\n"}
+          It is not available in Expo Go because it uses a native audio module.
+        </Text>
+      </View>
+    );
+  }
+
   // ── Web stub ─────────────────────────────────────────────────────────────────
   if (Platform.OS === "web") {
     return (

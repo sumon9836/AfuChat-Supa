@@ -1,26 +1,12 @@
 /**
  * AfuMusic — native music player singleton backed by react-native-track-player.
  *
- * react-native-track-player (RNTP) provides:
- *  • Android MediaStyle notification — progress bar, artwork, track info
- *  • iOS Now Playing / Control Centre integration
- *  • Bluetooth AVRCP control (headphones, car audio, speakers)
- *  • Background foreground service — music keeps playing after app is killed
- *  • Lock-screen controls
- *
- * This singleton maintains the same public API as the old expo-av singleton so
- * the AfuMusicApp UI component requires zero changes.  Metro automatically
- * picks this file over afuMusicPlayer.web.ts on Android/iOS builds, keeping
- * react-native-track-player out of the web bundle.
+ * react-native-track-player (RNTP) is a native module — it is NOT available in
+ * Expo Go.  The static import is replaced with a lazy require() wrapped in
+ * try/catch so that importing this file never crashes in Expo Go.  All methods
+ * fall through to no-ops when RNTP is unavailable.
  */
 
-import TrackPlayer, {
-  Event,
-  RepeatMode as RNTPRepeatMode,
-  State,
-  Capability,
-  AppKilledPlaybackBehavior,
-} from "react-native-track-player";
 import type * as MediaLibraryTypes from "expo-media-library";
 
 export type RepeatMode = "none" | "one" | "all";
@@ -29,13 +15,41 @@ export type MusicPlayerState = {
   tracks: MediaLibraryTypes.Asset[];
   currentIndex: number | null;
   isPlaying: boolean;
-  position: number;  // milliseconds
-  duration: number;  // milliseconds
+  position: number;
+  duration: number;
   shuffle: boolean;
   repeat: RepeatMode;
+  unavailable?: boolean;
 };
 
 type Listener = (state: MusicPlayerState) => void;
+
+// ── Lazy RNTP loader ──────────────────────────────────────────────────────────
+// Dynamic require so the crash at import-time (Expo Go / missing native module)
+// is caught here instead of propagating to the module system.
+
+let TrackPlayer: any = null;
+let Event: any = {};
+let RNTPRepeatMode: any = { Off: 0, Track: 1, Queue: 2 };
+let State: any = { Playing: "playing", Buffering: "buffering" };
+let Capability: any = {};
+let AppKilledPlaybackBehavior: any = {};
+let rntpAvailable = false;
+
+try {
+  const rntp = require("react-native-track-player");
+  TrackPlayer = rntp.default ?? rntp;
+  Event = rntp.Event ?? {};
+  RNTPRepeatMode = rntp.RepeatMode ?? RNTPRepeatMode;
+  State = rntp.State ?? State;
+  Capability = rntp.Capability ?? {};
+  AppKilledPlaybackBehavior = rntp.AppKilledPlaybackBehavior ?? {};
+  rntpAvailable = true;
+} catch {
+  rntpAvailable = false;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function displayTitle(filename: string): string {
   return filename.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ").trim();
@@ -46,6 +60,8 @@ function displayArtist(filename: string): string {
   return parts.length >= 2 ? parts[0].trim() : "Unknown Artist";
 }
 
+// ── Singleton ─────────────────────────────────────────────────────────────────
+
 class AfuMusicPlayerSingleton {
   private _state: MusicPlayerState = {
     tracks: [],
@@ -55,72 +71,73 @@ class AfuMusicPlayerSingleton {
     duration: 0,
     shuffle: false,
     repeat: "none",
+    unavailable: !rntpAvailable,
   };
   private _listeners = new Set<Listener>();
 
-  // _queueMap[queuePosition] = originalTrackIndex
-  // Allows shuffle to reorder the RNTP queue while the UI still highlights
-  // the correct row in the flat track list.
   private _queueMap: number[] = [];
-
   private _ready = false;
   private _setupPromise: Promise<void>;
 
   constructor() {
-    this._setupPromise = this._setup();
+    this._setupPromise = rntpAvailable ? this._setup() : Promise.resolve();
   }
 
-  // ── Setup ─────────────────────────────────────────────────────────────────
+  // ── Setup ──────────────────────────────────────────────────────────────────
 
   private async _setup(): Promise<void> {
     try {
       await TrackPlayer.setupPlayer({
-        progressUpdateEventInterval: 1, // seconds between progress events
+        progressUpdateEventInterval: 1,
       });
     } catch {
-      // Already set up on a hot reload — ignore the "already initialized" error
+      // Already set up on hot reload — safe to ignore
     }
 
-    await TrackPlayer.updateOptions({
-      android: {
-        appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
-      },
-      capabilities: [
-        Capability.Play,
-        Capability.Pause,
-        Capability.SkipToNext,
-        Capability.SkipToPrevious,
-        Capability.SeekTo,
-        Capability.Stop,
-      ],
-      compactCapabilities: [
-        Capability.Play,
-        Capability.Pause,
-        Capability.SkipToNext,
-      ],
-      notificationCapabilities: [
-        Capability.Play,
-        Capability.Pause,
-        Capability.SkipToNext,
-        Capability.SkipToPrevious,
-        Capability.SeekTo,
-      ],
-      progressUpdateEventInterval: 1,
-    });
+    try {
+      await TrackPlayer.updateOptions({
+        android: {
+          appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
+        },
+        capabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+          Capability.SeekTo,
+          Capability.Stop,
+        ],
+        compactCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+        ],
+        notificationCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+          Capability.SeekTo,
+        ],
+        progressUpdateEventInterval: 1,
+      });
+    } catch {}
 
     this._ready = true;
     this._registerEventListeners();
   }
 
   private async _ensureReady(): Promise<void> {
+    if (!rntpAvailable) return;
     if (!this._ready) await this._setupPromise;
   }
 
-  // ── RNTP event listeners ──────────────────────────────────────────────────
+  // ── RNTP event listeners ───────────────────────────────────────────────────
 
   private _registerEventListeners(): void {
-    // Track changed — fires on auto-advance AND manual skip
-    TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, (e) => {
+    if (!rntpAvailable) return;
+
+    TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, (e: any) => {
       const qIdx = e.index;
       if (qIdx !== undefined && qIdx !== null) {
         const originalIdx = this._queueMap[qIdx];
@@ -128,15 +145,13 @@ class AfuMusicPlayerSingleton {
           this._state.currentIndex = originalIdx;
         }
       } else {
-        // Queue ended
         this._state.currentIndex = null;
         this._state.isPlaying = false;
       }
       this._emit();
     });
 
-    // Playback state — playing / paused / buffering / stopped
-    TrackPlayer.addEventListener(Event.PlaybackState, (e) => {
+    TrackPlayer.addEventListener(Event.PlaybackState, (e: any) => {
       const playing = e.state === State.Playing || e.state === State.Buffering;
       if (this._state.isPlaying !== playing) {
         this._state.isPlaying = playing;
@@ -144,14 +159,12 @@ class AfuMusicPlayerSingleton {
       }
     });
 
-    // Progress update — 1 Hz tick for position/duration display
-    TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, (e) => {
+    TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, (e: any) => {
       this._state.position = (e.position ?? 0) * 1000;
       this._state.duration = (e.duration ?? 0) * 1000;
       this._emit();
     });
 
-    // Error — reset playing state so the UI doesn't get stuck
     TrackPlayer.addEventListener(Event.PlaybackError, () => {
       this._state.isPlaying = false;
       this._emit();
@@ -200,11 +213,11 @@ class AfuMusicPlayerSingleton {
       title: displayTitle(asset.filename),
       artist: displayArtist(asset.filename),
       duration: asset.duration,
-      // artwork is intentionally omitted — RNTP falls back to the app icon
     };
   }
 
   private async _buildAndSetQueue(order: number[]): Promise<void> {
+    if (!rntpAvailable) return;
     const { tracks } = this._state;
     this._queueMap = [...order];
     const rntpTracks = order.map((i) => this._toRntpTrack(tracks[i]));
@@ -219,7 +232,6 @@ class AfuMusicPlayerSingleton {
       const j = Math.floor(Math.random() * (i + 1));
       [indices[i], indices[j]] = [indices[j], indices[i]];
     }
-    // Put the seed track first so it plays immediately
     if (startWith !== undefined && startWith >= 0 && startWith < length) {
       const pos = indices.indexOf(startWith);
       if (pos > 0) {
@@ -233,18 +245,16 @@ class AfuMusicPlayerSingleton {
   // ── Core playback ─────────────────────────────────────────────────────────
 
   async loadAndPlay(index: number): Promise<void> {
+    if (!rntpAvailable) return;
     await this._ensureReady();
     const { tracks, shuffle } = this._state;
     if (index < 0 || index >= tracks.length) return;
 
-    // Build queue in correct playback order
     const order = shuffle
       ? this._shuffledOrder(tracks.length, index)
       : Array.from({ length: tracks.length }, (_, i) => i);
 
     await this._buildAndSetQueue(order);
-
-    // Set RNTP repeat mode to match current setting
     await this._applyRepeatMode(this._state.repeat);
 
     const queuePos = order.indexOf(index);
@@ -258,6 +268,7 @@ class AfuMusicPlayerSingleton {
   }
 
   async playPause(): Promise<void> {
+    if (!rntpAvailable) return;
     await this._ensureReady();
     if (this._state.isPlaying) {
       await TrackPlayer.pause();
@@ -271,13 +282,14 @@ class AfuMusicPlayerSingleton {
   }
 
   async playNext(): Promise<void> {
+    if (!rntpAvailable) return;
     await this._ensureReady();
     await TrackPlayer.skipToNext().catch(() => {});
   }
 
   async playPrev(): Promise<void> {
+    if (!rntpAvailable) return;
     await this._ensureReady();
-    // If more than 3 s in, restart current track (standard music-app behaviour)
     if (this._state.position > 3000) {
       await TrackPlayer.seekTo(0);
       return;
@@ -286,6 +298,7 @@ class AfuMusicPlayerSingleton {
   }
 
   async seekTo(ratio: number): Promise<void> {
+    if (!rntpAvailable) return;
     await this._ensureReady();
     if (this._state.duration === 0) return;
     const seconds = ratio * (this._state.duration / 1000);
@@ -298,8 +311,9 @@ class AfuMusicPlayerSingleton {
 
   toggleShuffle(): void {
     this._state.shuffle = !this._state.shuffle;
-    const { currentIndex, tracks } = this._state;
+    if (!rntpAvailable) { this._emit(); return; }
 
+    const { currentIndex, tracks } = this._state;
     if (tracks.length > 0 && this._queueMap.length > 0) {
       const wasPlaying = this._state.isPlaying;
       const order = this._state.shuffle
@@ -308,7 +322,6 @@ class AfuMusicPlayerSingleton {
 
       this._buildAndSetQueue(order)
         .then(async () => {
-          // Restore position at the current track
           if (currentIndex !== null) {
             const newPos = order.indexOf(currentIndex);
             if (newPos >= 0) {
@@ -319,13 +332,13 @@ class AfuMusicPlayerSingleton {
         })
         .catch(() => {});
     }
-
     this._emit();
   }
 
   // ── Repeat ────────────────────────────────────────────────────────────────
 
   private async _applyRepeatMode(mode: RepeatMode): Promise<void> {
+    if (!rntpAvailable) return;
     const rnMode =
       mode === "none"
         ? RNTPRepeatMode.Off
@@ -346,8 +359,6 @@ class AfuMusicPlayerSingleton {
     this._applyRepeatMode(next).catch(() => {});
     this._emit();
   }
-
-  // ── Tap a track from the library list ────────────────────────────────────
 
   tapTrack(index: number): void {
     this.loadAndPlay(index);

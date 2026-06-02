@@ -17,6 +17,7 @@ export type MusicPlayerState = {
   duration: number;
   shuffle: boolean;
   repeat: RepeatMode;
+  unavailable?: boolean;
 };
 
 type Listener = (state: MusicPlayerState) => void;
