@@ -505,16 +505,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ensureAfuAiChat(session.user.id, data?.display_name).catch(() => {});
           });
       } else {
-        // No live session — try to stay "soft logged in" from local storage
+        // No live session — try to stay "soft logged in" from local storage.
+        //
+        // HARDENED: SecureStore (tokens) is more durable than MMKV (userId cache).
+        // If MMKV was cleared but SecureStore still has tokens, fall back to the
+        // stored account's userId so the user is NEVER routed to the welcome screen.
         const cachedUserId = getCachedUserId();
         const accounts = await getStoredAccounts();
         const primaryAccount = accounts[0] ?? null;
 
-        if (cachedUserId && primaryAccount) {
+        // Use stored account userId as fallback when MMKV was wiped
+        const effectiveUserId = cachedUserId ?? primaryAccount?.userId ?? null;
+
+        if (effectiveUserId && primaryAccount) {
+          // Restore MMKV if it was cleared so future startups are instant
+          if (!cachedUserId) setCachedUserId(primaryAccount.userId);
+
           const cached = await getCachedProfile();
           if (cached) setProfile(cached as Profile);
 
           if (isOnline()) {
+            // Pass refresh token explicitly — Supabase's AsyncStorage may have
+            // been cleared by a prior involuntary SIGNED_OUT, so relying on
+            // supabase.auth.refreshSession() with no args can silently fail.
             supabase.auth
               .refreshSession({ refresh_token: primaryAccount.refreshToken })
               .catch(() => {});
@@ -575,7 +588,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // failure, server error). Only a user-initiated signOut() call sets
       // isUserSigningOut=true, which is the only case where we allow clearing.
       if (!newSession?.user) {
-        if (!isUserSigningOut.current) return;
+        if (!isUserSigningOut.current) {
+          // Involuntary SIGNED_OUT: Supabase has cleared its AsyncStorage session.
+          // Restore it from SecureStore so that when the user comes back online,
+          // refreshSession() and all API calls work correctly again.
+          // We do NOT touch React state — the user stays in the app untouched.
+          getStoredAccounts().then((accts) => {
+            const stored = accts[0] ?? null;
+            if (stored) {
+              supabase.auth.setSession({
+                access_token: stored.accessToken,
+                refresh_token: stored.refreshToken,
+              }).catch(() => {});
+            }
+          });
+          return;
+        }
         // Intentional sign-out — clear everything and stop.
         setProfile(null);
         setSubscription(null);
@@ -636,17 +664,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { sub.remove(); clearInterval(interval); };
   }, [user]);
 
-  // Reconnect: re-fetch profile + refresh JWT when network comes back
+  // Reconnect: re-fetch profile + refresh JWT when network comes back.
+  // Pass the refresh token explicitly from SecureStore rather than relying on
+  // supabase.auth.refreshSession() with no args — Supabase may have cleared its
+  // own AsyncStorage session after an involuntary SIGNED_OUT while offline.
   useEffect(() => {
     if (!user) return;
+    const userId = user.id;
     const unsub = onConnectivityChange((online) => {
       if (online) {
-        fetchProfile(user.id);
-        supabase.auth.refreshSession().catch(() => {});
+        fetchProfile(userId);
+        getStoredAccount(userId)
+          .then((stored) => {
+            if (stored) {
+              return supabase.auth.setSession({
+                access_token: stored.accessToken,
+                refresh_token: stored.refreshToken,
+              });
+            }
+            return supabase.auth.refreshSession();
+          })
+          .catch(() => {});
       }
     });
     return unsub;
-  }, [user]);
+  }, [user?.id]);
 
   // Real-time profile subscription — any DB UPDATE flows straight into state
   useEffect(() => {

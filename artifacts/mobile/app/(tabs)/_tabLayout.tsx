@@ -376,16 +376,20 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
 export default function TabLayout() {
   const { session, profile, loading, user } = useAuth();
   const { isDesktop } = useIsDesktop();
-  const isLoggedIn     = !!session;
+  const isLoggedIn     = !!session || !!user;
   const prevSessionRef = useRef<Session | null>(null);
 
   useEffect(() => {
     if (loading) return;
     const hadSession = prevSessionRef.current !== null;
-    const hasSession = session !== null;
-    if (hadSession && !hasSession) router.replace("/discover");
+    // Only redirect when BOTH session AND user are gone.
+    // session alone can be null in the offline-synthetic-user path (user exists
+    // but Supabase has no live JWT). Redirecting in that case would kick an
+    // offline user who is legitimately authenticated via SecureStore tokens.
+    const isFullySignedOut = session === null && user === null;
+    if (hadSession && isFullySignedOut) router.replace("/discover");
     prevSessionRef.current = session;
-  }, [session, loading]);
+  }, [session, user, loading]);
 
   useEffect(() => {
     if (loading) return;
