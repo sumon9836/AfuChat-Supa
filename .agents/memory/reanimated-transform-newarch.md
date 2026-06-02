@@ -15,3 +15,4 @@ Do NOT use `Reanimated.View` + `useAnimatedStyle(() => ({ transform: [...] }))` 
 - `vibrationPattern` arrays in `setNotificationChannelAsync` also crash in Expo Go new arch — remove them, `enableVibrate: true` is sufficient.
 - Screens in (tabs) use React Native's `Animated.View` (old arch animation API) for transforms — this works fine. The crash is specific to `Reanimated.View`.
 - The onboarding fix: replaced `GestureDetector + Reanimated.View pager` with `ScrollView pagingEnabled + onMomentumScrollEnd` for swipe validation.
+- `MiniAppWindow.tsx` fix: replaced `useSharedValue/useAnimatedStyle/withSpring/withTiming/runOnJS` with `useRef(new Animated.Value)` + `Animated.spring/timing/parallel`. `.start()` callback replaces `runOnJS(setShowing)`. Behaviour is identical.

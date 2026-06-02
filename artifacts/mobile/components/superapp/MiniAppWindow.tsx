@@ -1,20 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
-  Platform,
+  Easing,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import Animated, {
-  Easing,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
@@ -37,8 +30,9 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
   const [showing, setShowing] = useState(false);
 
   const screenHeight = Dimensions.get("window").height;
-  const translateY = useSharedValue(screenHeight);
-  const backdropOpacity = useSharedValue(0);
+
+  const translateY     = useRef(new Animated.Value(screenHeight)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
 
   const minimizeBusy = useRef(false);
   const closeBusy    = useRef(false);
@@ -60,33 +54,59 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
   useEffect(() => {
     if (isActive) {
       setShowing(true);
-      translateY.value = withSpring(0, { damping: 26, stiffness: 260, mass: 0.9 });
-      backdropOpacity.value = withTiming(1, { duration: 200 });
+      translateY.setValue(screenHeight);
+      backdropOpacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(translateY, {
+          toValue: 0,
+          damping: 26,
+          stiffness: 260,
+          mass: 0.9,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: 0.55,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
     } else {
-      translateY.value = withTiming(
-        screenHeight,
-        { duration: 260, easing: Easing.out(Easing.cubic) },
-        (finished) => { if (finished) runOnJS(setShowing)(false); }
-      );
-      backdropOpacity.value = withTiming(0, { duration: 220 });
+      Animated.parallel([
+        Animated.timing(translateY, {
+          toValue: screenHeight,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) setShowing(false);
+      });
     }
   }, [isActive]);
-
-  const windowStyle   = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value * 0.55 }));
 
   if (!showing && !isActive) return null;
 
   return (
-    <View style={[styles.container, { pointerEvents: showing ? "box-none" : "none" }]}>
+    <View style={[styles.container, { pointerEvents: showing ? "box-none" : "none" } as any]}>
       {/* Backdrop */}
-      <Animated.View style={[styles.backdrop, backdropStyle, { pointerEvents: "box-none" }]}>
+      <Animated.View
+        style={[styles.backdrop, { opacity: backdropOpacity }]}
+        pointerEvents="box-none"
+      >
         <Pressable style={StyleSheet.absoluteFill} onPress={handleMinimize} />
       </Animated.View>
 
       {/* Sliding window */}
       <Animated.View
-        style={[styles.window, windowStyle, { backgroundColor: colors.background }]}
+        style={[
+          styles.window,
+          { transform: [{ translateY }], backgroundColor: colors.background },
+        ]}
       >
         {/* Header */}
         <View
