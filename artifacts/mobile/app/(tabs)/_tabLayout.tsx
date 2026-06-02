@@ -391,12 +391,8 @@ export default function TabLayout() {
     prevSessionRef.current = session;
   }, [session, user, loading]);
 
-  useEffect(() => {
-    if (loading) return;
-    if (session && profile && !profile.onboarding_completed) {
-      router.replace({ pathname: "/onboarding", params: { userId: session.user.id } });
-    }
-  }, [session, profile, loading]);
+  // Onboarding redirect intentionally removed — a logged-in user should
+  // NEVER be sent to onboarding regardless of onboarding_completed flag.
 
   return (
     <TabSwipeProvider>

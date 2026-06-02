@@ -5,6 +5,11 @@
     "version": "2.0.78",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#00BCD4"
+    },
     "scheme": "afuchat",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

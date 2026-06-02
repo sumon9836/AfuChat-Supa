@@ -263,65 +263,85 @@ class AfuMusicPlayerSingleton {
 
   async loadAndPlay(index: number): Promise<void> {
     if (!rntpAvailable) return;
-    await this._ensureReady();
-    const { tracks, shuffle } = this._state;
-    if (index < 0 || index >= tracks.length) return;
+    try {
+      await this._ensureReady();
+      const { tracks, shuffle } = this._state;
+      if (index < 0 || index >= tracks.length) return;
 
-    const order = shuffle
-      ? this._shuffledOrder(tracks.length, index)
-      : Array.from({ length: tracks.length }, (_, i) => i);
+      const order = shuffle
+        ? this._shuffledOrder(tracks.length, index)
+        : Array.from({ length: tracks.length }, (_, i) => i);
 
-    await this._buildAndSetQueue(order);
-    await this._applyRepeatMode(this._state.repeat);
+      await this._buildAndSetQueue(order);
+      await this._applyRepeatMode(this._state.repeat);
 
-    const queuePos = order.indexOf(index);
-    await TrackPlayer.skip(Math.max(0, queuePos));
-    await TrackPlayer.play();
+      const queuePos = order.indexOf(index);
+      await TrackPlayer.skip(Math.max(0, queuePos));
+      await TrackPlayer.play();
 
-    this._state.currentIndex = index;
-    this._state.isPlaying = true;
-    this._state.position = 0;
-    this._emit();
+      this._state.currentIndex = index;
+      this._state.isPlaying = true;
+      this._state.position = 0;
+      this._emit();
+    } catch (e) {
+      console.warn("[AfuMusic] loadAndPlay error:", e);
+    }
   }
 
   async playPause(): Promise<void> {
     if (!rntpAvailable) return;
-    await this._ensureReady();
-    if (this._state.isPlaying) {
-      await TrackPlayer.pause();
-    } else {
-      if (this._state.currentIndex === null && this._state.tracks.length > 0) {
-        await this.loadAndPlay(0);
-        return;
+    try {
+      await this._ensureReady();
+      if (this._state.isPlaying) {
+        await TrackPlayer.pause();
+      } else {
+        if (this._state.currentIndex === null && this._state.tracks.length > 0) {
+          await this.loadAndPlay(0);
+          return;
+        }
+        await TrackPlayer.play();
       }
-      await TrackPlayer.play();
+    } catch (e) {
+      console.warn("[AfuMusic] playPause error:", e);
     }
   }
 
   async playNext(): Promise<void> {
     if (!rntpAvailable) return;
-    await this._ensureReady();
-    await TrackPlayer.skipToNext().catch(() => {});
+    try {
+      await this._ensureReady();
+      await TrackPlayer.skipToNext().catch(() => {});
+    } catch (e) {
+      console.warn("[AfuMusic] playNext error:", e);
+    }
   }
 
   async playPrev(): Promise<void> {
     if (!rntpAvailable) return;
-    await this._ensureReady();
-    if (this._state.position > 3000) {
-      await TrackPlayer.seekTo(0);
-      return;
+    try {
+      await this._ensureReady();
+      if (this._state.position > 3000) {
+        await TrackPlayer.seekTo(0);
+        return;
+      }
+      await TrackPlayer.skipToPrevious().catch(() => {});
+    } catch (e) {
+      console.warn("[AfuMusic] playPrev error:", e);
     }
-    await TrackPlayer.skipToPrevious().catch(() => {});
   }
 
   async seekTo(ratio: number): Promise<void> {
     if (!rntpAvailable) return;
-    await this._ensureReady();
-    if (this._state.duration === 0) return;
-    const seconds = ratio * (this._state.duration / 1000);
-    await TrackPlayer.seekTo(seconds);
-    this._state.position = ratio * this._state.duration;
-    this._emit();
+    try {
+      await this._ensureReady();
+      if (this._state.duration === 0) return;
+      const seconds = ratio * (this._state.duration / 1000);
+      await TrackPlayer.seekTo(seconds);
+      this._state.position = ratio * this._state.duration;
+      this._emit();
+    } catch (e) {
+      console.warn("[AfuMusic] seekTo error:", e);
+    }
   }
 
   // ── Shuffle ───────────────────────────────────────────────────────────────
@@ -378,7 +398,7 @@ class AfuMusicPlayerSingleton {
   }
 
   tapTrack(index: number): void {
-    this.loadAndPlay(index);
+    this.loadAndPlay(index).catch((e) => console.warn("[AfuMusic] tapTrack error:", e));
   }
 }
 

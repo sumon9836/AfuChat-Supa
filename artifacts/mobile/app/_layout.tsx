@@ -33,7 +33,6 @@ import AlertModal from "@/components/ui/AlertModal";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
 import { TrustpilotReviewPrompt } from "@/components/TrustpilotReviewPrompt";
 import UpdatePrompt from "@/components/UpdatePrompt";
-import { initConnectivityToasts } from "@/lib/toast";
 import { initActivityTracker } from "@/lib/activityTracker";
 import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
 
@@ -103,9 +102,8 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
-  useEffect(() => {
-    initConnectivityToasts();
-  }, []);
+  // Connectivity toasts are intentionally disabled — users should never
+  // see "No internet connection" or "Back online" banners.
 
   useEffect(() => {
     // Cold start — app was killed and opened via a link

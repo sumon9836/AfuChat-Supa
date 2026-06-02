@@ -21,19 +21,16 @@ export default function IndexScreen() {
   const redirected = useRef(false);
   const { handle } = useLocalSearchParams<{ handle?: string }>();
 
-  function doRedirect(hasSession: boolean, profileReady: boolean, profileOnboarded: boolean, userId?: string) {
+  function doRedirect(hasSession: boolean, _profileReady: boolean, _profileOnboarded: boolean, _userId?: string) {
     if (redirected.current) return;
     redirected.current = true;
     // A user is "logged in" if there's a live Supabase session OR a cached user
     // ID from a previous session (MMKV sync read — works offline, zero I/O).
     const isLoggedIn = hasSession || Boolean(getCachedUserId());
     if (isLoggedIn) {
-      const resolvedUserId = userId ?? getCachedUserId() ?? undefined;
-      if (profileReady && !profileOnboarded && resolvedUserId) {
-        router.replace({ pathname: "/onboarding", params: { userId: resolvedUserId } });
-      } else {
-        router.replace("/(tabs)/chats");
-      }
+      // Always go straight to the app — never redirect a logged-in user to
+      // onboarding (even if onboarding_completed is false in the DB).
+      router.replace("/(tabs)/chats");
     } else {
       if (Platform.OS === "web") {
         router.replace("/landing");
