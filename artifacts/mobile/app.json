@@ -2,7 +2,7 @@
   "expo": {
     "name": "AfuChat",
     "slug": "afuchat",
-    "version": "2.0.78",
+    "version": "2.0.79",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "splash": {
@@ -84,7 +84,7 @@
           ]
         }
       ],
-      "versionCode": 2078,
+      "versionCode": 2079,
       "enableProguardInReleaseBuilds": true,
       "enableShrinkResources": true
     },
@@ -162,7 +162,7 @@
     },
     "owner": "afuchat",
     "ios": {
-      "buildNumber": "2.0.78",
+      "buildNumber": "2.0.79",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio",
