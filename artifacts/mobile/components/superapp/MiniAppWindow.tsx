@@ -1,11 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { Component, useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
   Easing,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +15,80 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import type { OpenApp } from "@/lib/superapp/types";
+
+// ─── Per-mini-app error boundary ─────────────────────────────────────────────
+// Catches crashes inside any mini app and shows the error on-screen instead of
+// crashing the host app. Lets the user report the exact message to support.
+
+type EBState = { error: Error | null };
+class MiniAppErrorBoundary extends Component<
+  { children: React.ReactNode; appName: string; onRetry: () => void },
+  EBState
+> {
+  state: EBState = { error: null };
+
+  static getDerivedStateFromError(error: Error): EBState {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: { componentStack: string }) {
+    console.error(`[MiniApp crash] ${this.props.appName}:`, error.message);
+    console.error(error.stack);
+    console.error(info.componentStack);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <MiniAppCrashScreen
+          appName={this.props.appName}
+          error={this.state.error}
+          onRetry={() => {
+            this.setState({ error: null });
+            this.props.onRetry();
+          }}
+        />
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function MiniAppCrashScreen({
+  appName,
+  error,
+  onRetry,
+}: {
+  appName: string;
+  error: Error;
+  onRetry: () => void;
+}) {
+  return (
+    <View style={eb.container}>
+      <Ionicons name="warning-outline" size={40} color="#FF3B30" />
+      <Text style={eb.title}>{appName} crashed</Text>
+      <Text style={eb.msg}>{error.message || "Unknown error"}</Text>
+      <ScrollView style={eb.stackWrap} contentContainerStyle={{ padding: 10 }}>
+        <Text style={eb.stack} selectable>
+          {error.stack ?? ""}
+        </Text>
+      </ScrollView>
+      <TouchableOpacity style={eb.btn} onPress={onRetry}>
+        <Text style={eb.btnTxt}>Retry</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const eb = StyleSheet.create({
+  container: { flex: 1, alignItems: "center", justifyContent: "flex-start", padding: 24, paddingTop: 40, gap: 10, backgroundColor: "#0F0F0F" },
+  title: { fontSize: 18, fontWeight: "700", color: "#F1F1F1" },
+  msg: { fontSize: 13, color: "#FF6B6B", textAlign: "center" },
+  stackWrap: { width: "100%", maxHeight: 200, backgroundColor: "#1A1A1A", borderRadius: 8, marginTop: 4 },
+  stack: { fontSize: 10, color: "#888", lineHeight: 14 },
+  btn: { marginTop: 12, backgroundColor: "#FF3B30", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 },
+  btnTxt: { color: "#fff", fontWeight: "700", fontSize: 15 },
+});
 
 const BUTTON_COOLDOWN_MS = 500;
 
@@ -160,7 +236,14 @@ export default function MiniAppWindow({ app, onClose, onMinimize, children }: Pr
           </View>
         </View>
 
-        <View style={styles.content}>{children}</View>
+        <View style={styles.content}>
+          <MiniAppErrorBoundary
+            appName={app.manifest.name}
+            onRetry={onClose}
+          >
+            {children}
+          </MiniAppErrorBoundary>
+        </View>
       </Animated.View>
     </View>
   );

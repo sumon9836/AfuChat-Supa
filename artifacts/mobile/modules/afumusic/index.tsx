@@ -76,8 +76,11 @@ export default function AfuMusicApp() {
 
   const requestPermission = useCallback(async () => {
     try {
-      const res = await MediaLibrary.requestPermissionsAsync();
-      setPermGranted(res.granted);
+      // Android 13+ needs granular "audio" permission; older Android uses the
+      // general READ_EXTERNAL_STORAGE grant. Passing ["audio"] is safe on all
+      // supported Android versions — the library falls back gracefully.
+      const res = await (MediaLibrary.requestPermissionsAsync as any)(false, ["audio"]);
+      setPermGranted(res.granted ?? false);
     } catch {
       setPermGranted(false);
     }
@@ -87,8 +90,8 @@ export default function AfuMusicApp() {
   useEffect(() => {
     (async () => {
       try {
-        const { granted } = await MediaLibrary.getPermissionsAsync();
-        setPermGranted(granted);
+        const perm = await MediaLibrary.getPermissionsAsync();
+        setPermGranted(perm.granted ?? false);
       } catch {
         setPermGranted(false);
       }
@@ -129,7 +132,9 @@ export default function AfuMusicApp() {
         try {
           const page = await MediaLibrary.getAssetsAsync({
             mediaType: MediaLibrary.MediaType.audio,
-            sortBy: [MediaLibrary.SortBy.default],
+            // SortBy.default may be undefined in some SDK 54 builds — fall back
+            // to SortBy.creationTime which is always present.
+            sortBy: [MediaLibrary.SortBy.default ?? MediaLibrary.SortBy.creationTime],
             first: 100,
             after,
           });

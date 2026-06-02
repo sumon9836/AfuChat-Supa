@@ -85,10 +85,14 @@ class AfuMusicPlayerSingleton {
 
   private _queueMap: number[] = [];
   private _ready = false;
-  private _setupPromise: Promise<void>;
+  // _setupPromise is null until the first call to _ensureReady().
+  // This guarantees TrackPlayer.registerPlaybackService() (called at module
+  // level in _layout.tsx, after all static imports resolve) runs BEFORE
+  // setupPlayer() — which is what RNTP requires on Android.
+  private _setupPromise: Promise<void> | null = null;
 
   constructor() {
-    this._setupPromise = rntpAvailable ? this._setup() : Promise.resolve();
+    // Intentionally empty — setup is deferred until first playback action.
   }
 
   // ── Setup ──────────────────────────────────────────────────────────────────
@@ -137,7 +141,12 @@ class AfuMusicPlayerSingleton {
 
   private async _ensureReady(): Promise<void> {
     if (!rntpAvailable) return;
-    if (!this._ready) await this._setupPromise;
+    if (this._ready) return;
+    // Start setup on first call; subsequent concurrent callers await the same promise.
+    if (!this._setupPromise) {
+      this._setupPromise = this._setup();
+    }
+    await this._setupPromise;
   }
 
   // ── RNTP event listeners ───────────────────────────────────────────────────
