@@ -8,3 +8,4 @@
 - [Inline timestamp ghost-tail unreliable](inline-timestamp-padright.md) — color:"transparent" on nested RN Text bleeds through on some engines; use paddingRight on the RichText instead to reserve timestamp space.
 - [Chat bubble tail direction](chat-bubble-tail-direction.md) — FlatList is inverted (index 0 = bottom/newest). Tail must check index-1 (below=newer) for WhatsApp-style bottom-of-group tail; index+1 (above=older) is correct for group sender name at top.
 - [Expo Go + Replit workflow flags](expo-replit-workflow.md) — Use EXPO_OFFLINE=1 (not CI=1) in the Start application workflow. CI=1 breaks native bundle serving (CommandError on every Expo Go connection). EXPO_OFFLINE=1 skips the auth/login prompt and dependency validation without blocking native bundles.
+- [RNTP 4.1.2 getQueue crash on RN 0.81](rntp-getqueue-crash.md) — getQueue() crashes native on all tracks loaded; postinstall.sh must patch all 3 sites in MusicModule.kt.
