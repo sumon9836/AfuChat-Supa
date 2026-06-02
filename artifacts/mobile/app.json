@@ -14,11 +14,6 @@
       "icon": "./assets/images/notification-icon-white.png",
       "color": "#00BCD4"
     },
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#00BCD4"
-    },
     "android": {
       "package": "com.afuchat.app",
       "adaptiveIcon": {
