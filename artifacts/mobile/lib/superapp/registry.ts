@@ -168,6 +168,17 @@ export const SUPER_APP_REGISTRY: ModuleManifest[] = [
     keepAlive: false,
   },
   {
+    id: "afunearby",
+    name: "Nearby",
+    description: "Scan Bluetooth devices, inspect your Wi-Fi network, and manage home screen shortcuts.",
+    version: "1.0.0",
+    icon: "radio",
+    gradient: ["#007AFF", "#5AC8FA"] as const,
+    keepAlive: false,
+    nativeOnly: true,
+    badge: "NEW",
+  },
+  {
     id: "afureferral",
     name: "Referral",
     description: "Invite friends and earn Nexa rewards.",

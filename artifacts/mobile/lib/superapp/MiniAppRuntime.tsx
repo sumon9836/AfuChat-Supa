@@ -25,6 +25,7 @@ import AfuLensApp from "@/modules/afulens";
 import AfuIDApp from "@/modules/afuid";
 import AfuQRApp from "@/modules/afuqr";
 import AfuSavedApp from "@/modules/afusaved";
+import AfuNearbyApp from "@/modules/afunearby";
 import AfuReferralApp from "@/modules/afureferral";
 import AfuServicesApp from "@/modules/afuservices";
 import AfuFreelanceApp from "@/modules/afufreelance";
@@ -45,6 +46,7 @@ function getMiniAppComponent(id: string): React.ComponentType | null {
     case "afuid":          return AfuIDApp;
     case "afuqr":          return AfuQRApp;
     case "afusaved":       return AfuSavedApp;
+    case "afunearby":      return AfuNearbyApp;
     case "afureferral":    return AfuReferralApp;
     case "afuservices":    return AfuServicesApp;
     case "afufreelance":   return AfuFreelanceApp;

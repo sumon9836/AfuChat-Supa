@@ -93,6 +93,17 @@ const CATEGORIES: Category[] = [
         featuredSub: "Stream music and podcasts inside AfuChat.",
       },
       {
+        id: "afunearby",
+        nativeOnly: true,
+        label: "Nearby",
+        icon: "radio",
+        gradient: ["#007AFF", "#5AC8FA"],
+        route: "/nearby",
+        badge: "NEW",
+        miniApp: true,
+        featuredSub: "Discover Bluetooth devices, manage Wi-Fi, and pin home screen shortcuts.",
+      },
+      {
         id: "afubusiness",
         label: "AfuBusiness",
         icon: "briefcase",
