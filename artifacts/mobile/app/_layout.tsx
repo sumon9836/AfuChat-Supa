@@ -5,7 +5,7 @@ enableScreens(true);
 
 import React, { useEffect, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Linking, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, NativeModules, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack, usePathname } from "expo-router";
 import { setCurrentPage, resolvePageInfo } from "@/lib/pageTracker";
 import { StatusBar } from "expo-status-bar";
@@ -59,9 +59,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // Must happen at module-evaluation time (before any component renders) so the
 // foreground service survives app-kill and Bluetooth/notification controls
 // continue to work when the user is not actively using the app.
-if (Platform.OS !== "web") {
+// Guard: check NativeModules.TrackPlayerModule BEFORE requiring the package.
+// require("react-native-track-player") throws a native exception (not catchable
+// by JS try/catch) when the native module is absent — e.g. in Expo Go.
+// Checking NativeModules first is always safe and never crashes.
+if (Platform.OS !== "web" && NativeModules.TrackPlayerModule) {
   try {
-    const TrackPlayer = require("react-native-track-player").default;
+    const rntp = require("react-native-track-player");
+    const TrackPlayer = rntp.default ?? rntp;
     const { PlaybackService } = require("@/lib/musicService");
     TrackPlayer.registerPlaybackService(() => PlaybackService);
   } catch {}
