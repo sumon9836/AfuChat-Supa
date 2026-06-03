@@ -39,14 +39,10 @@ import UpdatePrompt from "@/components/UpdatePrompt";
 import { initActivityTracker } from "@/lib/activityTracker";
 import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
 
-// ─── Conversations pre-warm ───────────────────────────────────────────────────
-// Start reading the local SQLite conversation list into memory NOW — before any
-// component renders — so ChatsScreen can initialize its state synchronously
-// from the memory snapshot instead of waiting for an async SQLite read.
-// This eliminates the skeleton flash for returning logged-in users.
-if (Platform.OS !== "web" && getCachedUserId()) {
-  preloadConversations();
-}
+// NOTE: Conversations pre-warm has been intentionally moved to the RootLayout
+// useEffect below.  It was previously at module-eval time, which triggered MMKV
+// (and through it, react-native-nitro-modules) before the Nitro C++ library had
+// been loaded — causing an unrecoverable native crash on Android release builds.
 
 // ─── Splash screen — hold immediately at module-evaluation time ───────────────
 // This runs before any component renders, ensuring the native splash stays
@@ -147,6 +143,17 @@ export default function RootLayout() {
 
     const sub = Linking.addEventListener("url", ({ url }) => handleIncomingUrl(url));
     return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    // Conversations pre-warm: kick off the SQLite read NOW so ChatsScreen can
+    // initialise synchronously from the in-memory snapshot instead of waiting
+    // for an async read.  Doing this inside useEffect (rather than at module-
+    // eval time) ensures Nitro's C++ library has been loaded before we touch
+    // MMKV — avoiding the native crash that occurred at module-eval time.
+    if (Platform.OS !== "web" && getCachedUserId()) {
+      preloadConversations();
+    }
   }, []);
 
   // On native: keep returning null (keeping the splash layer on top) until

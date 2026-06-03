@@ -114,50 +114,54 @@ function isExpoGo(): boolean {
 }
 
 /**
- * Returns true if react-native-nitro-modules has been successfully initialized.
+ * Returns true if react-native-nitro-modules has been FULLY initialized.
  *
  * How Nitro initializes (NativeNitroModules.ts):
- *   1. Native TurboModule "NitroModules" (NOT "NitroModulesProxy") is loaded via
- *      TurboModuleRegistry.getEnforcing("NitroModules") — throws if absent.
- *   2. turboModule.install() is called, which injects NitroModulesProxy into
- *      the JS `global` object.
- *   3. global.NitroModulesProxy is now set.
+ *   1. Nitro's JS module is first required (lazy — happens when MMKV is first used).
+ *   2. Nitro calls turboModule.install() which calls JNIOnLoad.initializeNativeNitro()
+ *      → System.loadLibrary("NitroModules") loads the C++ .so.
+ *   3. install() injects NitroModulesProxy into global.NitroModulesProxy.
  *
- * In Expo Go, the "NitroModules" native library is not bundled, so step 1
- * would throw a ModuleNotFoundError. We must NEVER call require("react-native-mmkv")
- * when Nitro is absent because that triggers this fatal throw at module level.
+ * IMPORTANT — why we do NOT check TurboModuleRegistry.get("NitroModules"):
+ *   TurboModuleRegistry.get("NitroModules") returns the Java-side TurboModule proxy
+ *   as soon as the native package is registered (i.e. before JS has ever required it).
+ *   This gives a false-positive: Nitro's Java side exists but the C++ shared library
+ *   (libNitroModules.so) has not been loaded yet.  Calling require("react-native-mmkv")
+ *   on the basis of that false-positive forces Nitro to attempt its .so load for the
+ *   first time inside a JS module evaluation, before the TurboModule error-handling
+ *   infrastructure is ready — resulting in an unrecoverable native crash.
  *
- * Primary signal: global.NitroModulesProxy — set only after successful native init.
- * Secondary signal: TurboModuleRegistry.get("NitroModules") using get() (not
- * getEnforcing) to safely return null instead of throwing.
+ * Only signal we trust: global.NitroModulesProxy — injected only after the C++
+ * library has been loaded AND the proxy successfully installed.
  */
 function isNitroAvailable(): boolean {
-  // Primary: NitroModulesProxy is injected into global only after nitro installs.
-  // This is the most reliable signal — present in real builds, absent in Expo Go.
-  if (typeof (global as any).NitroModulesProxy !== "undefined") return true;
-
-  // Secondary: check if the TurboModule is registered using the CORRECT spec name
-  // "NitroModules". Use get() NOT getEnforcing() — getEnforcing throws on missing modules.
-  try {
-    const { TurboModuleRegistry } = require("react-native");
-    if (typeof TurboModuleRegistry?.get !== "function") return false;
-    return TurboModuleRegistry.get("NitroModules") !== null;
-  } catch {
-    return false;
-  }
+  return typeof (global as any).NitroModulesProxy !== "undefined";
 }
 
 function getStore(): MMKVLike {
   if (_store) return _store;
-  if (Platform.OS === "web" || isExpoGo() || !isNitroAvailable()) {
+
+  // Web and Expo Go always use the web/memory store — cache permanently.
+  if (Platform.OS === "web" || isExpoGo()) {
     _store = createWebStore();
-  } else {
-    try {
-      const { MMKV } = require("react-native-mmkv") as any;
-      _store = new MMKV({ id: "afuchat-store" });
-    } catch {
-      _store = createWebStore();
-    }
+    return _store;
+  }
+
+  if (!isNitroAvailable()) {
+    // Nitro's C++ library has not been loaded yet (NitroModulesProxy not set).
+    // Return a temporary in-memory store WITHOUT caching it so that the next
+    // caller (inside a React component, after Nitro has had time to initialize)
+    // gets to retry.  This prevents permanently locking into the web store just
+    // because the first call happened at module-evaluation time.
+    return createWebStore();
+  }
+
+  // Nitro is fully initialised — create and permanently cache the real MMKV store.
+  try {
+    const { MMKV } = require("react-native-mmkv") as any;
+    _store = new MMKV({ id: "afuchat-store" });
+  } catch {
+    _store = createWebStore();
   }
   return _store!;
 }
