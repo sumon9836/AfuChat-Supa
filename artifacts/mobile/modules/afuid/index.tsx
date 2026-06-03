@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Image,
   Platform,
   ScrollView,
@@ -13,13 +15,6 @@ import {
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 import * as Sharing from "expo-sharing";
 import QRCode from "react-native-qrcode-svg";
 import { useAuth } from "@/context/AuthContext";
@@ -139,7 +134,7 @@ export default function AfuIDApp() {
   const [showBack, setShowBack] = useState(false);
   const [dlState, setDlState] = useState<"idle"|"front"|"back">("idle");
 
-  const flipVal = useSharedValue(0);
+  const flipAnim = useRef(new Animated.Value(0)).current;
   const frontDomRef  = useRef<View>(null);
   const backDomRef   = useRef<View>(null);
   const frontShotRef = useRef<any>(null);
@@ -181,20 +176,34 @@ export default function AfuIDApp() {
 
   function flip() {
     const next = showBack ? 0 : 1;
-    flipVal.value = withTiming(next, { duration: 600, easing: Easing.out(Easing.cubic) });
+    Animated.timing(flipAnim, {
+      toValue: next,
+      duration: 600,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
     setShowBack(!showBack);
   }
 
-  const frontFace = useAnimatedStyle(() => ({
-    transform: [{ perspective: 1600 }, { rotateY: `${interpolate(flipVal.value, [0,1], [0, 180])}deg` }],
-    backfaceVisibility: "hidden" as any,
-    position: "absolute" as any, top: 0, left: 0, right: 0, bottom: 0,
-  }));
-  const backFace = useAnimatedStyle(() => ({
-    transform: [{ perspective: 1600 }, { rotateY: `${interpolate(flipVal.value, [0,1], [-180, 0])}deg` }],
-    backfaceVisibility: "hidden" as any,
-    position: "absolute" as any, top: 0, left: 0, right: 0, bottom: 0,
-  }));
+  const frontRotateY = flipAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "180deg"],
+  });
+  const backRotateY = flipAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["-180deg", "0deg"],
+  });
+
+  const frontFace = {
+    transform: [{ perspective: 1600 }, { rotateY: frontRotateY }],
+    backfaceVisibility: "hidden" as const,
+    position: "absolute" as const, top: 0, left: 0, right: 0, bottom: 0,
+  };
+  const backFace = {
+    transform: [{ perspective: 1600 }, { rotateY: backRotateY }],
+    backfaceVisibility: "hidden" as const,
+    position: "absolute" as const, top: 0, left: 0, right: 0, bottom: 0,
+  };
 
   async function download(side: "front" | "back") {
     setDlState(side);
