@@ -2,7 +2,7 @@
   "expo": {
     "name": "AfuChat",
     "slug": "afuchat",
-    "version": "2.0.80",
+    "version": "2.0.81",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "splash": {
@@ -83,8 +83,8 @@
           ]
         }
       ],
-      "enableProguardInReleaseBuilds": true,
-      "enableShrinkResources": true
+      "enableProguardInReleaseBuilds": false,
+      "enableShrinkResources": false
     },
     "web": {
       "favicon": "./assets/images/icon.png",
@@ -161,7 +161,7 @@
     },
     "owner": "afuchat",
     "ios": {
-      "buildNumber": "2.0.79",
+      "buildNumber": "2.0.81",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio",
