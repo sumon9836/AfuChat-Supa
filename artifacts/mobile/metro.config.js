@@ -12,6 +12,8 @@ config.resolver = {
   blockList: [
     /artifacts[\\/]mockup-sandbox[\\/].*/,
     /node_modules[\\/]\.pnpm[\\/].*_tmp_\d+/,
+    // typedoc's inner node_modules symlink doesn't exist in pnpm's virtual store
+    /node_modules[\\/]\.pnpm[\\/]typedoc[^/]*[\\/]node_modules[\\/]typedoc[\\/]node_modules.*/,
   ],
   // Enable symlink following so Metro resolves pnpm's content-addressed store
   // correctly on Android (pnpm creates symlinks that Metro doesn't follow by default).
