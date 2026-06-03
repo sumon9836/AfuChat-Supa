@@ -1,10 +1,11 @@
 /**
  * AfuMusic — native music player singleton backed by react-native-track-player.
  *
- * react-native-track-player (RNTP) is a native module — it is NOT available in
- * Expo Go.  The static import is replaced with a lazy require() wrapped in
- * try/catch so that importing this file never crashes in Expo Go.  All methods
- * fall through to no-ops when RNTP is unavailable.
+ * NEVER add a static `import … from "react-native-track-player"` to this file.
+ * The native module is absent in Expo Go — any static import throws an
+ * uncatchable native exception before any JS runs.  We guard with
+ * NativeModules.TrackPlayerModule (always safe) and lazy-require only when
+ * the native module is confirmed present.
  */
 
 import { NativeModules } from "react-native";
@@ -16,23 +17,19 @@ export type MusicPlayerState = {
   tracks: MediaLibraryTypes.Asset[];
   currentIndex: number | null;
   isPlaying: boolean;
-  position: number;
-  duration: number;
+  position: number;    // ms
+  duration: number;    // ms
   shuffle: boolean;
   repeat: RepeatMode;
+  rate: number;                    // playback speed (0.5–2.0)
+  sleepTimerEnd: number | null;    // unix timestamp ms when timer fires; null = off
+  queueMap: number[];              // track indices in current play order
   unavailable?: boolean;
 };
 
 type Listener = (state: MusicPlayerState) => void;
 
 // ── Lazy RNTP loader ──────────────────────────────────────────────────────────
-// react-native-track-player requires a custom native build (EAS APK).
-// In Expo Go the native module is NOT registered — require() throws a native
-// exception that JS try/catch CANNOT catch, crashing this whole module before
-// the export line runs (making the module export undefined).
-//
-// Fix: check NativeModules.TrackPlayerModule first (always safe, no crash).
-// Only call require() when the native module is confirmed present.
 
 let TrackPlayer: any = null;
 let Event: any = {};
@@ -79,29 +76,25 @@ class AfuMusicPlayerSingleton {
     duration: 0,
     shuffle: false,
     repeat: "none",
+    rate: 1.0,
+    sleepTimerEnd: null,
+    queueMap: [],
     unavailable: !rntpAvailable,
   };
   private _listeners = new Set<Listener>();
 
   private _queueMap: number[] = [];
   private _ready = false;
-  // _setupPromise is null until the first call to _ensureReady().
-  // This guarantees TrackPlayer.registerPlaybackService() (called at module
-  // level in _layout.tsx, after all static imports resolve) runs BEFORE
-  // setupPlayer() — which is what RNTP requires on Android.
   private _setupPromise: Promise<void> | null = null;
+  private _sleepTimerTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  constructor() {
-    // Intentionally empty — setup is deferred until first playback action.
-  }
+  constructor() {}
 
   // ── Setup ──────────────────────────────────────────────────────────────────
 
   private async _setup(): Promise<void> {
     try {
-      await TrackPlayer.setupPlayer({
-        progressUpdateEventInterval: 1,
-      });
+      await TrackPlayer.setupPlayer({ progressUpdateEventInterval: 1 });
     } catch {
       // Already set up on hot reload — safe to ignore
     }
@@ -142,10 +135,7 @@ class AfuMusicPlayerSingleton {
   private async _ensureReady(): Promise<void> {
     if (!rntpAvailable) return;
     if (this._ready) return;
-    // Start setup on first call; subsequent concurrent callers await the same promise.
-    if (!this._setupPromise) {
-      this._setupPromise = this._setup();
-    }
+    if (!this._setupPromise) this._setupPromise = this._setup();
     await this._setupPromise;
   }
 
@@ -158,9 +148,7 @@ class AfuMusicPlayerSingleton {
       const qIdx = e.index;
       if (qIdx !== undefined && qIdx !== null) {
         const originalIdx = this._queueMap[qIdx];
-        if (originalIdx !== undefined) {
-          this._state.currentIndex = originalIdx;
-        }
+        if (originalIdx !== undefined) this._state.currentIndex = originalIdx;
       } else {
         this._state.currentIndex = null;
         this._state.isPlaying = false;
@@ -230,6 +218,9 @@ class AfuMusicPlayerSingleton {
       title: displayTitle(asset.filename),
       artist: displayArtist(asset.filename),
       duration: asset.duration,
+      // App icon shown on Android lock screen, notification, and Bluetooth AVRCP.
+      // require() with a static path is resolved by Metro at bundle time.
+      artwork: require("../assets/images/icon.png"),
     };
   }
 
@@ -237,6 +228,7 @@ class AfuMusicPlayerSingleton {
     if (!rntpAvailable) return;
     const { tracks } = this._state;
     this._queueMap = [...order];
+    this._state.queueMap = [...order];
     const rntpTracks = order.map((i) => this._toRntpTrack(tracks[i]));
     await TrackPlayer.setQueue(rntpTracks);
   }
@@ -251,10 +243,7 @@ class AfuMusicPlayerSingleton {
     }
     if (startWith !== undefined && startWith >= 0 && startWith < length) {
       const pos = indices.indexOf(startWith);
-      if (pos > 0) {
-        indices.splice(pos, 1);
-        indices.unshift(startWith);
-      }
+      if (pos > 0) { indices.splice(pos, 1); indices.unshift(startWith); }
     }
     return indices;
   }
@@ -278,6 +267,11 @@ class AfuMusicPlayerSingleton {
       const queuePos = order.indexOf(index);
       await TrackPlayer.skip(Math.max(0, queuePos));
       await TrackPlayer.play();
+
+      // Re-apply speed — RNTP may reset rate to 1.0 after setQueue/skip
+      if (this._state.rate !== 1.0) {
+        await TrackPlayer.setRate(this._state.rate).catch(() => {});
+      }
 
       this._state.currentIndex = index;
       this._state.isPlaying = true;
@@ -344,6 +338,44 @@ class AfuMusicPlayerSingleton {
     }
   }
 
+  // ── Playback speed ────────────────────────────────────────────────────────
+
+  async setRate(rate: number): Promise<void> {
+    this._state.rate = rate;
+    this._emit();
+    if (!rntpAvailable) return;
+    try {
+      await this._ensureReady();
+      await TrackPlayer.setRate(rate);
+    } catch (e) {
+      console.warn("[AfuMusic] setRate error:", e);
+    }
+  }
+
+  // ── Sleep timer ───────────────────────────────────────────────────────────
+
+  setSleepTimer(minutes: number | null): void {
+    if (this._sleepTimerTimeout !== null) {
+      clearTimeout(this._sleepTimerTimeout);
+      this._sleepTimerTimeout = null;
+    }
+    if (minutes === null || minutes <= 0) {
+      this._state.sleepTimerEnd = null;
+      this._emit();
+      return;
+    }
+    const ms = minutes * 60 * 1000;
+    this._state.sleepTimerEnd = Date.now() + ms;
+    this._sleepTimerTimeout = setTimeout(() => {
+      this._sleepTimerTimeout = null;
+      this._state.sleepTimerEnd = null;
+      this._state.isPlaying = false;
+      if (rntpAvailable) TrackPlayer.pause().catch(() => {});
+      this._emit();
+    }, ms);
+    this._emit();
+  }
+
   // ── Shuffle ───────────────────────────────────────────────────────────────
 
   toggleShuffle(): void {
@@ -377,21 +409,17 @@ class AfuMusicPlayerSingleton {
   private async _applyRepeatMode(mode: RepeatMode): Promise<void> {
     if (!rntpAvailable) return;
     const rnMode =
-      mode === "none"
-        ? RNTPRepeatMode.Off
-        : mode === "one"
-          ? RNTPRepeatMode.Track
-          : RNTPRepeatMode.Queue;
+      mode === "none" ? RNTPRepeatMode.Off
+      : mode === "one" ? RNTPRepeatMode.Track
+      : RNTPRepeatMode.Queue;
     await TrackPlayer.setRepeatMode(rnMode);
   }
 
   toggleRepeat(): void {
     const next: RepeatMode =
-      this._state.repeat === "none"
-        ? "all"
-        : this._state.repeat === "all"
-          ? "one"
-          : "none";
+      this._state.repeat === "none" ? "all"
+      : this._state.repeat === "all" ? "one"
+      : "none";
     this._state.repeat = next;
     this._applyRepeatMode(next).catch(() => {});
     this._emit();

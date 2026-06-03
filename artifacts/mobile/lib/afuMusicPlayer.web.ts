@@ -1,9 +1,7 @@
 /**
  * AfuMusic player — web stub.
- *
- * AfuMusic only runs on Android/iOS.  This file is automatically selected by
- * Metro when bundling for the web platform (platform-specific file resolution),
- * keeping react-native-track-player out of the web bundle entirely.
+ * Metro selects this file automatically for the web platform.
+ * react-native-track-player stays completely out of the web bundle.
  */
 import type * as MediaLibraryTypes from "expo-media-library";
 
@@ -17,6 +15,9 @@ export type MusicPlayerState = {
   duration: number;
   shuffle: boolean;
   repeat: RepeatMode;
+  rate: number;
+  sleepTimerEnd: number | null;
+  queueMap: number[];
   unavailable?: boolean;
 };
 
@@ -30,6 +31,9 @@ const STUB: MusicPlayerState = {
   duration: 0,
   shuffle: false,
   repeat: "none",
+  rate: 1.0,
+  sleepTimerEnd: null,
+  queueMap: [],
 };
 
 class WebMusicPlayerStub {
@@ -46,6 +50,8 @@ class WebMusicPlayerStub {
   async playNext(): Promise<void> {}
   async playPrev(): Promise<void> {}
   async seekTo(_: number): Promise<void> {}
+  async setRate(_: number): Promise<void> {}
+  setSleepTimer(_: number | null): void {}
   toggleShuffle(): void {}
   toggleRepeat(): void {}
   tapTrack(_: number): void {}
