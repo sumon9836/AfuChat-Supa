@@ -235,4 +235,19 @@ async function runMigrations(db: DB) {
     await safe("DROP INDEX IF EXISTS idx_notif_unread");
     await db.runAsync("UPDATE schema_version SET version = 11");
   }
+
+  // ── v12: AfuAI long-term memory store ─────────────────────────────────────────
+  if (currentVersion < 12) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS ai_memories (
+        id TEXT PRIMARY KEY,
+        key TEXT NOT NULL UNIQUE,
+        value TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_ai_memories_updated ON ai_memories(updated_at DESC);
+    `);
+    await db.runAsync("UPDATE schema_version SET version = 12");
+  }
 }

@@ -20,7 +20,7 @@ import Animated, { FadeIn, FadeInDown, FadeInRight } from "react-native-reanimat
 import * as Haptics from "@/lib/haptics";
 
 // react-native-reanimated entering animations crash on web — use null-safe wrappers
-const _FI  = Platform.OS !== "web" ? FadeIn      : null;
+const _FI  = Platform.OS === "ios"  ? FadeIn      : null;
 const _FID = Platform.OS === "ios" ? FadeInDown  : null;
 const _FIR = Platform.OS === "ios" ? FadeInRight : null;
 
