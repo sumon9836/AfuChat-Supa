@@ -52,6 +52,7 @@ class WebMusicPlayerStub {
   async seekTo(_: number): Promise<void> {}
   async setRate(_: number): Promise<void> {}
   setSleepTimer(_: number | null): void {}
+  async updateTrackMeta(_i: number, _m: { title: string | null; artist: string | null; album: string | null }): Promise<void> {}
   toggleShuffle(): void {}
   toggleRepeat(): void {}
   tapTrack(_: number): void {}

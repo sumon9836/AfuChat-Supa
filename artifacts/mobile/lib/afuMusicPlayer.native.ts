@@ -10,6 +10,7 @@
 
 import { NativeModules } from "react-native";
 import type * as MediaLibraryTypes from "expo-media-library";
+import { getMetaSync } from "./musicMetadata";
 
 export type RepeatMode = "none" | "one" | "all";
 
@@ -213,15 +214,43 @@ class AfuMusicPlayerSingleton {
   // ── RNTP queue helpers ────────────────────────────────────────────────────
 
   private _toRntpTrack(asset: MediaLibraryTypes.Asset) {
+    // Use enriched MusicBrainz metadata when already cached; fall back to
+    // filename-parsed values so the lock screen always shows something useful.
+    const meta = getMetaSync(asset.filename);
     return {
       url: asset.uri,
-      title: displayTitle(asset.filename),
-      artist: displayArtist(asset.filename),
+      title: meta?.title ?? displayTitle(asset.filename),
+      artist: meta?.artist ?? displayArtist(asset.filename),
+      album: meta?.album ?? undefined,
       duration: asset.duration,
       // App icon shown on Android lock screen, notification, and Bluetooth AVRCP.
-      // require() with a static path is resolved by Metro at bundle time.
       artwork: require("../assets/images/icon.png"),
     };
+  }
+
+  /**
+   * Update the RNTP queue entry for a track in-place so the lock screen
+   * reflects real MusicBrainz metadata without interrupting playback.
+   * Called by the UI whenever the metadata service returns enriched data.
+   */
+  async updateTrackMeta(
+    trackIndex: number,
+    meta: { title: string | null; artist: string | null; album: string | null }
+  ): Promise<void> {
+    if (!rntpAvailable) return;
+    try {
+      await this._ensureReady();
+      const queuePos = this._queueMap.indexOf(trackIndex);
+      if (queuePos < 0) return; // track not in current queue
+      await TrackPlayer.updateMetadataForTrack(queuePos, {
+        title: meta.title ?? undefined,
+        artist: meta.artist ?? undefined,
+        album: meta.album ?? undefined,
+      });
+    } catch {
+      // Ignore — method may not exist in older RNTP builds; lock screen falls
+      // back to the values baked into the queue at load time.
+    }
   }
 
   private async _buildAndSetQueue(order: number[]): Promise<void> {
