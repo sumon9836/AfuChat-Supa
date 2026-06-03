@@ -267,6 +267,14 @@ const DT_CSS = `
   .dt-page-wrap{max-width:100%}
 }
 
+/* ─── Stable inner layout containers ────────────────────────────────────── */
+/* These ensure <Slot /> always lives at the same React-tree position so     */
+/* navigating to/from the chat split-panel never remounts the screen.         */
+.dt-page-layout{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.dt-content-wide{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.dt-content-wrap{align-self:center;width:100%;max-width:840px;flex:1;display:flex;flex-direction:column}
+@media(max-width:820px){.dt-content-wrap{max-width:100%}}
+
 .dt-loading{display:flex;flex:1;align-items:center;justify-content:center;background:var(--bg);min-height:100vh}
 .dt-spin{
   width:32px;height:32px;border-radius:50%;
@@ -1072,34 +1080,37 @@ function DesktopShell() {
             MAIN BODY
         ══════════════════════════════════ */}
         <main className="dt-body">
-          {isChatRoute(pathname) ? (
-            <div className="dt-chat-split">
-              <div className="dt-chat-list-panel">
-                <ChatsListPanel />
-              </div>
-              <div className="dt-chat-conv-pane">
-                {isChatHomeRoute(pathname) ? (
-                  <>
-                    <div className="dt-chat-empty dt-desktop-only">
-                      <MessageCircle size={44} strokeWidth={1.1} />
-                      <p>Select a conversation to start chatting</p>
-                    </div>
-                    <div className="dt-mobile-only">
-                      <Slot />
-                    </div>
-                  </>
-                ) : (
-                  <Slot />
-                )}
-              </div>
+          {/*
+            IMPORTANT: <Slot /> must always stay at the same position in the
+            React tree (outer > chat-panel + content-pane > Slot) so that
+            navigating between chat and non-chat routes never unmounts it.
+            Only classNames change — React reuses the same DOM nodes.
+          */}
+          <div className={isChatRoute(pathname) ? "dt-chat-split" : "dt-page-layout"}>
+            {/* Chat list panel — always mounted, hidden via inline style on non-chat routes */}
+            <div
+              className="dt-chat-list-panel"
+              style={isChatRoute(pathname) ? undefined : { display: "none" }}
+            >
+              <ChatsListPanel />
             </div>
-          ) : isWideRoute(pathname) ? (
-            <Slot />
-          ) : (
-            <div className="dt-page-wrap">
-              <Slot />
+
+            {/* Content pane — Slot always lives here at the same tree depth */}
+            <div className={
+              isChatRoute(pathname) ? "dt-chat-conv-pane" :
+              isWideRoute(pathname) ? "dt-content-wide" :
+              "dt-content-wrap"
+            }>
+              {isChatRoute(pathname) && isChatHomeRoute(pathname) && isDesktop ? (
+                <div className="dt-chat-empty">
+                  <MessageCircle size={44} strokeWidth={1.1} />
+                  <p>Select a conversation to start chatting</p>
+                </div>
+              ) : (
+                <Slot />
+              )}
             </div>
-          )}
+          </div>
         </main>
 
       </div>
