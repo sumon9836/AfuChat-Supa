@@ -24,6 +24,7 @@ import {
   clearCachedUserId,
 } from "@/lib/offlineStore";
 import { clearAllConversations } from "@/lib/storage/localConversations";
+import { invalidateConversationsPreload } from "@/lib/conversationsPreload";
 import { saveLocalProfile, deleteLocalProfile } from "@/lib/storage/localProfile";
 import { saveLocalSettings, deleteLocalSettings } from "@/lib/storage/localSettings";
 import { clearProfileCache } from "@/lib/profileCache";
@@ -360,6 +361,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // ── 4. Wipe every local cache in parallel ───────────────────────────────
       clearProfileCache();
       clearCachedUserId();
+      invalidateConversationsPreload();
       await Promise.all([
         clearAccountCache(),
         clearAllConversations(),
@@ -467,6 +469,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Wipe all caches
       clearCachedUserId();
       clearProfileCache();
+      invalidateConversationsPreload();
       const signedOutUserId = user?.id;
       await Promise.all([
         clearAccountCache(),

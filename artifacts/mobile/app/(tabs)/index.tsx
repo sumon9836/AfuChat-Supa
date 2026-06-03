@@ -44,6 +44,7 @@ import { HomeBanner } from "@/components/ui/HomeBanner";
 import { SuggestedUsers } from "@/components/ui/SuggestedUsers";
 import { isOnline } from "@/lib/offlineStore";
 import { getLocalConversations, saveConversations, hasLocalConversations, deleteLocalConversation, pruneConversations } from "@/lib/storage/localConversations";
+import { getPreloadedConversations, hasPreloadedConversations, invalidateConversationsPreload } from "@/lib/conversationsPreload";
 import { AFUAI_CONV_ID, AFUAI_BOT_ID, getAIChatSnapshot } from "@/lib/aiChatStore";
 import { useSuperApp } from "@/lib/superapp/MiniAppRuntime";
 import { addOnlineListener, preloadConversationMessages } from "@/lib/offlineSync";
@@ -709,8 +710,11 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
   // inside chat rows instead of the registered display_name.
   const phonebookNames = usePhonebookNames();
 
-  const [chats, setChats] = useState<ChatItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Initialize from the in-memory preload cache if available (populated by _layout.tsx
+  // before this component ever mounts). This makes the chat list appear instantly
+  // for returning users — no skeleton, no SQLite wait on first render.
+  const [chats, setChats] = useState<ChatItem[]>(() => getPreloadedConversations() as any);
+  const [loading, setLoading] = useState(() => !hasPreloadedConversations());
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [switchingId, setSwitchingId] = useState<string | null>(null);
@@ -796,10 +800,15 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
     if (!user) return;
 
     if (!background) {
-      const cached = await getLocalConversations();
-      if (cached.length > 0) {
-        setChats(cached as any);
-        setLoading(false);
+      // If the preload already populated initial state, skip the redundant SQLite
+      // read — the user already sees the cached list. Otherwise (first install or
+      // cache miss) fall back to reading SQLite so we still show something fast.
+      if (!hasPreloadedConversations()) {
+        const cached = await getLocalConversations();
+        if (cached.length > 0) {
+          setChats(cached as any);
+          setLoading(false);
+        }
       }
     }
 
@@ -1129,6 +1138,9 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
     });
 
     setChats(finalItems);
+    // Discard the in-memory preload — SQLite is now fresh so next app launch
+    // will re-read it cleanly via preloadConversations().
+    invalidateConversationsPreload();
     // Only persist real chat/group items locally (not synthetic notes or channel items)
     const regularIds = regularItems.map((c) => c.id);
     saveConversations(regularItems).catch(() => {});

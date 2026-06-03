@@ -12,6 +12,8 @@ import { StatusBar } from "expo-status-bar";
 import * as Font from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useTheme } from "@/hooks/useTheme";
+import { getCachedUserId } from "@/lib/offlineStore";
+import { preloadConversations } from "@/lib/conversationsPreload";
 
 import { handleIncomingUrl } from "@/lib/deepLinkHandler";
 import {
@@ -36,6 +38,15 @@ import { TrustpilotReviewPrompt } from "@/components/TrustpilotReviewPrompt";
 import UpdatePrompt from "@/components/UpdatePrompt";
 import { initActivityTracker } from "@/lib/activityTracker";
 import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
+
+// ─── Conversations pre-warm ───────────────────────────────────────────────────
+// Start reading the local SQLite conversation list into memory NOW — before any
+// component renders — so ChatsScreen can initialize its state synchronously
+// from the memory snapshot instead of waiting for an async SQLite read.
+// This eliminates the skeleton flash for returning logged-in users.
+if (Platform.OS !== "web" && getCachedUserId()) {
+  preloadConversations();
+}
 
 // ─── Splash screen — hold immediately at module-evaluation time ───────────────
 // This runs before any component renders, ensuring the native splash stays
