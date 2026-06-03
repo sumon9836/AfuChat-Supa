@@ -12,7 +12,7 @@
     },
     "scheme": "afuchat",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "jsEngine": "hermes",
     "backgroundColor": "#000000",
     "notification": {
