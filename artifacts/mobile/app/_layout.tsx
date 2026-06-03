@@ -3,13 +3,14 @@ import { enableScreens } from "react-native-screens";
 
 enableScreens(true);
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Linking, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack, usePathname } from "expo-router";
 import { setCurrentPage, resolvePageInfo } from "@/lib/pageTracker";
 import { StatusBar } from "expo-status-bar";
 import * as Font from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 import { useTheme } from "@/hooks/useTheme";
 
 import { handleIncomingUrl } from "@/lib/deepLinkHandler";
@@ -36,11 +37,17 @@ import UpdatePrompt from "@/components/UpdatePrompt";
 import { initActivityTracker } from "@/lib/activityTracker";
 import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
 
-// Register react-native-track-player's background playback service.
+// ─── Splash screen — hold immediately at module-evaluation time ───────────────
+// This runs before any component renders, ensuring the native splash stays
+// visible until we explicitly call hideAsync() below. Without this, Expo
+// auto-hides the splash when the first JS frame renders, which is before auth
+// resolves — causing a flash of onboarding / welcome screens for signed-in users.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// ─── Background music service ─────────────────────────────────────────────────
 // Must happen at module-evaluation time (before any component renders) so the
 // foreground service survives app-kill and Bluetooth/notification controls
 // continue to work when the user is not actively using the app.
-// The Platform guard + dynamic require keeps this out of the web bundle.
 if (Platform.OS !== "web") {
   try {
     const TrackPlayer = require("react-native-track-player").default;
@@ -54,17 +61,30 @@ if (Platform.OS !== "web") {
 (Text as any).defaultProps = { ...((Text as any).defaultProps ?? {}), allowFontScaling: false };
 (TextInput as any).defaultProps = { ...((TextInput as any).defaultProps ?? {}), allowFontScaling: false };
 
+// ─── AppReadyGate ─────────────────────────────────────────────────────────────
+// Sits inside AuthProvider so it can read auth loading state.
+// Hides the splash screen the moment BOTH fonts and auth are resolved —
+// preventing any intermediate screen (onboarding, welcome, login) from flashing.
+function AppReadyGate({ fontsReady }: { fontsReady: boolean }) {
+  const { loading } = useAuth();
+  const hidden = useRef(false);
+
+  useEffect(() => {
+    if (!fontsReady || loading) return;
+    if (hidden.current) return;
+    hidden.current = true;
+    SplashScreen.hideAsync().catch(() => {});
+  }, [fontsReady, loading]);
+
+  return null;
+}
+
 function ActivityTrackerSync() {
   const { user } = useAuth();
   useEffect(() => { initActivityTracker(user?.id ?? null); }, [user?.id]);
   return null;
 }
 
-/**
- * Watches the active Expo Router pathname and writes it to the module-level
- * PageTracker store so mini apps (which are always-mounted) can always read
- * the most recent main-app route without needing their own usePathname() hook.
- */
 function PageWatcher() {
   const pathname = usePathname();
   useEffect(() => {
@@ -102,24 +122,22 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
-  // Connectivity toasts are intentionally disabled — users should never
-  // see "No internet connection" or "Back online" banners.
+  const fontsReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
-    // Cold start — app was killed and opened via a link
     Linking.getInitialURL()
       .then(handleIncomingUrl)
       .catch(() => {});
 
-    // Warm start — app already running, link tapped in foreground/background
     const sub = Linking.addEventListener("url", ({ url }) => handleIncomingUrl(url));
     return () => sub.remove();
   }, []);
 
-  // On native, block until fonts are ready to avoid flash-of-unstyled-text.
-  // On web, render immediately with system fonts then swap in Inter once loaded
-  // — blocking here causes a blank white screen in the browser.
-  if (Platform.OS !== "web" && !fontsLoaded && !fontError) {
+  // On native: keep returning null (keeping the splash layer on top) until
+  // fonts are ready. SplashScreen.preventAutoHideAsync() above ensures the
+  // native splash is still visible. On web: render immediately with system
+  // fonts (blocking causes a blank white screen in the browser).
+  if (Platform.OS !== "web" && !fontsReady) {
     return null;
   }
 
@@ -128,45 +146,47 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.root}>
         <ThemeProvider>
           <ThemedRoot>
-          <AppAccentProvider>
-            <ThemedStatusBar />
-            <DataModeProvider>
-              <AuthProvider>
-                <ActivityTrackerSync />
-                <PageWatcher />
-                <PushNotificationManager />
-                <TrustpilotReviewPrompt />
-                <UpdatePrompt />
-                <LanguageProvider>
-                  <AdvancedFeaturesProvider>
-                    <ChatPreferencesProvider>
-                      <MiniAppRuntimeProvider>
-                        <Stack
-                          screenOptions={{
-                            headerShown: false,
-                            animation: Platform.OS === "android"
-                              ? "slide_from_right"
-                              : "ios_from_right",
-                            contentStyle: { backgroundColor: "transparent" },
-                            freezeOnBlur: true,
-                          }}
-                        >
-                          <Stack.Screen name="index" options={{ animation: "none", contentStyle: { backgroundColor: "#ffffff" } }} />
-                          <Stack.Screen name="welcome" options={{ animation: "none", gestureEnabled: false }} />
-                          <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
-                          <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
-                          <Stack.Screen name="onboarding" options={{ animation: "none" }} />
-                          <Stack.Screen name="+not-found" />
-                        </Stack>
-                        <ToastContainer />
-                        <AlertModal />
-                      </MiniAppRuntimeProvider>
-                    </ChatPreferencesProvider>
-                  </AdvancedFeaturesProvider>
-                </LanguageProvider>
-              </AuthProvider>
-            </DataModeProvider>
-          </AppAccentProvider>
+            <AppAccentProvider>
+              <ThemedStatusBar />
+              <DataModeProvider>
+                <AuthProvider>
+                  {/* Gate hides the splash only once fonts + auth are both done */}
+                  <AppReadyGate fontsReady={fontsReady} />
+                  <ActivityTrackerSync />
+                  <PageWatcher />
+                  <PushNotificationManager />
+                  <TrustpilotReviewPrompt />
+                  <UpdatePrompt />
+                  <LanguageProvider>
+                    <AdvancedFeaturesProvider>
+                      <ChatPreferencesProvider>
+                        <MiniAppRuntimeProvider>
+                          <Stack
+                            screenOptions={{
+                              headerShown: false,
+                              animation: Platform.OS === "android"
+                                ? "slide_from_right"
+                                : "ios_from_right",
+                              contentStyle: { backgroundColor: "transparent" },
+                              freezeOnBlur: true,
+                            }}
+                          >
+                            <Stack.Screen name="index" options={{ animation: "none", contentStyle: { backgroundColor: "transparent" } }} />
+                            <Stack.Screen name="welcome" options={{ animation: "none", gestureEnabled: false }} />
+                            <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
+                            <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
+                            <Stack.Screen name="onboarding" options={{ animation: "none" }} />
+                            <Stack.Screen name="+not-found" />
+                          </Stack>
+                          <ToastContainer />
+                          <AlertModal />
+                        </MiniAppRuntimeProvider>
+                      </ChatPreferencesProvider>
+                    </AdvancedFeaturesProvider>
+                  </LanguageProvider>
+                </AuthProvider>
+              </DataModeProvider>
+            </AppAccentProvider>
           </ThemedRoot>
         </ThemeProvider>
       </GestureHandlerRootView>
