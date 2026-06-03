@@ -162,14 +162,7 @@
           "audioPermission": "AfuChat uses your audio library to let you save and share audio files."
         }
       ],
-      [
-        "react-native-ble-plx",
-        {
-          "isBackgroundEnabled": true,
-          "modes": ["peripheral", "central"],
-          "bluetoothAlwaysPermission": "AfuChat uses Bluetooth to discover and connect to nearby devices."
-        }
-      ]
+      "expo-video"
     ],
     "updates": {
       "enabled": false,
