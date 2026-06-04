@@ -513,8 +513,8 @@ export function VideoCommentsSheet({
 
   useEffect(() => {
     if (Platform.OS === "web") return;
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showEvent = "keyboardDidShow";
+    const hideEvent = "keyboardDidHide";
     const show = Keyboard.addListener(showEvent, (e) => setKbHeight(e.endCoordinates.height));
     const hide = Keyboard.addListener(hideEvent, () => setKbHeight(0));
     return () => { show.remove(); hide.remove(); };
@@ -731,7 +731,7 @@ export function VideoCommentsSheet({
     let finalImageUrl: string | null = null;
 
     if (hasVoice && recordedUri) {
-      const ext = Platform.OS === "ios" ? "m4a" : "m4a";
+      const ext = "m4a";
       const path = `${user.id}/comment_${Date.now()}.${ext}`;
       const { publicUrl, error } = await uploadToStorage("voice-messages", path, recordedUri, "audio/mp4");
       if (error || !publicUrl) {

@@ -88,7 +88,7 @@ export function GlassHeader({
                 accessibilityLabel="Go back"
               >
                 <Ionicons
-                  name={Platform.OS === "android" ? "arrow-back" : "chevron-back"}
+                  name="arrow-back"
                   size={26}
                   color={colors.accent}
                 />

@@ -44,7 +44,7 @@ export function KeyboardAwareScrollViewCompat({
     <KeyboardAvoidingView
       style={[styles.flex, style as any]}
       behavior="padding"
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+      keyboardVerticalOffset={24}
     >
       <ScrollView
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}

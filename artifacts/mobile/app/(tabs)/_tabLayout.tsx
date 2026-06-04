@@ -310,15 +310,15 @@ const bar = StyleSheet.create({
   label: {
     fontSize: 10.5,
     fontFamily: "Inter_700Bold",
-    fontWeight: Platform.OS === "android" ? "700" : undefined,
+    fontWeight: "700",
     letterSpacing: 0.1,
     lineHeight: 14,
     textAlign: "center",
   },
   labelActive: {
-    fontSize: Platform.OS === "android" ? 11.5 : 11,
+    fontSize: 11.5,
     fontFamily: "Inter_700Bold",
-    fontWeight: Platform.OS === "android" ? "900" : "bold",
+    fontWeight: "900",
     letterSpacing: 0.15,
   },
   avatar: {

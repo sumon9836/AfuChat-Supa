@@ -489,7 +489,7 @@ function SafeHeader({
     >
       <TouchableOpacity onPress={onBack} style={st.headerBtn} hitSlop={10}>
         <Ionicons
-          name={Platform.OS === "android" ? "arrow-back" : "chevron-back"}
+          name="arrow-back"
           size={26}
           color={colors.accent ?? Colors.brand}
         />

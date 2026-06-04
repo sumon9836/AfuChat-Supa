@@ -995,7 +995,7 @@ export default function UserDiscoveryScreen() {
             tab === "nearby" ? renderNearbyEmpty() : renderDiscoverEmpty()
           }
           keyboardShouldPersistTaps="handled"
-          removeClippedSubviews={Platform.OS === "android"}
+          removeClippedSubviews={true}
         />
       )}
     </View>

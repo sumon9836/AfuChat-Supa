@@ -86,16 +86,6 @@
       "enableShrinkResources": false,
       "versionCode": 20081
     },
-    "web": {
-      "favicon": "./assets/images/icon.png",
-      "bundler": "metro",
-      "output": "single",
-      "name": "AfuChat",
-      "shortName": "AfuChat",
-      "description": "Connect, Chat, Discover. Your all-in-one social platform.",
-      "themeColor": "#00BCD4",
-      "backgroundColor": "#00BCD4"
-    },
     "plugins": [
       [
         "expo-router",

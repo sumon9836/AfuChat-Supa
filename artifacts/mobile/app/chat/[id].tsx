@@ -1636,8 +1636,8 @@ function ChatScreen() {
     if (Platform.OS === "web") return;
     // iOS: use Will events for zero-lag animation in sync with the keyboard.
     // Android (pan mode): use Did events; animate layout changes manually.
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showEvent = "keyboardDidShow";
+    const hideEvent = "keyboardDidHide";
     const onShow = Keyboard.addListener(showEvent, (e) => {
       const h = e.endCoordinates.height;
       if (Platform.OS === "android") {

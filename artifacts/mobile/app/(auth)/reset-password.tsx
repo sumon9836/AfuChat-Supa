@@ -77,7 +77,7 @@ export default function ResetPasswordNative() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      
     >
       <ScrollView
         contentContainerStyle={[s.root, { backgroundColor: colors.background }]}

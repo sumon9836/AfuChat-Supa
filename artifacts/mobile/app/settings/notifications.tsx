@@ -470,7 +470,7 @@ export default function NotificationSettingsScreen() {
           value={prefs[field] as boolean}
           onValueChange={() => toggle(field)}
           trackColor={{ true: accent, false: colors.border }}
-          thumbColor={Platform.OS === "android" ? ((prefs[field] ? accent : colors.textMuted) as string) : undefined}
+          thumbColor={(prefs[field] ? accent : colors.textMuted) as string}
         />
       </View>
     );
@@ -597,7 +597,7 @@ export default function NotificationSettingsScreen() {
               value={prefs.quiet_hours_enabled}
               onValueChange={() => toggle("quiet_hours_enabled")}
               trackColor={{ true: accent, false: colors.border }}
-              thumbColor={Platform.OS === "android" ? (prefs.quiet_hours_enabled ? accent : colors.textMuted) : undefined}
+              thumbColor={prefs.quiet_hours_enabled ? accent : colors.textMuted}
             />
           </View>
 
