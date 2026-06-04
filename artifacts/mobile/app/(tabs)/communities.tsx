@@ -14,7 +14,6 @@ import { useFocusEffect } from "expo-router";
 import { safeRouter } from "@/lib/navUtils";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Animated from "react-native-reanimated";
 
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
@@ -196,7 +195,7 @@ export default function CommunitiesScreen() {
   function GroupCard({ item, index }: { item: Group; index: number }) {
     const isJoining = joiningId === item.id;
     return (
-      <Animated.View>
+      <View>
         <TouchableOpacity
           style={[ss.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
           onPress={() => joinOrOpenGroup(item)}
@@ -238,14 +237,14 @@ export default function CommunitiesScreen() {
             )}
           </TouchableOpacity>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   }
 
   function ChannelCard({ item, index }: { item: Channel; index: number }) {
     const isJoining = joiningId === item.id;
     return (
-      <Animated.View>
+      <View>
         <TouchableOpacity
           style={[ss.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
           onPress={() => safeRouter.push({ pathname: "/channel/[id]", params: { id: item.id } } as any)}
@@ -300,7 +299,7 @@ export default function CommunitiesScreen() {
             )}
           </TouchableOpacity>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   }
 
