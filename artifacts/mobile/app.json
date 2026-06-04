@@ -26,7 +26,6 @@
         "backgroundColor": "#00BCD4"
       },
       "googleServicesFile": "./google-services.json",
-      "softwareKeyboardLayoutMode": "resize",
       "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
