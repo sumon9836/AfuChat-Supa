@@ -83,7 +83,8 @@
         }
       ],
       "enableProguardInReleaseBuilds": false,
-      "enableShrinkResources": false
+      "enableShrinkResources": false,
+      "versionCode": 20081
     },
     "web": {
       "favicon": "./assets/images/icon.png",
@@ -159,16 +160,6 @@
       "reactCompiler": false
     },
     "owner": "afuchat",
-    "ios": {
-      "buildNumber": "2.0.81",
-      "infoPlist": {
-        "UIBackgroundModes": [
-          "audio",
-          "fetch",
-          "remote-notification"
-        ]
-      }
-    },
     "extra": {
       "eas": {
         "projectId": "784a87ad-e3d1-438c-9c84-1b336f4fd2d2"

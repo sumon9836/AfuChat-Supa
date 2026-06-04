@@ -16,13 +16,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import Animated, { FadeIn, FadeInDown, FadeInRight } from "react-native-reanimated";
 import * as Haptics from "@/lib/haptics";
 
-// react-native-reanimated entering animations crash on web — use null-safe wrappers
-const _FI  = Platform.OS === "ios"  ? FadeIn      : null;
-const _FID = Platform.OS === "ios" ? FadeInDown  : null;
-const _FIR = Platform.OS === "ios" ? FadeInRight : null;
 
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
@@ -787,7 +782,7 @@ export default function SearchScreen() {
     if (p.kind === "org") {
       const o = p as OrgPageResult;
       return (
-        <Animated.View entering={_FID?.delay(i * 30)?.duration(200)}>
+        <View >
           <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(`/company/${o.slug}` as any)} activeOpacity={0.75}>
             <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: GOLD + "1A", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
               {o.logo_url ? <ExpoImage source={{ uri: o.logo_url }} style={{ width: 48, height: 48, borderRadius: 12 }} contentFit="cover" cachePolicy="memory-disk" /> : <Ionicons name="business" size={22} color={GOLD} />}
@@ -803,12 +798,12 @@ export default function SearchScreen() {
             </View>
             <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       );
     }
     const per = p as PersonResult;
     return (
-      <Animated.View entering={_FID?.delay(i * 30)?.duration(200)}>
+      <View >
         <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(`/@${per.handle}` as any)} activeOpacity={0.75}>
           <View style={{ position: "relative" }}>
             {per.avatar_url
@@ -827,7 +822,7 @@ export default function SearchScreen() {
           </View>
           <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   }
 
@@ -835,7 +830,7 @@ export default function SearchScreen() {
 
   function PostCard({ p, i }: { p: PostResult; i: number }) {
     return (
-      <Animated.View entering={_FID?.delay(i * 25)?.duration(200)}>
+      <View >
         <TouchableOpacity style={[ss.contentCard, { backgroundColor: colors.surface }]} onPress={() => router.push(`/post/${p.id}` as any)} activeOpacity={0.75}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
             {p.author_avatar
@@ -859,7 +854,7 @@ export default function SearchScreen() {
             )}
           </View>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   }
 
@@ -932,7 +927,7 @@ export default function SearchScreen() {
 
   function GroupCard({ gr, i }: { gr: GroupResult; i: number }) {
     return (
-      <Animated.View entering={_FID?.delay(i * 25)?.duration(200)}>
+      <View >
         <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(`/group/${gr.id}` as any)} activeOpacity={0.75}>
           <View style={{ width: 48, height: 48, borderRadius: 14, overflow: "hidden" }}>
             {gr.avatar_url
@@ -949,7 +944,7 @@ export default function SearchScreen() {
           </View>
           <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   }
 
@@ -957,7 +952,7 @@ export default function SearchScreen() {
 
   function ChannelCard({ ch, i }: { ch: ChannelResult; i: number }) {
     return (
-      <Animated.View entering={_FID?.delay(i * 25)?.duration(200)}>
+      <View >
         <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(`/channel/${ch.id}` as any)} activeOpacity={0.75}>
           <View style={{ width: 48, height: 48, borderRadius: 14, overflow: "hidden" }}>
             {ch.avatar_url
@@ -978,7 +973,7 @@ export default function SearchScreen() {
           </View>
           <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   }
 
@@ -988,7 +983,7 @@ export default function SearchScreen() {
     const d = new Date(ev.event_date);
     const sold = ev.capacity > 0 ? Math.round((ev.tickets_sold / ev.capacity) * 100) : 0;
     return (
-      <Animated.View entering={_FID?.delay(i * 25)?.duration(200)}>
+      <View >
         <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push("/digital-events" as any)} activeOpacity={0.75}>
           <View style={{ width: 48, height: 52, borderRadius: 12, backgroundColor: WARN + "1A", alignItems: "center", justifyContent: "center" }}>
             <Text style={{ color: WARN, fontSize: 9, fontFamily: "Inter_700Bold" }}>{d.toLocaleDateString("en-US", { month: "short" }).toUpperCase()}</Text>
@@ -1006,7 +1001,7 @@ export default function SearchScreen() {
           </View>
           <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   }
 
@@ -1020,7 +1015,7 @@ export default function SearchScreen() {
         {gifts.map((g, i) => {
           const rc = RARITY_COLORS[g.rarity] || "#9E9E9E";
           return (
-            <Animated.View key={g.id} entering={_FID?.delay(i * 20)?.duration(180)}>
+            <View key={g.id} >
               <TouchableOpacity onPress={() => router.push("/gifts/marketplace" as any)} activeOpacity={0.8} style={{ width: GIFT_W, backgroundColor: colors.surface, borderRadius: 14, padding: 10, alignItems: "center", gap: 4, borderWidth: 1, borderColor: rc + "30" }}>
                 <Text style={{ fontSize: 26 }}>{g.emoji}</Text>
                 <Text style={{ fontSize: 10, fontFamily: "Inter_600SemiBold", color: colors.text, textAlign: "center" }} numberOfLines={2}>{g.name}</Text>
@@ -1029,7 +1024,7 @@ export default function SearchScreen() {
                 </View>
                 <Text style={{ color: GOLD, fontSize: 11, fontFamily: "Inter_700Bold" }}>✦ {g.base_xp_cost}</Text>
               </TouchableOpacity>
-            </Animated.View>
+            </View>
           );
         })}
       </View>
@@ -1041,7 +1036,7 @@ export default function SearchScreen() {
   function MarketCard({ s, i }: { s: MarketResult; i: number }) {
     const c = s.kind === "product" ? BRAND : s.kind === "freelance" ? PURPLE : SUCCESS;
     return (
-      <Animated.View entering={_FID?.delay(i * 25)?.duration(200)}>
+      <View >
         <TouchableOpacity style={[ss.listRow, { backgroundColor: colors.surface }]} onPress={() => router.push(s.route as any)} activeOpacity={0.75}>
           <View style={{ width: 48, height: 48, borderRadius: 12, overflow: "hidden", backgroundColor: c + "1A", alignItems: "center", justifyContent: "center" }}>
             {s.image_url
@@ -1060,7 +1055,7 @@ export default function SearchScreen() {
           </View>
           <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   }
 
@@ -1072,7 +1067,7 @@ export default function SearchScreen() {
       : j.job_type?.toLowerCase().includes("full") ? "#007AFF"
       : j.job_type?.toLowerCase().includes("part") ? WARN : BRAND;
     return (
-      <Animated.View entering={_FID?.delay(i * 25)?.duration(220)}>
+      <View >
         <TouchableOpacity
           style={[ss.contentCard, { backgroundColor: colors.surface }]}
           onPress={() => {
@@ -1114,7 +1109,7 @@ export default function SearchScreen() {
           </View>
           {j.description ? <Text style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 8 }} numberOfLines={2}>{j.description}</Text> : null}
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   }
 
@@ -1147,7 +1142,7 @@ export default function SearchScreen() {
     const catLabel   = CAT_LABELS[aiInsight.bestCategory] || aiInsight.bestCategory;
 
     return (
-      <Animated.View entering={_FID?.duration(280)}>
+      <View >
         <LinearGradient
           colors={isDark ? [PURPLE + "28", PURPLE + "0C"] : [PURPLE + "16", PURPLE + "06"]}
           style={[ss.aiCard, { borderColor: PURPLE + "35" }]}
@@ -1283,7 +1278,7 @@ export default function SearchScreen() {
             </>
           )}
         </LinearGradient>
-      </Animated.View>
+      </View>
     );
   }
 
@@ -1295,7 +1290,7 @@ export default function SearchScreen() {
       : (personalizedTags.length > 0 ? personalizedTags : FALLBACK_TAGS).slice(0, 8).map(t => ({ tag: t, count: 0 }));
     return (
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: scrollPB + 16 }} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={_FID?.duration(300)} style={{ alignItems: "center", paddingTop: 36, paddingHorizontal: 24 }}>
+        <View style={{ alignItems: "center", paddingTop: 36, paddingHorizontal: 24 }}>
           {/* Icon cluster */}
           <View style={{ marginBottom: 20, alignItems: "center", justifyContent: "center" }}>
             <LinearGradient colors={[BRAND + "30", BRAND + "08"]} style={{ width: 110, height: 110, borderRadius: 55, alignItems: "center", justifyContent: "center" }}>
@@ -1346,7 +1341,7 @@ export default function SearchScreen() {
               <Ionicons name="arrow-forward" size={16} color={PURPLE} />
             </TouchableOpacity>
           )}
-        </Animated.View>
+        </View>
       </ScrollView>
     );
   }
@@ -1369,7 +1364,7 @@ export default function SearchScreen() {
     return (
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: scrollPB }}>
         {/* Results summary */}
-        <Animated.View entering={_FI?.duration(200)} style={[ss.resultsBanner, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={[ss.resultsBanner, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Ionicons name="search" size={13} color={BRAND} />
             <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
@@ -1383,7 +1378,7 @@ export default function SearchScreen() {
               <Text style={{ color: PURPLE, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>AI</Text>
             </View>
           )}
-        </Animated.View>
+        </View>
 
         {aiMode && (aiInsight || aiLoading) && (
           <View style={{ paddingHorizontal: 14, paddingTop: 14 }}><AiCard /></View>
@@ -1505,7 +1500,7 @@ export default function SearchScreen() {
 
         {/* ── Recent searches ── */}
         {history.length > 0 && (
-          <Animated.View entering={_FI?.duration(220)} style={{ paddingHorizontal: PH, paddingTop: 16, paddingBottom: 4 }}>
+          <View style={{ paddingHorizontal: PH, paddingTop: 16, paddingBottom: 4 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 10 }}>
               <Ionicons name="time-outline" size={15} color={colors.textMuted} />
               <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: colors.text, flex: 1 }}>Recent</Text>
@@ -1529,12 +1524,12 @@ export default function SearchScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </Animated.View>
+          </View>
         )}
 
         {/* ── Saved searches ── */}
         {saved.length > 0 && (
-          <Animated.View entering={_FI?.duration(240)} style={{ paddingHorizontal: PH, paddingTop: 16, paddingBottom: 4 }}>
+          <View style={{ paddingHorizontal: PH, paddingTop: 16, paddingBottom: 4 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 10 }}>
               <Ionicons name="bookmark" size={15} color={GOLD} />
               <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: colors.text }}>Saved</Text>
@@ -1552,11 +1547,11 @@ export default function SearchScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </Animated.View>
+          </View>
         )}
 
         {/* ── Browse — Bento grid ── */}
-        <Animated.View entering={_FID?.delay(60)?.duration(300)} style={{ paddingTop: 22, paddingHorizontal: PH }}>
+        <View style={{ paddingTop: 22, paddingHorizontal: PH }}>
           <View style={{ flexDirection: "row", alignItems: "flex-end", marginBottom: 16 }}>
             <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.text, flex: 1, letterSpacing: -0.5 }}>Browse</Text>
           </View>
@@ -1564,34 +1559,34 @@ export default function SearchScreen() {
           {/* Row 1: 2 large tall cards */}
           <View style={{ flexDirection: "row", gap: G }}>
             {CATEGORIES.slice(0, 2).map((cat, i) => (
-              <Animated.View key={cat.id} entering={_FID?.delay(i * 40)?.duration(260)}>
+              <View key={cat.id} >
                 <BrowseCard cat={cat} w={half} h={130} iconSz={30} />
-              </Animated.View>
+              </View>
             ))}
           </View>
 
           {/* Row 2: 3 medium cards */}
           <View style={{ flexDirection: "row", gap: G, marginTop: G }}>
             {CATEGORIES.slice(2, 5).map((cat, i) => (
-              <Animated.View key={cat.id} entering={_FID?.delay(80 + i * 35)?.duration(260)}>
+              <View key={cat.id} >
                 <BrowseCard cat={cat} w={third} h={100} iconSz={24} />
-              </Animated.View>
+              </View>
             ))}
           </View>
 
           {/* Row 3: 3 medium cards */}
           <View style={{ flexDirection: "row", gap: G, marginTop: G }}>
             {CATEGORIES.slice(5, 8).map((cat, i) => (
-              <Animated.View key={cat.id} entering={_FID?.delay(185 + i * 35)?.duration(260)}>
+              <View key={cat.id} >
                 <BrowseCard cat={cat} w={third} h={100} iconSz={24} />
-              </Animated.View>
+              </View>
             ))}
           </View>
-        </Animated.View>
+        </View>
 
         {/* ── Trending hashtags — 2-col ranked grid ── */}
         {displayTags.length > 0 && (
-          <Animated.View entering={_FID?.delay(150)?.duration(300)} style={{ paddingTop: 28 }}>
+          <View style={{ paddingTop: 28 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: PH, marginBottom: 14 }}>
               <Ionicons name={trendingHashtags.length === 0 && personalizedTags.length > 0 ? "sparkles" as any : "flame"} size={18} color={trendingHashtags.length === 0 && personalizedTags.length > 0 ? BRAND : RED} />
               <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.text, flex: 1, letterSpacing: -0.5 }}>
@@ -1603,7 +1598,7 @@ export default function SearchScreen() {
             </View>
             <View style={{ paddingHorizontal: PH, flexDirection: "row", flexWrap: "wrap", gap: G }}>
               {displayTags.map(({ tag, count }, i) => (
-                <Animated.View key={tag} entering={_FID?.delay(i * 28)?.duration(240)}>
+                <View key={tag} >
                   <TouchableOpacity
                     onPress={() => onTagPress(tag)}
                     activeOpacity={0.72}
@@ -1618,15 +1613,15 @@ export default function SearchScreen() {
                     </View>
                     {i < 3 && <Ionicons name="flame" size={14} color={RED} />}
                   </TouchableOpacity>
-                </Animated.View>
+                </View>
               ))}
             </View>
-          </Animated.View>
+          </View>
         )}
 
         {/* ── People to follow — enhanced cards ── */}
         {trendingPeople.length > 0 && (
-          <Animated.View entering={_FID?.delay(220)?.duration(300)} style={{ paddingTop: 28 }}>
+          <View style={{ paddingTop: 28 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: PH, marginBottom: 14 }}>
               <Ionicons name="people" size={18} color={BRAND} />
               <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.text, flex: 1, letterSpacing: -0.5 }}>People to follow</Text>
@@ -1673,12 +1668,12 @@ export default function SearchScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </Animated.View>
+          </View>
         )}
 
         {/* ── Trending videos — cinematic horizontal scroll ── */}
         {trendingVideos.length > 0 && (
-          <Animated.View entering={_FID?.delay(290)?.duration(300)} style={{ paddingTop: 28 }}>
+          <View style={{ paddingTop: 28 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: PH, marginBottom: 14 }}>
               <Ionicons name="play-circle" size={18} color={RED} />
               <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.text, flex: 1, letterSpacing: -0.5 }}>Trending videos</Text>
@@ -1688,7 +1683,7 @@ export default function SearchScreen() {
                 const vw = SW * 0.62;
                 const vh = vw * 0.58;
                 return (
-                  <Animated.View key={v.id} entering={_FIR?.delay(30)?.duration(240)}>
+                  <View key={v.id} >
                     <TouchableOpacity
                       style={{ width: vw, backgroundColor: colors.surface, borderRadius: 22, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}
                       onPress={() => router.push(`/post/${v.id}` as any)}
@@ -1736,11 +1731,11 @@ export default function SearchScreen() {
                         </View>
                       </View>
                     </TouchableOpacity>
-                  </Animated.View>
+                  </View>
                 );
               })}
             </ScrollView>
-          </Animated.View>
+          </View>
         )}
 
         <View style={{ height: 24 }} />
