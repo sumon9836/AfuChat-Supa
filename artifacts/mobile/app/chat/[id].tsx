@@ -38,12 +38,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
-import { Video, ResizeMode } from "expo-av";
-import {
-  useAudioRecorder,
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-} from "expo-audio";
+import { Video, ResizeMode, Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import * as Clipboard from "expo-clipboard";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -1708,7 +1703,7 @@ function ChatScreen() {
   const [recLocked, setRecLocked] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingTenths, setRecordingTenths] = useState(0);
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderRef = useRef<Audio.Recording | null>(null);
   const recordingActiveRef = useRef(false);
   const recordingTimer = useRef<any>(null);
   const meterInterval = useRef<any>(null);
@@ -2253,7 +2248,8 @@ function ChatScreen() {
       clearInterval(meterInterval.current);
       if (recordingActiveRef.current) {
         recordingActiveRef.current = false;
-        recorder.stop().catch(() => {});
+        recorderRef.current?.stopAndUnloadAsync().catch(() => {});
+        recorderRef.current = null;
       }
     };
   }, []);
@@ -4444,22 +4440,25 @@ STRICT RULES:
       }
     }, 5000);
     try {
-      const { granted } = await requestRecordingPermissionsAsync();
+      const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) {
         clearTimeout(safetyTimer);
         recPressActiveSV.value = false;
         showAlert("Microphone permission needed", "Go to Settings and allow AfuChat to access your microphone.");
         return;
       }
-      await recorder.prepareToRecordAsync();
-      recorder.record();
+      const _rec = new Audio.Recording();
+      await _rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      recorderRef.current = _rec;
+      await _rec.startAsync();
       recordingActiveRef.current = true;
       recStartedSV.value = true;
       clearTimeout(safetyTimer);
 
       if (!recPressActiveSV.value && !recLockedSV.value) {
         try {
-          await recorder.stop();
+          await recorderRef.current?.stopAndUnloadAsync();
+          recorderRef.current = null;
         } catch (_) {}
         recordingActiveRef.current = false;
         recStartedSV.value = false;
@@ -4502,13 +4501,15 @@ STRICT RULES:
   async function startVoiceRecordingWeb() {
     if (recordingActiveRef.current) return;
     try {
-      const { granted } = await requestRecordingPermissionsAsync();
+      const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) {
         showAlert("Microphone permission needed", "Please allow access to your microphone.");
         return;
       }
-      await recorder.prepareToRecordAsync();
-      recorder.record();
+      const _recW = new Audio.Recording();
+      await _recW.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      recorderRef.current = _recW;
+      await _recW.startAsync();
       recordingActiveRef.current = true;
       recStartedSV.value = true;
       recLockedSV.value = true;
@@ -4557,15 +4558,17 @@ STRICT RULES:
 
     if (capturedDuration < 1) {
       try {
-        await recorder.stop();
+        await recorderRef.current?.stopAndUnloadAsync();
       } catch (_) {}
+      recorderRef.current = null;
       recordingActiveRef.current = false;
       return;
     }
 
     try {
-      await recorder.stop();
-      const uri = recorder.uri;
+      await recorderRef.current?.stopAndUnloadAsync();
+      const uri = recorderRef.current?.getURI() ?? null;
+      recorderRef.current = null;
       recordingActiveRef.current = false;
 
       if (!uri || !user) return;
@@ -4652,8 +4655,9 @@ STRICT RULES:
     directionLock.value = "none";
     if (recordingActiveRef.current) {
       try {
-        await recorder.stop();
+        await recorderRef.current?.stopAndUnloadAsync();
       } catch (_) {}
+      recorderRef.current = null;
       recordingActiveRef.current = false;
     }
   }

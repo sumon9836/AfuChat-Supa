@@ -16,3 +16,4 @@
 - [db.native.ts must stay in sync with db.ts migrations](db-native-migration-sync.md) — Metro resolves db.native.ts for Android/iOS builds; db.ts for web. Both files must have identical migration arrays. If web adds a migration (v12, v13…) and native is not updated, native builds silently stop at the old version.
 - [Android startup crash: edgeToEdge + adjustResize](android-edgetop-adjustresize-crash.md) — edgeToEdgeEnabled:true + softwareKeyboardLayoutMode:resize causes instant IllegalStateException on Android 15+.
 - [Stable Old-Arch APK stack for Expo SDK 54](old-arch-apk-stack.md) — Reanimated 4.x requires New Arch; MMKV 4.x (Nitro) requires New Arch. New Arch crashes pre-splash on some real devices. Stable combo: newArchEnabled:false + react-native-reanimated ~3.19.5 + react-native-mmkv ~3.3.3 + no worklets + no nitro-modules.
+- [expo-audio New Arch requirement](expo-audio-newarch.md) — expo-audio 1.x (SDK 54) is New Arch only; use expo-av for Old Arch builds.
