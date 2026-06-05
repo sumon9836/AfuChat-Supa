@@ -38,13 +38,26 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Svg, {
-  Path,
-  Defs,
-  LinearGradient as SvgGradient,
-  Stop,
-  Circle,
-} from "react-native-svg";
+let _SvgMod: any = null;
+function getSvg() {
+  if (_SvgMod !== null) return _SvgMod;
+  try { _SvgMod = require("react-native-svg"); } catch { _SvgMod = {}; }
+  return _SvgMod;
+}
+function makeSvgComp(name: string) {
+  return function SafeSvgComp(props: any) {
+    const M = getSvg();
+    const C = M[name] ?? M.default?.[name];
+    if (!C) return null;
+    return require("react").createElement(C, props);
+  };
+}
+const Svg: any = (props: any) => { const M = getSvg(); const C = M.default ?? M.Svg; if (!C) return null; return require("react").createElement(C, props); };
+const Path: any = makeSvgComp("Path");
+const Defs: any = makeSvgComp("Defs");
+const SvgGradient: any = makeSvgComp("LinearGradient");
+const Stop: any = makeSvgComp("Stop");
+const Circle: any = makeSvgComp("Circle");
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";

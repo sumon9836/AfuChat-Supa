@@ -13,7 +13,25 @@ import {
   FlatList,
   Dimensions,
 } from "react-native";
-import Svg, { Path, Line, Circle, Defs, LinearGradient as SvgLinearGradient, Stop, Polyline } from "react-native-svg";
+function getSvgMod() {
+  try { return require("react-native-svg"); } catch { return {}; }
+}
+function makeSvgComp(name: string) {
+  return function SafeC(props: any) {
+    const M = getSvgMod();
+    const C = M[name] ?? M.default?.[name];
+    if (!C) return null;
+    return require("react").createElement(C, props);
+  };
+}
+const Svg: any = (props: any) => { const M = getSvgMod(); const C = M.default ?? M.Svg; if (!C) return null; return require("react").createElement(C, props); };
+const Path: any = makeSvgComp("Path");
+const Line: any = makeSvgComp("Line");
+const Circle: any = makeSvgComp("Circle");
+const Defs: any = makeSvgComp("Defs");
+const SvgLinearGradient: any = makeSvgComp("LinearGradient");
+const Stop: any = makeSvgComp("Stop");
+const Polyline: any = makeSvgComp("Polyline");
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";

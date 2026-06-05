@@ -42,7 +42,6 @@ import { Video, ResizeMode, Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import * as Clipboard from "expo-clipboard";
 import AudioPlayer from "@/components/AudioPlayer";
-import Svg, { Path } from "react-native-svg";
 import { ChatLoadingSkeleton } from "@/components/ui/Skeleton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase, supabaseUrl as SUPA_URL, supabaseAnonKey as SUPA_KEY } from "@/lib/supabase";
@@ -294,21 +293,29 @@ function PremiumBubbleShimmer() {
 
 function BubbleTail({ isMe, color }: { isMe: boolean; color: string }) {
   if (isMe) {
-    // Right-side tail: sharp point at bottom-right, concave inner curve back to top-left
     return (
       <View style={st.tailMe}>
-        <Svg width={14} height={20} viewBox="0 0 14 20">
-          <Path d="M0 0 L14 20 C9 15 2 9 0 0 Z" fill={color} />
-        </Svg>
+        <View style={{
+          width: 0, height: 0,
+          borderTopWidth: 14,
+          borderTopColor: color,
+          borderLeftWidth: 10,
+          borderLeftColor: "transparent",
+          backgroundColor: "transparent",
+        }} />
       </View>
     );
   }
-  // Left-side tail: mirror of the above
   return (
     <View style={st.tailOther}>
-      <Svg width={14} height={20} viewBox="0 0 14 20">
-        <Path d="M14 0 L0 20 C5 15 12 9 14 0 Z" fill={color} />
-      </Svg>
+      <View style={{
+        width: 0, height: 0,
+        borderTopWidth: 14,
+        borderTopColor: color,
+        borderRightWidth: 10,
+        borderRightColor: "transparent",
+        backgroundColor: "transparent",
+      }} />
     </View>
   );
 }
