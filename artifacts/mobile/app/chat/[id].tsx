@@ -88,6 +88,7 @@ import AiEditorSheet from "@/components/ui/AiEditorSheet";
 import ChatBackground from "@/components/ui/ChatBackground";
 import FormatToolbar from "@/components/chat/FormatToolbar";
 import MiniProfilePopup from "@/components/chat/MiniProfilePopup";
+import { VoiceWaveform } from "@/components/chat/VoiceWaveform";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 // ── Lazy-load Reanimated ──────────────────────────────────────────────────────
@@ -212,10 +213,8 @@ if (Platform.OS === "android" && !("RN$Bridgeless" in global) && UIManager.setLa
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 const REACTION_EMOJIS_ADVANCED = ["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "👏", "😍", "🤔", "😭", "🥳", "💯", "🎉", "😎", "✨"];
 const BRAND_FALLBACK = Colors.brand;
-const MIC_SPRING_CONFIG = { damping: 18, stiffness: 200, mass: 0.8 };
-const MIC_SPRING_SNAP = { damping: 20, stiffness: 180 };
-const MIC_CANCEL_THRESHOLD = -120;
-const MIC_LOCK_THRESHOLD = -100;
+const MIC_CANCEL_THRESHOLD = -100;
+const MIC_LOCK_THRESHOLD = -80;
 const MIC_DIRECTION_DEADZONE = 10;
 
 function formatLastSeen(ts: string | null | undefined, showOnlineStatus?: boolean): { text: string; isOnline: boolean } {
@@ -1750,7 +1749,6 @@ function ChatScreen() {
   const recordingActiveRef = useRef(false);
   const recordingTimer = useRef<any>(null);
   const meterInterval = useRef<any>(null);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
   const recLockedSV = useSharedValue(false);
   const recCancelledSV = useSharedValue(false);
   const recStartedSV = useSharedValue(false);
@@ -1758,26 +1756,7 @@ function ChatScreen() {
 
   const slideX = useSharedValue(0);
   const slideY = useSharedValue(0);
-  const micScale = useSharedValue(1);
-  const recBarOpacity = useSharedValue(0);
-  const cancelProgress = useSharedValue(0);
-  const lockProgress = useSharedValue(0);
-  const chevronAnim = useSharedValue(0);
   const directionLock = useSharedValue<"none" | "horizontal" | "vertical">("none");
-
-  useEffect(() => {
-    if (isRecording && !recLocked) {
-      const run = () => {
-        chevronAnim.value = 0;
-        chevronAnim.value = withTiming(1, { duration: 1200 }, (finished) => {
-          if (finished) runOnJS(run)();
-        });
-      };
-      run();
-    } else {
-      chevronAnim.value = 0;
-    }
-  }, [isRecording, recLocked]);
 
   const onRecStart = useCallback(() => {
     recLockedSV.value = false;
@@ -1809,8 +1788,6 @@ function ChatScreen() {
   const micGesture = useMemo(() => Gesture.Pan()
     .minDistance(0)
     .onBegin(() => {
-      micScale.value = withSpring(1.35, MIC_SPRING_CONFIG);
-      recBarOpacity.value = withTiming(1, { duration: 200 });
       directionLock.value = "none";
       runOnJS(onRecStart)();
     })
@@ -1828,33 +1805,18 @@ function ChatScreen() {
       }
 
       if (directionLock.value === "horizontal") {
-        const clampedX = Math.min(0, e.translationX);
-        slideX.value = clampedX;
-        slideY.value = 0;
-        cancelProgress.value = interpolate(clampedX, [MIC_CANCEL_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP);
-        lockProgress.value = 0;
-
-        if (clampedX < MIC_CANCEL_THRESHOLD && !recCancelledSV.value) {
+        slideX.value = Math.min(0, e.translationX);
+        if (slideX.value < MIC_CANCEL_THRESHOLD && !recCancelledSV.value) {
           recCancelledSV.value = true;
-          slideX.value = withSpring(0, MIC_SPRING_SNAP);
-          slideY.value = withSpring(0, MIC_SPRING_SNAP);
-          micScale.value = withSpring(1, MIC_SPRING_SNAP);
-          recBarOpacity.value = withTiming(0, { duration: 200 });
-          cancelProgress.value = withTiming(0, { duration: 200 });
+          slideX.value = 0;
+          slideY.value = 0;
           runOnJS(onRecCancel)();
         }
       } else {
-        const clampedY = Math.min(0, e.translationY);
-        slideY.value = clampedY;
-        slideX.value = 0;
-        lockProgress.value = interpolate(clampedY, [MIC_LOCK_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP);
-        cancelProgress.value = 0;
-
-        if (clampedY < MIC_LOCK_THRESHOLD && !recLockedSV.value && !recCancelledSV.value) {
-          slideX.value = withSpring(0, MIC_SPRING_SNAP);
-          slideY.value = withSpring(0, MIC_SPRING_SNAP);
-          micScale.value = withSpring(1.1, MIC_SPRING_CONFIG);
-          lockProgress.value = withTiming(0, { duration: 200 });
+        slideY.value = Math.min(0, e.translationY);
+        if (slideY.value < MIC_LOCK_THRESHOLD && !recLockedSV.value && !recCancelledSV.value) {
+          slideX.value = 0;
+          slideY.value = 0;
           runOnJS(onRecLock)();
         }
       }
@@ -1862,14 +1824,8 @@ function ChatScreen() {
     .onEnd(() => {
       recPressActiveSV.value = false;
       directionLock.value = "none";
-      if (!recLockedSV.value) {
-        slideX.value = withSpring(0, MIC_SPRING_SNAP);
-        slideY.value = withSpring(0, MIC_SPRING_SNAP);
-        micScale.value = withSpring(1, MIC_SPRING_CONFIG);
-        recBarOpacity.value = withTiming(0, { duration: 150 });
-        cancelProgress.value = withTiming(0, { duration: 150 });
-        lockProgress.value = withTiming(0, { duration: 150 });
-      }
+      slideX.value = 0;
+      slideY.value = 0;
       if (recCancelledSV.value || recLockedSV.value) return;
       if (recStartedSV.value) {
         runOnJS(onRecSend)();
@@ -1878,36 +1834,6 @@ function ChatScreen() {
     .onFinalize(() => {
       recPressActiveSV.value = false;
     }), [onRecStart, onRecCancel, onRecLock, onRecSend]);
-
-  const micBtnAnimStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: slideX.value },
-      { translateY: slideY.value * 0.3 },
-      { scale: micScale.value },
-    ],
-  }));
-
-  const cancelZoneAnimStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(cancelProgress.value, [0, 0.3, 1], [0, 0.5, 1], Extrapolation.CLAMP),
-    transform: [{ scale: interpolate(cancelProgress.value, [0, 1], [0.8, 1.15], Extrapolation.CLAMP) }],
-  }));
-
-  const slideHintAnimStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(cancelProgress.value, [0, 0.5], [1, 0], Extrapolation.CLAMP),
-    transform: [{ translateX: interpolate(chevronAnim.value, [0, 0.5, 1], [0, -8, 0], Extrapolation.CLAMP) }],
-  }));
-
-  const lockIndicatorAnimStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(lockProgress.value, [0, 0.3, 1], [0.3, 0.65, 1], Extrapolation.CLAMP),
-    transform: [
-      { translateY: interpolate(lockProgress.value, [0, 1], [0, -18], Extrapolation.CLAMP) },
-      { scale: interpolate(lockProgress.value, [0, 1], [0.85, 1.1], Extrapolation.CLAMP) },
-    ],
-  }));
-
-  const recBarAnimStyle = useAnimatedStyle(() => ({
-    opacity: recBarOpacity.value,
-  }));
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showAttachPanel, setShowAttachPanel] = useState(false);
   const [attachTab, setAttachTab] = useState<"Gallery" | "Wallet" | "File" | "Poll" | "Contact">("Gallery");
@@ -4513,12 +4439,6 @@ STRICT RULES:
       setRecordingDuration(0);
       setRecordingTenths(0);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 0.15, duration: 380, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 380, useNativeDriver: true }),
-        ])
-      ).start();
       recordingTimer.current = setInterval(() => {
         setRecordingTenths((t) => {
           if (t >= 9) {
@@ -4593,8 +4513,6 @@ STRICT RULES:
     const capturedDuration = recordingDuration;
     clearInterval(recordingTimer.current);
     clearInterval(meterInterval.current);
-    pulseAnim.stopAnimation();
-    pulseAnim.setValue(1);
     setIsRecording(false);
     setRecLocked(false);
     recLockedSV.value = false;
@@ -4603,12 +4521,8 @@ STRICT RULES:
     recCancelledSV.value = false;
     setRecordingDuration(0);
     setRecordingTenths(0);
-    slideX.value = withSpring(0, MIC_SPRING_SNAP);
-    slideY.value = withSpring(0, MIC_SPRING_SNAP);
-    micScale.value = withSpring(1, MIC_SPRING_CONFIG);
-    recBarOpacity.value = withTiming(0, { duration: 150 });
-    cancelProgress.value = withTiming(0, { duration: 150 });
-    lockProgress.value = withTiming(0, { duration: 150 });
+    slideX.value = 0;
+    slideY.value = 0;
     directionLock.value = "none";
 
     if (capturedDuration < 1) {
@@ -4717,8 +4631,6 @@ STRICT RULES:
   async function cancelVoiceRecording() {
     clearInterval(recordingTimer.current);
     clearInterval(meterInterval.current);
-    pulseAnim.stopAnimation();
-    pulseAnim.setValue(1);
     setIsRecording(false);
     setRecLocked(false);
     recLockedSV.value = false;
@@ -4727,12 +4639,8 @@ STRICT RULES:
     recCancelledSV.value = false;
     setRecordingDuration(0);
     setRecordingTenths(0);
-    slideX.value = withSpring(0, MIC_SPRING_SNAP);
-    slideY.value = withSpring(0, MIC_SPRING_SNAP);
-    micScale.value = withSpring(1, MIC_SPRING_CONFIG);
-    recBarOpacity.value = withTiming(0, { duration: 150 });
-    cancelProgress.value = withTiming(0, { duration: 150 });
-    lockProgress.value = withTiming(0, { duration: 150 });
+    slideX.value = 0;
+    slideY.value = 0;
     directionLock.value = "none";
     if (recordingActiveRef.current) {
       if (Platform.OS === "web") {
@@ -5409,11 +5317,10 @@ STRICT RULES:
                 <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={12} style={st.recLockedTrash}>
                   <Ionicons name="trash" size={20} color="#FF3B30" />
                 </TouchableOpacity>
-                <Animated.View style={[st.recordingDot, { opacity: pulseAnim, marginLeft: 6 }]} />
-                <Text style={[st.recordingText, { color: "#FF3B30", marginLeft: 8 }]}>
+                <VoiceWaveform active={isRecording} color={BRAND} />
+                <Text style={[st.recordingText, { color: colors.text, marginLeft: 8, flex: 1 }]}>
                   {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")}
                 </Text>
-                <View style={{ flex: 1 }} />
                 <TouchableOpacity onPress={stopVoiceRecording} style={[st.sendBtn, { backgroundColor: BRAND }]}>
                   <Ionicons name="send" size={18} color="#fff" />
                 </TouchableOpacity>
@@ -5438,25 +5345,18 @@ STRICT RULES:
                   <View style={st.inputBarRow}>
                     {isRecording && !recLocked ? (
                       <>
-                        <ReAnimated.View style={[st.recCancelZone, cancelZoneAnimStyle]}>
-                          <View style={st.recCancelCircle}>
-                            <Ionicons name="trash" size={17} color="#FF3B30" />
-                          </View>
-                        </ReAnimated.View>
-                        <View style={st.recHoldCenter}>
-                          <View style={st.recHoldTimerRow}>
-                            <Animated.View style={[st.recordingDot, { opacity: pulseAnim }]} />
-                            <Text style={[st.recordingText, { color: colors.text }]}>
-                              {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")},{recordingTenths}
-                            </Text>
-                          </View>
-                          <ReAnimated.View style={slideHintAnimStyle}>
-                            <View style={st.recSlideHint}>
-                              <Ionicons name="chevron-back" size={13} color={colors.textMuted} />
-                              <Ionicons name="chevron-back" size={13} color={colors.textMuted} style={{ marginLeft: -7, opacity: 0.45 }} />
-                              <Text style={[st.recSlideText, { color: colors.textMuted }]}>Slide to cancel</Text>
-                            </View>
-                          </ReAnimated.View>
+                        <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={12} style={st.recTrashBtn}>
+                          <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                        </TouchableOpacity>
+                        <View style={st.recWaveRow}>
+                          <VoiceWaveform active={isRecording} color={BRAND} />
+                          <Text style={[st.recordingText, { color: colors.text, marginLeft: 8 }]}>
+                            {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")}.{recordingTenths}
+                          </Text>
+                        </View>
+                        <View style={st.recCancelHint}>
+                          <Ionicons name="chevron-back" size={12} color={colors.textMuted} />
+                          <Text style={[st.recSlideText, { color: colors.textMuted }]}>Cancel</Text>
                         </View>
                       </>
                     ) : (
@@ -5565,21 +5465,15 @@ STRICT RULES:
                     ) : (
                       <View style={isRecording && !recLocked ? st.recMicWrap : undefined}>
                         {isRecording && !recLocked && (
-                          <ReAnimated.View style={[st.recLockIndicator, lockIndicatorAnimStyle]}>
-                            <View style={[st.recLockPill, { backgroundColor: colors.inputBg }]}>
-                              <Ionicons name="lock-closed" size={13} color={colors.textMuted} />
-                              <Ionicons name="chevron-up" size={9} color={colors.textMuted} style={{ marginTop: -2 }} />
-                            </View>
-                          </ReAnimated.View>
+                          <View style={st.recLockHint}>
+                            <Ionicons name="chevron-up" size={14} color={colors.textMuted} />
+                          </View>
                         )}
                         {_reanimatedEnabled ? (
                           <GestureDetector gesture={micGesture}>
-                            <ReAnimated.View style={[
-                              isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND, ...(Platform.OS !== "web" ? { shadowColor: BRAND } : {}) }] : [st.sendBtn, { backgroundColor: BRAND }],
-                              isRecording && !recLocked ? micBtnAnimStyle : undefined,
-                            ]}>
+                            <View style={isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND, ...(Platform.OS !== "web" ? { shadowColor: BRAND } : {}) }] : [st.sendBtn, { backgroundColor: BRAND }]}>
                               <Ionicons name="mic" size={isRecording ? 24 : 20} color="#fff" />
-                            </ReAnimated.View>
+                            </View>
                           </GestureDetector>
                         ) : (
                           <Pressable
@@ -5599,25 +5493,18 @@ STRICT RULES:
                   <View style={st.inputBarRow}>
                     {isRecording && !recLocked ? (
                       <>
-                        <ReAnimated.View style={[st.recCancelZone, cancelZoneAnimStyle]}>
-                          <View style={st.recCancelCircle}>
-                            <Ionicons name="trash" size={17} color="#FF3B30" />
-                          </View>
-                        </ReAnimated.View>
-                        <View style={st.recHoldCenter}>
-                          <View style={st.recHoldTimerRow}>
-                            <Animated.View style={[st.recordingDot, { opacity: pulseAnim }]} />
-                            <Text style={[st.recordingText, { color: colors.text }]}>
-                              {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")},{recordingTenths}
-                            </Text>
-                          </View>
-                          <ReAnimated.View style={slideHintAnimStyle}>
-                            <View style={st.recSlideHint}>
-                              <Ionicons name="chevron-back" size={13} color={colors.textMuted} />
-                              <Ionicons name="chevron-back" size={13} color={colors.textMuted} style={{ marginLeft: -7, opacity: 0.45 }} />
-                              <Text style={[st.recSlideText, { color: colors.textMuted }]}>Slide to cancel</Text>
-                            </View>
-                          </ReAnimated.View>
+                        <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={12} style={st.recTrashBtn}>
+                          <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                        </TouchableOpacity>
+                        <View style={st.recWaveRow}>
+                          <VoiceWaveform active={isRecording} color={BRAND} />
+                          <Text style={[st.recordingText, { color: colors.text, marginLeft: 8 }]}>
+                            {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")}.{recordingTenths}
+                          </Text>
+                        </View>
+                        <View style={st.recCancelHint}>
+                          <Ionicons name="chevron-back" size={12} color={colors.textMuted} />
+                          <Text style={[st.recSlideText, { color: colors.textMuted }]}>Cancel</Text>
                         </View>
                       </>
                     ) : (
@@ -5730,21 +5617,15 @@ STRICT RULES:
                     ) : (
                       <View style={isRecording && !recLocked ? st.recMicWrap : undefined}>
                         {isRecording && !recLocked && (
-                          <ReAnimated.View style={[st.recLockIndicator, lockIndicatorAnimStyle]}>
-                            <View style={[st.recLockPill, { backgroundColor: colors.inputBg }]}>
-                              <Ionicons name="lock-closed" size={13} color={colors.textMuted} />
-                              <Ionicons name="chevron-up" size={9} color={colors.textMuted} style={{ marginTop: -2 }} />
-                            </View>
-                          </ReAnimated.View>
+                          <View style={st.recLockHint}>
+                            <Ionicons name="chevron-up" size={14} color={colors.textMuted} />
+                          </View>
                         )}
                         {_reanimatedEnabled ? (
                           <GestureDetector gesture={micGesture}>
-                            <ReAnimated.View style={[
-                              isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND, ...(Platform.OS !== "web" ? { shadowColor: BRAND } : {}) }] : [st.sendBtn, { backgroundColor: BRAND }],
-                              isRecording && !recLocked ? micBtnAnimStyle : undefined,
-                            ]}>
+                            <View style={isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND, ...(Platform.OS !== "web" ? { shadowColor: BRAND } : {}) }] : [st.sendBtn, { backgroundColor: BRAND }]}>
                               <Ionicons name="mic" size={isRecording ? 24 : 20} color="#fff" />
-                            </ReAnimated.View>
+                            </View>
                           </GestureDetector>
                         ) : (
                           <Pressable
@@ -7612,20 +7493,16 @@ const st = StyleSheet.create({
   sendBtnCol: { alignSelf: "stretch", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
   aiAboveSendBtn: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, borderWidth: 1.5, alignItems: "center", justifyContent: "center", minWidth: 32, gap: 1 },
   wordCountLabel: { fontSize: 8, fontFamily: "Inter_600SemiBold", opacity: 0.75 },
-  recHoldGlass: { },
-  recCancelZone: { width: 44, alignItems: "center", justifyContent: "center" },
-  recCancelCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,59,48,0.1)", alignItems: "center", justifyContent: "center" },
-  recHoldCenter: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
-  recHoldTimerRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  recSlideHint: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2, marginTop: 2 },
-  recSlideText: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  recHoldGlass: { minHeight: 56 },
+  recWaveRow: { flex: 1, flexDirection: "row", alignItems: "center", paddingHorizontal: 8 },
+  recCancelHint: { flexDirection: "row", alignItems: "center", gap: 2, paddingRight: 6 },
+  recTrashBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,59,48,0.1)", alignItems: "center", justifyContent: "center", marginLeft: 4 },
+  recSlideText: { fontSize: 11, fontFamily: "Inter_400Regular" },
   recMicWrap: { alignItems: "center", justifyContent: "flex-end" },
+  recLockHint: { alignItems: "center", marginBottom: 4, opacity: 0.55 },
   recMicBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: BRAND_FALLBACK, alignItems: "center", justifyContent: "center", elevation: 8, ...Platform.select({ web: { boxShadow: `0 4px 10px rgba(0,0,0,0.55)` } as any, default: { shadowColor: BRAND_FALLBACK, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.55, shadowRadius: 10 } }) },
-  recLockIndicator: { alignItems: "center", marginBottom: 8 },
-  recLockPill: { width: 32, borderRadius: 16, paddingVertical: 6, alignItems: "center", justifyContent: "center", elevation: 2, ...Platform.select({ web: { boxShadow: "0 1px 3px rgba(0,0,0,0.1)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 } }) },
   recLockedInner: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 8, gap: 8, minHeight: 56 },
   recLockedTrash: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,59,48,0.12)", alignItems: "center", justifyContent: "center" },
-  recordingDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: "#FF3B30" },
   recordingText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
 
   sheetOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)" },
