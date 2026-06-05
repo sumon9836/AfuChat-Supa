@@ -20,27 +20,31 @@
  */
 
 import React, { useEffect } from "react";
-import Animated, {
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  withDelay,
-  withSequence,
-  Easing,
-  type SharedValue,
-} from "react-native-reanimated";
 import Svg, {
   Circle, Defs, Ellipse, G, Line, Path, Polygon, Rect,
   RadialGradient, LinearGradient, Stop,
 } from "react-native-svg";
 
-// ── Animated SVG primitives ───────────────────────────────────────────────────
-const AnimG       = Animated.createAnimatedComponent(G);
-const AnimCircle  = Animated.createAnimatedComponent(Circle);
-const AnimEllipse = Animated.createAnimatedComponent(Ellipse);
-const AnimPath    = Animated.createAnimatedComponent(Path);
-const AnimLine    = Animated.createAnimatedComponent(Line);
+// ── Lazy reanimated getter — defers require() to first render so the module
+//    can be imported without crashing even when reanimated hasn't initialised.
+const getRA = (() => {
+  let _mod: any;
+  return () => {
+    if (!_mod) _mod = require("react-native-reanimated");
+    return _mod;
+  };
+})();
+
+// ── Thin wrapper components — createAnimatedComponent is called on first render,
+//    NOT at module-load time, so importing this file no longer crashes Android
+//    Expo Go (where reanimated's C++ runtime isn't ready at bundle-eval time).
+let _AG: any, _AC: any, _AE: any, _AP: any, _AL: any;
+function getAnimDflt() { const r = getRA(); return r?.default ?? r; }
+const AnimG       = (p: any) => { if (!_AG) _AG = getAnimDflt()?.createAnimatedComponent?.(G)       ?? G;       return React.createElement(_AG, p); };
+const AnimCircle  = (p: any) => { if (!_AC) _AC = getAnimDflt()?.createAnimatedComponent?.(Circle)  ?? Circle;  return React.createElement(_AC, p); };
+const AnimEllipse = (p: any) => { if (!_AE) _AE = getAnimDflt()?.createAnimatedComponent?.(Ellipse) ?? Ellipse; return React.createElement(_AE, p); };
+const AnimPath    = (p: any) => { if (!_AP) _AP = getAnimDflt()?.createAnimatedComponent?.(Path)    ?? Path;    return React.createElement(_AP, p); };
+const AnimLine    = (p: any) => { if (!_AL) _AL = getAnimDflt()?.createAnimatedComponent?.(Line)    ?? Line;    return React.createElement(_AL, p); };
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const W      = "#FFFFFF";
@@ -72,8 +76,15 @@ const PINK:   OwlPal = { f:"#AD1457", fL:"#E91E63", fD:"#490019", v:"#FCE4EC", v
 
 // ── Animation helpers ─────────────────────────────────────────────────────────
 function useBob(a: number, b: number, ms: number, delay = 0) {
-  const v = useSharedValue(a);
+  const RA = getRA();
+  const useSharedValue = RA?.useSharedValue;
+  const withDelay      = RA?.withDelay;
+  const withRepeat     = RA?.withRepeat;
+  const withTiming     = RA?.withTiming;
+  const Easing         = RA?.Easing;
+  const v = useSharedValue ? useSharedValue(a) : { value: a };
   useEffect(() => {
+    if (!withDelay || !withRepeat || !withTiming || !Easing) return;
     v.value = withDelay(delay,
       withRepeat(withTiming(b, { duration: ms, easing: Easing.inOut(Easing.sin) }), -1, true)
     );
@@ -83,8 +94,15 @@ function useBob(a: number, b: number, ms: number, delay = 0) {
 const usePulse = useBob;
 
 function useSpin(ms: number, delay = 0) {
-  const v = useSharedValue(0);
+  const RA = getRA();
+  const useSharedValue = RA?.useSharedValue;
+  const withDelay      = RA?.withDelay;
+  const withRepeat     = RA?.withRepeat;
+  const withTiming     = RA?.withTiming;
+  const Easing         = RA?.Easing;
+  const v = useSharedValue ? useSharedValue(0) : { value: 0 };
   useEffect(() => {
+    if (!withDelay || !withRepeat || !withTiming || !Easing) return;
     v.value = withDelay(delay,
       withRepeat(withTiming(2 * Math.PI, { duration: ms, easing: Easing.linear }), -1)
     );
@@ -94,8 +112,14 @@ function useSpin(ms: number, delay = 0) {
 
 /** Discrete blink worklet — eyelid closes (scaleY 0→1→0) on a random timer. */
 function useBlink(initialDelay = 0) {
-  const v = useSharedValue(0);
+  const RA = getRA();
+  const useSharedValue = RA?.useSharedValue;
+  const withSequence   = RA?.withSequence;
+  const withTiming     = RA?.withTiming;
+  const Easing         = RA?.Easing;
+  const v = useSharedValue ? useSharedValue(0) : { value: 0 };
   useEffect(() => {
+    if (!withSequence || !withTiming || !Easing) return;
     let t: ReturnType<typeof setTimeout>;
     function schedule() {
       t = setTimeout(() => {
@@ -235,9 +259,9 @@ function OwlEyes({
   cx, cy, s, featherFill, blinkV, lookX, lookY, flipX = false,
 }: {
   cx: number; cy: number; s: number; featherFill: string;
-  blinkV: SharedValue<number>;
-  lookX: SharedValue<number>;
-  lookY: SharedValue<number>;
+  blinkV: any;
+  lookX: any;
+  lookY: any;
   flipX?: boolean;
 }) {
   const hr  = 22 * s;
@@ -246,6 +270,8 @@ function OwlEyes({
   const eo  = 8.5 * s;
   const eyY = hcy - 1 * s;
   const pr  = 4.8 * s;
+
+  const useAnimatedProps = getRA()?.useAnimatedProps ?? ((fn: () => any) => fn());
 
   // Pupils follow look direction; optional horizontal flip for facing owls
   const pLook = useAnimatedProps(() => ({
@@ -298,6 +324,7 @@ function Star({ cx, cy, r, fill, opacity = 1 }: {
 // Two owls typing; left has animated dots; right bubble pulses; heart floats.
 // ─────────────────────────────────────────────────────────────────────────────
 export function ChatIllustration({ size = 160 }: { size?: number }) {
+  const useAnimatedProps = getRA()?.useAnimatedProps ?? ((fn: () => any) => fn());
   const bobL  = useBob(0, -7, 2000, 0);
   const bobR  = useBob(0, -7, 2000, 1000);
   const d1    = useBob(0, -5.5, 500, 0);
@@ -378,6 +405,7 @@ export function ChatIllustration({ size = 160 }: { size?: number }) {
 // Owl + shield; sonar rings expand; lock rocks; checkmark glows.
 // ─────────────────────────────────────────────────────────────────────────────
 export function SecurityIllustration({ size = 160 }: { size?: number }) {
+  const useAnimatedProps = getRA()?.useAnimatedProps ?? ((fn: () => any) => fn());
   const bobP  = useBob(0, -6, 2100, 0);
   const r1S   = usePulse(1, 1.55, 1400, 0);
   const r1O   = usePulse(0.65, 0, 1400, 0);
@@ -448,6 +476,7 @@ export function SecurityIllustration({ size = 160 }: { size?: number }) {
 // Owl on branch; globe spins (meridian rx oscillates); magnifier sweeps; pin bounces.
 // ─────────────────────────────────────────────────────────────────────────────
 export function DiscoverIllustration({ size = 160 }: { size?: number }) {
+  const useAnimatedProps = getRA()?.useAnimatedProps ?? ((fn: () => any) => fn());
   const bobP  = useBob(0, -6, 2200, 0);
   const merRx = useBob(46, -46, 3000, 0);
   const magTx = useBob(-10, 10, 1800, 200);
@@ -514,6 +543,7 @@ export function DiscoverIllustration({ size = 160 }: { size?: number }) {
 // Tech owl: antenna bobs; eyes glow; chest lights cycle; particle orbits; bubbles drift.
 // ─────────────────────────────────────────────────────────────────────────────
 export function AfuAIIllustration({ size = 160 }: { size?: number }) {
+  const useAnimatedProps = getRA()?.useAnimatedProps ?? ((fn: () => any) => fn());
   const antY  = useBob(0, -7, 900, 0);
   const eyeOp = usePulse(0.5, 0.95, 800, 0);
   const l1Op  = usePulse(0.2, 1, 1500, 0);
@@ -597,6 +627,7 @@ export function AfuAIIllustration({ size = 160 }: { size?: number }) {
 // Teal + purple owls; ACoin flips; sparkles drift up.
 // ─────────────────────────────────────────────────────────────────────────────
 export function WalletIllustration({ size = 160 }: { size?: number }) {
+  const useAnimatedProps = getRA()?.useAnimatedProps ?? ((fn: () => any) => fn());
   const bobL  = useBob(0, -6, 2100, 0);
   const bobR  = useBob(0, -6, 2100, 1050);
   const flip  = useBob(-1, 1, 1200, 0);
@@ -665,6 +696,7 @@ export function WalletIllustration({ size = 160 }: { size?: number }) {
 // heart beats above centre; small hearts float from each owl.
 // ─────────────────────────────────────────────────────────────────────────────
 export function CommunityIllustration({ size = 160 }: { size?: number }) {
+  const useAnimatedProps = getRA()?.useAnimatedProps ?? ((fn: () => any) => fn());
   const bobC  = useBob(0, -7, 2000, 0);
   const bobL  = useBob(0, -7, 2200, 700);
   const bobR  = useBob(0, -7, 1900, 1300);

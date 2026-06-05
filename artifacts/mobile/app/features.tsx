@@ -14,14 +14,19 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
-import {
-  ChatIllustration,
-  SecurityIllustration,
-  DiscoverIllustration,
-  AfuAIIllustration,
-  WalletIllustration,
-  CommunityIllustration,
-} from "@/components/ui/MemphisIllustrations";
+
+// Lazy-load illustrations — avoids react-native-reanimated NPE crash in Android Expo Go dev.
+// In production APK builds (__DEV__ === false) reanimated initialises correctly.
+const _Memphis = (() => {
+  if (Platform.OS === "android" && __DEV__) return null;
+  return require("@/components/ui/MemphisIllustrations");
+})();
+const ChatIllustration      = (_Memphis?.ChatIllustration      ?? (() => null)) as React.ComponentType<{ size?: number }>;
+const SecurityIllustration  = (_Memphis?.SecurityIllustration  ?? (() => null)) as React.ComponentType<{ size?: number }>;
+const DiscoverIllustration  = (_Memphis?.DiscoverIllustration  ?? (() => null)) as React.ComponentType<{ size?: number }>;
+const AfuAIIllustration     = (_Memphis?.AfuAIIllustration     ?? (() => null)) as React.ComponentType<{ size?: number }>;
+const WalletIllustration    = (_Memphis?.WalletIllustration    ?? (() => null)) as React.ComponentType<{ size?: number }>;
+const CommunityIllustration = (_Memphis?.CommunityIllustration ?? (() => null)) as React.ComponentType<{ size?: number }>;
 
 const USE_ND = Platform.OS !== "web";
 const TEAL = "#00BCD4";
