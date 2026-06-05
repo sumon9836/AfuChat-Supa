@@ -21,6 +21,15 @@ The `--non-interactive` flag is required (stdin not available in Replit shell).
 
 ## Build history (most recent first)
 
+### 2026-06-05 — v2.1.3 (WeakRef polyfill fix)
+- Build ID: 68bcd4f6-c221-4f0b-9922-d9d34328abbf
+- Build URL: https://expo.dev/accounts/afume/projects/afuchat/builds/68bcd4f6-c221-4f0b-9922-d9d34328abbf
+- Profile: preview (APK, internal distribution)
+- App version: 2.1.3 (com.afuchat.app)
+- Fix: Added WeakRef + FinalizationRegistry polyfills in artifacts/mobile/polyfills.ts, imported first in _layout.tsx
+- Submitted from: Replit (EAS_NO_VCS=1, file-system archive, 28.9 MB upload)
+- Credentials: Keystore "Build Credentials 1Nj4newnzl" (default, remote)
+
 ### 2026-06-05 — v2.1.2 (SVG crash fixes)
 - Build ID: c68dad8b-a52f-4137-9b6c-93c425d3d4e1
 - Build URL: https://expo.dev/accounts/afume/projects/afuchat/builds/c68dad8b-a52f-4137-9b6c-93c425d3d4e1
