@@ -1730,6 +1730,9 @@ function ChatScreen() {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingTenths, setRecordingTenths] = useState(0);
   const recorderRef = useRef<Audio.Recording | null>(null);
+  const webMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const webChunksRef = useRef<Blob[]>([]);
+  const webStreamRef = useRef<MediaStream | null>(null);
   const recordingActiveRef = useRef(false);
   const recordingTimer = useRef<any>(null);
   const meterInterval = useRef<any>(null);
@@ -4527,15 +4530,27 @@ STRICT RULES:
   async function startVoiceRecordingWeb() {
     if (recordingActiveRef.current) return;
     try {
-      const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) {
-        showAlert("Microphone permission needed", "Please allow access to your microphone.");
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        showAlert("Not supported", "Audio recording is not supported in this browser.");
         return;
       }
-      const _recW = new Audio.Recording();
-      await _recW.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      recorderRef.current = _recW;
-      await _recW.startAsync();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      webStreamRef.current = stream;
+      webChunksRef.current = [];
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "";
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      webMediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) webChunksRef.current.push(e.data);
+      };
+
+      recorder.start(100);
       recordingActiveRef.current = true;
       recStartedSV.value = true;
       recLockedSV.value = true;
@@ -4555,7 +4570,7 @@ STRICT RULES:
       recordingActiveRef.current = false;
       setIsRecording(false);
       setRecLocked(false);
-      showAlert("Error", "Could not start recording.");
+      showAlert("Microphone permission needed", "Please allow microphone access in your browser settings, then try again.");
     }
   }
 
@@ -4583,18 +4598,44 @@ STRICT RULES:
     directionLock.value = "none";
 
     if (capturedDuration < 1) {
-      try {
-        await recorderRef.current?.stopAndUnloadAsync();
-      } catch (_) {}
-      recorderRef.current = null;
+      if (Platform.OS === "web") {
+        try { webMediaRecorderRef.current?.stop(); } catch (_) {}
+        webStreamRef.current?.getTracks().forEach((t) => t.stop());
+        webMediaRecorderRef.current = null;
+        webStreamRef.current = null;
+        webChunksRef.current = [];
+      } else {
+        try {
+          await recorderRef.current?.stopAndUnloadAsync();
+        } catch (_) {}
+        recorderRef.current = null;
+      }
       recordingActiveRef.current = false;
       return;
     }
 
     try {
-      await recorderRef.current?.stopAndUnloadAsync();
-      const uri = recorderRef.current?.getURI() ?? null;
-      recorderRef.current = null;
+      let uri: string | null = null;
+      if (Platform.OS === "web") {
+        uri = await new Promise<string | null>((resolve) => {
+          const recorder = webMediaRecorderRef.current;
+          if (!recorder) { resolve(null); return; }
+          recorder.onstop = () => {
+            const mimeType = recorder.mimeType || "audio/webm";
+            const blob = new Blob(webChunksRef.current, { type: mimeType });
+            resolve(URL.createObjectURL(blob));
+          };
+          recorder.stop();
+        });
+        webStreamRef.current?.getTracks().forEach((t) => t.stop());
+        webStreamRef.current = null;
+        webMediaRecorderRef.current = null;
+        webChunksRef.current = [];
+      } else {
+        await recorderRef.current?.stopAndUnloadAsync();
+        uri = recorderRef.current?.getURI() ?? null;
+        recorderRef.current = null;
+      }
       recordingActiveRef.current = false;
 
       if (!uri || !user) return;
@@ -4680,10 +4721,18 @@ STRICT RULES:
     lockProgress.value = withTiming(0, { duration: 150 });
     directionLock.value = "none";
     if (recordingActiveRef.current) {
-      try {
-        await recorderRef.current?.stopAndUnloadAsync();
-      } catch (_) {}
-      recorderRef.current = null;
+      if (Platform.OS === "web") {
+        try { webMediaRecorderRef.current?.stop(); } catch (_) {}
+        webStreamRef.current?.getTracks().forEach((t) => t.stop());
+        webMediaRecorderRef.current = null;
+        webStreamRef.current = null;
+        webChunksRef.current = [];
+      } else {
+        try {
+          await recorderRef.current?.stopAndUnloadAsync();
+        } catch (_) {}
+        recorderRef.current = null;
+      }
       recordingActiveRef.current = false;
     }
   }
