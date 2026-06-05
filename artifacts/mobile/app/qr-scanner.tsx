@@ -6,7 +6,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
+  Easing,
   Linking,
   Modal,
   Platform,
@@ -20,9 +22,6 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing,
-} from "react-native-reanimated";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
@@ -419,16 +418,22 @@ export default function QRScannerScreen() {
   const [torch, setTorch] = useState(false);
   const processedRef = useRef(false);
 
-  const scanLineY = useSharedValue(0);
+  const scanLineY = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    scanLineY.value = withRepeat(
-      withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-      -1, true,
+    const anim = Animated.loop(
+      Animated.timing(scanLineY, {
+        toValue: 1,
+        duration: 2000,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: false,
+      }),
     );
+    anim.start();
+    return () => anim.stop();
   }, []);
-  const scanLineStyle = useAnimatedStyle(() => ({
-    top: `${scanLineY.value * 100}%` as any,
-  }));
+  const scanLineStyle = {
+    top: scanLineY.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }),
+  };
 
   useEffect(() => {
     loadHistory().then(setHistory);

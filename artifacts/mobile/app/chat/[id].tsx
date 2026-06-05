@@ -90,15 +90,13 @@ import ChatBackground from "@/components/ui/ChatBackground";
 import FormatToolbar from "@/components/chat/FormatToolbar";
 import MiniProfilePopup from "@/components/chat/MiniProfilePopup";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import ReAnimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  interpolate,
-  Extrapolation,
-  runOnJS,
-} from "react-native-reanimated";
+// Lazy-load Reanimated so its native module is not required at route-tree
+// evaluation time (which crashes on Android before the C++ bridge is ready).
+let _RA: any = null;
+function getRA() {
+  if (!_RA) _RA = require("react-native-reanimated");
+  return _RA;
+}
 
 type Gift = {
   id: string;
@@ -1479,6 +1477,19 @@ export default function ChatScreenRoute() {
 }
 
 function ChatScreen() {
+  // Resolve lazy Reanimated reference — safe because by the time the chat
+  // screen mounts, the native bridge is fully initialised.
+  const {
+    useSharedValue,
+    useAnimatedStyle,
+    withSpring,
+    withTiming,
+    interpolate,
+    Extrapolation,
+    runOnJS,
+    default: ReAnimated,
+  } = getRA();
+
   const {
     id,
     contactId,

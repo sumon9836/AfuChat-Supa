@@ -8,13 +8,13 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
+// Lazy-load Reanimated so module evaluation doesn't touch the native bridge
+// before it is ready (crashes on Android in Expo Go).
+let _RA: any = null;
+function getRA() {
+  if (!_RA) _RA = require("react-native-reanimated");
+  return _RA;
+}
 import {
   Gesture,
   GestureDetector,
@@ -42,6 +42,7 @@ type ZoomableSlideProps = {
 function ZoomableSlide({
   uri, width, height, isActive, onClose, onSwipeLeft, onSwipeRight, onScaleChange,
 }: ZoomableSlideProps) {
+  const { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS, default: Animated } = getRA();
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const offsetX = useSharedValue(0);
@@ -217,6 +218,7 @@ type Props = {
 };
 
 export function ImageViewer({ images, initialIndex = 0, visible, onClose }: Props) {
+  const { useSharedValue, useAnimatedStyle, withSpring, default: Animated } = getRA();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(initialIndex);

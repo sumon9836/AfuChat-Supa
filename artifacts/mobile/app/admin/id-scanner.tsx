@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Image,
   Platform,
   ScrollView,
@@ -16,13 +18,6 @@ import { DesktopCameraFallback } from "@/components/desktop/DesktopCameraFallbac
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -292,15 +287,23 @@ function IdScannerScreenMobile() {
 
   const isAdmin = !!profile?.is_admin;
 
-  // Animated scan line
-  const scanLineY = useSharedValue(0);
+  // Animated scan line (RN Animated — no Reanimated worklets needed)
+  const scanLineY = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    scanLineY.value = withRepeat(
-      withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
-      -1, true,
+    const anim = Animated.loop(
+      Animated.timing(scanLineY, {
+        toValue: 1,
+        duration: 2200,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: false,
+      }),
     );
+    anim.start();
+    return () => anim.stop();
   }, []);
-  const scanLineStyle = useAnimatedStyle(() => ({ top: `${scanLineY.value * 100}%` }));
+  const scanLineStyle = {
+    top: scanLineY.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }),
+  };
 
   const handleScan = useCallback(async (raw: string) => {
     if (processedRef.current) return;

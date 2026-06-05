@@ -15,7 +15,6 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { getEdgeFnBase, edgeHeaders } from "@/lib/aiHelper";
 import { useAuth } from "@/context/AuthContext";
@@ -702,7 +701,7 @@ export default function ChatSearchScreen() {
     }
     if (!aiInsight) return null;
     return (
-      <Animated.View>
+      <View>
         <LinearGradient
           colors={isDark ? [AI_PURPLE + "22", AI_TEAL + "0C"] : [AI_PURPLE + "14", AI_TEAL + "06"]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -794,7 +793,7 @@ export default function ChatSearchScreen() {
             </>
           )}
         </LinearGradient>
-      </Animated.View>
+      </View>
     );
   }
 
