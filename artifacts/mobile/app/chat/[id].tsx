@@ -1749,6 +1749,7 @@ function ChatScreen() {
   const recordingActiveRef = useRef(false);
   const recordingTimer = useRef<any>(null);
   const meterInterval = useRef<any>(null);
+  const recordingDurationRef = useRef(0);
   const recLockedSV = useSharedValue(false);
   const recCancelledSV = useSharedValue(false);
   const recStartedSV = useSharedValue(false);
@@ -4438,11 +4439,16 @@ STRICT RULES:
       setRecLocked(false);
       setRecordingDuration(0);
       setRecordingTenths(0);
+      recordingDurationRef.current = 0;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       recordingTimer.current = setInterval(() => {
         setRecordingTenths((t) => {
           if (t >= 9) {
-            setRecordingDuration((d) => d + 1);
+            setRecordingDuration((d) => {
+              const next = d + 1;
+              recordingDurationRef.current = next;
+              return next;
+            });
             return 0;
           }
           return t + 1;
@@ -4492,9 +4498,17 @@ STRICT RULES:
       setRecLocked(true);
       setRecordingDuration(0);
       setRecordingTenths(0);
+      recordingDurationRef.current = 0;
       recordingTimer.current = setInterval(() => {
         setRecordingTenths((t) => {
-          if (t >= 9) { setRecordingDuration((d) => d + 1); return 0; }
+          if (t >= 9) {
+            setRecordingDuration((d) => {
+              const next = d + 1;
+              recordingDurationRef.current = next;
+              return next;
+            });
+            return 0;
+          }
           return t + 1;
         });
       }, 100);
@@ -4510,7 +4524,7 @@ STRICT RULES:
 
   async function stopVoiceRecording() {
     if (!recordingActiveRef.current) return;
-    const capturedDuration = recordingDuration;
+    const capturedDuration = recordingDurationRef.current;
     clearInterval(recordingTimer.current);
     clearInterval(meterInterval.current);
     setIsRecording(false);
@@ -4521,6 +4535,7 @@ STRICT RULES:
     recCancelledSV.value = false;
     setRecordingDuration(0);
     setRecordingTenths(0);
+    recordingDurationRef.current = 0;
     slideX.value = 0;
     slideY.value = 0;
     directionLock.value = "none";
@@ -4639,6 +4654,7 @@ STRICT RULES:
     recCancelledSV.value = false;
     setRecordingDuration(0);
     setRecordingTenths(0);
+    recordingDurationRef.current = 0;
     slideX.value = 0;
     slideY.value = 0;
     directionLock.value = "none";
