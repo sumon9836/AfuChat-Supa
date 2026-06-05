@@ -18,3 +18,4 @@
 - [Stable Old-Arch APK stack for Expo SDK 54](old-arch-apk-stack.md) — Reanimated 4.x requires New Arch; MMKV 4.x (Nitro) requires New Arch. New Arch crashes pre-splash on some real devices. Stable combo: newArchEnabled:false + react-native-reanimated ~3.19.5 + react-native-mmkv ~3.3.3 + no worklets + no nitro-modules.
 - [MMKV 3.3.3 Old Arch Gradle compile fix](mmkv-oldarch-patch.md) — MmkvPlatformContextModule extends NativeMmkvPlatformContextSpec (codegen), absent with newArchEnabled:false → 8 Java errors. Fix: postinstall.sh overwrites the file to extend ReactContextBaseJavaModule + adds NAME constant + getName() override.
 - [expo-audio New Arch requirement](expo-audio-newarch.md) — expo-audio 1.x (SDK 54) is New Arch only; use expo-av for Old Arch builds.
+- [EAS build on Replit — EAS_NO_VCS=1](eas-no-vcs-replit.md) — Replit blocks git stash; set EAS_NO_VCS=1 so EAS uses file-system archive instead. Run from artifacts/mobile with --non-interactive.
