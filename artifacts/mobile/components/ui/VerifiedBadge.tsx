@@ -8,20 +8,49 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAppAccent } from "@/context/AppAccentContext";
 import { useTheme } from "@/hooks/useTheme";
 
-// ─── Badge shape ──────────────────────────────────────────────────────────────
-// Filled circle + white checkmark — same shape as Facebook and Twitter/X.
-// Personal = accent colour (blue by default).
-// Organisation = gold (#F5A623), immediately distinguishable but still familiar.
+let _svgMod: any = null;
+function getSvgMod() {
+  if (_svgMod !== null) return _svgMod;
+  try { _svgMod = require("react-native-svg"); } catch { _svgMod = {}; }
+  return _svgMod;
+}
+function SvgComp(name: string) {
+  return (props: any) => {
+    const M = getSvgMod();
+    const C = M[name] ?? M.default?.[name];
+    if (!C) return null;
+    return require("react").createElement(C, props);
+  };
+}
+const Svg = (props: any) => {
+  const M = getSvgMod();
+  const C = M.default ?? M.Svg;
+  if (!C) return null;
+  return require("react").createElement(C, props);
+};
+const Circle = SvgComp("Circle");
+const Path = SvgComp("Path");
 
 function BadgeShape({ size, color }: { size: number; color: string }) {
+  const M = getSvgMod();
+  const hasSvg = !!(M.default ?? M.Svg);
+  if (!hasSvg) {
+    return (
+      <View style={{
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: color, alignItems: "center", justifyContent: "center",
+      }}>
+        <Text style={{ color: "#fff", fontSize: size * 0.55, fontWeight: "700" }}>✓</Text>
+      </View>
+    );
+  }
   const r = size / 2;
-  const sw = size * 0.13; // checkmark stroke width scales with size
+  const sw = size * 0.13;
   return (
     <Svg width={size} height={size} viewBox="0 0 20 20">
       <Circle cx="10" cy="10" r="9.2" fill={color} />
@@ -37,7 +66,6 @@ function BadgeShape({ size, color }: { size: number; color: string }) {
   );
 }
 
-// ─── Props ────────────────────────────────────────────────────────────────────
 type Props = {
   isVerified?: boolean;
   isOrganizationVerified?: boolean;
@@ -58,7 +86,6 @@ export default function VerifiedBadge({
 
   if (!isVerif) return null;
 
-  // Gold for organisations (matches Meta's gold org badge), accent for personal
   const badgeColor = isOrg ? "#F5A623" : accent;
 
   const REASONS: { icon: string; label: string; premiumLink?: boolean }[] = isOrg
@@ -195,102 +222,21 @@ const s = StyleSheet.create({
       default: { shadowColor: "#000", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 20 },
     }),
   },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 20,
-  },
-  header: {
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 20,
-  },
-  iconWrap: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: "center",
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginVertical: 16,
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-    letterSpacing: 0.8,
-    marginBottom: 12,
-  },
-  bulletRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 10,
-  },
-  bulletRowTappable: {
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    marginHorizontal: -4,
-  },
-  bulletIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bulletText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  premiumPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  premiumPillText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  ctaBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 4,
-  },
-  ctaBtnText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  dismissBtn: {
-    alignItems: "center",
-    paddingVertical: 14,
-  },
-  dismissText: {
-    fontSize: 14,
-  },
+  handle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 20 },
+  header: { alignItems: "center", gap: 10, marginBottom: 20 },
+  iconWrap: { width: 76, height: 76, borderRadius: 38, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  title: { fontSize: 18, fontWeight: "700", textAlign: "center" },
+  subtitle: { fontSize: 13, lineHeight: 19, textAlign: "center" },
+  divider: { height: StyleSheet.hairlineWidth, marginVertical: 16 },
+  sectionLabel: { fontSize: 10, fontWeight: "600", letterSpacing: 0.8, marginBottom: 12 },
+  bulletRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
+  bulletRowTappable: { borderRadius: 10, borderWidth: 1, paddingVertical: 8, paddingHorizontal: 10, marginHorizontal: -4 },
+  bulletIcon: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  bulletText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  premiumPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 20 },
+  premiumPillText: { fontSize: 10, fontWeight: "600" },
+  ctaBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 14, marginTop: 4 },
+  ctaBtnText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+  dismissBtn: { alignItems: "center", paddingVertical: 14 },
+  dismissText: { fontSize: 14 },
 });

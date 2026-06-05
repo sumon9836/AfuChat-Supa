@@ -1,7 +1,29 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, View } from "react-native";
-import Svg, { Circle } from "react-native-svg";
 import { useAppAccent } from "@/context/AppAccentContext";
+
+let _svgMod: any = null;
+function getSvgMod() {
+  if (_svgMod !== null) return _svgMod;
+  try { _svgMod = require("react-native-svg"); } catch { _svgMod = {}; }
+  return _svgMod;
+}
+function hasSvg() {
+  const M = getSvgMod();
+  return !!(M.default ?? M.Svg);
+}
+const SvgRoot = (props: any) => {
+  const M = getSvgMod();
+  const C = M.default ?? M.Svg;
+  if (!C) return null;
+  return require("react").createElement(C, props);
+};
+const Circle = (props: any) => {
+  const M = getSvgMod();
+  const C = M.Circle ?? M.default?.Circle;
+  if (!C) return null;
+  return require("react").createElement(C, props);
+};
 
 type Props = {
   size: number;
@@ -39,6 +61,21 @@ export function StoryRing({ size, storyCount, seenCount, children }: Props) {
 
   if (storyCount === 0) {
     return <View style={{ padding: strokeWidth + 2 }}>{children}</View>;
+  }
+
+  if (!hasSvg()) {
+    const ringColor = hasUnseen ? accent : "#8E8E93";
+    return (
+      <View style={{
+        width: outerSize, height: outerSize,
+        alignItems: "center", justifyContent: "center",
+        borderRadius: outerSize / 2,
+        borderWidth: strokeWidth,
+        borderColor: ringColor,
+      }}>
+        {children}
+      </View>
+    );
   }
 
   const totalGapLength = gap * maxSegments;
@@ -79,9 +116,9 @@ export function StoryRing({ size, storyCount, seenCount, children }: Props) {
           transform: hasUnseen ? [{ rotate }] : undefined,
         }}
       >
-        <Svg width={outerSize} height={outerSize}>
+        <SvgRoot width={outerSize} height={outerSize}>
           {segments}
-        </Svg>
+        </SvgRoot>
       </Animated.View>
       {children}
     </View>

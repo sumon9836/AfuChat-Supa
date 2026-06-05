@@ -1,25 +1,36 @@
-/**
- * ChatBackground — unique music & sound equipment tile pattern.
- *
- * Draws a scattered field of instrument / sound icons behind the message list.
- * Uses react-native-svg shapes tinted in the app's brand teal at a very low
- * opacity — visible but never distracting. Adapts to light and dark themes.
- *
- * Performance: completely static, no animation, no re-renders after mount.
- */
 import React, { memo } from "react";
 import { useWindowDimensions, View } from "react-native";
-import Svg, {
-  Circle,
-  Ellipse,
-  Line,
-  Path,
-  Rect,
-} from "react-native-svg";
 
-// ─── SVG icon primitives ──────────────────────────────────────────────────────
+let _svgMod: any = null;
+function getSvgMod() {
+  if (_svgMod !== null) return _svgMod;
+  try { _svgMod = require("react-native-svg"); } catch { _svgMod = {}; }
+  return _svgMod;
+}
+function hasSvg(): boolean {
+  const M = getSvgMod();
+  return !!(M.default ?? M.Svg);
+}
+function makeSvgComp(name: string) {
+  return (props: any) => {
+    const M = getSvgMod();
+    const C = M[name] ?? M.default?.[name];
+    if (!C) return null;
+    return require("react").createElement(C, props);
+  };
+}
+const Svg = (props: any) => {
+  const M = getSvgMod();
+  const C = M.default ?? M.Svg;
+  if (!C) return null;
+  return require("react").createElement(C, props);
+};
+const Circle   = makeSvgComp("Circle");
+const Ellipse  = makeSvgComp("Ellipse");
+const Line     = makeSvgComp("Line");
+const Path     = makeSvgComp("Path");
+const Rect     = makeSvgComp("Rect");
 
-/** Acoustic guitar (headstock + neck + body) */
 const Guitar = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size * 0.6} height={size} viewBox="0 0 22 36">
     <Rect x="7" y="0" width="8" height="5" rx="2" fill={color} />
@@ -35,7 +46,6 @@ const Guitar = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-/** Piano keyboard fragment */
 const PianoKeys = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size * 1.4} height={size} viewBox="0 0 42 24">
     {([0, 8, 16, 24, 32] as const).map((x) => (
@@ -47,7 +57,6 @@ const PianoKeys = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-/** Studio microphone with stand */
 const Microphone = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size * 0.6} height={size} viewBox="0 0 20 34">
     <Rect x="5" y="1" width="10" height="16" rx="5" fill={color} />
@@ -60,7 +69,6 @@ const Microphone = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-/** Over-ear headphones */
 const Headphone = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size} height={size * 0.85} viewBox="0 0 32 28">
     <Path d="M4 14 C4 6 9 1 16 1 C23 1 28 6 28 14" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" />
@@ -69,7 +77,6 @@ const Headphone = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-/** Speaker with three concentric sound arcs */
 const Speaker = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size} height={size} viewBox="0 0 28 28">
     <Path d="M2 10 L8 10 L16 3 L16 25 L8 18 L2 18 Z" fill={color} />
@@ -79,7 +86,6 @@ const Speaker = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-/** Equaliser waveform bars */
 const Waveform = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size * 1.4} height={size} viewBox="0 0 42 24">
     {([
@@ -97,7 +103,6 @@ const Waveform = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-/** Vinyl record */
 const Vinyl = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size} height={size} viewBox="0 0 28 28">
     <Circle cx="14" cy="14" r="13" fill={color} />
@@ -108,7 +113,6 @@ const Vinyl = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-/** Quarter note */
 const MusicNote = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size * 0.7} height={size} viewBox="0 0 18 28">
     <Ellipse cx="6" cy="23" rx="5.5" ry="4.5" fill={color} transform="rotate(-15 6 23)" />
@@ -117,7 +121,6 @@ const MusicNote = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-/** Beamed double eighth notes */
 const DoubleMusicNote = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size * 1.2} height={size} viewBox="0 0 32 28">
     <Ellipse cx="6"  cy="23" rx="5.5" ry="4.5" fill={color} transform="rotate(-15 6 23)" />
@@ -129,7 +132,6 @@ const DoubleMusicNote = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-/** Snare drum with sticks */
 const Drum = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size * 1.3} height={size * 0.9} viewBox="0 0 36 28">
     <Ellipse cx="18" cy="6" rx="16" ry="5" fill={color} />
@@ -142,7 +144,6 @@ const Drum = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-/** Simplified electric guitar body */
 const ElectricGuitar = ({ color, size }: { color: string; size: number }) => (
   <Svg width={size * 0.55} height={size} viewBox="0 0 20 38">
     <Path d="M7 0 L13 0 L13 5 Q15 6 15 8 L5 8 Q5 6 7 5 Z" fill={color} />
@@ -157,7 +158,6 @@ const ElectricGuitar = ({ color, size }: { color: string; size: number }) => (
   </Svg>
 );
 
-// ─── Icon layout manifest ─────────────────────────────────────────────────────
 type IconKind =
   | "guitar" | "piano" | "mic" | "headphone" | "speaker"
   | "waveform" | "vinyl" | "note" | "doublenote" | "drum" | "elguitar";
@@ -165,31 +165,26 @@ type IconKind =
 interface IconSpec { x: number; y: number; kind: IconKind; size: number; rot: number }
 
 const SPECS: IconSpec[] = [
-  // left column
   { x: 2,  y: 3,  kind: "guitar",     size: 44, rot: -10 },
   { x: 3,  y: 22, kind: "note",       size: 30, rot:  20 },
   { x: 5,  y: 42, kind: "mic",        size: 36, rot:  -8 },
   { x: 2,  y: 63, kind: "waveform",   size: 22, rot:   0 },
   { x: 4,  y: 82, kind: "doublenote", size: 26, rot:  15 },
-  // second column
   { x: 22, y: 8,  kind: "headphone",  size: 32, rot:   8 },
   { x: 24, y: 28, kind: "vinyl",      size: 28, rot:  25 },
   { x: 20, y: 52, kind: "piano",      size: 18, rot:  -5 },
   { x: 18, y: 72, kind: "guitar",     size: 40, rot:  12 },
   { x: 25, y: 92, kind: "speaker",    size: 24, rot: -12 },
-  // centre column
   { x: 43, y: 4,  kind: "drum",       size: 26, rot:   5 },
   { x: 40, y: 20, kind: "doublenote", size: 30, rot: -15 },
   { x: 44, y: 38, kind: "elguitar",   size: 38, rot:   8 },
   { x: 42, y: 60, kind: "waveform",   size: 24, rot:  10 },
   { x: 45, y: 80, kind: "note",       size: 26, rot: -20 },
-  // fourth column
   { x: 64, y: 6,  kind: "mic",        size: 34, rot: -12 },
   { x: 62, y: 25, kind: "piano",      size: 20, rot:   0 },
   { x: 65, y: 46, kind: "vinyl",      size: 30, rot: -18 },
   { x: 60, y: 66, kind: "headphone",  size: 28, rot:  10 },
   { x: 63, y: 86, kind: "drum",       size: 24, rot:  -5 },
-  // right column
   { x: 82, y: 2,  kind: "doublenote", size: 28, rot:  15 },
   { x: 84, y: 18, kind: "elguitar",   size: 36, rot: -10 },
   { x: 80, y: 38, kind: "speaker",    size: 26, rot:   5 },
@@ -198,11 +193,11 @@ const SPECS: IconSpec[] = [
   { x: 78, y: 94, kind: "waveform",   size: 20, rot:   8 },
 ];
 
-// ─── Main component ───────────────────────────────────────────────────────────
 const ChatBackground = memo(({ isDark }: { isDark: boolean }) => {
   const { width, height } = useWindowDimensions();
 
-  // Tinted brand teal: lighter touch on light bg, brighter on dark bg
+  if (!hasSvg()) return null;
+
   const iconColor = isDark
     ? "rgba(0,188,212,0.20)"
     : "rgba(0,100,120,0.10)";
