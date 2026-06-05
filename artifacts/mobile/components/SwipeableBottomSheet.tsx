@@ -4,7 +4,6 @@ import {
   Dimensions,
   Modal,
   PanResponder,
-  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -21,7 +20,6 @@ interface Props {
   backgroundColor?: string;
   maxHeight?: string | number;
   overlayColor?: string;
-  useGlass?: boolean;
 }
 
 export default function SwipeableBottomSheet({
@@ -31,7 +29,6 @@ export default function SwipeableBottomSheet({
   backgroundColor,
   maxHeight = "85%",
   overlayColor,
-  useGlass = true,
 }: Props) {
   const mobileBg = backgroundColor ?? "rgba(18,22,28,0.96)";
   const mobileOverlay = overlayColor ?? "rgba(0,0,0,0.5)";
@@ -79,18 +76,16 @@ export default function SwipeableBottomSheet({
             { maxHeight: maxHeight as any, transform: [{ translateY }] },
           ]}
         >
-          {false ? null : (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor: mobileBg,
-                  borderTopLeftRadius: 24,
-                  borderTopRightRadius: 24,
-                },
-              ]}
-            />
-          )}
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                backgroundColor: mobileBg,
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+              },
+            ]}
+          />
           <View style={styles.sheetBorder} pointerEvents="none" />
           <View {...panResponder.panHandlers} style={styles.handleArea}>
             <View style={styles.handle} />
@@ -105,7 +100,6 @@ export default function SwipeableBottomSheet({
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden" },
-  blurSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   sheetBorder: {
     position: "absolute",
     top: 0,
