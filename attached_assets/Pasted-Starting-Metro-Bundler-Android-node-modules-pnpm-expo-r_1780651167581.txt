@@ -1,0 +1,37 @@
+Starting Metro Bundler
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 19.6% (27/61)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 19.6% (221/635)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 19.6% (246/710)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 19.6% (258/720)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 19.6% (293/739)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 19.6% (320/769)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 33.3% (538/932)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 37.3% ( 729/1221)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 50.6% (1007/1416)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 58.1% (1364/1789)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 73.4% (1683/2026)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 86.0% (2004/2161)
+Android node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 96.7% (2504/2567)
+Android Bundling failed 43973ms node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__e169f174f2ad53b00f8e124cc5a3fd90/node_modules/expo-router/entry.js (2580 modules)
+Error: Unable to resolve module expo-audio from /home/expo/workingdir/build/artifacts/mobile/components/AudioPlayer.tsx: expo-audio could not be found within the project or in these directories:
+  node_modules
+  ../../node_modules
+  node_modules
+  ../../node_modules
+[0m [90m 10 |[39m } [36mfrom[39m [32m"react-native"[39m[33m;[39m
+ [90m 11 |[39m [36mimport[39m { [33mIonicons[39m } [36mfrom[39m [32m"@expo/vector-icons"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 12 |[39m [36mimport[39m { useAudioPlayer[33m,[39m useAudioPlayerStatus[33m,[39m setAudioModeAsync } [36mfrom[39m [32m"expo-audio"[39m[33m;[39m
+ [90m    |[39m                                                                          [31m[1m^[22m[39m
+ [90m 13 |[39m
+ [90m 14 |[39m [36minterface[39m [33mAudioPlayerProps[39m {
+ [90m 15 |[39m   uri[33m:[39m string[33m;[39m[0m
+
+Import stack:
+
+ artifacts/mobile/components/AudioPlayer.tsx
+ | import "expo-audio"
+
+ artifacts/mobile/app/chat/[id].tsx
+ | import "@/components/AudioPlayer"
+
+ artifacts/mobile/app (require.context)
