@@ -328,7 +328,7 @@ importers:
         specifier: ^1.12.42
         version: 1.12.42
       lucide-react:
-        specifier: 'catalog:'
+        specifier: 0.545.0
         version: 0.545.0(react@19.1.0)
       react-native-mmkv:
         specifier: ^3.3.3

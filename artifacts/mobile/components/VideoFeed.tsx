@@ -43,13 +43,15 @@ import {
   ViewToken,
   useWindowDimensions,
 } from "react-native";
-// Lazy-load Reanimated so module evaluation doesn't touch the native bridge
-// before it is ready (crashes on Android in Expo Go).
-let _RA: any = null;
-function getRA() {
-  if (!_RA) _RA = require("react-native-reanimated");
-  return _RA;
-}
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  withSequence,
+  withDelay,
+  runOnJS,
+} from "react-native-reanimated";
 import { Image as ExpoImage } from "expo-image";
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import { LinearGradient } from "@/components/ui/SafeGradient";
@@ -149,7 +151,6 @@ const VideoItem = React.memo(
     onView,
     currentUserId,
   }: VideoItemProps) {
-    const { useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence, withDelay, runOnJS, default: Animated } = getRA();
     const { accent } = useAppAccent();
     const videoRef = useRef<Video>(null);
 
