@@ -66,6 +66,8 @@ import { getCachedVideoUri, cacheVideo, markVideoWatched } from "@/lib/videoCach
 // All aliases are determined once at module-init time and never change, so
 // every component always calls the same function — Rules of Hooks satisfied.
 const _raVF = (() => {
+  // Android Expo Go: Java NPE from native worklet init escapes JS try/catch.
+  if (Platform.OS === "android" && __DEV__) return null;
   try {
     const m = require("react-native-reanimated"); // eslint-disable-line @typescript-eslint/no-var-requires
     if (m && typeof m.useSharedValue === "function") return m;

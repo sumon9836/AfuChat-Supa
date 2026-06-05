@@ -15,25 +15,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 
-// Lazy-load illustrations — avoids react-native-reanimated NPE crash in Android Expo Go dev.
-// In production APK builds (__DEV__ === false) reanimated initialises correctly.
-const _Memphis = (() => {
-  if (Platform.OS === "android" && __DEV__) return null;
-  return require("@/components/ui/MemphisIllustrations");
-})();
-const ChatIllustration      = (_Memphis?.ChatIllustration      ?? (() => null)) as React.ComponentType<{ size?: number }>;
-const SecurityIllustration  = (_Memphis?.SecurityIllustration  ?? (() => null)) as React.ComponentType<{ size?: number }>;
-const DiscoverIllustration  = (_Memphis?.DiscoverIllustration  ?? (() => null)) as React.ComponentType<{ size?: number }>;
-const AfuAIIllustration     = (_Memphis?.AfuAIIllustration     ?? (() => null)) as React.ComponentType<{ size?: number }>;
-const WalletIllustration    = (_Memphis?.WalletIllustration    ?? (() => null)) as React.ComponentType<{ size?: number }>;
-const CommunityIllustration = (_Memphis?.CommunityIllustration ?? (() => null)) as React.ComponentType<{ size?: number }>;
-
 const USE_ND = Platform.OS !== "web";
 const TEAL = "#00BCD4";
 
 const FEATURES = [
   {
-    Illustration: ChatIllustration,
+    icon: "chatbubbles" as const,
     accentColor: TEAL,
     bgTint: TEAL + "14",
     title: "Messaging",
@@ -41,7 +28,7 @@ const FEATURES = [
     items: ["Private & group chats", "Voice & video calls", "Voice notes & reactions", "Typing indicators & read receipts"],
   },
   {
-    Illustration: SecurityIllustration,
+    icon: "shield-checkmark" as const,
     accentColor: "#5C6BC0",
     bgTint: "#5C6BC014",
     title: "Privacy & Security",
@@ -49,7 +36,7 @@ const FEATURES = [
     items: ["End-to-end encryption", "Per-chat notification muting", "Two-factor authentication", "Digital ID verification"],
   },
   {
-    Illustration: DiscoverIllustration,
+    icon: "compass" as const,
     accentColor: "#26A69A",
     bgTint: "#26A69A14",
     title: "Discover",
@@ -57,7 +44,7 @@ const FEATURES = [
     items: ["Interest-based content feed", "Short-form video (Shorts)", "Communities & channels", "Creator profiles & articles"],
   },
   {
-    Illustration: AfuAIIllustration,
+    icon: "sparkles" as const,
     accentColor: "#AB47BC",
     bgTint: "#AB47BC14",
     title: "AfuAI Assistant",
@@ -65,7 +52,7 @@ const FEATURES = [
     items: ["Smart chat replies", "Long-thread summarisation", "AI image generation (Premium)", "Voice message transcription"],
   },
   {
-    Illustration: WalletIllustration,
+    icon: "wallet" as const,
     accentColor: "#FF7043",
     bgTint: "#FF704314",
     title: "AfuPay & ACoins",
@@ -73,7 +60,7 @@ const FEATURES = [
     items: ["Send & receive money", "Daily ACoins check-in", "Premium feature unlock", "Referral rewards"],
   },
   {
-    Illustration: CommunityIllustration,
+    icon: "people" as const,
     accentColor: TEAL,
     bgTint: TEAL + "14",
     title: "Community",
@@ -113,9 +100,11 @@ function FeatureCard({
         },
       ]}
     >
-      {/* Illustration strip */}
+      {/* Icon strip */}
       <View style={[styles.cardStrip, { backgroundColor: feature.bgTint }]}>
-        <feature.Illustration size={112} />
+        <View style={[styles.iconCircle, { backgroundColor: feature.accentColor + "22" }]}>
+          <Ionicons name={feature.icon} size={52} color={feature.accentColor} />
+        </View>
         <View style={[styles.stripAccent, { backgroundColor: feature.accentColor }]} />
       </View>
 
@@ -335,6 +324,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
+  },
+  iconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
   },
   stripAccent: {
     position: "absolute",
