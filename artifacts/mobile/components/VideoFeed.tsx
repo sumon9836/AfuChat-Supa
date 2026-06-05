@@ -43,15 +43,6 @@ import {
   ViewToken,
   useWindowDimensions,
 } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withSequence,
-  withDelay,
-  runOnJS,
-} from "react-native-reanimated";
 import { Image as ExpoImage } from "expo-image";
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import { LinearGradient } from "@/components/ui/SafeGradient";
@@ -59,7 +50,6 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar } from "@/components/ui/Avatar";
@@ -69,6 +59,35 @@ import { VideoFeedSkeleton } from "@/components/ui/Skeleton";
 import { useResolvedVideoSource } from "@/hooks/useResolvedVideoSource";
 import { getPreferredVideoHeight, isWifi } from "@/lib/networkQuality";
 import { getCachedVideoUri, cacheVideo, markVideoWatched } from "@/lib/videoCache";
+
+// ── Lazy-load Reanimated ──────────────────────────────────────────────────────
+// Same guard as ImageViewer / ChatScreen: prevents a Java NullPointerException
+// in the native worklet runtime from crashing this module on Android Expo Go.
+// All aliases are determined once at module-init time and never change, so
+// every component always calls the same function — Rules of Hooks satisfied.
+const _raVF = (() => {
+  try {
+    const m = require("react-native-reanimated"); // eslint-disable-line @typescript-eslint/no-var-requires
+    if (m && typeof m.useSharedValue === "function") return m;
+  } catch {}
+  return null;
+})();
+
+function _vfStubSV<T>(init: T): { value: T } {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const ref = React.useRef({ value: init });
+  return ref.current;
+}
+
+const useSharedValue   = (_raVF?.useSharedValue   ?? _vfStubSV)                   as typeof import("react-native-reanimated").useSharedValue;
+const useAnimatedStyle = (_raVF?.useAnimatedStyle ?? ((_fn: any) => ({})))         as typeof import("react-native-reanimated").useAnimatedStyle;
+const withSpring       = (_raVF?.withSpring       ?? ((v: any) => v))               as typeof import("react-native-reanimated").withSpring;
+const withTiming       = (_raVF?.withTiming       ?? ((v: any) => v))               as typeof import("react-native-reanimated").withTiming;
+const withSequence     = (_raVF?.withSequence     ?? ((v: any) => v))               as typeof import("react-native-reanimated").withSequence;
+const withDelay        = (_raVF?.withDelay        ?? ((_d: number, v: any) => v))   as typeof import("react-native-reanimated").withDelay;
+const runOnJS          = (_raVF?.runOnJS          ?? ((fn: any) => fn))             as typeof import("react-native-reanimated").runOnJS;
+// Animated.View falls back to RN's built-in Animated.View when RA unavailable
+const Animated         = (_raVF?.default ?? require("react-native").Animated)      as typeof import("react-native-reanimated").default;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

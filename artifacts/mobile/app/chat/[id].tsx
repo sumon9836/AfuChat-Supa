@@ -90,15 +90,36 @@ import ChatBackground from "@/components/ui/ChatBackground";
 import FormatToolbar from "@/components/chat/FormatToolbar";
 import MiniProfilePopup from "@/components/chat/MiniProfilePopup";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import ReAnimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  interpolate,
-  Extrapolation,
-  runOnJS,
-} from "react-native-reanimated";
+
+// ── Lazy-load Reanimated ──────────────────────────────────────────────────────
+// On Android Expo Go builds the native worklet runtime throws a Java
+// NullPointerException during module init. A static import propagates that
+// crash to this module, making ALL exports undefined. The IIFE runs once at
+// module-load time; its result never changes, so every component in this file
+// always calls the same hook function — satisfying React Rules of Hooks.
+const _ra = (() => {
+  try {
+    const m = require("react-native-reanimated"); // eslint-disable-line @typescript-eslint/no-var-requires
+    if (m && typeof m.useSharedValue === "function") return m;
+  } catch {}
+  return null;
+})();
+
+function _stubSharedValue<T>(init: T): { value: T } {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const ref = React.useRef({ value: init });
+  return ref.current;
+}
+
+const useSharedValue   = (_ra?.useSharedValue   ?? _stubSharedValue)          as typeof import("react-native-reanimated").useSharedValue;
+const useAnimatedStyle = (_ra?.useAnimatedStyle ?? ((_fn: any) => ({})))      as typeof import("react-native-reanimated").useAnimatedStyle;
+const withSpring       = (_ra?.withSpring       ?? ((v: any) => v))            as typeof import("react-native-reanimated").withSpring;
+const withTiming       = (_ra?.withTiming       ?? ((v: any) => v))            as typeof import("react-native-reanimated").withTiming;
+const interpolate      = (_ra?.interpolate      ?? ((v: number) => v))         as typeof import("react-native-reanimated").interpolate;
+const Extrapolation    = (_ra?.Extrapolation    ?? { CLAMP: "clamp" as const }) as typeof import("react-native-reanimated").Extrapolation;
+const runOnJS          = (_ra?.runOnJS          ?? ((fn: any) => fn))           as typeof import("react-native-reanimated").runOnJS;
+// ReAnimated.View falls back to RN's Animated.View (imported above at line 4)
+const ReAnimated       = { View: (_ra?.default?.View ?? Animated.View) as any };
 
 type Gift = {
   id: string;
