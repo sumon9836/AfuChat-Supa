@@ -9,7 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from "expo-audio";
+import { Audio, AVPlaybackStatus } from "expo-av";
 
 interface AudioPlayerProps {
   uri: string;
@@ -18,7 +18,7 @@ interface AudioPlayerProps {
 }
 
 const SPEEDS = [1, 1.5, 2] as const;
-type Speed = typeof SPEEDS[number];
+type Speed = (typeof SPEEDS)[number];
 
 function formatTime(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -38,7 +38,6 @@ function buildWaveBars(bars: number): number[] {
 
 const WAVE_SHAPE = buildWaveBars(BARS);
 
-// Shown before the user taps play — no audio loaded, no network request.
 function AudioPlayerIdle({
   onPlay,
   tintColor,
@@ -68,83 +67,110 @@ function AudioPlayerIdle({
   );
 }
 
-// Created only when the user taps play — loads + auto-plays the audio.
 function AudioPlayerActive({ uri, tintColor = "#FFFFFF", waveColor }: AudioPlayerProps) {
-  const player = useAudioPlayer({ uri }, 80);
-  const status = useAudioPlayerStatus(player);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [positionMs, setPositionMs] = useState(0);
+  const [durationMs, setDurationMs] = useState(0);
+  const [didJustFinish, setDidJustFinish] = useState(false);
   const [speed, setSpeed] = useState<Speed>(1);
   const trackWidth = useRef(0);
   const barColor = waveColor || tintColor;
-  const hasAutoPlayed = useRef(false);
 
   useEffect(() => {
-    if (Platform.OS !== "web") {
-      setAudioModeAsync({
-        playsInSilentMode: true,
-        shouldDuckAndroid: false,
-        staysActiveInBackground: false,
-      } as any).catch(() => {});
-    }
-  }, []);
+    let mounted = true;
 
-  // Auto-play once the audio is loaded
+    async function loadAudio() {
+      try {
+        if (Platform.OS !== "web") {
+          await Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            shouldDuckAndroid: false,
+            staysActiveInBackground: false,
+          });
+        }
+
+        const { sound } = await Audio.Sound.createAsync(
+          { uri },
+          { shouldPlay: true, progressUpdateIntervalMillis: 80 },
+          (status: AVPlaybackStatus) => {
+            if (!mounted) return;
+            if (status.isLoaded) {
+              setIsLoaded(true);
+              setIsPlaying(status.isPlaying);
+              setPositionMs(status.positionMillis ?? 0);
+              setDurationMs(status.durationMillis ?? 0);
+              if (status.didJustFinish) {
+                setDidJustFinish(true);
+              }
+            }
+          }
+        );
+
+        soundRef.current = sound;
+      } catch {
+        // silently ignore load errors
+      }
+    }
+
+    loadAudio();
+
+    return () => {
+      mounted = false;
+      soundRef.current?.unloadAsync().catch(() => {});
+    };
+  }, [uri]);
+
   useEffect(() => {
-    if (!hasAutoPlayed.current && status.isLoaded && !status.playing) {
-      hasAutoPlayed.current = true;
-      player.play();
+    if (didJustFinish && soundRef.current) {
+      soundRef.current.setPositionAsync(0).catch(() => {});
+      setDidJustFinish(false);
     }
-  }, [status.isLoaded]);
-
-  useEffect(() => {
-    if (status.didJustFinish) {
-      player.seekTo(0).catch(() => {});
-    }
-  }, [status.didJustFinish]);
-
-  const durationMs = (status.duration ?? 0) * 1000;
-  const positionMs = (status.currentTime ?? 0) * 1000;
-  const isPlaying = status.playing ?? false;
-  const isLoaded = status.isLoaded ?? false;
-
-  const progress = durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
-  const filled = Math.round(progress * BARS);
+  }, [didJustFinish]);
 
   const togglePlay = useCallback(async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || !soundRef.current) return;
     try {
       if (isPlaying) {
-        player.pause();
+        await soundRef.current.pauseAsync();
       } else {
         if (positionMs >= durationMs && durationMs > 0) {
-          await player.seekTo(0);
+          await soundRef.current.setPositionAsync(0);
         }
-        player.play();
+        await soundRef.current.playAsync();
       }
     } catch {}
-  }, [isPlaying, positionMs, durationMs, isLoaded, player]);
+  }, [isPlaying, positionMs, durationMs, isLoaded]);
 
-  const cycleSpeed = useCallback(() => {
-    if (!isLoaded) return;
+  const cycleSpeed = useCallback(async () => {
+    if (!isLoaded || !soundRef.current) return;
     const idx = SPEEDS.indexOf(speed);
     const next = SPEEDS[(idx + 1) % SPEEDS.length];
     setSpeed(next);
-    player.setPlaybackRate(next);
-  }, [speed, isLoaded, player]);
+    try {
+      await soundRef.current.setRateAsync(next, true);
+    } catch {}
+  }, [speed, isLoaded]);
 
   const seekFromTouch = useCallback(
-    (e: GestureResponderEvent) => {
-      if (!isLoaded || durationMs === 0) return;
+    async (e: GestureResponderEvent) => {
+      if (!isLoaded || durationMs === 0 || !soundRef.current) return;
       const { locationX } = e.nativeEvent;
       const ratio = Math.max(0, Math.min(1, locationX / (trackWidth.current || 1)));
-      player.seekTo(ratio * (status.duration ?? 0)).catch(() => {});
+      try {
+        await soundRef.current.setPositionAsync(ratio * durationMs);
+      } catch {}
     },
-    [isLoaded, durationMs, status.duration, player]
+    [isLoaded, durationMs]
   );
 
   const onTrackLayout = useCallback((e: LayoutChangeEvent) => {
     trackWidth.current = e.nativeEvent.layout.width;
   }, []);
 
+  const progress = durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
+  const filled = Math.round(progress * BARS);
   const displayTime =
     isPlaying || positionMs > 0 ? formatTime(positionMs) : formatTime(durationMs);
 
@@ -189,7 +215,6 @@ function AudioPlayerActive({ uri, tintColor = "#FFFFFF", waveColor }: AudioPlaye
   );
 }
 
-// Public component: idle until the user taps play
 export default function AudioPlayer({ uri, tintColor = "#FFFFFF", waveColor }: AudioPlayerProps) {
   const [active, setActive] = useState(false);
 
