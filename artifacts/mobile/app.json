@@ -2,7 +2,7 @@
   "expo": {
     "name": "AfuChat",
     "slug": "afuchat",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "splash": {
@@ -12,7 +12,7 @@
     },
     "scheme": "afuchat",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "jsEngine": "hermes",
     "backgroundColor": "#000000",
     "notification": {
@@ -148,10 +148,10 @@
       "typedRoutes": true,
       "reactCompiler": false
     },
-    "owner": "afume",
+    "owner": "afuchat",
     "extra": {
       "eas": {
-        "projectId": "363a3c64-5a90-4aae-86b5-aa54014921ef"
+        "projectId": "784a87ad-e3d1-438c-9c84-1b336f4fd2d2"
       }
     }
   }
