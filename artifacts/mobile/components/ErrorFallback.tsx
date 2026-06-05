@@ -1,394 +1,283 @@
 import { Feather } from "@expo/vector-icons";
 import { reloadAppAsync } from "expo";
-import React, { useState, useEffect } from "react";
+import Constants from "expo-constants";
+import * as Device from "expo-device";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  Modal,
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
   useColorScheme,
-  Clipboard,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const ERROR_LOG_KEY = "afuchat_last_crash_error";
+export const CRASH_LOG_KEY = "afuchat_last_crash_log";
+const PREV_CRASH_KEY = "afuchat_prev_crash_log";
 
 export type ErrorFallbackProps = {
   error: Error;
   resetError: () => void;
 };
 
+function buildDeviceInfo(): string {
+  const appVer = Constants.expoConfig?.version ?? "?";
+  const build = Platform.OS === "ios"
+    ? (Constants.expoConfig?.ios?.buildNumber ?? "?")
+    : String(Constants.expoConfig?.android?.versionCode ?? "?");
+  const lines = [
+    `App         : AfuChat ${appVer} (build ${build})`,
+    `Platform    : ${Platform.OS} ${Platform.Version}`,
+  ];
+  if (Device.modelName) lines.push(`Device      : ${Device.modelName}`);
+  if (Device.osName)    lines.push(`OS          : ${Device.osName} ${Device.osVersion ?? ""}`);
+  lines.push(`Dev mode    : ${String(__DEV__)}`);
+  return lines.join("\n");
+}
+
+export function buildCrashLog(error: Error, componentStack?: string): string {
+  const ts = new Date().toISOString();
+  const parts: string[] = [
+    "════════════════════════════════════════════",
+    "AfuChat Crash Report",
+    `Time        : ${ts}`,
+    "",
+    buildDeviceInfo(),
+    "",
+    "────────────────  Error  ───────────────────",
+    error.message ?? "Unknown error",
+    "",
+  ];
+  if (error.stack) {
+    parts.push("────────────  JS Stack Trace  ──────────────");
+    parts.push(error.stack.trim());
+    parts.push("");
+  }
+  if (componentStack) {
+    parts.push("──────────  React Component Stack  ─────────");
+    parts.push(componentStack.trim());
+    parts.push("");
+  }
+  parts.push("════════════════════════════════════════════");
+  return parts.join("\n");
+}
+
+export function saveCrashLog(log: string) {
+  try {
+    AsyncStorage.getItem(CRASH_LOG_KEY)
+      .then((prev) => { if (prev) AsyncStorage.setItem(PREV_CRASH_KEY, prev).catch(() => {}); })
+      .catch(() => {});
+    AsyncStorage.setItem(CRASH_LOG_KEY, log).catch(() => {});
+  } catch {}
+}
+
 export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const scheme = useColorScheme();
+  const isDark = scheme === "dark";
   const insets = useSafeAreaInsets();
 
-  const theme = {
-    background: isDark ? "#0D0D0D" : "#F2F2F7",
-    backgroundSecondary: isDark ? "#1C1C1E" : "#E5E5EA",
-    text: isDark ? "#FFFFFF" : "#1C1C1E",
-    textSecondary: isDark ? "rgba(255,255,255,0.7)" : "rgba(28,28,30,0.7)",
-    link: "#007AFF",
-    buttonText: "#FFFFFF",
-    danger: "#FF3B30",
-  };
+  const bg      = isDark ? "#0A0A0A"                  : "#F2F2F7";
+  const surface = isDark ? "#1C1C1E"                  : "#FFFFFF";
+  const text    = isDark ? "#FFFFFF"                  : "#1C1C1E";
+  const muted   = isDark ? "rgba(255,255,255,0.5)"    : "rgba(28,28,30,0.5)";
+  const border  = isDark ? "rgba(255,255,255,0.08)"   : "rgba(0,0,0,0.09)";
+  const danger  = "#FF3B30";
+  const blue    = "#007AFF";
+  const green   = "#34C759";
+  const mono    = Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" });
 
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const errorDetails = formatErrorDetails();
-
-  function formatErrorDetails(): string {
-    const ts = new Date().toISOString();
-    let details = `Time: ${ts}\nError: ${error.message}\n\n`;
-    if (error.stack) {
-      details += `Stack Trace:\n${error.stack}`;
-    }
-    return details;
-  }
+  const [crashLog, setCrashLog] = useState("");
+  const [prevLog, setPrevLog]   = useState<string | null>(null);
+  const [showPrev, setShowPrev] = useState(false);
+  const [copied, setCopied]     = useState(false);
 
   useEffect(() => {
-    try {
-      AsyncStorage.setItem(ERROR_LOG_KEY, errorDetails);
-    } catch {}
-  }, [errorDetails]);
+    const log = buildCrashLog(error);
+    setCrashLog(log);
+    saveCrashLog(log);
+    AsyncStorage.getItem(PREV_CRASH_KEY)
+      .then((v) => { if (v) setPrevLog(v); })
+      .catch(() => {});
+  }, [error]);
 
-  const handleRestart = async () => {
+  const handleRestart = useCallback(async () => {
     if (Platform.OS === "web") {
-      if (typeof window !== "undefined") {
-        window.location.reload();
-      } else {
-        resetError();
-      }
+      typeof window !== "undefined" ? window.location.reload() : resetError();
       return;
     }
-    try {
-      await reloadAppAsync();
-    } catch (restartError) {
-      console.error("Failed to restart app:", restartError);
-      resetError();
-    }
-  };
+    try { await reloadAppAsync(); } catch { resetError(); }
+  }, [resetError]);
 
-  const handleCopy = () => {
+  const activeLog = showPrev && prevLog ? prevLog : crashLog;
+
+  const handleCopy = useCallback(async () => {
     try {
-      Clipboard.setString(errorDetails);
+      await Clipboard.setStringAsync(activeLog);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 2200);
     } catch {}
-  };
+  }, [activeLog]);
 
-  const monoFont = Platform.select({
-    ios: "Menlo",
-    android: "monospace",
-    default: "monospace",
-  });
+  const handleShare = useCallback(async () => {
+    try {
+      await Share.share({ message: activeLog, title: "AfuChat Crash Report" });
+    } catch {}
+  }, [activeLog]);
+
+  const appVer = Constants.expoConfig?.version ?? "";
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Pressable
-        onPress={() => setIsModalVisible(true)}
-        accessibilityLabel="View error details"
-        accessibilityRole="button"
-        style={({ pressed }) => [
-          styles.topButton,
-          {
-            top: insets.top + 16,
-            backgroundColor: theme.danger,
-            opacity: pressed ? 0.8 : 1,
-          },
-        ]}
-      >
-        <Feather name="alert-circle" size={18} color="#fff" />
-        <Text style={styles.topButtonLabel}>Error</Text>
-      </Pressable>
+    <View style={[s.root, { backgroundColor: bg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
 
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: theme.text }]}>
-          Something went wrong
-        </Text>
-
-        <Text style={[styles.message, { color: theme.textSecondary }]}>
-          Please reload the app to continue.
-        </Text>
-
-        <Text
-          style={[styles.errorSummary, { color: theme.danger, fontFamily: monoFont }]}
-          numberOfLines={3}
-          selectable
-        >
-          {error.message}
-        </Text>
-
+      {/* ── Header ───────────────────────────────── */}
+      <View style={[s.header, { backgroundColor: surface, borderBottomColor: border }]}>
+        <View style={[s.headerIconWrap, { backgroundColor: danger + "20" }]}>
+          <Feather name="alert-octagon" size={22} color={danger} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[s.headerTitle, { color: text }]}>App crashed</Text>
+          <Text style={[s.headerSub, { color: muted }]}>
+            v{appVer} · {Platform.OS} {Platform.Version}
+          </Text>
+        </View>
         <Pressable
           onPress={handleRestart}
-          style={({ pressed }) => [
-            styles.button,
-            {
-              backgroundColor: theme.link,
-              opacity: pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.98 : 1 }],
-            },
-          ]}
+          style={({ pressed }) => [s.restartChip, { backgroundColor: blue, opacity: pressed ? 0.8 : 1 }]}
         >
-          <Text style={[styles.buttonText, { color: theme.buttonText }]}>
-            Try Again
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setIsModalVisible(true)}
-          style={({ pressed }) => [
-            styles.detailsButton,
-            {
-              borderColor: theme.textSecondary,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}
-        >
-          <Feather name="info" size={14} color={theme.textSecondary} />
-          <Text style={[styles.detailsButtonText, { color: theme.textSecondary }]}>
-            View error details
-          </Text>
+          <Feather name="refresh-cw" size={13} color="#fff" />
+          <Text style={s.restartChipText}>Restart</Text>
         </Pressable>
       </View>
 
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContainer,
-              { backgroundColor: theme.background },
-            ]}
+      {/* ── Tab bar (only when a previous crash exists) ── */}
+      {prevLog ? (
+        <View style={[s.tabRow, { backgroundColor: surface, borderBottomColor: border }]}>
+          <Pressable
+            style={[s.tab, !showPrev && [s.tabActive, { borderBottomColor: blue }]]}
+            onPress={() => setShowPrev(false)}
           >
-            <View
-              style={[
-                styles.modalHeader,
-                {
-                  borderBottomColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
-                },
-              ]}
-            >
-              <Text style={[styles.modalTitle, { color: theme.text }]}>
-                Error Details
-              </Text>
-              <View style={styles.modalHeaderActions}>
-                <Pressable
-                  onPress={handleCopy}
-                  accessibilityLabel="Copy error"
-                  accessibilityRole="button"
-                  style={({ pressed }) => [
-                    styles.copyButton,
-                    { opacity: pressed ? 0.6 : 1 },
-                  ]}
-                >
-                  <Feather
-                    name={copied ? "check" : "copy"}
-                    size={20}
-                    color={copied ? "#34C759" : theme.text}
-                  />
-                </Pressable>
-                <Pressable
-                  onPress={() => setIsModalVisible(false)}
-                  accessibilityLabel="Close error details"
-                  accessibilityRole="button"
-                  style={({ pressed }) => [
-                    styles.closeButton,
-                    { opacity: pressed ? 0.6 : 1 },
-                  ]}
-                >
-                  <Feather name="x" size={24} color={theme.text} />
-                </Pressable>
-              </View>
-            </View>
-
-            <ScrollView
-              style={styles.modalScrollView}
-              contentContainerStyle={[
-                styles.modalScrollContent,
-                { paddingBottom: insets.bottom + 16 },
-              ]}
-              showsVerticalScrollIndicator
-            >
-              <View
-                style={[
-                  styles.errorContainer,
-                  { backgroundColor: theme.backgroundSecondary },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.errorText,
-                    {
-                      color: theme.text,
-                      fontFamily: monoFont,
-                    },
-                  ]}
-                  selectable
-                >
-                  {errorDetails}
-                </Text>
-              </View>
-              <Text style={[styles.hint, { color: theme.textSecondary }]}>
-                Tap the copy button and send this to the developer to help diagnose the issue.
-              </Text>
-            </ScrollView>
-          </View>
+            <Text style={[s.tabLabel, { color: !showPrev ? blue : muted }]}>Current crash</Text>
+          </Pressable>
+          <Pressable
+            style={[s.tab, showPrev && [s.tabActive, { borderBottomColor: danger }]]}
+            onPress={() => setShowPrev(true)}
+          >
+            <Text style={[s.tabLabel, { color: showPrev ? danger : muted }]}>Previous crash</Text>
+          </Pressable>
         </View>
-      </Modal>
+      ) : null}
+
+      {/* ── Error headline ── */}
+      <View style={[s.errorBanner, { backgroundColor: danger + "15" }]}>
+        <Feather name="zap" size={13} color={danger} style={{ marginTop: 1 }} />
+        <Text
+          style={[s.errorMsgText, { color: danger, fontFamily: mono }]}
+          selectable
+          numberOfLines={5}
+        >
+          {error.message}
+        </Text>
+      </View>
+
+      {/* ── Full crash log (scrollable, always visible) ── */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 12, paddingBottom: 20 }}
+        showsVerticalScrollIndicator
+      >
+        <View style={[s.logBox, { backgroundColor: surface, borderColor: border }]}>
+          <Text
+            style={[s.logText, { color: text, fontFamily: mono }]}
+            selectable
+          >
+            {activeLog || "Generating crash report…"}
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* ── Action bar ── */}
+      <View style={[s.actionBar, { backgroundColor: surface, borderTopColor: border }]}>
+        <Pressable
+          onPress={handleCopy}
+          style={({ pressed }) => [s.actionBtn, { borderColor: border, opacity: pressed ? 0.7 : 1 }]}
+        >
+          <Feather name={copied ? "check" : "copy"} size={15} color={copied ? green : text} />
+          <Text style={[s.actionBtnLabel, { color: copied ? green : text }]}>
+            {copied ? "Copied" : "Copy log"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={handleShare}
+          style={({ pressed }) => [s.actionBtn, { borderColor: border, opacity: pressed ? 0.7 : 1 }]}
+        >
+          <Feather name="share-2" size={15} color={text} />
+          <Text style={[s.actionBtnLabel, { color: text }]}>Share</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={handleRestart}
+          style={({ pressed }) => [s.actionBtn, s.actionBtnPrimary, { backgroundColor: blue, opacity: pressed ? 0.85 : 1 }]}
+        >
+          <Feather name="refresh-cw" size={15} color="#fff" />
+          <Text style={[s.actionBtnLabel, { color: "#fff", fontWeight: "700" }]}>Restart app</Text>
+        </Pressable>
+      </View>
+
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
+const s = StyleSheet.create({
+  root: { flex: 1 },
+
+  header: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  content: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-    width: "100%",
+  headerIconWrap: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+  headerTitle: { fontSize: 17, fontWeight: "700" },
+  headerSub: { fontSize: 12, marginTop: 2 },
+  restartChip: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    textAlign: "center",
-    lineHeight: 40,
-  },
-  message: {
-    fontSize: 16,
-    textAlign: "center",
-    lineHeight: 24,
-  },
-  errorSummary: {
-    fontSize: 12,
-    textAlign: "center",
-    lineHeight: 18,
-    paddingHorizontal: 8,
-    opacity: 0.8,
-  },
-  topButton: {
-    position: "absolute",
-    right: 16,
+  restartChipText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+
+  tabRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    zIndex: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  topButtonLabel: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
+  tab: { flex: 1, alignItems: "center", paddingVertical: 10 },
+  tabActive: { borderBottomWidth: 2 },
+  tabLabel: { fontSize: 13, fontWeight: "600" },
+
+  errorBanner: {
+    flexDirection: "row", alignItems: "flex-start", gap: 8,
+    paddingHorizontal: 14, paddingVertical: 10,
   },
-  button: {
-    paddingVertical: 16,
-    borderRadius: 8,
-    paddingHorizontal: 24,
-    minWidth: 200,
-    ...Platform.select({
-      web: { boxShadow: "0 2px 4px rgba(0,0,0,0.1)" } as any,
-      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-    }),
+  errorMsgText: { flex: 1, fontSize: 12, lineHeight: 18 },
+
+  logBox: {
+    borderRadius: 8, borderWidth: StyleSheet.hairlineWidth,
+    padding: 12, overflow: "hidden",
   },
-  buttonText: {
-    fontWeight: "600",
-    textAlign: "center",
-    fontSize: 16,
+  logText: { fontSize: 11, lineHeight: 17 },
+
+  actionBar: {
+    flexDirection: "row", gap: 8, padding: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  detailsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderRadius: 8,
+  actionBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 5, paddingVertical: 10, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth,
   },
-  detailsButtonText: {
-    fontSize: 14,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContainer: {
-    width: "100%",
-    height: "90%",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  modalHeaderActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  copyButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  closeButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalScrollView: {
-    flex: 1,
-  },
-  modalScrollContent: {
-    padding: 16,
-    gap: 12,
-  },
-  errorContainer: {
-    width: "100%",
-    borderRadius: 8,
-    overflow: "hidden",
-    padding: 16,
-  },
-  errorText: {
-    fontSize: 12,
-    lineHeight: 18,
-    width: "100%",
-  },
-  hint: {
-    fontSize: 13,
-    textAlign: "center",
-    lineHeight: 18,
-  },
+  actionBtnPrimary: { borderWidth: 0 },
+  actionBtnLabel: { fontSize: 12, fontWeight: "600" },
 });
