@@ -124,6 +124,13 @@ const runOnJS          = (_ra?.runOnJS          ?? ((fn: any) => fn))           
 // ReAnimated.View falls back to RN's Animated.View (imported above at line 4)
 const ReAnimated       = { View: (_ra?.default?.View ?? Animated.View) as any };
 
+// True only when Reanimated native runtime is actually loaded.
+// On Android Expo Go (_ra === null) worklet callbacks inside Gesture.Pan()
+// crash the moment the gesture fires — the compiled worklet tries to call
+// native Reanimated methods on plain React ref stubs.  We gate the
+// GestureDetector mic button on this flag and fall back to a plain Pressable.
+const _reanimatedEnabled = _ra !== null;
+
 type Gift = {
   id: string;
   name: string;
@@ -5565,14 +5572,24 @@ STRICT RULES:
                             </View>
                           </ReAnimated.View>
                         )}
-                        <GestureDetector gesture={micGesture}>
-                          <ReAnimated.View style={[
-                            isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND, ...(Platform.OS !== "web" ? { shadowColor: BRAND } : {}) }] : [st.sendBtn, { backgroundColor: BRAND }],
-                            isRecording && !recLocked ? micBtnAnimStyle : undefined,
-                          ]}>
+                        {_reanimatedEnabled ? (
+                          <GestureDetector gesture={micGesture}>
+                            <ReAnimated.View style={[
+                              isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND, ...(Platform.OS !== "web" ? { shadowColor: BRAND } : {}) }] : [st.sendBtn, { backgroundColor: BRAND }],
+                              isRecording && !recLocked ? micBtnAnimStyle : undefined,
+                            ]}>
+                              <Ionicons name="mic" size={isRecording ? 24 : 20} color="#fff" />
+                            </ReAnimated.View>
+                          </GestureDetector>
+                        ) : (
+                          <Pressable
+                            onPressIn={onRecStart}
+                            onPressOut={() => { if (recStartedSV.value) onRecSend(); else onRecCancel(); }}
+                            style={isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND }] : [st.sendBtn, { backgroundColor: BRAND }]}
+                          >
                             <Ionicons name="mic" size={isRecording ? 24 : 20} color="#fff" />
-                          </ReAnimated.View>
-                        </GestureDetector>
+                          </Pressable>
+                        )}
                       </View>
                     )}
                   </View>
@@ -5720,14 +5737,24 @@ STRICT RULES:
                             </View>
                           </ReAnimated.View>
                         )}
-                        <GestureDetector gesture={micGesture}>
-                          <ReAnimated.View style={[
-                            isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND, ...(Platform.OS !== "web" ? { shadowColor: BRAND } : {}) }] : [st.sendBtn, { backgroundColor: BRAND }],
-                            isRecording && !recLocked ? micBtnAnimStyle : undefined,
-                          ]}>
+                        {_reanimatedEnabled ? (
+                          <GestureDetector gesture={micGesture}>
+                            <ReAnimated.View style={[
+                              isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND, ...(Platform.OS !== "web" ? { shadowColor: BRAND } : {}) }] : [st.sendBtn, { backgroundColor: BRAND }],
+                              isRecording && !recLocked ? micBtnAnimStyle : undefined,
+                            ]}>
+                              <Ionicons name="mic" size={isRecording ? 24 : 20} color="#fff" />
+                            </ReAnimated.View>
+                          </GestureDetector>
+                        ) : (
+                          <Pressable
+                            onPressIn={onRecStart}
+                            onPressOut={() => { if (recStartedSV.value) onRecSend(); else onRecCancel(); }}
+                            style={isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND }] : [st.sendBtn, { backgroundColor: BRAND }]}
+                          >
                             <Ionicons name="mic" size={isRecording ? 24 : 20} color="#fff" />
-                          </ReAnimated.View>
-                        </GestureDetector>
+                          </Pressable>
+                        )}
                       </View>
                     )}
                   </View>
