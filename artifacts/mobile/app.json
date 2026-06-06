@@ -140,7 +140,22 @@
         }
       ],
       "expo-video",
-      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24,
+            "kotlinVersion": "2.1.0",
+            "newArchEnabled": true
+          },
+          "ios": {
+            "newArchEnabled": true,
+            "deploymentTarget": "15.1"
+          }
+        }
+      ],
       "expo-secure-store",
       "expo-sqlite"
     ],

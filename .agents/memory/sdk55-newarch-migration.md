@@ -15,7 +15,7 @@ SDK 55 runs exclusively on New Architecture (RN 0.83). `newArchEnabled: false` i
 - `react-native`: 0.83.6
 - `expo-router`: ~55.0.16  (versioning aligned with SDK, no more 6.x numbering)
 - `react-native-reanimated`: 4.2.1 (New Arch native, requires worklets peer dep)
-- `react-native-worklets`: 0.5.1 (required peer for Reanimated 4)
+- `react-native-worklets`: >=0.7.0 required (Reanimated 4.2.1 peerDep); 0.7.4 installed ✅
 - `react-native-mmkv`: ^4.3.1 (Nitro, replaces v3 JSI approach)
 - All `expo-*` packages: ~55.0.x range
 

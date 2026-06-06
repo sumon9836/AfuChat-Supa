@@ -190,7 +190,7 @@ export default function ViewStoryScreen() {
   useEffect(() => {
     videoFinishedRef.current = false;
     if (!isVideoStory || !story?.media_url) { storyVideoPlayer.pause(); return; }
-    storyVideoPlayer.replace({ uri: story.media_url });
+    storyVideoPlayer.replaceAsync({ uri: story.media_url }).catch(() => {});
     if (!paused) storyVideoPlayer.play();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story?.media_url, isVideoStory]);

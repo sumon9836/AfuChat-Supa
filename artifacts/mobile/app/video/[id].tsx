@@ -555,7 +555,7 @@ const VideoItem = React.memo(function VideoItem({
   // ── Player source update ───────────────────────────────────────────────
   useEffect(() => {
     if (!playbackUri || !shouldMountVideo) return;
-    player.replace({ uri: playbackUri });
+    player.replaceAsync({ uri: playbackUri }).catch(() => {});
   }, [playbackUri, shouldMountVideo]);
 
   // ── Play / pause control ───────────────────────────────────────────────
