@@ -14,6 +14,8 @@ config.resolver = {
     /node_modules[\\/]\.pnpm[\\/].*_tmp_\d+/,
     // typedoc's inner node_modules symlink doesn't exist in pnpm's virtual store
     /node_modules[\\/]\.pnpm[\\/]typedoc[^/]*[\\/]node_modules[\\/]typedoc[\\/]node_modules.*/,
+    // require-main-filename pnpm entry is a broken symlink — exclude to prevent ENOENT watcher crash
+    /node_modules[\\/]\.pnpm[\\/]require-main-filename[^/]*[\\/]node_modules[\\/]require-main-filename.*/,
   ],
   // Enable symlink following so Metro resolves pnpm's content-addressed store
   // correctly on Android (pnpm creates symlinks that Metro doesn't follow by default).
