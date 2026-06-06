@@ -28,7 +28,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { ShortsFeedSkeleton } from "@/components/ui/Skeleton";
-import { Video, ResizeMode } from "expo-av";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { router, useFocusEffect } from "expo-router";
 import { activateKeepAwakeAsync, deactivateKeepAwakeAsync } from "expo-keep-awake";
 import { Ionicons } from "@expo/vector-icons";
@@ -197,8 +197,25 @@ function NativeShortsPlayer({
   preloadOnly: boolean;
   onTogglePause: () => void;
 }) {
-  const ref = useRef<Video>(null);
+  const player = useVideoPlayer(src ? { uri: src } : null, (p) => {
+    p.loop = true;
+    p.muted = muted;
+    if (active && !paused && !preloadOnly) p.play();
+  });
   const touchRef = useRef<{ y: number; t: number } | null>(null);
+
+  // Play / pause control
+  React.useEffect(() => {
+    if (active && !paused && !preloadOnly) {
+      player.muted = muted;
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [active, paused, preloadOnly]);
+
+  React.useEffect(() => { player.muted = muted; }, [muted]);
+
   return (
     <View
       style={StyleSheet.absoluteFill}
@@ -217,16 +234,11 @@ function NativeShortsPlayer({
       }}
       onResponderTerminate={() => { touchRef.current = null; }}
     >
-      <Video
-        ref={ref}
-        source={{ uri: src }}
+      <VideoView
+        player={player}
         style={StyleSheet.absoluteFill}
-        resizeMode={ResizeMode.CONTAIN}
-        shouldPlay={active && !paused && !preloadOnly}
-        isLooping
-        isMuted={muted}
-        posterSource={poster ? { uri: poster } : undefined}
-        {...(poster ? { usePosterImage: true } as any : {})}
+        contentFit="contain"
+        nativeControls={false}
       />
       {!preloadOnly && paused && (
         <View style={[styles.centerPlayBtn, { pointerEvents: "none" }]}>

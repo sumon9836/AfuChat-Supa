@@ -16,7 +16,7 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Video, ResizeMode } from "expo-av";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar } from "@/components/ui/Avatar";
@@ -65,6 +65,8 @@ export default function ViewStoryScreen() {
   const [stories, setStories] = useState<Story[]>([]);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const storyVideoPlayer = useVideoPlayer(null, (p) => { p.loop = false; p.muted = false; });
+  const videoFinishedRef = React.useRef(false);
 
   // Viewers sheet
   const [showViewers, setShowViewers] = useState(false);
@@ -168,7 +170,7 @@ export default function ViewStoryScreen() {
     }
   }
 
-  // ── Navigation ──────────────────────────────────────────────────────────────
+  // ── Navigation (must be declared BEFORE effects that reference them) ──────────
   const story = stories[index];
   const isVideoStory = story?.media_type === "video";
 
@@ -183,6 +185,36 @@ export default function ViewStoryScreen() {
   const goPrev = useCallback(() => {
     if (index > 0) setIndex((i) => i - 1);
   }, [index]);
+
+  // ── Video player: update source + play/pause when story changes ──────────────
+  useEffect(() => {
+    videoFinishedRef.current = false;
+    if (!isVideoStory || !story?.media_url) { storyVideoPlayer.pause(); return; }
+    storyVideoPlayer.replace({ uri: story.media_url });
+    if (!paused) storyVideoPlayer.play();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.media_url, isVideoStory]);
+
+  useEffect(() => {
+    if (!isVideoStory) return;
+    if (paused) storyVideoPlayer.pause(); else storyVideoPlayer.play();
+  }, [paused, isVideoStory]);
+
+  // ── Video progress + finish detection (100 ms poll) ──────────────────────────
+  useEffect(() => {
+    if (!isVideoStory) return;
+    const timer = setInterval(() => {
+      const dur = storyVideoPlayer.duration;
+      const pos = storyVideoPlayer.currentTime;
+      if (dur > 0) progressAnim.setValue(pos / dur);
+      if (!videoFinishedRef.current && dur > 0 && !storyVideoPlayer.playing && pos >= dur - 0.3) {
+        videoFinishedRef.current = true;
+        goNext();
+      }
+    }, 100);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVideoStory, goNext]);
 
   // ── Progress bar animation ───────────────────────────────────────────────────
   useEffect(() => {
@@ -402,19 +434,11 @@ export default function ViewStoryScreen() {
     >
       {/* ── Media ─────────────────────────────────────────────────────────── */}
       {isVideoStory ? (
-        <Video
-          source={{ uri: story.media_url }}
+        <VideoView
+          player={storyVideoPlayer}
           style={styles.media}
-          resizeMode={ResizeMode.CONTAIN}
-          shouldPlay={!paused}
-          isLooping={false}
-          isMuted={false}
-          onPlaybackStatusUpdate={(status: any) => {
-            if (status.isLoaded && status.durationMillis) {
-              progressAnim.setValue(status.positionMillis / status.durationMillis);
-            }
-            if (status.didJustFinish) goNext();
-          }}
+          contentFit="contain"
+          nativeControls={false}
         />
       ) : (
         <Image source={{ uri: story.media_url }} style={styles.media} resizeMode="contain" />

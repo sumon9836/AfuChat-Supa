@@ -21,7 +21,7 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "@/lib/haptics";
 import MediaGalleryPicker, { type GalleryAsset } from "@/components/MediaGalleryPicker";
-import { Video, ResizeMode } from "expo-av";
+import VideoPreview from "@/components/ui/VideoPreview";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar } from "@/components/ui/Avatar";
@@ -264,10 +264,10 @@ export default function CreateStoryScreen() {
           {mediaUri ? (
             <View style={[styles.previewWrap, { width: previewW, height: previewH, borderRadius: previewRadius }]}>
               {mediaType === "video" ? (
-                <Video
-                  source={{ uri: mediaUri }}
+                <VideoPreview
+                  uri={mediaUri!}
                   style={StyleSheet.absoluteFill}
-                  resizeMode={ResizeMode.CONTAIN}
+                  contentFit="contain"
                   shouldPlay
                   isLooping
                   isMuted={false}

@@ -38,7 +38,8 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
-import { Video, ResizeMode, Audio } from "expo-av";
+import { Audio } from "expo-av";
+import VideoPreview from "@/components/ui/VideoPreview";
 import * as Speech from "expo-speech";
 import * as Clipboard from "expo-clipboard";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -1157,12 +1158,13 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
           ) : hasVideo ? (
             <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={300} activeOpacity={0.9}>
               <View style={st.attachVideo}>
-                <Video
-                  source={{ uri: msg.attachment_url! }}
+                <VideoPreview
+                  uri={msg.attachment_url!}
                   style={{ width: "100%", height: "100%", borderRadius: 8 }}
-                  resizeMode={ResizeMode.COVER}
-                  useNativeControls
+                  contentFit="cover"
+                  nativeControls
                   isLooping={false}
+                  shouldPlay={false}
                 />
               </View>
             </TouchableOpacity>

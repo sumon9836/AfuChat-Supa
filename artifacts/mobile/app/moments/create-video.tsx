@@ -40,7 +40,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
-import { Video, ResizeMode } from "expo-av";
+import VideoPreview from "@/components/ui/VideoPreview";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { GlassHeader } from "@/components/ui/GlassHeader";
@@ -887,11 +887,13 @@ function EditPhase({
         <>
         {/* ── Video preview ── */}
         <View style={[es.previewWrap, { height: previewH, width: W }]}>
-          <Video
-            source={{ uri: videoUri }}
+          <VideoPreview
+            uri={videoUri!}
             style={StyleSheet.absoluteFill}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay isLooping isMuted={false}
+            contentFit="cover"
+            shouldPlay
+            isLooping
+            isMuted={false}
           />
           {filterOverlay && (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: filterOverlay.bg, opacity: filterOverlay.op }]} pointerEvents="none" />

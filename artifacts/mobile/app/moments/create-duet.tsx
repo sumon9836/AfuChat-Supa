@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
-import { Video, ResizeMode } from "expo-av";
+import VideoPreview from "@/components/ui/VideoPreview";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -405,15 +405,13 @@ export default function CreateDuetScreen() {
               <Text style={[s.videoHalfLabel, { color: colors.textMuted }]}>Original</Text>
               <View style={[s.videoBox, { backgroundColor: "#000" }]}>
                 {Platform.OS !== "web" ? (
-                  <Video
-                    source={{ uri: original.video_url }}
+                  <VideoPreview
+                    uri={original.video_url}
                     style={StyleSheet.absoluteFill}
-                    resizeMode={ResizeMode.COVER}
+                    contentFit="cover"
                     shouldPlay={false}
                     isLooping
                     isMuted
-                    posterSource={original.image_url ? { uri: original.image_url } : undefined}
-                    {...(original.image_url ? { usePosterImage: true } as any : {})}
                   />
                 ) : (
                   // @ts-ignore
@@ -451,10 +449,10 @@ export default function CreateDuetScreen() {
               >
                 {videoUri ? (
                   Platform.OS !== "web" ? (
-                    <Video
-                      source={{ uri: videoUri }}
+                    <VideoPreview
+                      uri={videoUri!}
                       style={StyleSheet.absoluteFill}
-                      resizeMode={ResizeMode.COVER}
+                      contentFit="cover"
                       shouldPlay={false}
                       isLooping
                       isMuted
