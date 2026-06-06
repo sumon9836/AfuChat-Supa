@@ -47,10 +47,12 @@ const FULLSCREEN_PATTERNS: RegExp[] = [
   /^\/stories\/(view|camera)/,
   /^\/video\//,
   /^\/shorts(\/|$)/,
+  /^\/landing(\/|$)/,
+  /^\/welcome(\/|$)/,
 ];
 
 // Routes where the chats list panel (master-detail layout) is shown.
-const CHAT_HOME_PATTERNS: RegExp[] = [/^\/$/, /^\/index$/];
+const CHAT_HOME_PATTERNS: RegExp[] = [/^\/$/, /^\/index$/, /^\/\(tabs\)\/chats$/, /^\/\(tabs\)$/, /^\/chats$/];
 
 const MODAL_PATTERNS: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/profile\/edit/, title: "Edit profile" },

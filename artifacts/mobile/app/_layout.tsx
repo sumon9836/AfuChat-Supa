@@ -39,6 +39,7 @@ import { TrustpilotReviewPrompt } from "@/components/TrustpilotReviewPrompt";
 import UpdatePrompt from "@/components/UpdatePrompt";
 import { initActivityTracker } from "@/lib/activityTracker";
 import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
+import { DesktopShell } from "@/components/desktop/DesktopShell";
 
 // NOTE: Conversations pre-warm has been intentionally moved to the RootLayout
 // useEffect below.  It was previously at module-eval time, which triggered MMKV
@@ -185,21 +186,23 @@ export default function RootLayout() {
                     <AdvancedFeaturesProvider>
                       <ChatPreferencesProvider>
                         <MiniAppRuntimeProvider>
-                          <Stack
-                            screenOptions={{
-                              headerShown: false,
-                              animation: "slide_from_right",
-                              contentStyle: { backgroundColor: "transparent" },
-                              freezeOnBlur: true,
-                            }}
-                          >
-                            <Stack.Screen name="index" options={{ animation: "none", contentStyle: { backgroundColor: "transparent" } }} />
-                            <Stack.Screen name="welcome" options={{ animation: "none", gestureEnabled: false }} />
-                            <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
-                            <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
-                            <Stack.Screen name="onboarding" options={{ animation: "none" }} />
-                            <Stack.Screen name="+not-found" />
-                          </Stack>
+                          <DesktopShell>
+                            <Stack
+                              screenOptions={{
+                                headerShown: false,
+                                animation: "slide_from_right",
+                                contentStyle: { backgroundColor: "transparent" },
+                                freezeOnBlur: true,
+                              }}
+                            >
+                              <Stack.Screen name="index" options={{ animation: "none", contentStyle: { backgroundColor: "transparent" } }} />
+                              <Stack.Screen name="welcome" options={{ animation: "none", gestureEnabled: false }} />
+                              <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
+                              <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
+                              <Stack.Screen name="onboarding" options={{ animation: "none" }} />
+                              <Stack.Screen name="+not-found" />
+                            </Stack>
+                          </DesktopShell>
                           <ToastContainer />
                           <AlertModal />
                         </MiniAppRuntimeProvider>
