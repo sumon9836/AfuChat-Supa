@@ -4,10 +4,12 @@ import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
@@ -354,64 +356,118 @@ const bar = StyleSheet.create({
 });
 
 // ── Tab swipe gesture ──────────────────────────────────────────────────────────
-// Wraps the full tab content in a GestureDetector + Reanimated.View so the
-// user can swipe horizontally to navigate between tabs (New Arch SDK 55+).
-//
-// The gesture is blocked automatically when a child horizontal scroll is active
-// (e.g. Discover feed cards, SuggestedUsers carousel) because those components
-// set horizontalScrollActive.value = true via TabSwipeContext.
-//
-// On web there is no touch swipe; we render a plain View instead.
+// Full 1:1 finger tracking + screenshot overlay of the destination tab.
+// When the user starts swiping, a cached screenshot of the adjacent tab slides
+// in from the side while the current screen slides out — giving a true
+// "see the destination content" feel without double-rendering any screen.
+// Screenshots are captured 700 ms after each tab change and cached by route.
 function SwipeableTabContent({ children }: { children: React.ReactNode }) {
   const { horizontalScrollActive } = React.useContext(TabSwipeContext);
   const pathname = usePathname();
-  const tabOffsetX = useSharedValue(0);
+  const { width: screenW } = useWindowDimensions();
 
-  // Keep a stable ref for the current tab index so the runOnJS callback
-  // never captures a stale closure value.
-  const currentIdxRef = useRef(0);
+  const tabOffsetX     = useSharedValue(0);
+  const swipeDirSV     = useSharedValue(0);  // 1 = swiping right (go prev), -1 = left (go next)
+  const screenWShared  = useSharedValue(screenW);
+  useEffect(() => { screenWShared.value = screenW; }, [screenW]);
+
+  const currentIdxRef    = useRef(0);
+  const contentViewRef   = useRef<View>(null);
+  const screenshotCache  = useRef(new Map<string, string>());
+  const [overlayUri, setOverlayUri] = useState<string | null>(null);
+
+  // Update index & cache a screenshot 700 ms after each tab change
   useEffect(() => {
     const normalized = normalizeTabPath(pathname);
     currentIdxRef.current = Math.max(0, TABS.findIndex((t) => t.route === normalized));
+
+    const timer = setTimeout(async () => {
+      try {
+        if (!contentViewRef.current) return;
+        const { captureRef } = await import("react-native-view-shot");
+        const uri = await captureRef(contentViewRef, { format: "jpg", quality: 0.45 });
+        screenshotCache.current.set(normalized, uri);
+      } catch (_) {}
+    }, 700);
+    return () => clearTimeout(timer);
   }, [pathname]);
+
+  const resolveOverlay = useCallback((dir: number) => {
+    // dir 1 = swiping right → destination is currentIdx - 1 (prev tab)
+    // dir -1 = swiping left  → destination is currentIdx + 1 (next tab)
+    const targetIdx = currentIdxRef.current - dir;
+    if (targetIdx < 0 || targetIdx >= TABS.length) {
+      setOverlayUri(null);
+      return;
+    }
+    setOverlayUri(screenshotCache.current.get(TABS[targetIdx].route) ?? null);
+  }, []);
+
+  const hideOverlay = useCallback(() => {
+    swipeDirSV.value = 0;
+    setOverlayUri(null);
+  }, []);
 
   const navigateTab = useCallback((dir: number) => {
     const next = currentIdxRef.current + dir;
     if (next >= 0 && next < TABS.length) {
       safeRouter.navigate(TABS[next].route as any);
     }
+    swipeDirSV.value = 0;
+    setOverlayUri(null);
   }, []);
 
   const pan = Gesture.Pan()
-    // Only activate for predominantly horizontal movements.
     .activeOffsetX([-20, 20])
     .failOffsetY([-15, 15])
     .onUpdate((e) => {
       "worklet";
-      // If a child horizontal scroll is active, don't move the container.
       if (horizontalScrollActive.value) return;
-      tabOffsetX.value = e.translationX * 0.25;
+      tabOffsetX.value = e.translationX;
+      const dir = e.translationX > 0 ? 1 : -1;
+      if (swipeDirSV.value !== dir) {
+        swipeDirSV.value = dir;
+        runOnJS(resolveOverlay)(dir);
+      }
     })
     .onEnd((e) => {
       "worklet";
       const didSwipe =
         !horizontalScrollActive.value &&
-        (Math.abs(e.translationX) > 80 || Math.abs(e.velocityX) > 500);
+        (Math.abs(e.translationX) > 60 || Math.abs(e.velocityX) > 400);
       if (didSwipe) {
-        // Positive translationX = swipe right = go to previous tab.
         runOnJS(navigateTab)(e.translationX > 0 ? -1 : 1);
+      } else {
+        runOnJS(hideOverlay)();
       }
       tabOffsetX.value = withSpring(0, { damping: 20, stiffness: 300 });
     })
     .onFinalize(() => {
       "worklet";
       tabOffsetX.value = withSpring(0, { damping: 20, stiffness: 300 });
+      runOnJS(hideOverlay)();
     });
 
-  const animStyle = useAnimatedStyle(() => ({
+  const currentStyle = useAnimatedStyle(() => ({
     flex: 1,
     transform: [{ translateX: tabOffsetX.value }],
   }));
+
+  const overlayStyle = useAnimatedStyle(() => {
+    const dir = swipeDirSV.value;
+    if (dir === 0) {
+      // Hidden far off-screen — opacity:0 alone is insufficient on some engines
+      return { opacity: 0, transform: [{ translateX: -screenWShared.value * 3 }] };
+    }
+    // Swiping right (dir > 0): prev tab slides in from LEFT  → offset = -screenW
+    // Swiping left  (dir < 0): next tab slides in from RIGHT → offset = +screenW
+    return {
+      opacity: 1,
+      transform: [{
+        translateX: tabOffsetX.value + (dir > 0 ? -screenWShared.value : screenWShared.value),
+      }],
+    };
+  });
 
   if (Platform.OS === "web") {
     return <View style={{ flex: 1 }}>{children}</View>;
@@ -419,9 +475,28 @@ function SwipeableTabContent({ children }: { children: React.ReactNode }) {
 
   return (
     <GestureDetector gesture={pan}>
-      <Reanimated.View style={animStyle}>
-        {children}
-      </Reanimated.View>
+      <View style={{ flex: 1 }}>
+        <Reanimated.View style={currentStyle}>
+          <View ref={contentViewRef} style={{ flex: 1 }}>
+            {children}
+          </View>
+        </Reanimated.View>
+        {/* Destination-tab screenshot overlay — follows the finger perfectly */}
+        <Reanimated.View
+          style={[StyleSheet.absoluteFillObject, overlayStyle]}
+          pointerEvents="none"
+        >
+          {overlayUri != null ? (
+            <Image
+              source={{ uri: overlayUri }}
+              style={{ flex: 1 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={{ flex: 1, backgroundColor: "#111" }} />
+          )}
+        </Reanimated.View>
+      </View>
     </GestureDetector>
   );
 }
