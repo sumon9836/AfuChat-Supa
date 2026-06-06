@@ -88,7 +88,7 @@ function AudioPlayerActive({ uri, tintColor = "#FFFFFF", waveColor }: AudioPlaye
             playsInSilentModeIOS: true,
             shouldDuckAndroid: false,
             staysActiveInBackground: false,
-          });
+          }).catch(() => {});
         }
 
         const { sound } = await Audio.Sound.createAsync(
@@ -108,9 +108,11 @@ function AudioPlayerActive({ uri, tintColor = "#FFFFFF", waveColor }: AudioPlaye
           }
         );
 
-        soundRef.current = sound;
+        if (mounted) soundRef.current = sound;
+        else sound.unloadAsync().catch(() => {});
       } catch {
-        // silently ignore load errors
+        // Audio module unavailable (e.g. Expo Go restriction) — fail silently
+        // so the UI degrades gracefully rather than crashing
       }
     }
 

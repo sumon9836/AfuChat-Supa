@@ -5355,7 +5355,9 @@ STRICT RULES:
                 onFormat={(newText) => { setInput(newText); saveDraft(newText); setInputSelection({ start: 0, end: 0 }); }}
                 onClose={() => setInputSelection({ start: 0, end: 0 })}
               />
-                <View style={[st.inputGlassPill, { backgroundColor: colors.surface, borderColor: colors.border + "80" }, isRecording && !recLocked ? st.recHoldGlass : undefined]}>
+              {/* Pill + action button sit side-by-side; mic/send is outside the pill */}
+              <View style={st.inputRowOuter}>
+                <View style={[st.inputGlassPill, { flex: 1, backgroundColor: colors.surface, borderColor: colors.border + "80" }, isRecording && !recLocked ? st.recHoldGlass : undefined]}>
                   <View style={st.inputBarRow}>
                     {isRecording && !recLocked ? (
                       <>
@@ -5430,7 +5432,7 @@ STRICT RULES:
                           <>
                             {!chatInfo?.is_group && !chatInfo?.is_channel && !isAfuAiDirectChat && (
                               <TouchableOpacity onPress={() => setShowGiftPicker(true)} hitSlop={8} style={st.pillIcon}>
-                                <Ionicons name="gift-outline" size={21} color={colors.textMuted} />
+                                <Ionicons name="gift-outline" size={22} color={colors.textMuted} />
                               </TouchableOpacity>
                             )}
                             {(chatInfo?.is_group || chatInfo?.is_channel) && (
@@ -5444,64 +5446,70 @@ STRICT RULES:
                                 setShowEmojiStickerPicker(false);
                                 setShowAttachPanel((v) => !v);
                               }} hitSlop={8} style={st.pillIcon}>
-                                <Ionicons name={showAttachPanel ? "close" : "attach"} size={21} color={showAttachPanel ? colors.accent : colors.textMuted} style={showAttachPanel ? undefined : { transform: [{ rotate: "-45deg" }] }} />
+                                {/* Bigger attach icon — easier to tap */}
+                                <Ionicons name={showAttachPanel ? "close" : "attach"} size={26} color={showAttachPanel ? colors.accent : colors.textMuted} style={showAttachPanel ? undefined : { transform: [{ rotate: "-45deg" }] }} />
                               </TouchableOpacity>
                             )}
                           </>
                         )}
                       </View>
                     )}
-                    {(input.trim() || attachmentPreview) && !isRecording ? (
-                      <View style={st.sendBtnCol}>
-                        {input.trim().length > 50 && !editingMessage && !attachmentPreview
-                          ? (
-                            <TouchableOpacity
-                              onPress={() => { Keyboard.dismiss(); setShowAiEditor(true); }}
-                              hitSlop={8}
-                              style={[st.aiAboveSendBtn, { backgroundColor: BRAND + "18", borderColor: BRAND + "50" }]}
-                            >
-                              <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
-                              <Text style={[st.wordCountLabel, { color: BRAND }]}>{input.trim().split(/\s+/).filter(Boolean).length}w</Text>
-                            </TouchableOpacity>
-                          ) : <View />}
-                        <TouchableOpacity
-                          onPress={editingMessage ? saveEditMessage : attachmentPreview ? sendAttachment : () => sendMessage()}
-                          disabled={sending}
-                          style={[st.sendBtn, { backgroundColor: editingMessage ? "#FF9500" : BRAND }]}
-                        >
-                          {sending ? (
-                            <ActivityIndicator color="#fff" size="small" />
-                          ) : (
-                            <Ionicons name={editingMessage ? "checkmark" : "send"} size={18} color="#fff" />
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <View style={isRecording && !recLocked ? st.recMicWrap : undefined}>
-                        {isRecording && !recLocked && (
-                          <View style={st.recLockHint}>
-                            <Ionicons name="chevron-up" size={14} color={colors.textMuted} />
-                          </View>
-                        )}
-                        {_reanimatedEnabled ? (
-                          <GestureDetector gesture={micGesture}>
-                            <View style={isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND, ...(Platform.OS !== "web" ? { shadowColor: BRAND } : {}) }] : [st.sendBtn, { backgroundColor: BRAND }]}>
-                              <Ionicons name="mic" size={isRecording ? 24 : 20} color="#fff" />
-                            </View>
-                          </GestureDetector>
-                        ) : (
-                          <Pressable
-                            onPressIn={onRecStart}
-                            onPressOut={() => { if (recStartedSV.value) onRecSend(); else onRecCancel(); }}
-                            style={isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND }] : [st.sendBtn, { backgroundColor: BRAND }]}
-                          >
-                            <Ionicons name="mic" size={isRecording ? 24 : 20} color="#fff" />
-                          </Pressable>
-                        )}
-                      </View>
-                    )}
                   </View>
                 </View>
+
+                {/* ── Mic / Send button — separated from the input pill ── */}
+                <View style={st.outerActionBtn}>
+                  {isRecording && !recLocked && (
+                    <View style={st.recLockHint}>
+                      <Ionicons name="chevron-up" size={14} color={colors.textMuted} />
+                    </View>
+                  )}
+                  {(input.trim() || attachmentPreview) && !isRecording ? (
+                    <View style={st.sendBtnCol}>
+                      {input.trim().length > 50 && !editingMessage && !attachmentPreview
+                        ? (
+                          <TouchableOpacity
+                            onPress={() => { Keyboard.dismiss(); setShowAiEditor(true); }}
+                            hitSlop={8}
+                            style={[st.aiAboveSendBtn, { backgroundColor: BRAND + "18", borderColor: BRAND + "50" }]}
+                          >
+                            <Text style={{ color: BRAND, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>Ai</Text>
+                            <Text style={[st.wordCountLabel, { color: BRAND }]}>{input.trim().split(/\s+/).filter(Boolean).length}w</Text>
+                          </TouchableOpacity>
+                        ) : <View />}
+                      <TouchableOpacity
+                        onPress={editingMessage ? saveEditMessage : attachmentPreview ? sendAttachment : () => sendMessage()}
+                        disabled={sending}
+                        style={[st.sendBtn, { backgroundColor: editingMessage ? "#FF9500" : BRAND }]}
+                      >
+                        {sending ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <Ionicons name={editingMessage ? "checkmark" : "send"} size={18} color="#fff" />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={isRecording && !recLocked ? st.recMicWrap : undefined}>
+                      {_reanimatedEnabled ? (
+                        <GestureDetector gesture={micGesture}>
+                          <View style={isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND, ...(Platform.OS !== "web" ? { shadowColor: BRAND } : {}) }] : [st.sendBtn, { backgroundColor: BRAND }]}>
+                            <Ionicons name="mic" size={isRecording ? 24 : 20} color="#fff" />
+                          </View>
+                        </GestureDetector>
+                      ) : (
+                        <Pressable
+                          onPressIn={onRecStart}
+                          onPressOut={() => { if (recStartedSV.value) onRecSend(); else onRecCancel(); }}
+                          style={isRecording && !recLocked ? [st.recMicBtn, { backgroundColor: BRAND }] : [st.sendBtn, { backgroundColor: BRAND }]}
+                        >
+                          <Ionicons name="mic" size={isRecording ? 24 : 20} color="#fff" />
+                        </Pressable>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </View>
             </View>
           </>
         )}
@@ -5734,8 +5742,8 @@ STRICT RULES:
                       }}
                       style={{ width: (SW2 - 64) / 2, alignItems: "center", paddingVertical: 16, borderRadius: 16, backgroundColor: colors.inputBg, gap: 8 }}
                     >
-                      <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: ft.color + "22", alignItems: "center", justifyContent: "center" }}>
-                        <Ionicons name={ft.icon as any} size={26} color={ft.color} />
+                      <View style={{ width: 60, height: 60, borderRadius: 18, backgroundColor: ft.color + "22", alignItems: "center", justifyContent: "center" }}>
+                        <Ionicons name={ft.icon as any} size={32} color={ft.color} />
                       </View>
                       <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.text }}>{ft.label}</Text>
                     </TouchableOpacity>
@@ -7358,6 +7366,8 @@ const st = StyleSheet.create({
   recCancelHint: { flexDirection: "row", alignItems: "center", gap: 2, paddingRight: 6 },
   recTrashBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,59,48,0.1)", alignItems: "center", justifyContent: "center", marginLeft: 4 },
   recSlideText: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  inputRowOuter: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  outerActionBtn: { alignItems: "center", justifyContent: "flex-end", marginBottom: 6 },
   recMicWrap: { alignItems: "center", justifyContent: "flex-end" },
   recLockHint: { alignItems: "center", marginBottom: 4, opacity: 0.55 },
   recMicBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: BRAND_FALLBACK, alignItems: "center", justifyContent: "center", elevation: 8, ...Platform.select({ web: { boxShadow: `0 4px 10px rgba(0,0,0,0.55)` } as any, default: { shadowColor: BRAND_FALLBACK, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.55, shadowRadius: 10 } }) },
