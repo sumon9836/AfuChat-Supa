@@ -260,46 +260,58 @@ const VideoItem = React.memo(
       }
     }, [isActive]);
 
+    // ── Mounted guard — prevents setState after unmount ───────────────────
+    const mountedRef = useRef(true);
+    useEffect(() => {
+      mountedRef.current = true;
+      return () => { mountedRef.current = false; };
+    }, []);
+
     // ── Player source update when resolved URI changes ────────────────────
     useEffect(() => {
       if (!playUri || !isNearActive) return;
-      player.replace({ uri: playUri });
+      try { player.replace({ uri: playUri }); } catch (_) {}
     }, [playUri, isNearActive]);
 
     // ── Play / pause control ───────────────────────────────────────────────
     useEffect(() => {
-      if (!isNearActive) { player.pause(); return; }
-      if (!isActive || paused) { player.pause(); } else { player.play(); }
+      try {
+        if (!isNearActive) { player.pause(); return; }
+        if (!isActive || paused) { player.pause(); } else { player.play(); }
+      } catch (_) {}
     }, [isActive, isNearActive, paused]);
 
     // ── Progress + started + buffering polling (100 ms) ────────────────────
     useEffect(() => {
       if (!isActive) return;
       const timer = setInterval(() => {
-        if (player.playing && !videoStartedRef.current) {
-          videoStartedRef.current = true;
-          setVideoStarted(true);
-          if (bufferingTimer.current) { clearTimeout(bufferingTimer.current); bufferingTimer.current = null; }
-          setShowBuffering(false);
-        }
-        const isLoading = (player.status as string) === "loading";
-        if (isLoading !== bufferingRef.current) {
-          bufferingRef.current = isLoading;
-          if (isLoading) {
-            if (!bufferingTimer.current) bufferingTimer.current = setTimeout(() => { setShowBuffering(true); bufferingTimer.current = null; }, 400);
-          } else {
+        if (!mountedRef.current) { clearInterval(timer); return; }
+        try {
+          if (player.playing && !videoStartedRef.current) {
+            videoStartedRef.current = true;
+            setVideoStarted(true);
             if (bufferingTimer.current) { clearTimeout(bufferingTimer.current); bufferingTimer.current = null; }
             setShowBuffering(false);
           }
-        }
-        const dur = player.duration;
-        if (dur > 0) {
-          const now = Date.now();
-          if (now - lastProgressTs.current >= 250) {
-            lastProgressTs.current = now;
-            progressFill.value = player.currentTime / dur;
+          const isLoading = (player.status as string) === "loading";
+          if (isLoading !== bufferingRef.current) {
+            bufferingRef.current = isLoading;
+            if (isLoading) {
+              if (!bufferingTimer.current) bufferingTimer.current = setTimeout(() => { if (mountedRef.current) setShowBuffering(true); bufferingTimer.current = null; }, 400);
+            } else {
+              if (bufferingTimer.current) { clearTimeout(bufferingTimer.current); bufferingTimer.current = null; }
+              setShowBuffering(false);
+            }
           }
-        }
+          const dur = player.duration;
+          if (dur > 0) {
+            const now = Date.now();
+            if (now - lastProgressTs.current >= 250) {
+              lastProgressTs.current = now;
+              progressFill.value = player.currentTime / dur;
+            }
+          }
+        } catch (_) {}
       }, 100);
       return () => clearInterval(timer);
     }, [isActive]);

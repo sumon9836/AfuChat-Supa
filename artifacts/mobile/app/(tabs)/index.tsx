@@ -1,4 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+// PagerView gives true native 1:1 finger-tracking on Android/iOS.
+// Lazy-required so web builds never touch the native module.
+const _PagerView: any = Platform.OS !== "web"
+  ? (() => { try { return require("react-native-pager-view").default; } catch { return null; } })()
+  : null;
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ActivityIndicator,
@@ -731,7 +736,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [editingFolder, setEditingFolder]     = useState<ChatFolder | null>(null);
   const [pageIdx, setPageIdx]           = useState(0);
-  const pagerRef        = useRef<FlatList<any>>(null);
+  const pagerRef        = useRef<any>(null);
   const folderScrollRef = useRef<ScrollView>(null);
   const tabLayoutsRef   = useRef<Record<number, { x: number; width: number }>>({});
   const folderPillX     = useRef(new Animated.Value(6)).current;
@@ -1521,6 +1526,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
   }, [user?.id]);
 
   // ── Folder pill animation + tab-bar auto-scroll ───────────────────────────
+  // Fires on tap-to-switch; for swipe, the pill tracks in real-time via onPageScroll.
   useEffect(() => {
     const layout = tabLayoutsRef.current[pageIdx];
     if (!layout) return;
@@ -1528,6 +1534,29 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
     Animated.spring(folderPillW, { toValue: layout.width + 8, damping: 22, stiffness: 200, useNativeDriver: false }).start();
     folderScrollRef.current?.scrollTo({ x: Math.max(0, layout.x - 40), animated: true });
   }, [pageIdx]);
+
+  // Real-time pill tracking during a PagerView swipe (position=int, offset=0..1)
+  const handlePageScroll = useCallback((e: any) => {
+    const { position, offset } = e.nativeEvent;
+    const fromLayout = tabLayoutsRef.current[position];
+    const toLayout   = tabLayoutsRef.current[position + 1];
+    if (!fromLayout) return;
+    if (!toLayout || offset === 0) {
+      folderPillX.setValue(fromLayout.x - 4);
+      folderPillW.setValue(fromLayout.width + 8);
+      return;
+    }
+    folderPillX.setValue(fromLayout.x + (toLayout.x - fromLayout.x) * offset - 4);
+    folderPillW.setValue(fromLayout.width + (toLayout.width - fromLayout.width) * offset + 8);
+    folderScrollRef.current?.scrollTo({
+      x: Math.max(0, fromLayout.x + (toLayout.x - fromLayout.x) * offset - 40),
+      animated: false,
+    });
+  }, [folderPillX, folderPillW]);
+
+  const handlePageSelected = useCallback((e: any) => {
+    setPageIdx(e.nativeEvent.position);
+  }, []);
 
   // Show the folder tab bar on mobile only when the feature is enabled or
   // the user already has folders (so their data is never hidden).
@@ -1721,108 +1750,202 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
 
         {/* ── Mobile swipeable pager (only when folders exist) ──────────── */}
         {showFolderUI && hasFolders ? (
-          <FlatList
-            ref={pagerRef}
-            data={pages}
-            keyExtractor={(p) => ("filter" in p ? p.id : "all")}
-            horizontal
-            pagingEnabled
-            scrollEnabled
-            showsHorizontalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            getItemLayout={(_, index) => ({
-              length: windowWidth,
-              offset: windowWidth * index,
-              index,
-            })}
-            onMomentumScrollEnd={(e) => {
-              const idx = Math.round(e.nativeEvent.contentOffset.x / windowWidth);
-              setPageIdx(idx);
-            }}
-            renderItem={({ item: page }) => {
-              const isAll      = !("filter" in page);
-              const pageChats  = getPageChats(page);
-              return (
-                <View style={{ width: windowWidth, flex: 1, paddingTop: showFolderUI ? 54 : 0 }}>
-                  {loading ? (
-                    <View style={{ padding: 8 }}>{[1,2,3,4,5,6].map(i => <ChatRowSkeleton key={i} />)}</View>
-                  ) : pageChats.length === 0 ? (
-                    <View style={styles.center}>
-                      <AfuLogo size={110} />
-                      <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                        {isAll ? "No chats yet" : `No ${"filter" in page ? page.name : ""} chats`}
-                      </Text>
-                      <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                        {isAll ? "Start a conversation from Contacts" : "Try another filter"}
-                      </Text>
-                    </View>
-                  ) : (
-                    <SafeFlashList
-                      data={pageChats}
-                      keyExtractor={(item) => item.id}
-                      renderItem={({ item }) => (
-                        <ChatRow
-                          item={item}
-                          phonebookName={!item.is_group && !item.is_channel ? phonebookNames.get(item.other_id) : undefined}
-                          isTyping={chatPrefs.typing_indicators && !!typingChatIds[item.id]}
-                          selectMode={selectMode}
-                          isSelected={selectedIds.has(item.id)}
-                          onEnterSelectMode={() => enterSelectMode(item.id)}
-                          onToggleSelect={() => toggleSelect(item.id)}
-                          onPress={async () => {
-                            Haptics.selectionAsync();
-                            if (item.kind === "channel_broadcast" && item.channel_id) {
-                              router.push({ pathname: "/channel/[id]", params: { id: item.channel_id } } as any);
-                              return;
-                            }
-                            let chatId = item.id;
-                            if (item.kind === "notes" && chatId === "MY_NOTES_VIRTUAL") {
-                              chatId = (await findOrCreateNotesChatId(user.id)) || "";
-                              if (!chatId) return;
-                            }
-                            if (onOpenChat) { onOpenChat(item, chatId); return; }
-                            router.push({
-                              pathname: "/chat/[id]",
-                              params: {
-                                id: chatId,
-                                otherName: item.kind === "notes" ? "My Notes" : ((!item.is_group && !item.is_channel && phonebookNames.get(item.other_id)) || item.other_display_name || ""),
-                                otherAvatar: item.other_avatar || "",
-                                otherId: item.other_id || "",
-                                isGroup: item.is_group ? "true" : "false",
-                                isChannel: item.is_channel ? "true" : "false",
-                                chatName: item.name || "",
-                                chatAvatar: item.avatar_url || "",
-                              },
-                            });
-                          }}
-                          onAction={handleChatAction}
-                        />
-                      )}
-                      ItemSeparatorComponent={() => <Separator indent={74} />}
-                      ListHeaderComponent={isAll && !search && user ? (
-                        <>
-                          <StoryUploadBanner colors={colors} />
-                          <PostUploadBanner colors={colors} />
-                          {chats.length < 8 && <SuggestedUsers compact maxCards={10} />}
-                        </>
-                      ) : null}
-                      refreshControl={
-                        <RefreshControl
-                          refreshing={refreshing}
-                          onRefresh={() => { setRefreshing(true); loadChats(); }}
-                          tintColor={colors.accent}
-                        />
-                      }
-                      contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
-                      showsVerticalScrollIndicator={false}
-                      onScroll={handleFabScroll}
-                      scrollEventThrottle={16}
-                    />
-                  )}
-                </View>
-              );
-            }}
-          />
+          _PagerView ? (
+            /* Native PagerView — true 1:1 finger tracking, content visible while swiping */
+            <_PagerView
+              ref={pagerRef}
+              style={{ flex: 1 }}
+              initialPage={0}
+              onPageScroll={handlePageScroll}
+              onPageSelected={handlePageSelected}
+              overdrag={false}
+            >
+              {pages.map((page) => {
+                const isAll     = !("filter" in page);
+                const pageKey   = isAll ? "all" : (page as any).id;
+                const pageChats = getPageChats(page);
+                return (
+                  <View key={pageKey} style={{ flex: 1, paddingTop: showFolderUI ? 54 : 0 }}>
+                    {loading ? (
+                      <View style={{ padding: 8 }}>{[1,2,3,4,5,6].map(i => <ChatRowSkeleton key={i} />)}</View>
+                    ) : pageChats.length === 0 ? (
+                      <View style={styles.center}>
+                        <AfuLogo size={110} />
+                        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                          {isAll ? "No chats yet" : `No ${"filter" in page ? page.name : ""} chats`}
+                        </Text>
+                        <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+                          {isAll ? "Start a conversation from Contacts" : "Try another filter"}
+                        </Text>
+                      </View>
+                    ) : (
+                      <SafeFlashList
+                        data={pageChats}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
+                          <ChatRow
+                            item={item}
+                            phonebookName={!item.is_group && !item.is_channel ? phonebookNames.get(item.other_id) : undefined}
+                            isTyping={chatPrefs.typing_indicators && !!typingChatIds[item.id]}
+                            selectMode={selectMode}
+                            isSelected={selectedIds.has(item.id)}
+                            onEnterSelectMode={() => enterSelectMode(item.id)}
+                            onToggleSelect={() => toggleSelect(item.id)}
+                            onPress={async () => {
+                              Haptics.selectionAsync();
+                              if (item.kind === "channel_broadcast" && item.channel_id) {
+                                router.push({ pathname: "/channel/[id]", params: { id: item.channel_id } } as any);
+                                return;
+                              }
+                              let chatId = item.id;
+                              if (item.kind === "notes" && chatId === "MY_NOTES_VIRTUAL") {
+                                chatId = (await findOrCreateNotesChatId(user.id)) || "";
+                                if (!chatId) return;
+                              }
+                              if (onOpenChat) { onOpenChat(item, chatId); return; }
+                              router.push({
+                                pathname: "/chat/[id]",
+                                params: {
+                                  id: chatId,
+                                  otherName: item.kind === "notes" ? "My Notes" : ((!item.is_group && !item.is_channel && phonebookNames.get(item.other_id)) || item.other_display_name || ""),
+                                  otherAvatar: item.other_avatar || "",
+                                  otherId: item.other_id || "",
+                                  isGroup: item.is_group ? "true" : "false",
+                                  isChannel: item.is_channel ? "true" : "false",
+                                  chatName: item.name || "",
+                                  chatAvatar: item.avatar_url || "",
+                                },
+                              });
+                            }}
+                            onAction={handleChatAction}
+                          />
+                        )}
+                        ItemSeparatorComponent={() => <Separator indent={74} />}
+                        ListHeaderComponent={isAll && !search && user ? (
+                          <>
+                            <StoryUploadBanner colors={colors} />
+                            <PostUploadBanner colors={colors} />
+                            {chats.length < 8 && <SuggestedUsers compact maxCards={10} />}
+                          </>
+                        ) : null}
+                        refreshControl={
+                          <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={() => { setRefreshing(true); loadChats(); }}
+                            tintColor={colors.accent}
+                          />
+                        }
+                        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+                        showsVerticalScrollIndicator={false}
+                        onScroll={handleFabScroll}
+                        scrollEventThrottle={16}
+                      />
+                    )}
+                  </View>
+                );
+              })}
+            </_PagerView>
+          ) : (
+            /* Web / PagerView-unavailable fallback — horizontal FlatList pager */
+            <FlatList
+              ref={pagerRef}
+              data={pages}
+              keyExtractor={(p) => ("filter" in p ? p.id : "all")}
+              horizontal
+              pagingEnabled
+              scrollEnabled
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              getItemLayout={(_, index) => ({ length: windowWidth, offset: windowWidth * index, index })}
+              onMomentumScrollEnd={(e) => {
+                const idx = Math.round(e.nativeEvent.contentOffset.x / windowWidth);
+                setPageIdx(idx);
+              }}
+              renderItem={({ item: page }) => {
+                const isAll     = !("filter" in page);
+                const pageChats = getPageChats(page);
+                return (
+                  <View style={{ width: windowWidth, flex: 1, paddingTop: showFolderUI ? 54 : 0 }}>
+                    {loading ? (
+                      <View style={{ padding: 8 }}>{[1,2,3,4,5,6].map(i => <ChatRowSkeleton key={i} />)}</View>
+                    ) : pageChats.length === 0 ? (
+                      <View style={styles.center}>
+                        <AfuLogo size={110} />
+                        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                          {isAll ? "No chats yet" : `No ${"filter" in page ? page.name : ""} chats`}
+                        </Text>
+                        <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+                          {isAll ? "Start a conversation from Contacts" : "Try another filter"}
+                        </Text>
+                      </View>
+                    ) : (
+                      <SafeFlashList
+                        data={pageChats}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
+                          <ChatRow
+                            item={item}
+                            phonebookName={!item.is_group && !item.is_channel ? phonebookNames.get(item.other_id) : undefined}
+                            isTyping={chatPrefs.typing_indicators && !!typingChatIds[item.id]}
+                            selectMode={selectMode}
+                            isSelected={selectedIds.has(item.id)}
+                            onEnterSelectMode={() => enterSelectMode(item.id)}
+                            onToggleSelect={() => toggleSelect(item.id)}
+                            onPress={async () => {
+                              Haptics.selectionAsync();
+                              if (item.kind === "channel_broadcast" && item.channel_id) {
+                                router.push({ pathname: "/channel/[id]", params: { id: item.channel_id } } as any);
+                                return;
+                              }
+                              let chatId = item.id;
+                              if (item.kind === "notes" && chatId === "MY_NOTES_VIRTUAL") {
+                                chatId = (await findOrCreateNotesChatId(user.id)) || "";
+                                if (!chatId) return;
+                              }
+                              if (onOpenChat) { onOpenChat(item, chatId); return; }
+                              router.push({
+                                pathname: "/chat/[id]",
+                                params: {
+                                  id: chatId,
+                                  otherName: item.kind === "notes" ? "My Notes" : ((!item.is_group && !item.is_channel && phonebookNames.get(item.other_id)) || item.other_display_name || ""),
+                                  otherAvatar: item.other_avatar || "",
+                                  otherId: item.other_id || "",
+                                  isGroup: item.is_group ? "true" : "false",
+                                  isChannel: item.is_channel ? "true" : "false",
+                                  chatName: item.name || "",
+                                  chatAvatar: item.avatar_url || "",
+                                },
+                              });
+                            }}
+                            onAction={handleChatAction}
+                          />
+                        )}
+                        ItemSeparatorComponent={() => <Separator indent={74} />}
+                        ListHeaderComponent={isAll && !search && user ? (
+                          <>
+                            <StoryUploadBanner colors={colors} />
+                            <PostUploadBanner colors={colors} />
+                            {chats.length < 8 && <SuggestedUsers compact maxCards={10} />}
+                          </>
+                        ) : null}
+                        refreshControl={
+                          <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={() => { setRefreshing(true); loadChats(); }}
+                            tintColor={colors.accent}
+                          />
+                        }
+                        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+                        showsVerticalScrollIndicator={false}
+                        onScroll={handleFabScroll}
+                        scrollEventThrottle={16}
+                      />
+                    )}
+                  </View>
+                );
+              }}
+            />
+          )
         ) : (
           /* ── Single-page list (no folders, or desktop/panel mode) ──── */
           <View style={{ flex: 1, paddingTop: showFolderUI ? 54 : 0 }}>
@@ -1962,7 +2085,9 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                     onPress={() => {
                       setPageIdx(idx);
                       if (hasFolders) {
-                        pagerRef.current?.scrollToIndex({ index: idx, animated: true });
+                        _PagerView
+                          ? pagerRef.current?.setPage(idx)
+                          : pagerRef.current?.scrollToIndex({ index: idx, animated: true });
                       }
                     }}
                     onLongPress={() => {
@@ -2043,7 +2168,9 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
           const newIdx = Math.min(pageIdx, updated.length);
           setPageIdx(newIdx);
           if (newIdx < updated.length + 1) {
-            pagerRef.current?.scrollToIndex({ index: newIdx, animated: false });
+            _PagerView
+              ? pagerRef.current?.setPage(newIdx)
+              : pagerRef.current?.scrollToIndex({ index: newIdx, animated: false });
           }
           setShowFolderModal(false);
           setEditingFolder(null);

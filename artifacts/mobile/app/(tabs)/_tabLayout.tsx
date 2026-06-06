@@ -388,7 +388,7 @@ function SwipeableTabContent({ children }: { children: React.ReactNode }) {
         const uri = await captureRef(contentViewRef, { format: "jpg", quality: 0.45 });
         screenshotCache.current.set(normalized, uri);
       } catch (_) {}
-    }, 700);
+    }, 200);
     return () => clearTimeout(timer);
   }, [pathname]);
 
