@@ -21,6 +21,15 @@ The `--non-interactive` flag is required (stdin not available in Replit shell).
 
 ## Build history (most recent first)
 
+### 2026-06-06 — v2.1.6 (post-auth lazy tab fix)
+- Build ID: 1654aaa0-d90b-4b52-9642-702e3aa3dd89
+- Build URL: https://expo.dev/accounts/afume/projects/afuchat/builds/1654aaa0-d90b-4b52-9642-702e3aa3dd89
+- Profile: preview (APK, internal distribution)
+- App version: 2.1.6 (com.afuchat.app)
+- Fix: Removed `lazy: false` from tab screenOptions; discover/shorts/notifications/apps/me are now `lazy: true`. Only chats (default tab) loads eagerly after login. Prevents instant crash after login caused by all tabs mounting simultaneously (including ones with heavy native deps: Reanimated, expo-av, etc.)
+- Submitted from: Replit (EAS_NO_VCS=1, --no-wait, 28.9 MB upload)
+- Credentials: Keystore "Build Credentials 1Nj4newnzl" (default, remote)
+
 ### 2026-06-05 — v2.1.3 (WeakRef polyfill fix)
 - Build ID: 68bcd4f6-c221-4f0b-9922-d9d34328abbf
 - Build URL: https://expo.dev/accounts/afume/projects/afuchat/builds/68bcd4f6-c221-4f0b-9922-d9d34328abbf

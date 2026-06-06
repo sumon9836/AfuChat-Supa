@@ -352,7 +352,6 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
     <Tabs
       screenOptions={{
         headerShown: false,
-        lazy: false,
         freezeOnBlur: true,
         sceneStyle: { backgroundColor: "transparent" },
         tabBarStyle: { display: "none", backgroundColor: "transparent", elevation: 0, ...(Platform.OS !== "web" ? { shadowOpacity: 0 } : {}), borderTopWidth: 0 },
@@ -361,14 +360,14 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
     >
       <Tabs.Screen name="index"         options={{ href: null }} />
       <Tabs.Screen name="chats"         options={{ href: isLoggedIn ? undefined : null }} />
-      <Tabs.Screen name="discover"      options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="discover"      options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
       <Tabs.Screen name="shorts"        options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
-      <Tabs.Screen name="notifications" options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="notifications" options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
       <Tabs.Screen name="search"        options={{ href: null }} />
       <Tabs.Screen name="contacts"      options={{ href: null }} />
       <Tabs.Screen name="communities"   options={{ href: null }} />
-      <Tabs.Screen name="apps"          options={{ href: isLoggedIn ? undefined : null }} />
-      <Tabs.Screen name="me"            options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="apps"          options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
+      <Tabs.Screen name="me"            options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
     </Tabs>
   );
 }

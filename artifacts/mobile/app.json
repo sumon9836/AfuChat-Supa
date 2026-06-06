@@ -2,7 +2,7 @@
   "expo": {
     "name": "AfuChat",
     "slug": "afuchat",
-    "version": "2.1.5",
+    "version": "2.1.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "splash": {
@@ -84,7 +84,7 @@
       ],
       "enableProguardInReleaseBuilds": false,
       "enableShrinkResources": false,
-      "versionCode": 215
+      "versionCode": 216
     },
     "plugins": [
       [
@@ -156,7 +156,7 @@
       }
     },
     "ios": {
-      "buildNumber": "2.1.5"
+      "buildNumber": "2.1.6"
     }
   }
 }
