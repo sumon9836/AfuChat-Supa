@@ -813,6 +813,7 @@ export default function GroupManageScreen() {
             </View>
           </TouchableOpacity>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Member action sheet ─── */}

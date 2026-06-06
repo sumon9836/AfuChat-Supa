@@ -668,7 +668,7 @@ const VideoItem = React.memo(function VideoItem({
         <VideoView
           player={player}
           style={StyleSheet.absoluteFill}
-          contentFit="contain"
+          contentFit="cover"
           nativeControls={false}
         />
       ) : <View style={[StyleSheet.absoluteFill, { backgroundColor: "#000" }]} />}
@@ -720,8 +720,8 @@ const VideoItem = React.memo(function VideoItem({
       </Animated.View>
 
       {/* Gradients */}
-      <GradientOverlay position="top" height={130} />
-      <GradientOverlay position="bottom" height={380} />
+      <GradientOverlay position="top" height={160} />
+      <GradientOverlay position="bottom" height={440} />
 
       {/* Bottom info — author + caption */}
       <View style={[vStyles.bottomArea, { bottom: insets.bottom + 56 + navOffset }]} pointerEvents="box-none">
@@ -777,12 +777,14 @@ const VideoItem = React.memo(function VideoItem({
       </View>
 
       {/* Right action rail */}
-      <View style={[vStyles.rightCol, { bottom: insets.bottom + 32 + navOffset }]} pointerEvents="box-none">
+      <View style={[vStyles.rightCol, { bottom: insets.bottom + 36 + navOffset }]} pointerEvents="box-none">
         {/* Like */}
         <View style={vStyles.actionItem}>
           <Animated.View style={{ transform: [{ scale: heartScale }] }}>
-            <TouchableOpacity onPress={handleLike} hitSlop={10} activeOpacity={0.8}>
-              <Ionicons name={item.liked ? "heart" : "heart-outline"} size={30} color={item.liked ? "#FF3B30" : "#fff"} />
+            <TouchableOpacity onPress={handleLike} hitSlop={8} activeOpacity={0.75}>
+              <View style={[vStyles.actionBtnCircle, item.liked && { backgroundColor: "rgba(255,59,48,0.25)" }]}>
+                <Ionicons name={item.liked ? "heart" : "heart-outline"} size={26} color={item.liked ? "#FF3B30" : "#fff"} />
+              </View>
             </TouchableOpacity>
           </Animated.View>
           <Text style={vStyles.actionLabel}>{formatCount(item.likeCount)}</Text>
@@ -790,30 +792,38 @@ const VideoItem = React.memo(function VideoItem({
 
         {/* Comment */}
         <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onOpenComments(item.id)} hitSlop={10} activeOpacity={0.8}>
-            <Ionicons name="chatbubble-ellipses" size={28} color="#fff" />
+          <TouchableOpacity onPress={() => onOpenComments(item.id)} hitSlop={8} activeOpacity={0.75}>
+            <View style={vStyles.actionBtnCircle}>
+              <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
+            </View>
           </TouchableOpacity>
           <Text style={vStyles.actionLabel}>{formatCount(item.replyCount)}</Text>
         </View>
 
         {/* Bookmark */}
         <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={10} activeOpacity={0.8}>
-            <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={28} color={item.bookmarked ? accent : "#fff"} />
+          <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={8} activeOpacity={0.75}>
+            <View style={[vStyles.actionBtnCircle, item.bookmarked && { backgroundColor: "rgba(0,188,212,0.25)" }]}>
+              <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={24} color={item.bookmarked ? "#00BCD4" : "#fff"} />
+            </View>
           </TouchableOpacity>
         </View>
 
         {/* Share */}
         <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onShare(item)} hitSlop={10} activeOpacity={0.8}>
-            <Ionicons name="share-social-outline" size={28} color="#fff" />
+          <TouchableOpacity onPress={() => onShare(item)} hitSlop={8} activeOpacity={0.75}>
+            <View style={vStyles.actionBtnCircle}>
+              <Ionicons name="arrow-redo-outline" size={24} color="#fff" />
+            </View>
           </TouchableOpacity>
         </View>
 
         {/* More */}
         <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onOpenMenu(item)} hitSlop={10} activeOpacity={0.8}>
-            <Ionicons name="ellipsis-horizontal" size={26} color="#fff" />
+          <TouchableOpacity onPress={() => onOpenMenu(item)} hitSlop={8} activeOpacity={0.75}>
+            <View style={vStyles.actionBtnCircle}>
+              <Ionicons name="ellipsis-horizontal" size={22} color="#fff" />
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -821,10 +831,10 @@ const VideoItem = React.memo(function VideoItem({
       {/* Progress bar */}
       <TouchableOpacity
         activeOpacity={1}
-        style={[vStyles.progressBar, { bottom: (insets.bottom > 0 ? insets.bottom : 0) + navOffset }]}
+        style={[vStyles.progressBar, { bottom: Math.max(insets.bottom, 0) + navOffset }]}
         onLayout={(e) => setProgressBarWidth(e.nativeEvent.layout.width)}
         onPress={(e) => handleProgressBarPress(e.nativeEvent.locationX)}
-        hitSlop={{ top: 10, bottom: 10 }}
+        hitSlop={{ top: 12, bottom: 12 }}
       >
         <View style={[vStyles.progressFill, { width: `${progress * 100}%` as any }]} />
         <View style={[vStyles.progressThumb, { left: `${progress * 100}%` as any }]} />
@@ -836,30 +846,31 @@ const VideoItem = React.memo(function VideoItem({
 const vStyles = StyleSheet.create({
   item: { backgroundColor: "#000", overflow: "hidden" },
   centerOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
-  pauseCircle: { width: 68, height: 68, borderRadius: 34, backgroundColor: "rgba(0,0,0,0.35)", borderWidth: 2, borderColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  pauseCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(0,0,0,0.4)", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },
   gradientBase: { position: "absolute", left: 0, right: 0 },
-  bottomArea: { position: "absolute", left: 16, right: 76, gap: 8 },
-  authorRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 2 },
-  avatarWrap: { borderWidth: 2, borderRadius: 23, padding: 1 },
+  bottomArea: { position: "absolute", left: 14, right: 80, gap: 10 },
+  authorRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
+  avatarWrap: { borderWidth: 2, borderRadius: 25, padding: 1 },
   authorInfo: { flex: 1 },
-  authorHandle: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold", ...Platform.select({ web: { textShadow: "0 1px 3px rgba(0,0,0,0.5)" } as any, default: { textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 } }) },
-  authorName: { color: "rgba(255,255,255,0.65)", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
-  inlineFollow: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: "rgba(255,255,255,0.5)", backgroundColor: "rgba(255,255,255,0.1)" },
-  inlineFollowActive: { borderColor: "rgba(255,255,255,0.2)", backgroundColor: "rgba(255,255,255,0.06)" },
+  authorHandle: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold", ...Platform.select({ web: { textShadow: "0 1px 4px rgba(0,0,0,0.65)" } as any, default: { textShadowColor: "rgba(0,0,0,0.65)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 } }) },
+  authorName: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
+  inlineFollow: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.7)", backgroundColor: "rgba(0,0,0,0.25)" },
+  inlineFollowActive: { borderColor: "rgba(255,255,255,0.3)", backgroundColor: "rgba(255,255,255,0.1)" },
   inlineFollowText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
   captionWrap: { marginTop: 2 },
-  caption: { color: "rgba(255,255,255,0.92)", fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19, ...Platform.select({ web: { textShadow: "0 1px 3px rgba(0,0,0,0.5)" } as any, default: { textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 } }) },
-  captionMore: { marginTop: 1, fontSize: 13, lineHeight: 19 },
+  caption: { color: "rgba(255,255,255,0.93)", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20, ...Platform.select({ web: { textShadow: "0 1px 4px rgba(0,0,0,0.65)" } as any, default: { textShadowColor: "rgba(0,0,0,0.65)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 } }) },
+  captionMore: { marginTop: 2, fontSize: 14, lineHeight: 20 },
   captionEllipsis: { color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular" },
   captionMoreLink: { color: "#00BCD4", fontFamily: "Inter_600SemiBold" },
   viewRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  viewText: { color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "Inter_400Regular" },
-  rightCol: { position: "absolute", right: 12, gap: 20, alignItems: "center" },
-  actionItem: { alignItems: "center", gap: 3 },
-  actionLabel: { color: "#fff", fontSize: 12, fontFamily: "Inter_700Bold", ...Platform.select({ web: { textShadow: "0 1px 2px rgba(0,0,0,0.5)" } as any, default: { textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 } }) },
-  progressBar: { position: "absolute", left: 0, right: 0, height: 3, backgroundColor: "rgba(255,255,255,0.15)", justifyContent: "center" },
-  progressFill: { position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.85)", borderRadius: 2 },
-  progressThumb: { position: "absolute", width: 10, height: 10, borderRadius: 5, backgroundColor: "#fff", top: -3, marginLeft: -5, ...Platform.select({ web: { boxShadow: "0 1px 3px rgba(0,0,0,0.4)" } as any, default: { shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 3, elevation: 3 } }) },
+  viewText: { color: "rgba(255,255,255,0.45)", fontSize: 11, fontFamily: "Inter_400Regular" },
+  rightCol: { position: "absolute", right: 10, gap: 14, alignItems: "center" },
+  actionItem: { alignItems: "center", gap: 5 },
+  actionBtnCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(0,0,0,0.35)", borderWidth: 1, borderColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  actionLabel: { color: "#fff", fontSize: 12, fontFamily: "Inter_700Bold", ...Platform.select({ web: { textShadow: "0 1px 3px rgba(0,0,0,0.6)" } as any, default: { textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 } }) },
+  progressBar: { position: "absolute", left: 0, right: 0, height: 3, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center" },
+  progressFill: { position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: "#fff", borderRadius: 2 },
+  progressThumb: { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "#fff", top: -4.5, marginLeft: -6, ...Platform.select({ web: { boxShadow: "0 1px 4px rgba(0,0,0,0.55)" } as any, default: { shadowColor: "#000", shadowOpacity: 0.5, shadowRadius: 4, elevation: 4 } }) },
 });
 
 // ─── VideoFeed (embeddable) ───────────────────────────────────────────────────
@@ -1494,7 +1505,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
   const videoItemProps = React.useMemo(() => ({
     screenH: listHeight, screenW: SCREEN_W,
-    navOffset: isEmbedded ? 82 : 0,
+    navOffset: isEmbedded ? Math.max(insets.bottom, Platform.OS === "android" ? 4 : 6) + 66 : 0,
     onLike: handleLike, onBookmark: handleBookmark,
     onOpenComments: setCommentPostId,
     onShare,
@@ -1502,7 +1513,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     onRecordView: handleRecordView,
     onOpenMenu,
     tabFocused,
-  }), [listHeight, SCREEN_W, isEmbedded, handleLike, handleBookmark, handleFollow, handleRecordView, onShare, onOpenMenu, tabFocused]);
+  }), [listHeight, SCREEN_W, isEmbedded, insets, handleLike, handleBookmark, handleFollow, handleRecordView, onShare, onOpenMenu, tabFocused]);
 
   const renderItem = useCallback(({ item, index }: { item: VideoPost; index: number }) => (
     <VideoItem
@@ -1717,19 +1728,18 @@ const mStyles = StyleSheet.create({
     backgroundColor: "#000",
     ...(Platform.OS === "web" ? { position: "absolute" as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 } : {}),
   } as any,
-  headerRow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 30, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingBottom: 10 },
-  headerSide: { width: 36, alignItems: "center" },
-  tabRow: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center" },
-  tabBtn: { paddingVertical: 8, paddingHorizontal: 16, borderBottomWidth: 3, borderBottomColor: "transparent" },
+  headerRow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 30, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingBottom: 10 },
+  headerSide: { width: 38, alignItems: "center" },
+  tabRow: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 2 },
+  tabBtn: { paddingVertical: 8, paddingHorizontal: 18, borderBottomWidth: 2.5, borderBottomColor: "transparent" },
   tabBtnActive: { borderBottomColor: "#fff" },
-  tabDivider: { width: 1, height: 14, backgroundColor: "rgba(255,255,255,0.2)" },
-  tabText: { color: "rgba(255,255,255,0.5)", fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  tabDivider: { width: 1, height: 16, backgroundColor: "rgba(255,255,255,0.18)" },
+  tabText: { color: "rgba(255,255,255,0.45)", fontSize: 16, fontFamily: "Inter_600SemiBold" },
   tabTextActive: { color: "#fff", fontSize: 17, fontFamily: "Inter_700Bold" },
   emptyState: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 40 },
-  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  emptyTitle: { color: "rgba(255,255,255,0.6)", fontSize: 18, fontFamily: "Inter_700Bold" },
-  emptySubtitle: { color: "rgba(255,255,255,0.3)", fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
-  toast: { position: "absolute", bottom: 80, left: 0, right: 0, alignItems: "center" },
-  toastText: { color: "#fff", fontSize: 13, fontFamily: "Inter_500Medium", backgroundColor: "rgba(0,0,0,0.65)", paddingHorizontal: 16, paddingVertical: 9, borderRadius: 22, overflow: "hidden" },
-
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.06)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  emptyTitle: { color: "rgba(255,255,255,0.65)", fontSize: 18, fontFamily: "Inter_700Bold" },
+  emptySubtitle: { color: "rgba(255,255,255,0.35)", fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
+  toast: { position: "absolute", bottom: 90, left: 0, right: 0, alignItems: "center" },
+  toastText: { color: "#fff", fontSize: 13, fontFamily: "Inter_500Medium", backgroundColor: "rgba(0,0,0,0.7)", paddingHorizontal: 18, paddingVertical: 10, borderRadius: 24, overflow: "hidden" },
 });
