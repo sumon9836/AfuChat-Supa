@@ -9,8 +9,7 @@
 #   getQueue()       — Arguments.fromList(tracks.map { it.originalItem })   ← main crash on open
 #   getActiveTrack() — Arguments.fromBundle(tracks[getCurrentIndex()].originalItem)
 #
-# NOTE: MMKV Old Arch patch removed — SDK 55 uses New Architecture exclusively.
-# react-native-mmkv@4.x (Nitro) compiles correctly with New Arch out of the box.
+# NOTE: react-native-mmkv@4.x (Nitro) requires no patching — New Arch compiles it natively.
 
 set -e
 
