@@ -89,24 +89,24 @@ waitForPort = 3000
 name = "EAS Build Watch"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = """
 cd artifacts/mobile && while true; do
-    OUT=$(EXPO_TOKEN=D0ZX0j9_3ko_Rv9ubaB3-9ymgQgQuEE9lJ1jkBZR node_modules/.bin/eas build:view 2275c062-f22e-4412-ae7f-7a6ca5bdc5d0 --json 2>&1 | grep -v '^â' | grep -v '^Found' | grep -v '^It' | grep -v '^Learn' | grep -v '^npm')
-    STATUS=$(echo \"$OUT\" | python3 -c \"import sys,json; data=sys.stdin.read(); obj=json.loads(data[data.find('{'):data.rfind('}')+1]); print(obj['status'])\" 2>/dev/null || echo \"IN_PROGRESS\")
-    ARTIFACT=$(echo \"$OUT\" | python3 -c \"import sys,json; data=sys.stdin.read(); obj=json.loads(data[data.find('{'):data.rfind('}')+1]); print(obj.get('artifacts',{}).get('buildUrl','none'))\" 2>/dev/null || echo \"none\")
-    echo \"$(date -u +%H:%M:%S) status=$STATUS apk=$ARTIFACT\"
-    if [ \"$STATUS\" = \"FINISHED\" ] || [ \"$STATUS\" = \"ERRORED\" ] || [ \"$STATUS\" = \"EXPIRED\" ] || [ \"$STATUS\" = \"CANCELLED\" ]; then
-      echo \"=== FINAL STATUS: $STATUS ===\"
-      echo \"=== APK: $ARTIFACT ===\"
-      break
-    fi
-    sleep 90
-  done"""
-
-[workflows.workflow.metadata]
-outputType = "console"
+      OUT=$(EXPO_TOKEN=D0ZX0j9_3ko_Rv9ubaB3-9ymgQgQuEE9lJ1jkBZR node_modules/.bin/eas build:view f1bf648c-7b14-46aa-9f96-3723e82523f8 --json 2>&1 | grep -v '^â' | grep -v '^Found' | grep -v '^It' | grep -v '^Learn' | grep -v '^npm')
+      STATUS=$(echo \"$OUT\" | python3 -c \"import sys,json; data=sys.stdin.read(); obj=json.loads(data[data.find('{'):data.rfind('}')+1]); print(obj['status'])\" 2>/dev/null || echo \"IN_PROGRESS\")
+      ARTIFACT=$(echo \"$OUT\" | python3 -c \"import sys,json; data=sys.stdin.read(); obj=json.loads(data[data.find('{'):data.rfind('}')+1]); print(obj.get('artifacts',{}).get('buildUrl','none'))\" 2>/dev/null || echo \"none\")
+      echo \"$(date -u +%H:%M:%S) status=$STATUS apk=$ARTIFACT\"
+      if [ \"$STATUS\" = \"FINISHED\" ] || [ \"$STATUS\" = \"ERRORED\" ] || [ \"$STATUS\" = \"EXPIRED\" ] || [ \"$STATUS\" = \"CANCELLED\" ]; then
+        echo \"=== FINAL STATUS: $STATUS ===\"
+        echo \"=== APK: $ARTIFACT ===\"
+        break
+      fi
+      sleep 90
+    done"""
 
 [[ports]]
 localPort = 3000
