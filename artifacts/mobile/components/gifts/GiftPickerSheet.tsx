@@ -6,6 +6,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -221,6 +222,33 @@ export default function GiftPickerSheet({
   const insets = useSafeAreaInsets();
   const { getDynamicPrice, statsMap } = useGiftPrices();
 
+  const sheetTranslateY = useRef(new Animated.Value(1000)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 60, friction: 11 }).start();
+    } else {
+      sheetTranslateY.setValue(1000);
+    }
+  }, [visible]);
+
+  function dismissSheet() {
+    Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onClose());
+  }
+
+  const sheetPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, g) => g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderMove: (_, g) => { if (g.dy > 0) sheetTranslateY.setValue(g.dy); },
+    onPanResponderRelease: (_, g) => {
+      if (g.dy > 80 || g.vy > 0.5) {
+        Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onClose());
+      } else {
+        Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 12 }).start();
+      }
+    },
+  })).current;
+
   const [gifts, setGifts] = useState<DbGift[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -286,18 +314,19 @@ export default function GiftPickerSheet({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      animationType="none"
+      onRequestClose={dismissSheet}
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={dismissSheet} />
+        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }], width: "100%" }}>
         <KeyboardAvoidingView
           behavior="padding"
           style={styles.kavWrapper}
         >
           <View style={[styles.sheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]}>
-            <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+            <View {...sheetPan.panHandlers} style={[styles.dragHandle, { backgroundColor: colors.border }]} />
 
             <View style={styles.header}>
               <View>
@@ -444,6 +473,7 @@ export default function GiftPickerSheet({
             )}
           </View>
         </KeyboardAvoidingView>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -454,7 +484,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",
     justifyContent: "flex-end",
-    paddingHorizontal: 8,
   },
   kavWrapper: {
     width: "100%",

@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
+  Animated,
   Modal,
+  PanResponder,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,18 +22,46 @@ export default function SignInPromptModal({ visible, onDismiss }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
+  const sheetTranslateY = useRef(new Animated.Value(1000)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 60, friction: 11 }).start();
+    } else {
+      sheetTranslateY.setValue(1000);
+    }
+  }, [visible]);
+
+  function dismissSheet() {
+    Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onDismiss());
+  }
+
+  const sheetPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, g) => g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderMove: (_, g) => { if (g.dy > 0) sheetTranslateY.setValue(g.dy); },
+    onPanResponderRelease: (_, g) => {
+      if (g.dy > 80 || g.vy > 0.5) {
+        Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onDismiss());
+      } else {
+        Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 12 }).start();
+      }
+    },
+  })).current;
+
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
-      onRequestClose={onDismiss}
+      animationType="none"
+      onRequestClose={dismissSheet}
     >
       <TouchableOpacity
         style={styles.overlay}
         activeOpacity={1}
-        onPress={onDismiss}
+        onPress={dismissSheet}
       >
+        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
         <TouchableOpacity
           activeOpacity={1}
           onPress={(e) => e.stopPropagation()}
@@ -43,7 +73,7 @@ export default function SignInPromptModal({ visible, onDismiss }: Props) {
             },
           ]}
         >
-          <View style={[styles.handle, { backgroundColor: colors.border }]} />
+          <View {...sheetPan.panHandlers} style={[styles.handle, { backgroundColor: colors.border }]} />
           <View style={[styles.iconWrap, { backgroundColor: colors.accent + "18" }]}>
             <Ionicons name="chatbubble-ellipses" size={32} color={colors.accent} />
           </View>
@@ -69,6 +99,7 @@ export default function SignInPromptModal({ visible, onDismiss }: Props) {
             <Text style={[styles.dismiss, { color: colors.textMuted }]}>Continue browsing</Text>
           </TouchableOpacity>
         </TouchableOpacity>
+        </Animated.View>
       </TouchableOpacity>
     </Modal>
   );
@@ -79,7 +110,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
-    paddingHorizontal: 8,
   },
   sheet: {
     borderTopLeftRadius: 24,

@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Animated,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -83,6 +84,33 @@ export default function AiEditorSheet({
   const insets = useSafeAreaInsets();
   const { height: winH } = useWindowDimensions();
   const accent = colors.accent as string;
+
+  const sheetTranslateY = useRef(new Animated.Value(1000)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 60, friction: 11 }).start();
+    } else {
+      sheetTranslateY.setValue(1000);
+    }
+  }, [visible]);
+
+  function dismissSheet() {
+    Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onClose());
+  }
+
+  const sheetPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, g) => g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderMove: (_, g) => { if (g.dy > 0) sheetTranslateY.setValue(g.dy); },
+    onPanResponderRelease: (_, g) => {
+      if (g.dy > 80 || g.vy > 0.5) {
+        Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onClose());
+      } else {
+        Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 12 }).start();
+      }
+    },
+  })).current;
 
   const [tab, setTab] = useState<Tab>("style");
   const [activePreset, setActivePreset] = useState<string | null>(null);
@@ -188,11 +216,12 @@ export default function AiEditorSheet({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      animationType="none"
+      onRequestClose={dismissSheet}
       statusBarTranslucent
     >
-      <Pressable style={s.backdrop} onPress={onClose}>
+      <Pressable style={s.backdrop} onPress={dismissSheet}>
+        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
         <Pressable
           onPress={() => {}}
           style={[s.sheet, {
@@ -203,7 +232,7 @@ export default function AiEditorSheet({
         >
           <View style={[StyleSheet.absoluteFill, { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: (colors.border as string) + "80" }]} pointerEvents="none" />
 
-          <View style={s.handle} />
+          <View {...sheetPan.panHandlers} style={s.handle} />
 
           <View style={s.header}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -344,6 +373,7 @@ export default function AiEditorSheet({
             </TouchableOpacity>
           </View>
         </Pressable>
+        </Animated.View>
       </Pressable>
     </Modal>
   );

@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   giftTilePrice: { flexDirection: "row", alignItems: "center", gap: 2 },
   giftTilePriceText: { fontSize: 10, fontFamily: "Inter_700Bold", color: GOLD },
   giftTileSender: { fontSize: 9, fontFamily: "Inter_400Regular", textAlign: "center" },
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", paddingHorizontal: 8 },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   reportSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 34 },
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#C7C7CC", alignSelf: "center", marginBottom: 20 },
   reportTitle: { fontSize: 18, fontFamily: "Inter_700Bold", marginBottom: 4 },

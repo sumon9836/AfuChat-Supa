@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   giftHint: { fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 },
   giftConvertedBadge: { position: "absolute", top: 4, right: 4, width: 14, height: 14, borderRadius: 7, backgroundColor: "#34C759", alignItems: "center", justifyContent: "center" },
   giftHiddenBadge: { position: "absolute", top: 4, right: 4, width: 14, height: 14, borderRadius: 7, backgroundColor: "#3A3A3C", alignItems: "center", justifyContent: "center" },
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", paddingHorizontal: 8 },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   giftSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 34 },
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#C7C7CC", alignSelf: "center", margin: 12 },
   giftSheetPreview: { flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 20, paddingVertical: 12 },

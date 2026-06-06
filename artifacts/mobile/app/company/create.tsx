@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
   nextBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
   submitBtn: { borderRadius: 999, paddingVertical: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
   submitBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8 },
+  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
   pickerSheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 40, maxHeight: "70%" },
   pickerHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 14 },
   pickerTitle: { fontSize: 17, fontFamily: "Inter_700Bold", marginBottom: 8 },

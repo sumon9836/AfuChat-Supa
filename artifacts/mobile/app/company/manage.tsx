@@ -804,7 +804,7 @@ const fieldSt = StyleSheet.create({
 });
 
 const verSt = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8 },
+  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "90%" },
   handle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 4 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },

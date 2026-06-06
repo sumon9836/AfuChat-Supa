@@ -18,6 +18,7 @@ import {
   Image,
   Keyboard,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   StyleSheet,
@@ -488,6 +489,33 @@ export function VideoCommentsSheet({
   const { user, profile } = useAuth();
   const insets = useSafeAreaInsets();
 
+  const sheetTranslateY = useRef(new Animated.Value(1000)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 60, friction: 11 }).start();
+    } else {
+      sheetTranslateY.setValue(1000);
+    }
+  }, [visible]);
+
+  function dismissSheet() {
+    Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onClose());
+  }
+
+  const sheetPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, g) => g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderMove: (_, g) => { if (g.dy > 0) sheetTranslateY.setValue(g.dy); },
+    onPanResponderRelease: (_, g) => {
+      if (g.dy > 80 || g.vy > 0.5) {
+        Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onClose());
+      } else {
+        Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 12 }).start();
+      }
+    },
+  })).current;
+
   const [replies, setReplies] = useState<Reply[]>([]);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -835,9 +863,10 @@ export function VideoCommentsSheet({
   const canSend = !sending && (text.trim().length > 0 || (recordState === "recorded" && !!recordedUri) || !!attachedImage);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={dismissSheet} statusBarTranslucent>
       <View style={cStyles.kavFull}>
-        <Pressable style={cStyles.overlay} onPress={onClose}>
+        <Pressable style={cStyles.overlay} onPress={dismissSheet}>
+          <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
           <Pressable onPress={() => {}} style={[cStyles.container, {
             paddingBottom: Math.max(insets.bottom, 16),
             marginBottom: kbHeight,
@@ -845,7 +874,7 @@ export function VideoCommentsSheet({
           }]}>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111115", borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
             <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.12)" }} pointerEvents="none" />
-            <View style={cStyles.handle} />
+            <View {...sheetPan.panHandlers} style={cStyles.handle} />
 
             <View style={cStyles.header}>
               <View style={{ flex: 1 }}>
@@ -1014,6 +1043,7 @@ export function VideoCommentsSheet({
               </TouchableOpacity>
             )}
           </Pressable>
+          </Animated.View>
         </Pressable>
       </View>
     </Modal>
@@ -1022,7 +1052,7 @@ export function VideoCommentsSheet({
 
 const cStyles = StyleSheet.create({
   kavFull: { flex: 1 },
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", paddingHorizontal: 8 },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   container: { borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: "hidden" },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.2)", alignSelf: "center", marginVertical: 12 },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 12, gap: 10 },

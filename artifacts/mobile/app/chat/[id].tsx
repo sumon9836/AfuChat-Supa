@@ -5970,7 +5970,7 @@ STRICT RULES:
           };
 
           return (
-            <View style={{ flex: 1, justifyContent: "flex-end", paddingHorizontal: 8 }}>
+            <View style={{ flex: 1, justifyContent: "flex-end" }}>
               {/* Dim backdrop — tap to dismiss */}
               <TouchableOpacity
                 style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.45)" }]}
@@ -6589,7 +6589,7 @@ STRICT RULES:
       >
         <View style={st.optionsOverlay}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => { setShowChatOptions(false); setShowDisappearingPicker(false); }} />
-          <View style={[st.optionsSheet, { backgroundColor: colors.surface }]}>
+          <View style={[st.optionsSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 16 }]}>
             {/* Handle */}
             <View style={[st.optionsHandle, { backgroundColor: colors.border }]} />
 
@@ -6861,7 +6861,7 @@ STRICT RULES:
         >
           <View style={[st.forwardOverlay]}>
             <TouchableOpacity style={{ flex: 1 }} onPress={() => { setForwardMsg(null); setForwardChats([]); }} />
-            <View style={[st.forwardSheet, { backgroundColor: colors.surface }]}>
+            <View style={[st.forwardSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]}>
               <View style={[st.forwardHeader, { borderBottomColor: colors.border }]}>
                 <Text style={[st.forwardTitle, { color: colors.text }]}>Forward to…</Text>
                 <TouchableOpacity onPress={() => { setForwardMsg(null); setForwardChats([]); }} hitSlop={12}>
@@ -6997,11 +6997,10 @@ const st = StyleSheet.create({
   },
   backBtn: { padding: 6 },
 
-  optionsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end", paddingHorizontal: 8 },
+  optionsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
   optionsSheet: {
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    paddingBottom: 32,
     paddingTop: 10,
     ...Platform.select({
       web: { boxShadow: "0 -2px 10px rgba(0,0,0,0.12)" } as any,
@@ -7450,8 +7449,8 @@ const st = StyleSheet.create({
   gifThumb: { width: "100%", height: 80, borderRadius: 10 },
   gifLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
 
-  forwardOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8 },
-  forwardSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 40, overflow: "hidden" },
+  forwardOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
+  forwardSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: "hidden" },
   forwardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: StyleSheet.hairlineWidth },
   forwardTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   forwardPreview: { flexDirection: "row", gap: 8, padding: 12, marginHorizontal: 16, marginVertical: 10, borderRadius: 10 },

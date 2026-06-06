@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   footerDot: { width: 3, height: 3, borderRadius: 1.5 },
   insertImgBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
   insertImgText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end", paddingHorizontal: 8 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
   modalSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 12 },
   modalHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 8 },
   modalTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginBottom: 4 },

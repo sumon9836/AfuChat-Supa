@@ -1838,7 +1838,7 @@ export default function DiscoverScreen() {
         onRequestClose={() => setShowCreatePicker(false)}
       >
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end", paddingHorizontal: 8 }}
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }}
           activeOpacity={1}
           onPress={() => setShowCreatePicker(false)}
         >

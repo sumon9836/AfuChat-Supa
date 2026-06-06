@@ -18,13 +18,13 @@
  *     backdrop: {
  *       flex: 1,
  *       justifyContent: "flex-end",
- *       paddingHorizontal: SHEET_EDGE_GAP,   // side inset only — no bottom gap
  *       backgroundColor: "rgba(0,0,0,0.5)",
  *     },
  *   });
  *
- * SHEET_EDGE_GAP (= 8) is the horizontal inset. Do NOT add paddingBottom
- * to the backdrop — the sheet must be flush with the screen bottom.
+ * SHEET_EDGE_GAP (= 8) is kept for internal reference but is no longer applied
+ * to the overlay — sheets extend edge-to-edge. Do NOT add paddingBottom or
+ * paddingHorizontal to the backdrop — the sheet must be flush with the screen.
  */
 
 import React from "react";
@@ -70,7 +70,6 @@ export function BottomSheetContainer({
 export const SHEET_OVERLAY_STYLE: ViewStyle = {
   flex: 1,
   justifyContent: "flex-end",
-  paddingHorizontal: SHEET_EDGE_GAP,
 };
 
 const styles = StyleSheet.create({

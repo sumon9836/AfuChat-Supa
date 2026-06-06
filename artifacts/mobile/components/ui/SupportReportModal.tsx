@@ -1,9 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   ScrollView,
   StyleSheet,
@@ -58,6 +60,33 @@ export default function SupportReportModal({
   const { colors } = useTheme();
   const { accent } = useAppAccent();
   const insets = useSafeAreaInsets();
+
+  const sheetTranslateY = useRef(new Animated.Value(1000)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 60, friction: 11 }).start();
+    } else {
+      sheetTranslateY.setValue(1000);
+    }
+  }, [visible]);
+
+  function dismissSheet() {
+    Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onClose());
+  }
+
+  const sheetPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, g) => g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderMove: (_, g) => { if (g.dy > 0) sheetTranslateY.setValue(g.dy); },
+    onPanResponderRelease: (_, g) => {
+      if (g.dy > 80 || g.vy > 0.5) {
+        Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onClose());
+      } else {
+        Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 12 }).start();
+      }
+    },
+  })).current;
 
   const [email, setEmail] = useState(userEmail);
   const [description, setDescription] = useState("");
@@ -126,9 +155,9 @@ export default function SupportReportModal({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       transparent
-      onRequestClose={onClose}
+      onRequestClose={dismissSheet}
       statusBarTranslucent
     >
       <View style={st.overlay}>
@@ -136,6 +165,7 @@ export default function SupportReportModal({
           behavior="padding"
           style={st.kav}
         >
+          <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
           <View
             style={[
               st.sheet,
@@ -146,7 +176,7 @@ export default function SupportReportModal({
             ]}
           >
             {/* Handle bar */}
-            <View style={[st.handle, { backgroundColor: colors.border }]} />
+            <View {...sheetPan.panHandlers} style={[st.handle, { backgroundColor: colors.border }]} />
 
             {/* Header */}
             <View style={st.header}>
@@ -265,6 +295,7 @@ export default function SupportReportModal({
               </TouchableOpacity>
             </View>
           </View>
+          </Animated.View>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -276,9 +307,8 @@ const st = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",
     justifyContent: "flex-end",
-    paddingHorizontal: 8,
   },
-  kav: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 8 },
+  kav: { flex: 1, justifyContent: "flex-end" },
   sheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
