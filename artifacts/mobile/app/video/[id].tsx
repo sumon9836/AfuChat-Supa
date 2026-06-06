@@ -668,7 +668,7 @@ const VideoItem = React.memo(function VideoItem({
         <VideoView
           player={player}
           style={StyleSheet.absoluteFill}
-          contentFit="cover"
+          contentFit="contain"
           nativeControls={false}
         />
       ) : <View style={[StyleSheet.absoluteFill, { backgroundColor: "#000" }]} />}
@@ -719,8 +719,7 @@ const VideoItem = React.memo(function VideoItem({
         <Ionicons name="heart" size={90} color="#FF3B30" />
       </Animated.View>
 
-      {/* Gradients */}
-      <GradientOverlay position="top" height={160} />
+      {/* Gradient — bottom only, no top shadow */}
       <GradientOverlay position="bottom" height={440} />
 
       {/* Bottom info — author + caption */}
@@ -768,12 +767,6 @@ const VideoItem = React.memo(function VideoItem({
           </TouchableOpacity>
         )}
 
-        {item.view_count > 0 && (
-          <View style={vStyles.viewRow}>
-            <Ionicons name="eye-outline" size={12} color="rgba(255,255,255,0.4)" />
-            <Text style={vStyles.viewText}>{formatCount(item.view_count)} views</Text>
-          </View>
-        )}
       </View>
 
       {/* Right action rail */}
@@ -870,7 +863,7 @@ const vStyles = StyleSheet.create({
   actionLabel: { color: "#fff", fontSize: 12, fontFamily: "Inter_700Bold", ...Platform.select({ web: { textShadow: "0 1px 3px rgba(0,0,0,0.6)" } as any, default: { textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 } }) },
   progressBar: { position: "absolute", left: 0, right: 0, height: 3, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center" },
   progressFill: { position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: "#fff", borderRadius: 2 },
-  progressThumb: { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "#fff", top: -4.5, marginLeft: -6, ...Platform.select({ web: { boxShadow: "0 1px 4px rgba(0,0,0,0.55)" } as any, default: { shadowColor: "#000", shadowOpacity: 0.5, shadowRadius: 4, elevation: 4 } }) },
+  progressThumb: { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "#fff", top: -4.5, marginLeft: -6, elevation: 4 },
 });
 
 // ─── VideoFeed (embeddable) ───────────────────────────────────────────────────
@@ -884,6 +877,10 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   const { user, profile } = useAuth();
   const insets = useSafeAreaInsets();
   const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
+  // Height taken by the floating tab bar when this feed is embedded in the tabs navigator.
+  // We add this as paddingBottom on the root View so the FlatList (and each video item)
+  // measures the correct available height and never renders behind the tab bar.
+  const tabOffset = isEmbedded ? Math.max(insets.bottom, 4) + 66 : 0;
 
   const [videoTab, setVideoTab] = useState<"for_you" | "following">("for_you");
   const [videos, setVideos] = useState<VideoPost[]>([]);
@@ -1505,7 +1502,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
   const videoItemProps = React.useMemo(() => ({
     screenH: listHeight, screenW: SCREEN_W,
-    navOffset: isEmbedded ? Math.max(insets.bottom, Platform.OS === "android" ? 4 : 6) + 66 : 0,
+    navOffset: 0,
     onLike: handleLike, onBookmark: handleBookmark,
     onOpenComments: setCommentPostId,
     onShare,
@@ -1531,7 +1528,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
   if (loading) {
     return (
-      <View style={[mStyles.root, isEmbedded && Platform.OS === "web" ? { position: "relative" as any, zIndex: undefined } : undefined]}>
+      <View style={[mStyles.root, isEmbedded && Platform.OS === "web" ? { position: "relative" as any, zIndex: undefined } : undefined, { paddingBottom: tabOffset }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <ShortsFeedSkeleton dark={isDark} />
         {/* Render the real header on top so navigation chrome is visible during load */}
@@ -1563,7 +1560,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   }
 
   return (
-    <View style={[mStyles.root, isEmbedded && Platform.OS === "web" ? { position: "relative" as any, zIndex: undefined } : undefined]}>
+    <View style={[mStyles.root, isEmbedded && Platform.OS === "web" ? { position: "relative" as any, zIndex: undefined } : undefined, { paddingBottom: tabOffset }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* Fixed header */}
