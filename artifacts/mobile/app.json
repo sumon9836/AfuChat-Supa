@@ -45,7 +45,9 @@
         "android.permission.USE_FINGERPRINT",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "android.permission.ACCESS_NETWORK_STATE"
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "intentFilters": [
         {
@@ -151,10 +153,10 @@
       "typedRoutes": true,
       "reactCompiler": false
     },
-    "owner": "afume",
+    "owner": "amkaweesi1",
     "extra": {
       "eas": {
-        "projectId": "363a3c64-5a90-4aae-86b5-aa54014921ef"
+        "projectId": "b55c5d92-7a83-472f-b660-d1838efba5fe"
       }
     },
     "ios": {

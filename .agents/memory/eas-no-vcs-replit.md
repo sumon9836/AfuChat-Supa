@@ -12,42 +12,52 @@ Always set `EAS_NO_VCS=1` when running `eas build` from the Replit main agent.
 
 **How to apply:**
 ```bash
-cd artifacts/mobile && EXPO_TOKEN=<token> EAS_NO_VCS=1 node_modules/.bin/eas build \
-  --platform android --profile preview --non-interactive
+cd artifacts/mobile && EAS_NO_VCS=1 EXPO_TOKEN=<token> node_modules/.bin/eas build \
+  --platform android --profile preview --non-interactive --no-wait
 ```
 
-Use `eas build:view <BUILD_ID>` to poll status. Build typically takes ~18 minutes.
-The `--non-interactive` flag is required (stdin not available in Replit shell).
+Use `configureWorkflow` (outputType: "console") to run the build as a background workflow — the bash tool will time out on long uploads.
+The `--non-interactive` and `--no-wait` flags are both required.
+Build typically takes ~18 minutes on EAS servers after submission.
+
+## Active account (as of 2026-06-06)
+- **Account:** amkaweesi1 (switched from afume which hit free plan quota)
+- **EXPO_TOKEN env var:** stored in Replit env (EXPO_TOKEN)
+- **EAS Project ID:** b55c5d92-7a83-472f-b660-d1838efba5fe
+- **app.json owner:** amkaweesi1
+- **Keystore:** Build Credentials I56-2eELc3 (auto-generated, remote)
+
+## Switching accounts — steps required
+When switching Expo accounts:
+1. Remove `extra.eas.projectId` and update `owner` in `app.json`
+2. Run `eas init --non-interactive --force` with new EXPO_TOKEN to get new project ID
+3. Update all `EXPO_PUBLIC_EAS_PROJECT_ID` values in `eas.json` (3 profiles)
+4. Update `app.json` `extra.eas.projectId` with new ID (eas init writes this automatically)
 
 ## Build history (most recent first)
+
+### 2026-06-06 — v2.2.1 (DesktopShell wired + account switch to amkaweesi1)
+- Build ID: 2275c062-f22e-4412-ae7f-7a6ca5bdc5d0
+- Build URL: https://expo.dev/accounts/amkaweesi1/projects/afuchat/builds/2275c062-f22e-4412-ae7f-7a6ca5bdc5d0
+- Profile: preview (APK, internal distribution)
+- App version: 2.2.1 (com.afuchat.app)
+- Account: amkaweesi1 (new; afume exhausted free plan quota)
+- Submitted from: Replit (EAS_NO_VCS=1, --no-wait, 28.9 MB upload)
+- Credentials: Keystore "Build Credentials I56-2eELc3" (default, remote, new account)
 
 ### 2026-06-06 — v2.1.6 (post-auth lazy tab fix)
 - Build ID: 1654aaa0-d90b-4b52-9642-702e3aa3dd89
 - Build URL: https://expo.dev/accounts/afume/projects/afuchat/builds/1654aaa0-d90b-4b52-9642-702e3aa3dd89
 - Profile: preview (APK, internal distribution)
 - App version: 2.1.6 (com.afuchat.app)
-- Fix: Removed `lazy: false` from tab screenOptions; discover/shorts/notifications/apps/me are now `lazy: true`. Only chats (default tab) loads eagerly after login. Prevents instant crash after login caused by all tabs mounting simultaneously (including ones with heavy native deps: Reanimated, expo-av, etc.)
+- Account: afume (quota exhausted for June 2026)
 - Submitted from: Replit (EAS_NO_VCS=1, --no-wait, 28.9 MB upload)
 - Credentials: Keystore "Build Credentials 1Nj4newnzl" (default, remote)
 
 ### 2026-06-05 — v2.1.3 (WeakRef polyfill fix)
 - Build ID: 68bcd4f6-c221-4f0b-9922-d9d34328abbf
 - Build URL: https://expo.dev/accounts/afume/projects/afuchat/builds/68bcd4f6-c221-4f0b-9922-d9d34328abbf
-- Profile: preview (APK, internal distribution)
-- App version: 2.1.3 (com.afuchat.app)
-- Fix: Added WeakRef + FinalizationRegistry polyfills in artifacts/mobile/polyfills.ts, imported first in _layout.tsx
-- Submitted from: Replit (EAS_NO_VCS=1, file-system archive, 28.9 MB upload)
-- Credentials: Keystore "Build Credentials 1Nj4newnzl" (default, remote)
 
 ### 2026-06-05 — v2.1.2 (SVG crash fixes)
 - Build ID: c68dad8b-a52f-4137-9b6c-93c425d3d4e1
 - Build URL: https://expo.dev/accounts/afume/projects/afuchat/builds/c68dad8b-a52f-4137-9b6c-93c425d3d4e1
-- Profile: preview (APK, internal distribution)
-- App version: 2.1.2 (com.afuchat.app)
-- Submitted from: Replit (EAS_NO_VCS=1, file-system archive, 28.7 MB upload)
-- Credentials: Keystore "Build Credentials 1Nj4newnzl" (default, remote)
-
-### 2026-xx-xx — previous build
-- Build ID: 0fe77e49-c219-469f-9192-d6dad81b479a
-- Profile: preview (APK, internal distribution)
-- APK: https://expo.dev/artifacts/eas/2XUDKNQVvhgJsJvLHjHodA.apk
