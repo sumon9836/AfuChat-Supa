@@ -43,7 +43,7 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
+import { VideoView, useVideoPlayer } from "expo-video";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library";
@@ -447,7 +447,7 @@ const VideoItem = React.memo(function VideoItem({
 }) {
   const { accent } = useAppAccent();
   const insets = useSafeAreaInsets();
-  const videoRef = useRef<Video>(null);
+  const player = useVideoPlayer(null, (p) => { p.loop = true; p.muted = false; });
   const webVideoRef = useRef<HTMLVideoElement | null>(null);
   const [paused, setPaused] = useState(false);
   const [buffering, setBuffering] = useState(false);
@@ -552,6 +552,55 @@ const VideoItem = React.memo(function VideoItem({
     }
   }, [isActive]);
 
+  // ── Player source update ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!playbackUri || !shouldMountVideo) return;
+    player.replace({ uri: playbackUri });
+  }, [playbackUri, shouldMountVideo]);
+
+  // ── Play / pause control ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!shouldMountVideo) { player.pause(); return; }
+    if (!isActive || paused || preloadOnly || !tabFocused) { player.pause(); } else { player.play(); }
+  }, [isActive, paused, preloadOnly, tabFocused, shouldMountVideo]);
+
+  // ── Progress + started + buffering polling (100 ms) ────────────────────
+  useEffect(() => {
+    if (!isActive) return;
+    const timer = setInterval(() => {
+      if (player.playing && !videoStartedRef.current) {
+        videoStartedRef.current = true;
+        setVideoStarted(true);
+        if (bufferingTimerRef.current) { clearTimeout(bufferingTimerRef.current); bufferingTimerRef.current = null; }
+        setShowBuffering(false);
+      }
+      const isLoading = (player.status as string) === "loading";
+      if (isLoading !== bufferingRef.current) {
+        bufferingRef.current = isLoading;
+        setBuffering(isLoading);
+        if (isLoading) {
+          if (!bufferingTimerRef.current) bufferingTimerRef.current = setTimeout(() => { setShowBuffering(true); bufferingTimerRef.current = null; }, 400);
+        } else {
+          if (bufferingTimerRef.current) { clearTimeout(bufferingTimerRef.current); bufferingTimerRef.current = null; }
+          setShowBuffering(false);
+        }
+      }
+      const dur = player.duration;
+      if (dur > 0) {
+        const frac = player.currentTime / dur;
+        const now = Date.now();
+        if (now - lastProgressFrameRef.current >= 250) {
+          lastProgressFrameRef.current = now;
+          setDurationMs(dur * 1000);
+          setProgress(frac);
+          if (frac >= 0.97) clearVideoProgress(item.id);
+          else if (now - lastSavedProgressRef.current >= 2000) { lastSavedProgressRef.current = now; saveVideoProgress(item.id, frac); }
+        }
+      }
+    }, 100);
+    return () => clearInterval(timer);
+  }, [isActive]);
+
   function handleTap() { setPaused((p) => !p); }
 
   function triggerDoubleTapLike() {
@@ -577,55 +626,10 @@ const VideoItem = React.memo(function VideoItem({
     onLike(item.id, item.liked);
   }
 
-  function onPlaybackStatus(status: AVPlaybackStatus) {
-    if (!status.isLoaded) return;
-
-    // ── Buffering — only call setState when the value actually changes ────────
-    const isNowBuffering = status.isBuffering;
-    if (isNowBuffering !== bufferingRef.current) {
-      bufferingRef.current = isNowBuffering;
-      setBuffering(isNowBuffering);
-      if (isNowBuffering) {
-        if (!bufferingTimerRef.current) {
-          bufferingTimerRef.current = setTimeout(() => { setShowBuffering(true); bufferingTimerRef.current = null; }, 400);
-        }
-      } else {
-        if (bufferingTimerRef.current) { clearTimeout(bufferingTimerRef.current); bufferingTimerRef.current = null; }
-        setShowBuffering(false);
-      }
-    }
-
-    // ── Video started — only fire once ────────────────────────────────────────
-    if ((status as any).isPlaying && !videoStartedRef.current) {
-      videoStartedRef.current = true;
-      setVideoStarted(true);
-    }
-
-    // ── Progress — throttle UI re-renders to ≤4fps (250 ms) ──────────────────
-    if (status.durationMillis && status.durationMillis > 0) {
-      const frac = status.positionMillis / status.durationMillis;
-      const now = Date.now();
-
-      if (now - lastProgressFrameRef.current >= 250) {
-        lastProgressFrameRef.current = now;
-        setDurationMs(status.durationMillis);
-        setProgress(frac);
-      }
-
-      // Throttle AsyncStorage writes to every 2 s — they block the JS thread
-      if (frac >= 0.97) {
-        clearVideoProgress(item.id);
-      } else if (now - lastSavedProgressRef.current >= 2000) {
-        lastSavedProgressRef.current = now;
-        saveVideoProgress(item.id, frac);
-      }
-    }
-  }
-
   function handleProgressBarPress(locationX: number) {
     if (!progressBarWidth || !durationMs) return;
     const pct = Math.max(0, Math.min(1, locationX / progressBarWidth));
-    videoRef.current?.setPositionAsync(durationMs * pct).catch(() => {});
+    player.currentTime = (durationMs / 1000) * pct;
   }
 
   const videoElement = Platform.OS === "web" ? (
@@ -661,23 +665,11 @@ const VideoItem = React.memo(function VideoItem({
   ) : (
     <View style={StyleSheet.absoluteFill}>
       {shouldMountVideo ? (
-        <Video
-          ref={videoRef}
-          source={{ uri: playbackUri }}
+        <VideoView
+          player={player}
           style={StyleSheet.absoluteFill}
-          resizeMode={ResizeMode.CONTAIN}
-          shouldPlay={isActive && !paused && !preloadOnly && tabFocused}
-          isLooping
-          isMuted={false}
-          posterSource={item.image_url ? { uri: item.image_url } : undefined}
-          {...(item.image_url ? { usePosterImage: true } as any : {})}
-          onPlaybackStatusUpdate={onPlaybackStatus}
-          onError={() => {
-            if (!videoError) {
-              setCachedUri(null);
-              setVideoError(true);
-            }
-          }}
+          contentFit="contain"
+          nativeControls={false}
         />
       ) : <View style={[StyleSheet.absoluteFill, { backgroundColor: "#000" }]} />}
 

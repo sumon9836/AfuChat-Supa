@@ -44,7 +44,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
-import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -171,7 +171,7 @@ const VideoItem = React.memo(
     currentUserId,
   }: VideoItemProps) {
     const { accent } = useAppAccent();
-    const videoRef = useRef<Video>(null);
+    const player = useVideoPlayer(null, (p) => { p.loop = true; p.muted = false; });
 
     // ── UI state (minimal — heavy work stays in refs) ──────────────────────
     const [paused, setPaused] = useState(false);
@@ -260,12 +260,49 @@ const VideoItem = React.memo(
       }
     }, [isActive]);
 
-    // ── Stop video when far from viewport ─────────────────────────────────
+    // ── Player source update when resolved URI changes ────────────────────
     useEffect(() => {
-      if (!isNearActive && videoRef.current) {
-        videoRef.current.stopAsync().catch(() => {});
-      }
-    }, [isNearActive]);
+      if (!playUri || !isNearActive) return;
+      player.replace({ uri: playUri });
+    }, [playUri, isNearActive]);
+
+    // ── Play / pause control ───────────────────────────────────────────────
+    useEffect(() => {
+      if (!isNearActive) { player.pause(); return; }
+      if (!isActive || paused) { player.pause(); } else { player.play(); }
+    }, [isActive, isNearActive, paused]);
+
+    // ── Progress + started + buffering polling (100 ms) ────────────────────
+    useEffect(() => {
+      if (!isActive) return;
+      const timer = setInterval(() => {
+        if (player.playing && !videoStartedRef.current) {
+          videoStartedRef.current = true;
+          setVideoStarted(true);
+          if (bufferingTimer.current) { clearTimeout(bufferingTimer.current); bufferingTimer.current = null; }
+          setShowBuffering(false);
+        }
+        const isLoading = (player.status as string) === "loading";
+        if (isLoading !== bufferingRef.current) {
+          bufferingRef.current = isLoading;
+          if (isLoading) {
+            if (!bufferingTimer.current) bufferingTimer.current = setTimeout(() => { setShowBuffering(true); bufferingTimer.current = null; }, 400);
+          } else {
+            if (bufferingTimer.current) { clearTimeout(bufferingTimer.current); bufferingTimer.current = null; }
+            setShowBuffering(false);
+          }
+        }
+        const dur = player.duration;
+        if (dur > 0) {
+          const now = Date.now();
+          if (now - lastProgressTs.current >= 250) {
+            lastProgressTs.current = now;
+            progressFill.value = player.currentTime / dur;
+          }
+        }
+      }, 100);
+      return () => clearInterval(timer);
+    }, [isActive]);
 
     // ── Animated styles ───────────────────────────────────────────────────
     const heartAnimStyle = useAnimatedStyle(() => ({
@@ -325,46 +362,6 @@ const VideoItem = React.memo(
       onLike(item.id, item.liked);
     }
 
-    // ── Playback status ────────────────────────────────────────────────────
-    function onPlaybackStatus(status: AVPlaybackStatus) {
-      if (!status.isLoaded) return;
-
-      // Buffering — gate behind ref to skip redundant setState calls
-      const buffering = status.isBuffering;
-      if (buffering !== bufferingRef.current) {
-        bufferingRef.current = buffering;
-        if (buffering) {
-          if (!bufferingTimer.current) {
-            bufferingTimer.current = setTimeout(() => {
-              setShowBuffering(true);
-              bufferingTimer.current = null;
-            }, 400);
-          }
-        } else {
-          if (bufferingTimer.current) {
-            clearTimeout(bufferingTimer.current);
-            bufferingTimer.current = null;
-          }
-          setShowBuffering(false);
-        }
-      }
-
-      // Started
-      if (status.isPlaying && !videoStartedRef.current) {
-        videoStartedRef.current = true;
-        setVideoStarted(true);
-      }
-
-      // Progress — throttle to ≤4 fps; drive shared value, not state
-      if (status.durationMillis && status.durationMillis > 0) {
-        const now = Date.now();
-        if (now - lastProgressTs.current >= 250) {
-          lastProgressTs.current = now;
-          progressFill.value = status.positionMillis / status.durationMillis;
-        }
-      }
-    }
-
     const isOwn = currentUserId === item.author_id;
 
     return (
@@ -382,22 +379,11 @@ const VideoItem = React.memo(
 
         {/* Video — native */}
         {isNearActive && Platform.OS !== "web" && (
-          <Video
-            ref={videoRef}
-            source={{ uri: playUri }}
+          <VideoView
+            player={player}
             style={StyleSheet.absoluteFill}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay={isActive && !paused}
-            isLooping
-            isMuted={false}
-            onPlaybackStatusUpdate={onPlaybackStatus}
-            onReadyForDisplay={() => {
-              videoStartedRef.current = true;
-              setVideoStarted(true);
-            }}
-            onError={() => {
-              if (!videoError) { setCachedUri(null); setVideoError(true); }
-            }}
+            contentFit="cover"
+            nativeControls={false}
           />
         )}
 

@@ -1,0 +1,30 @@
+════════════════════════════════════════════
+AfuChat Crash Report
+Time        : 2026-06-06T15:40:25.259Z
+
+App         : AfuChat 2.2.0 (build 220)
+Platform    : android 35
+Device      : TECNO CL6k
+OS          : Android 15
+Dev mode    : true
+
+────────────────  Error  ───────────────────
+Cannot read property 'Video' of undefined
+
+────────────  JS Stack Trace  ──────────────
+TypeError: Cannot read property 'Video' of undefined
+    at VideoItem (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:182392:115)
+    at react_stack_bottom_frame (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:399972:29)
+    at renderWithHooks (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:394608:40)
+    at updateFunctionComponent (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:395894:34)
+    at updateSimpleMemoComponent (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:395801:37)
+    at updateMemoComponent (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:395777:323)
+    at beginWork (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:396394:37)
+    at runWithFiberInDEV (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392064:135)
+    at performUnitOfWork (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:398412:97)
+    at workLoopSync (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:398307:57)
+    at renderRootSync (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:398292:21)
+    at performWorkOnRoot (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:397986:43)
+    at performWorkOnRootViaSchedulerTask (https://dff535d5-a55c-4005-83f1-f0861a2fe310-00-2933hnw2vex8s.expo.picard.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:393661:24)
+
+════════════════════════════════════════════
