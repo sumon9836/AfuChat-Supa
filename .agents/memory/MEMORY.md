@@ -11,5 +11,5 @@
 - [db.native.ts must stay in sync with db.ts migrations](db-native-migration-sync.md) — Metro resolves db.native.ts for Android/iOS builds; db.ts for web. Both files must have identical migration arrays.
 - [Android startup crash: edgeToEdge + adjustResize](android-edgetop-adjustresize-crash.md) — edgeToEdgeEnabled:true + softwareKeyboardLayoutMode:resize causes instant IllegalStateException on Android 15+.
 - [EAS build on Replit — EAS_NO_VCS=1](eas-no-vcs-replit.md) — Replit blocks git stash; set EAS_NO_VCS=1 so EAS uses file-system archive instead. Run from artifacts/mobile with --non-interactive.
-- [SDK 55 New Arch migration](sdk55-newarch-migration.md) — SDK 55 mandates New Architecture (RN 0.83). All old-arch guards removed. MMKV upgraded to v4 (Nitro). Reanimated upgraded to 4.2.1 + worklets 0.5.1.
+- [SDK 55 New Arch migration](sdk55-newarch-migration.md) — SDK 55 mandates New Architecture (RN 0.83). All old-arch guards removed. MMKV v4 (Nitro). Reanimated 4.2.1 + worklets 0.5.1. TabSwipe uses real useSharedValue + GestureDetector.
 - [MMKV v4 Nitro API change](mmkv-v4-api.md) — react-native-mmkv v4 replaced `new MMKV({id})` with `createMMKV({id})`; instance methods (getString, set, getBoolean, getNumber, delete, clearAll, getAllKeys) unchanged.

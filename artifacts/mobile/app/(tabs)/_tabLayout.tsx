@@ -18,7 +18,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import { TabSwipeProvider } from "@/context/TabSwipeContext";
+import { TabSwipeContext, TabSwipeProvider } from "@/context/TabSwipeContext";
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { getLocalConversations } from "@/lib/storage/localConversations";
 import { supabase } from "@/lib/supabase";
 import { emitShortsRefresh } from "@/lib/shortsRefresh";
@@ -346,6 +353,79 @@ const bar = StyleSheet.create({
   },
 });
 
+// ── Tab swipe gesture ──────────────────────────────────────────────────────────
+// Wraps the full tab content in a GestureDetector + Reanimated.View so the
+// user can swipe horizontally to navigate between tabs (New Arch SDK 55+).
+//
+// The gesture is blocked automatically when a child horizontal scroll is active
+// (e.g. Discover feed cards, SuggestedUsers carousel) because those components
+// set horizontalScrollActive.value = true via TabSwipeContext.
+//
+// On web there is no touch swipe; we render a plain View instead.
+function SwipeableTabContent({ children }: { children: React.ReactNode }) {
+  const { horizontalScrollActive } = React.useContext(TabSwipeContext);
+  const pathname = usePathname();
+  const tabOffsetX = useSharedValue(0);
+
+  // Keep a stable ref for the current tab index so the runOnJS callback
+  // never captures a stale closure value.
+  const currentIdxRef = useRef(0);
+  useEffect(() => {
+    const normalized = normalizeTabPath(pathname);
+    currentIdxRef.current = Math.max(0, TABS.findIndex((t) => t.route === normalized));
+  }, [pathname]);
+
+  const navigateTab = useCallback((dir: number) => {
+    const next = currentIdxRef.current + dir;
+    if (next >= 0 && next < TABS.length) {
+      safeRouter.navigate(TABS[next].route as any);
+    }
+  }, []);
+
+  const pan = Gesture.Pan()
+    // Only activate for predominantly horizontal movements.
+    .activeOffsetX([-20, 20])
+    .failOffsetY([-15, 15])
+    .onUpdate((e) => {
+      "worklet";
+      // If a child horizontal scroll is active, don't move the container.
+      if (horizontalScrollActive.value) return;
+      tabOffsetX.value = e.translationX * 0.25;
+    })
+    .onEnd((e) => {
+      "worklet";
+      const didSwipe =
+        !horizontalScrollActive.value &&
+        (Math.abs(e.translationX) > 80 || Math.abs(e.velocityX) > 500);
+      if (didSwipe) {
+        // Positive translationX = swipe right = go to previous tab.
+        runOnJS(navigateTab)(e.translationX > 0 ? -1 : 1);
+      }
+      tabOffsetX.value = withSpring(0, { damping: 20, stiffness: 300 });
+    })
+    .onFinalize(() => {
+      "worklet";
+      tabOffsetX.value = withSpring(0, { damping: 20, stiffness: 300 });
+    });
+
+  const animStyle = useAnimatedStyle(() => ({
+    flex: 1,
+    transform: [{ translateX: tabOffsetX.value }],
+  }));
+
+  if (Platform.OS === "web") {
+    return <View style={{ flex: 1 }}>{children}</View>;
+  }
+
+  return (
+    <GestureDetector gesture={pan}>
+      <Reanimated.View style={animStyle}>
+        {children}
+      </Reanimated.View>
+    </GestureDetector>
+  );
+}
+
 function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
   const { colors } = useTheme();
   return (
@@ -395,15 +475,17 @@ export default function TabLayout() {
 
   return (
     <TabSwipeProvider>
-      <View style={{ flex: 1 }}>
-        <ClassicTabLayout isLoggedIn={isLoggedIn} />
-        {isLoggedIn && !isDesktop && (
-          <CompactTabBar
-            userId={user?.id}
-            avatarUrl={profile?.avatar_url}
-          />
-        )}
-      </View>
+      <SwipeableTabContent>
+        <View style={{ flex: 1 }}>
+          <ClassicTabLayout isLoggedIn={isLoggedIn} />
+          {isLoggedIn && !isDesktop && (
+            <CompactTabBar
+              userId={user?.id}
+              avatarUrl={profile?.avatar_url}
+            />
+          )}
+        </View>
+      </SwipeableTabContent>
     </TabSwipeProvider>
   );
 }

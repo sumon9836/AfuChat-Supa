@@ -1,18 +1,18 @@
-import React, { createContext, useContext, useMemo, useRef } from "react";
-
-type ScrollLock = { value: boolean };
+import React, { createContext, useContext, useMemo } from "react";
+import { useSharedValue } from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
 
 export type TabSwipeCtxType = {
-  horizontalScrollActive: ScrollLock;
+  horizontalScrollActive: SharedValue<boolean>;
 };
 
 export const TabSwipeContext = createContext<TabSwipeCtxType>({
-  horizontalScrollActive: { value: false },
+  horizontalScrollActive: { value: false } as SharedValue<boolean>,
 });
 
 export function TabSwipeProvider({ children }: { children: React.ReactNode }) {
-  const horizontalScrollActive = useRef<ScrollLock>({ value: false }).current;
-  const ctx = useMemo(() => ({ horizontalScrollActive }), []);
+  const horizontalScrollActive = useSharedValue(false);
+  const ctx = useMemo(() => ({ horizontalScrollActive }), [horizontalScrollActive]);
   return (
     <TabSwipeContext.Provider value={ctx}>
       {children}
@@ -20,6 +20,6 @@ export function TabSwipeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useHorizontalScrollLock(): ScrollLock {
+export function useHorizontalScrollLock(): SharedValue<boolean> {
   return useContext(TabSwipeContext).horizontalScrollActive;
 }
