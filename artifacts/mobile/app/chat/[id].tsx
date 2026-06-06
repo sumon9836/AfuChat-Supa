@@ -98,10 +98,6 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 // module-load time; its result never changes, so every component in this file
 // always calls the same hook function — satisfying React Rules of Hooks.
 const _ra = (() => {
-  // Android Expo Go: reanimated's C++ worklet runtime fails to init and throws
-  // a Java NullPointerException that CANNOT be caught by JS try/catch.
-  // Skip the require entirely on Android dev so the module loads safely.
-  if (Platform.OS === "android" && __DEV__) return null;
   try {
     const m = require("react-native-reanimated"); // eslint-disable-line @typescript-eslint/no-var-requires
     if (m && typeof m.useSharedValue === "function") return m;

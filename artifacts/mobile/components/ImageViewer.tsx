@@ -24,8 +24,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _RA: typeof import("react-native-reanimated") | null = (() => {
-  // Android Expo Go: Java NPE from native worklet init escapes JS try/catch.
-  if (Platform.OS === "android" && __DEV__) return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const m = require("react-native-reanimated");

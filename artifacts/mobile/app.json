@@ -2,7 +2,7 @@
   "expo": {
     "name": "AfuChat",
     "slug": "afuchat",
-    "version": "2.1.6",
+    "version": "2.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "splash": {
@@ -12,7 +12,6 @@
     },
     "scheme": "afuchat",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "jsEngine": "hermes",
     "backgroundColor": "#000000",
     "notification": {
@@ -84,7 +83,7 @@
       ],
       "enableProguardInReleaseBuilds": false,
       "enableShrinkResources": false,
-      "versionCode": 216
+      "versionCode": 220
     },
     "plugins": [
       [
@@ -138,7 +137,10 @@
           "audioPermission": "AfuChat uses your audio library to let you save and share audio files."
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-build-properties",
+      "expo-secure-store",
+      "expo-sqlite"
     ],
     "updates": {
       "enabled": false,
