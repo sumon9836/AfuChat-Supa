@@ -40,6 +40,7 @@ import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
 import { Audio } from "expo-av";
 import VideoPreview from "@/components/ui/VideoPreview";
+import VideoTrimmerModal from "@/components/chat/VideoTrimmerModal";
 import * as Speech from "expo-speech";
 import * as Clipboard from "expo-clipboard";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -1873,7 +1874,9 @@ function ChatScreen() {
 
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [gifSearch, setGifSearch] = useState("");
-  const [attachmentPreview, setAttachmentPreview] = useState<{ uri: string; type: string; name?: string; mimeType?: string } | null>(null);
+  const [attachmentPreview, setAttachmentPreview] = useState<{ uri: string; type: string; name?: string; mimeType?: string; trimStart?: number; trimEnd?: number } | null>(null);
+  const [showVideoTrimmer, setShowVideoTrimmer] = useState(false);
+  const [pendingVideoUri, setPendingVideoUri] = useState<{ uri: string; mimeType: string } | null>(null);
   const [networkOnline, setNetworkOnline] = useState(isOnline());
   const [messageLimited, setMessageLimited] = useState(false);
   const [isStranger, setIsStranger] = useState(false);
@@ -4202,12 +4205,16 @@ STRICT RULES:
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images", "videos"],
       quality: pickerQuality,
-      videoMaxDuration: 120,
     });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       const isVideo = asset.type === "video";
-      setAttachmentPreview({ uri: asset.uri, type: isVideo ? "video" : "image", mimeType: asset.mimeType || (isVideo ? "video/mp4" : "image/jpeg") });
+      if (isVideo) {
+        setPendingVideoUri({ uri: asset.uri, mimeType: asset.mimeType || "video/mp4" });
+        setShowVideoTrimmer(true);
+      } else {
+        setAttachmentPreview({ uri: asset.uri, type: "image", mimeType: asset.mimeType || "image/jpeg" });
+      }
     }
   }
 
@@ -4219,12 +4226,16 @@ STRICT RULES:
       mediaTypes: ["images", "videos"],
       quality: pickerQuality,
       allowsMultipleSelection: false,
-      videoMaxDuration: 120,
     });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       const isVideo = asset.type === "video";
-      setAttachmentPreview({ uri: asset.uri, type: isVideo ? "video" : "image", mimeType: asset.mimeType || (isVideo ? "video/mp4" : "image/jpeg") });
+      if (isVideo) {
+        setPendingVideoUri({ uri: asset.uri, mimeType: asset.mimeType || "video/mp4" });
+        setShowVideoTrimmer(true);
+      } else {
+        setAttachmentPreview({ uri: asset.uri, type: "image", mimeType: asset.mimeType || "image/jpeg" });
+      }
     }
   }
 
@@ -5298,6 +5309,15 @@ STRICT RULES:
           <View style={[st.attachPreviewBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
             {attachmentPreview.type === "image" ? (
               <Image source={{ uri: attachmentPreview.uri }} style={st.attachPreviewImg} />
+            ) : attachmentPreview.type === "video" ? (
+              <View style={[st.attachPreviewFile, { backgroundColor: colors.inputBg }]}>
+                <Ionicons name="videocam" size={20} color={BRAND} />
+                {attachmentPreview.trimStart != null && attachmentPreview.trimEnd != null && (
+                  <Text style={[st.attachPreviewName, { color: BRAND, fontSize: 11 }]}>
+                    {(() => { const d = attachmentPreview.trimEnd! - attachmentPreview.trimStart!; const m = Math.floor(d/60); const s = Math.floor(d%60); return `${m}:${s.toString().padStart(2,"0")}`; })()}
+                  </Text>
+                )}
+              </View>
             ) : (
               <View style={[st.attachPreviewFile, { backgroundColor: colors.inputBg }]}>
                 <Ionicons name="document" size={20} color={BRAND} />
@@ -5306,10 +5326,21 @@ STRICT RULES:
             )}
             <View style={{ flex: 1, paddingHorizontal: 10 }}>
               <Text style={{ color: colors.text, fontSize: 13, fontWeight: "600" }} numberOfLines={1}>
-                {attachmentPreview.type === "image" ? "Photo ready to send" : attachmentPreview.name || "File ready to send"}
+                {attachmentPreview.type === "image" ? "Photo ready to send"
+                  : attachmentPreview.type === "video" ? (attachmentPreview.trimStart != null ? "Trimmed clip ready" : "Video ready to send")
+                  : attachmentPreview.name || "File ready to send"}
               </Text>
               <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>Type a caption below (optional)</Text>
             </View>
+            {attachmentPreview.type === "video" && (
+              <TouchableOpacity
+                onPress={() => { setPendingVideoUri({ uri: attachmentPreview.uri, mimeType: attachmentPreview.mimeType || "video/mp4" }); setShowVideoTrimmer(true); }}
+                style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: BRAND + "18", marginRight: 4 }}
+                hitSlop={8}
+              >
+                <Ionicons name="cut-outline" size={16} color={BRAND} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity onPress={() => setAttachmentPreview(null)} style={st.attachPreviewClose} hitSlop={8}>
               <Ionicons name="close-circle" size={22} color={colors.textMuted} />
             </TouchableOpacity>
@@ -5653,11 +5684,15 @@ STRICT RULES:
                       mediaTypes: ["images", "videos"] as any,
                       allowsEditing: false,
                       quality: pickerQuality,
-                      videoMaxDuration: 120,
                     });
                     if (!res.canceled && res.assets?.[0]) {
                       const a = res.assets[0];
-                      setAttachmentPreview({ uri: a.uri, type: a.type === "video" ? "video" : "image", mimeType: a.mimeType || (a.type === "video" ? "video/mp4" : "image/jpeg") });
+                      if (a.type === "video") {
+                        setPendingVideoUri({ uri: a.uri, mimeType: a.mimeType || "video/mp4" });
+                        setShowVideoTrimmer(true);
+                      } else {
+                        setAttachmentPreview({ uri: a.uri, type: "image", mimeType: a.mimeType || "image/jpeg" });
+                      }
                     }
                   },
                 },
@@ -6385,6 +6420,29 @@ STRICT RULES:
           ))}
         </ScrollView>
       </BottomSheet>
+
+      {/* ── Video Trimmer ── */}
+      {pendingVideoUri && (
+        <VideoTrimmerModal
+          visible={showVideoTrimmer}
+          uri={pendingVideoUri.uri}
+          mimeType={pendingVideoUri.mimeType}
+          accent={BRAND}
+          colors={colors}
+          onCancel={() => { setShowVideoTrimmer(false); setPendingVideoUri(null); }}
+          onConfirm={(result) => {
+            setShowVideoTrimmer(false);
+            setAttachmentPreview({
+              uri: pendingVideoUri.uri,
+              type: "video",
+              mimeType: pendingVideoUri.mimeType,
+              trimStart: result.trimStart,
+              trimEnd: result.trimEnd,
+            });
+            setPendingVideoUri(null);
+          }}
+        />
+      )}
 
       <BottomSheet visible={showRedEnvelope} onClose={() => setShowRedEnvelope(false)}>
         <Text style={[st.sheetTitle, { color: colors.text }]}>🧧 Red Envelope</Text>
@@ -7342,21 +7400,20 @@ const st = StyleSheet.create({
   },
   inputBarRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-    gap: 5,
-    ...Platform.select({ web: { paddingVertical: 4 } }),
+    alignItems: "center",
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    gap: 4,
   },
   inputInnerRow: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 44,
-    ...Platform.select({ web: { minHeight: 36 } }),
+    minHeight: 40,
+    ...Platform.select({ web: { minHeight: 34 } }),
   },
-  pillIcon: { paddingHorizontal: 6 },
-  input: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 22, outlineStyle: "none" as any, paddingTop: 10, paddingBottom: 10, minHeight: 28, maxHeight: 120 },
+  pillIcon: { paddingHorizontal: 5 },
+  input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 20, outlineStyle: "none" as any, paddingTop: 6, paddingBottom: 6, minHeight: 24, maxHeight: 120 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   sendBtnCol: { alignSelf: "stretch", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
   aiAboveSendBtn: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, borderWidth: 1.5, alignItems: "center", justifyContent: "center", minWidth: 32, gap: 1 },
