@@ -1,5 +1,27 @@
 # EAS Build History
 
+## v2.2.4 — Android APK (preview) [BUILD #4 — ⏳ PENDING YOUR TRIGGER]
+
+- **Platform**: Android
+- **Profile**: preview (APK, internal distribution)
+- **versionCode**: 224
+
+- **Changes in this build**:
+  - **New Architecture fully disabled** (`newArchEnabled: false` for Android + iOS)
+    - Eliminates JNI/TurboModule crashes from libraries without full NewArch support
+  - **`react-native-qrcode-svg` completely removed** — had zero codegenConfig (NewArch incompatible)
+    - Replaced with pure-JS `components/ui/QRCode.tsx` using `qrcode` npm package + `react-native-svg`
+    - Used in: digital-id, 2FA setup, desktop camera fallback
+  - **`react-native-pager-view` pinned to `8.0.0`** (was `^8.0.2`, Expo SDK expected `8.0.0`)
+  - **No package version mismatches** confirmed via `expo install --check`
+
+- **To trigger**: Run from `artifacts/mobile/`:
+  ```
+  EAS_NO_VCS=1 EXPO_NO_INTERACTIVE=1 eas build --platform android --profile preview --non-interactive --no-wait
+  ```
+
+---
+
 ## v2.2.3 — Android APK (preview) [BUILD #3 — `2ef798c0-f6ba-42e8-be17-13e9e3213aca` — ✅ FINISHED]
 
 - **APK Download**: https://expo.dev/artifacts/eas/6NodquY5T6VUFBKDGwb5V9.apk

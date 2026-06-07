@@ -2,7 +2,7 @@
   "expo": {
     "name": "AfuChat",
     "slug": "afuchat",
-    "version": "2.2.3",
+    "version": "2.2.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "splash": {
@@ -85,7 +85,7 @@
       ],
       "enableProguardInReleaseBuilds": false,
       "enableShrinkResources": false,
-      "versionCode": 223
+      "versionCode": 224
     },
     "plugins": [
       [
@@ -148,10 +148,10 @@
             "targetSdkVersion": 36,
             "minSdkVersion": 24,
             "kotlinVersion": "2.1.21",
-            "newArchEnabled": true
+            "newArchEnabled": false
           },
           "ios": {
-            "newArchEnabled": true,
+            "newArchEnabled": false,
             "deploymentTarget": "15.1"
           }
         }
@@ -175,7 +175,7 @@
       }
     },
     "ios": {
-      "buildNumber": "2.2.3"
+      "buildNumber": "2.2.4"
     }
   }
 }
