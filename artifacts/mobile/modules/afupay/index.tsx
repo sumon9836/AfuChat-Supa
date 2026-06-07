@@ -23,7 +23,7 @@ import { supabase } from "@/lib/supabase";
 import { showAlert } from "@/lib/alert";
 import * as Haptics from "@/lib/haptics";
 import * as Clipboard from "expo-clipboard";
-import QRCode from "react-native-qrcode-svg";
+import QRCode from "@/components/ui/QRCode";
 import Colors from "@/constants/colors";
 
 type AppView = "home" | "history" | "topup" | "send" | "receive" | "exchange" | "requests";

@@ -83,8 +83,6 @@
           ]
         }
       ],
-      "enableProguardInReleaseBuilds": false,
-      "enableShrinkResources": false,
       "versionCode": 224
     },
     "plugins": [
@@ -107,8 +105,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "AfuChat uses your location only when the Nearby Friends feature is open, to show AfuChat users near you. Your exact location is never visible to other users.",
-          "isAndroidBackgroundLocationEnabled": false
+          "locationWhenInUsePermission": "AfuChat uses your location only when the Nearby Friends feature is open, to show AfuChat users near you. Your exact location is never visible to other users."
         }
       ],
       [
@@ -147,11 +144,9 @@
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
             "minSdkVersion": 24,
-            "kotlinVersion": "2.1.21",
-            "newArchEnabled": false
+            "kotlinVersion": "2.1.21"
           },
           "ios": {
-            "newArchEnabled": false,
             "deploymentTarget": "15.1"
           }
         }
@@ -159,14 +154,8 @@
       "expo-secure-store",
       "expo-sqlite"
     ],
-    "updates": {
-      "enabled": false,
-      "checkOnLaunch": "NEVER",
-      "fallbackToCacheTimeout": 0
-    },
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": false
+      "typedRoutes": true
     },
     "owner": "amkaweesi1",
     "extra": {

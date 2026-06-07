@@ -19,7 +19,7 @@ import {
   View,
 } from "react-native";
 import * as Contacts from "expo-contacts";
-import QRCode from "react-native-qrcode-svg";
+import QRCode from "@/components/ui/QRCode";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "@/lib/haptics";

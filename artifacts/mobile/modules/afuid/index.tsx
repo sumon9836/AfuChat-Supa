@@ -16,7 +16,7 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Sharing from "expo-sharing";
-import QRCode from "react-native-qrcode-svg";
+import QRCode from "@/components/ui/QRCode";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
 import { useTheme } from "@/hooks/useTheme";

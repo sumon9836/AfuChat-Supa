@@ -507,6 +507,7 @@ export default function MeScreen() {
         <View>
           <SectionLabel label="Account" colors={colors} />
           <MenuCard colors={colors}>
+            <MenuItem icon="shield-checkmark-outline" iconColor="#00C2CB" label="Security & Data" onPress={() => router.push("/settings/security" as any)} colors={colors} />
             <MenuItem icon="settings-outline" iconColor={colors.icon} label="Settings" onPress={() => router.push("/settings")} colors={colors} />
           </MenuCard>
         </View>
