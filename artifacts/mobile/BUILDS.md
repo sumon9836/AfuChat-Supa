@@ -1,6 +1,6 @@
 # EAS Build History
 
-## v2.2.3 — Android APK (preview) [PENDING]
+## v2.2.3 — Android APK (preview) [BUILD #2 — `0f340428-3762-430b-806f-71cf54f368ef` — IN PROGRESS]
 
 - **Platform**: Android
 - **Profile**: preview (APK, internal distribution)
@@ -8,12 +8,16 @@
 - **Changes in this build**:
   - **CRITICAL FIX — APK crash-on-launch**: Replaced `react-native-mmkv` v4 (Nitro Modules) with v3 (stable JSI bridge)
     - v4 used `react-native-nitro-modules` C++ runtime which had a JNI load-order race on Android standalone builds
-    - The Nitro C++ library initialization is asynchronous; if `createMMKV()` was called before it completed, the native process crashed with no JS try/catch able to intercept it
     - v3 uses the traditional synchronous JSI bridge — always available when JS runs, no race condition possible
   - **REMOVED**: `react-native-nitro-modules` — was only a dependency of mmkv v4, no longer needed
-  - **Lowered Android SDK versions**: `compileSdkVersion` + `targetSdkVersion` 36 → 35, `kotlinVersion` 2.1.0 → 1.9.25 (more widely tested with third-party native modules)
-  - **MMKV wrapper updated**: `createMMKV()` → `new MMKV()` (v3 constructor API)
-  - Expo Go unaffected — MMKV is not used in Expo Go (correctly falls back to in-memory store)
+  - **compileSdkVersion + targetSdkVersion restored to 36**: lowering to 35 caused `checkReleaseAarMetadata` Gradle failure — AndroidX activity:1.11+ and core:1.17+ declare `minCompileSdk = 36`
+  - `kotlinVersion`: 1.9.25 (stable, widely tested with third-party native modules)
+  - **MMKV wrapper uses v3 API**: `new MMKV({ id })` (not `createMMKV`)
+  - Expo Go unaffected — MMKV falls back to in-memory store in Expo Go
+
+### Build #1 (FAILED) — `a0dc20ae-ecf8-45da-8d71-afe030b37b16`
+- Failure: `compileSdkVersion: 35` caused Gradle `checkReleaseAarMetadata` to fail
+- Fix: bumped back to 36
 
 ---
 
