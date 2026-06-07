@@ -1,11 +1,12 @@
 # EAS Build History
 
-## v2.2.4 — Android APK (preview) [BUILD #4 — `8dba9696-3223-4130-b48f-4ca68c34dfe2` — 🔨 IN PROGRESS]
+## v2.2.4 — Android APK (preview) [BUILD #5 — `79718f4a-e6cf-4eec-a957-34d6d0245d0d` — 🔨 IN PROGRESS]
 
-- **Dashboard**: https://expo.dev/accounts/amkaweesi1/projects/afuchat/builds/8dba9696-3223-4130-b48f-4ca68c34dfe2
+- **Dashboard**: https://expo.dev/accounts/amkaweesi1/projects/afuchat/builds/79718f4a-e6cf-4eec-a957-34d6d0245d0d
 - **Platform**: Android
 - **Profile**: preview (APK, internal distribution)
 - **versionCode**: 224
+- **Root cause of BUILD #4 failure**: Triggered with `EAS_NO_VCS=1` which uploaded only `artifacts/mobile/`, excluding the workspace-root `pnpm-lock.yaml` → pnpm couldn't install → 7-second fail. Fixed by removing that flag so EAS uses git to find the workspace root (which contains the lockfile).
 
 - **Changes in this build**:
   - **New Architecture completely removed** from `app.json` — `newArchEnabled` key deleted entirely (was `false`)

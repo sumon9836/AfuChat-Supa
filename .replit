@@ -79,8 +79,15 @@ outputType = "console"
 task = "shell.exec"
 args = """
 cd artifacts/mobile && export EXPO_TOKEN=D0ZX0j9_3ko_Rv9ubaB3-9ymgQgQuEE9lJ1jkBZR
-    BUILD_ID=\"8dba9696-3223-4130-b48f-4ca68c34dfe2\"
-    echo \"=== Monitoring EAS build ===\"
+    echo \"=== Triggering new EAS Android APK build (preview profile) ===\"
+    BUILD_JSON=$(EXPO_NO_INTERACTIVE=1 node_modules/.bin/eas build --platform android --profile preview --non-interactive --no-wait --json 2>&1)
+    BUILD_ID=$(echo \"$BUILD_JSON\" | python3 -c \"import sys,json; data=sys.stdin.read(); arr=json.loads(data[data.find('['):data.rfind(']')+1]); print(arr[0]['id'])\" 2>/dev/null || echo \"$BUILD_JSON\" | python3 -c \"import sys,json; data=sys.stdin.read(); obj=json.loads(data[data.find('{'):data.rfind('}')+1]); print(obj['id'])\" 2>/dev/null || echo \"\")
+    if [ -z \"$BUILD_ID\" ]; then
+      echo \"=== Build trigger output ===\"
+      echo \"$BUILD_JSON\"
+      echo \"=== Could not parse build ID — check output above ===\"
+      exit 1
+    fi
     echo \"Build ID: $BUILD_ID\"
     echo \"Track: https://expo.dev/accounts/amkaweesi1/projects/afuchat/builds/$BUILD_ID\"
     while true; do
