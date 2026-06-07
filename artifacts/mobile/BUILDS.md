@@ -1,6 +1,11 @@
 # EAS Build History
 
-## v2.2.3 — Android APK (preview) [BUILD #2 — `0f340428-3762-430b-806f-71cf54f368ef` — IN PROGRESS]
+## v2.2.3 — Android APK (preview) [BUILD #3 — `2ef798c0-f6ba-42e8-be17-13e9e3213aca` — ✅ FINISHED]
+
+- **APK Download**: https://expo.dev/artifacts/eas/6NodquY5T6VUFBKDGwb5V9.apk
+- **Dashboard**: https://expo.dev/accounts/amkaweesi1/projects/afuchat/builds/2ef798c0-f6ba-42e8-be17-13e9e3213aca
+- **Build time**: ~20 min (11:43:35 → 12:03:46 UTC, June 7 2026)
+- **versionCode**: 2071
 
 - **Platform**: Android
 - **Profile**: preview (APK, internal distribution)
@@ -10,14 +15,18 @@
     - v4 used `react-native-nitro-modules` C++ runtime which had a JNI load-order race on Android standalone builds
     - v3 uses the traditional synchronous JSI bridge — always available when JS runs, no race condition possible
   - **REMOVED**: `react-native-nitro-modules` — was only a dependency of mmkv v4, no longer needed
-  - **compileSdkVersion + targetSdkVersion restored to 36**: lowering to 35 caused `checkReleaseAarMetadata` Gradle failure — AndroidX activity:1.11+ and core:1.17+ declare `minCompileSdk = 36`
-  - `kotlinVersion`: 1.9.25 (stable, widely tested with third-party native modules)
+  - **compileSdkVersion + targetSdkVersion: 36** — required by AndroidX activity:1.11+ / core:1.17+
+  - **kotlinVersion: 2.1.21** — EAS SDK 55 image uses Gradle 9.0.0 + KSP, which requires Kotlin 2.0+; 1.9.25 is unsupported
   - **MMKV wrapper uses v3 API**: `new MMKV({ id })` (not `createMMKV`)
   - Expo Go unaffected — MMKV falls back to in-memory store in Expo Go
 
 ### Build #1 (FAILED) — `a0dc20ae-ecf8-45da-8d71-afe030b37b16`
-- Failure: `compileSdkVersion: 35` caused Gradle `checkReleaseAarMetadata` to fail
+- Failure: `compileSdkVersion: 35` caused `checkReleaseAarMetadata` Gradle failure
 - Fix: bumped back to 36
+
+### Build #2 (FAILED) — `0f340428-3762-430b-806f-71cf54f368ef`
+- Failure: `kotlinVersion: 1.9.25` — EAS SDK 55 image (Gradle 9.0.0) requires KSP which only supports Kotlin 2.0+
+- Fix: bumped to `kotlinVersion: 2.1.21`
 
 ---
 

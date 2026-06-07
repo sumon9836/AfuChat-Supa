@@ -147,7 +147,7 @@
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
             "minSdkVersion": 24,
-            "kotlinVersion": "1.9.25",
+            "kotlinVersion": "2.1.21",
             "newArchEnabled": true
           },
           "ios": {
