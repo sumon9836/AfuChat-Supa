@@ -5,7 +5,7 @@ import { supabase, supabaseUrl, supabaseAnonKey } from "@/lib/supabase";
 import { getPushSoundToken } from "@/lib/soundManager";
 import { handleNotificationAction } from "@/lib/notificationActions";
 
-const EAS_PROJECT_ID = "784a87ad-e3d1-438c-9c84-1b336f4fd2d2";
+const EAS_PROJECT_ID = "b55c5d92-7a83-472f-b660-d1838efba5fe";
 
 // AfuChat branded sound — kept for reference (used only in call ringtone flow).
 // Android notification channels use device default sound instead.

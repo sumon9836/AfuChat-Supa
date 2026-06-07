@@ -1,5 +1,6 @@
 import "@/polyfills";
 import "react-native-gesture-handler";
+import "@/lib/callService";
 import { enableScreens } from "react-native-screens";
 
 enableScreens(true);
