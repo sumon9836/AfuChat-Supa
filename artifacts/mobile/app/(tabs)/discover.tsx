@@ -816,7 +816,7 @@ export default function DiscoverScreen() {
       const followBaseQ = supabase
         .from("posts")
         .select(`
-          id, author_id, content, image_url, created_at, view_count, visibility, language_code,
+          id, author_id, content, image_url, created_at, view_count, like_count, visibility, language_code,
           post_type, article_title, article_body, video_url,
           profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified),
           post_images(image_url, display_order),
@@ -836,17 +836,14 @@ export default function DiscoverScreen() {
 
         const postIds = data.map((p: any) => p.id);
         const _followLimit = PAGE_SIZE * 3;
-        const [{ data: myLikes }, { data: replyCounts }, { data: myBookmarks }, { data: likeCounts }] = await Promise.all([
+        const [{ data: myLikes }, { data: replyCounts }, { data: myBookmarks }] = await Promise.all([
           postIds.length > 0 && user ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds).eq("user_id", user.id).limit(_followLimit) : { data: [] },
           postIds.length > 0 ? supabase.from("post_replies").select("post_id").in("post_id", postIds).limit(_followLimit) : { data: [] },
           postIds.length > 0 && user ? supabase.from("post_bookmarks").select("post_id").in("post_id", postIds).eq("user_id", user.id).limit(_followLimit) : { data: [] },
-          postIds.length > 0 ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds).limit(_followLimit) : { data: [] },
         ]);
 
         const myLikeSet = new Set((myLikes || []).map((l: any) => l.post_id));
         const myBookmarkSet = new Set((myBookmarks || []).map((b: any) => b.post_id));
-        const likeMap: Record<string, number> = {};
-        for (const l of (likeCounts || [])) { likeMap[l.post_id] = (likeMap[l.post_id] || 0) + 1; }
         const replyMap: Record<string, number> = {};
         for (const r of (replyCounts || [])) { replyMap[r.post_id] = (replyMap[r.post_id] || 0) + 1; }
 
@@ -859,7 +856,7 @@ export default function DiscoverScreen() {
           is_verified: p.profiles?.is_verified || false,
           is_organization_verified: p.profiles?.is_organization_verified || false,
           profile: { display_name: p.profiles?.display_name || "User", handle: p.profiles?.handle || "user", avatar_url: p.profiles?.avatar_url || null },
-          liked: myLikeSet.has(p.id), likeCount: likeMap[p.id] || 0, replyCount: replyMap[p.id] || 0, score: 0, bookmarked: myBookmarkSet.has(p.id),
+          liked: myLikeSet.has(p.id), likeCount: p.like_count || 0, replyCount: replyMap[p.id] || 0, score: 0, bookmarked: myBookmarkSet.has(p.id),
           post_type: p.post_type || "post", article_title: p.article_title || null, article_body: p.article_body || null, video_url: p.video_url || null,
           duration_seconds: (() => { const arr = Array.isArray(p.video_assets) ? p.video_assets : (p.video_assets ? [p.video_assets] : []); return arr.length > 0 ? (arr[0].duration_seconds ?? null) : null; })(),
           isFollowing: true,
@@ -911,7 +908,7 @@ export default function DiscoverScreen() {
         : null;
 
     const fySelect = `
-      id, author_id, content, image_url, created_at, view_count, visibility, language_code,
+      id, author_id, content, image_url, created_at, view_count, like_count, visibility, language_code,
       post_type, article_title, article_body, video_url,
       profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified, country, interests, hide_posts_non_followers),
       post_images(image_url, display_order),
@@ -1012,7 +1009,6 @@ export default function DiscoverScreen() {
 
       const _fyLimit = PAGE_SIZE * 3;
       const [
-        { data: likeCounts },
         { data: myLikes },
         { data: replyCounts },
         { data: myAuthorLikes },
@@ -1020,9 +1016,6 @@ export default function DiscoverScreen() {
         { data: myReplies },
         { data: myBookmarks },
       ] = await Promise.all([
-        postIds.length > 0
-          ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds).limit(_fyLimit)
-          : { data: [] },
         postIds.length > 0 && user
           ? supabase.from("post_acknowledgments").select("post_id").in("post_id", postIds).eq("user_id", user.id).limit(_fyLimit)
           : { data: [] },
@@ -1050,9 +1043,6 @@ export default function DiscoverScreen() {
           ? supabase.from("post_bookmarks").select("post_id").in("post_id", postIds).eq("user_id", user.id).limit(_fyLimit)
           : { data: [] },
       ]);
-
-      const likeMap: Record<string, number> = {};
-      for (const l of (likeCounts || [])) { likeMap[l.post_id] = (likeMap[l.post_id] || 0) + 1; }
 
       const myLikeSet = new Set((myLikes || []).map((l: any) => l.post_id));
       const myBookmarkSet = new Set((myBookmarks || []).map((b: any) => b.post_id));
@@ -1091,7 +1081,7 @@ export default function DiscoverScreen() {
       const seenPostIds = await getSeenPostIds();
 
       const scored = visibleData.map((p: any) => {
-        const likeCount = likeMap[p.id] || 0;
+        const likeCount = p.like_count || 0;
         const replyCount = replyMap[p.id] || 0;
         const hasImages = (p.post_images?.length > 0) || !!p.image_url;
         const content = p.content || "";
@@ -1514,7 +1504,7 @@ export default function DiscoverScreen() {
         );
       }
     } else {
-      const { error } = await supabase.from("post_acknowledgments").insert({ post_id: postId, user_id: user.id });
+      const { error } = await supabase.from("post_acknowledgments").upsert({ post_id: postId, user_id: user.id }, { onConflict: "post_id,user_id", ignoreDuplicates: true });
       if (!error) {
         setPosts((prev) =>
           prev.map((p) => p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p)

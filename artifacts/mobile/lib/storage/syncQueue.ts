@@ -92,15 +92,15 @@ async function executeAction(
   try {
     switch (type) {
       case "like_post": {
-        const { error } = await supabase.from("post_likes").insert({
+        const { error } = await supabase.from("post_acknowledgments").upsert({
           post_id: payload.post_id,
           user_id: payload.user_id,
-        });
+        }, { onConflict: "post_id,user_id", ignoreDuplicates: true });
         return !error;
       }
       case "unlike_post": {
         const { error } = await supabase
-          .from("post_likes")
+          .from("post_acknowledgments")
           .delete()
           .eq("post_id", payload.post_id)
           .eq("user_id", payload.user_id);
