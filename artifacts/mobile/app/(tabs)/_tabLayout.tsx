@@ -1,14 +1,13 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
@@ -19,14 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import { TabSwipeContext, TabSwipeProvider } from "@/context/TabSwipeContext";
-import Reanimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  runOnJS,
-} from "react-native-reanimated";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { TabSwipeProvider } from "@/context/TabSwipeContext";
 import { getLocalConversations } from "@/lib/storage/localConversations";
 import { supabase } from "@/lib/supabase";
 import { emitShortsRefresh } from "@/lib/shortsRefresh";
@@ -93,47 +85,28 @@ function CompactTabBar({
 
   const lastShortsTapRef = useRef<number>(0);
 
-  // ── Sliding pill highlight ──────────────────────────────────────────────────
+  // ── Pill position — instant, no animation ────────────────────────────────────
   const ITEM_W  = 64;
   const PILL_W  = 56;
   const PILL_H  = 32;
   const BAR_PAD = 6;
 
-  const pillX        = useRef(new Animated.Value(0)).current;
-  const didInitRef   = useRef(false);
+  const pillX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const idx = TABS.findIndex(t => t.route === active);
     if (idx === -1) return;
-    const toValue = idx * ITEM_W;
-    if (!didInitRef.current) {
-      pillX.setValue(toValue);
-      didInitRef.current = true;
-      return;
-    }
-    Animated.spring(pillX, {
-      toValue,
-      damping: 20,
-      stiffness: 180,
-      useNativeDriver: Platform.OS !== "web",
-    }).start();
+    pillX.setValue(idx * ITEM_W);
   }, [active]);
 
-  const bottomPos = Math.max(insets.bottom, isAndroid ? 4 : 6) + 6;
+  const bottomPos = Math.max(insets.bottom, 4) + 6;
 
   const barBg      = isDark ? "rgba(28,28,30,0.97)" : "rgba(255,255,255,0.97)";
   const borderColor = isDark ? "rgba(44,44,46,1)"   : "rgba(221,215,201,1)";
 
-  const shadow = Platform.select({
-    web: {
-      boxShadow: isDark
-        ? "0 12px 40px rgba(0,0,0,0.55), 0 4px 14px rgba(0,0,0,0.30)"
-        : "0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
-    },
-    default: isDark
-      ? { shadowColor: "#000", shadowOpacity: 0.50, shadowRadius: 24, shadowOffset: { width: 0, height: 8 }, elevation: 20 }
-      : { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 12 },
-  });
+  const shadow = isDark
+    ? { elevation: 20 }
+    : { elevation: 12 };
 
   const ripple = { color: colors.accent + "22", borderless: false } as const;
 
@@ -148,22 +121,14 @@ function CompactTabBar({
       lastShortsTapRef.current = now;
     }
 
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(
-        isAndroid ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Rigid,
-      ).catch(() => {});
-    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     safeRouter.navigate(route as any);
   }
 
   return (
-    <View style={[
-      bar.container,
-      { bottom: bottomPos, pointerEvents: "box-none" },
-      Platform.OS === "web" ? { position: "fixed" as any } : null,
-    ]}>
+    <View style={[bar.container, { bottom: bottomPos, pointerEvents: "box-none" }]}>
       <View style={[bar.pill, shadow, { backgroundColor: barBg, borderColor }]}>
-        {/* Sliding accent highlight */}
+        {/* Accent highlight — jumps instantly to active tab */}
         <Animated.View
           style={[
             bar.highlight,
@@ -191,7 +156,7 @@ function CompactTabBar({
                 android_ripple={ripple}
                 style={({ pressed }) => [
                   bar.pressable,
-                  !isAndroid && pressed ? { opacity: 0.68 } : null,
+                  isAndroid && pressed ? { opacity: 0.68 } : null,
                 ]}
                 onPress={() => handleTabPress(tab.route)}
                 accessibilityRole="button"
@@ -253,7 +218,6 @@ const bar = StyleSheet.create({
     right: 0,
     alignItems: "center",
     zIndex: 100,
-    // pointerEvents set inline so the bar lets touches through to content
   },
   pill: {
     flexDirection: "row",
@@ -328,92 +292,6 @@ const bar = StyleSheet.create({
   },
 });
 
-// ── Tab swipe gesture (content-only slide, tab bar stays fixed) ───────────────
-// The Reanimated pan only translates the SCREEN CONTENT view — the CompactTabBar
-// lives outside this component so it never moves.
-//
-// Pattern:
-//   • onUpdate → translateX follows finger 1:1 (worklet, no JS bridge)
-//   • onEnd committed → tabOffsetX set to 0 INSTANTLY (no spring), then navigate
-//   • onEnd aborted → spring back to 0
-//   • onFinalize → always hard-reset (safety net for cancelled gestures)
-//
-// "Committed" threshold: dragged > 60 px OR velocity > 400 px/s — matches
-// the feel of native iOS pager snapping.
-function SwipeableTabContent({ children }: { children: React.ReactNode }) {
-  const { horizontalScrollActive } = React.useContext(TabSwipeContext);
-  const pathname   = usePathname();
-  const { width: screenW } = useWindowDimensions();
-
-  const tabOffsetX    = useSharedValue(0);
-  const screenWShared = useSharedValue(screenW);
-  useEffect(() => { screenWShared.value = screenW; }, [screenW]);
-
-  const currentIdxRef = useRef(0);
-  useEffect(() => {
-    const normalized = normalizeTabPath(pathname);
-    currentIdxRef.current = Math.max(0, TABS.findIndex(t => t.route === normalized));
-  }, [pathname]);
-
-  const navigateTab = useCallback((dir: number) => {
-    const next = currentIdxRef.current + dir;
-    if (next >= 0 && next < TABS.length) {
-      safeRouter.navigate(TABS[next].route as any);
-    }
-  }, []);
-
-  const pan = Gesture.Pan()
-    .activeOffsetX([-18, 18])
-    .failOffsetY([-12, 12])
-    .onUpdate((e) => {
-      "worklet";
-      if (horizontalScrollActive.value) return;
-      // Clamp to ±screenW so it never slides off completely
-      const clamped = Math.max(-screenWShared.value * 0.5, Math.min(screenWShared.value * 0.5, e.translationX));
-      tabOffsetX.value = clamped;
-    })
-    .onEnd((e) => {
-      "worklet";
-      if (horizontalScrollActive.value) {
-        tabOffsetX.value = withSpring(0, { damping: 28, stiffness: 400 });
-        return;
-      }
-      const committed =
-        Math.abs(e.translationX) > 60 || Math.abs(e.velocityX) > 400;
-      if (committed) {
-        // Reset instantly — navigate fires a sync re-render, no spring fight
-        tabOffsetX.value = 0;
-        runOnJS(navigateTab)(e.translationX > 0 ? -1 : 1);
-      } else {
-        // Snap back with a quick spring (not springy enough to look bouncy)
-        tabOffsetX.value = withSpring(0, { damping: 28, stiffness: 400 });
-      }
-    })
-    .onFinalize(() => {
-      "worklet";
-      // Safety net: always end at 0 so a cancelled/interrupted gesture
-      // never leaves the screen stuck mid-slide
-      tabOffsetX.value = withSpring(0, { damping: 28, stiffness: 400 });
-    });
-
-  const contentStyle = useAnimatedStyle(() => ({
-    flex: 1,
-    transform: [{ translateX: tabOffsetX.value }],
-  }));
-
-  if (Platform.OS === "web") {
-    return <View style={{ flex: 1 }}>{children}</View>;
-  }
-
-  return (
-    <GestureDetector gesture={pan}>
-      <Reanimated.View style={contentStyle}>
-        {children}
-      </Reanimated.View>
-    </GestureDetector>
-  );
-}
-
 function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <Tabs
@@ -426,7 +304,7 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
           display: "none",
           backgroundColor: "transparent",
           elevation: 0,
-          ...(Platform.OS !== "web" ? { shadowOpacity: 0 } : {}),
+          shadowOpacity: 0,
           borderTopWidth: 0,
         },
         tabBarBackground: () => null,
@@ -463,25 +341,9 @@ export default function TabLayout() {
 
   return (
     <TabSwipeProvider>
-      {/*
-       * Structure:
-       *   ┌─────────────────────────────────┐
-       *   │  SwipeableTabContent            │ ← only the screen slides
-       *   │  (ClassicTabLayout inside)      │
-       *   ├─────────────────────────────────┤
-       *   │  CompactTabBar (absolute)       │ ← NEVER moves, always on top
-       *   └─────────────────────────────────┘
-       *
-       * CompactTabBar is a sibling of SwipeableTabContent (both children of
-       * the outer View). The pan gesture in SwipeableTabContent only translates
-       * the screen content Reanimated.View — the tab bar is untouched.
-       */}
       <View style={{ flex: 1 }}>
-        <SwipeableTabContent>
-          <ClassicTabLayout isLoggedIn={isLoggedIn} />
-        </SwipeableTabContent>
+        <ClassicTabLayout isLoggedIn={isLoggedIn} />
 
-        {/* Tab bar absolutely positioned — lives outside the slide layer */}
         {isLoggedIn && !isDesktop && (
           <CompactTabBar
             userId={user?.id}
