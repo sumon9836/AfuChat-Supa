@@ -1,8 +1,11 @@
 import { Platform } from "react-native";
 
 // ─── Web-safe MMKV wrapper ─────────────────────────────────────────────────────
-// On native (Android/iOS): uses react-native-mmkv 4.x (Nitro) — synchronous
-// JSI store compatible with SDK 55 New Architecture.
+// On native (Android/iOS): uses react-native-mmkv 3.x (stable JSI bridge) —
+// synchronous key-value store compatible with SDK 55 on both Old and New
+// Architecture.  Deliberately NOT using v4/Nitro-Modules because Nitro's C++
+// initialisation races against the Android JNI load order on standalone builds,
+// causing an unrecoverable native crash before any JS error handler can catch it.
 // On web / Expo Go: falls back to a synchronous in-memory store backed by
 // localStorage so the same API works everywhere without conditional imports.
 
@@ -109,8 +112,8 @@ function getStore(): MMKVLike {
   }
 
   try {
-    const { createMMKV } = require("react-native-mmkv") as any;
-    _store = createMMKV({ id: "afuchat-store" });
+    const { MMKV } = require("react-native-mmkv") as any;
+    _store = new MMKV({ id: "afuchat-store" });
   } catch {
     _store = createWebStore();
   }

@@ -9,7 +9,9 @@
 #   getQueue()       — Arguments.fromList(tracks.map { it.originalItem })   ← main crash on open
 #   getActiveTrack() — Arguments.fromBundle(tracks[getCurrentIndex()].originalItem)
 #
-# NOTE: react-native-mmkv@4.x (Nitro) requires no patching — New Arch compiles it natively.
+# NOTE: react-native-mmkv has been downgraded to v3 (stable JSI bridge).
+# v4/Nitro caused an unrecoverable native crash on Android standalone builds.
+# See lib/storage/mmkv.ts for full explanation.
 
 set -e
 

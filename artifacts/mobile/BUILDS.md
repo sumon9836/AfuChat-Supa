@@ -1,5 +1,22 @@
 # EAS Build History
 
+## v2.2.3 — Android APK (preview) [PENDING]
+
+- **Platform**: Android
+- **Profile**: preview (APK, internal distribution)
+- **Root cause fix**: Standalone APK crash-on-launch (2-week regression)
+- **Changes in this build**:
+  - **CRITICAL FIX — APK crash-on-launch**: Replaced `react-native-mmkv` v4 (Nitro Modules) with v3 (stable JSI bridge)
+    - v4 used `react-native-nitro-modules` C++ runtime which had a JNI load-order race on Android standalone builds
+    - The Nitro C++ library initialization is asynchronous; if `createMMKV()` was called before it completed, the native process crashed with no JS try/catch able to intercept it
+    - v3 uses the traditional synchronous JSI bridge — always available when JS runs, no race condition possible
+  - **REMOVED**: `react-native-nitro-modules` — was only a dependency of mmkv v4, no longer needed
+  - **Lowered Android SDK versions**: `compileSdkVersion` + `targetSdkVersion` 36 → 35, `kotlinVersion` 2.1.0 → 1.9.25 (more widely tested with third-party native modules)
+  - **MMKV wrapper updated**: `createMMKV()` → `new MMKV()` (v3 constructor API)
+  - Expo Go unaffected — MMKV is not used in Expo Go (correctly falls back to in-memory store)
+
+---
+
 ## v2.0.78 — Android APK (preview)
 
 - **Build ID**: `7f3fbb2f-6224-485b-97cf-671ec288acb2`

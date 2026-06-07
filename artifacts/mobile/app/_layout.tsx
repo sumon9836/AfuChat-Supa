@@ -45,10 +45,13 @@ import { initActivityTracker } from "@/lib/activityTracker";
 import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
 import { DesktopShell } from "@/components/desktop/DesktopShell";
 
-// NOTE: Conversations pre-warm has been intentionally moved to the RootLayout
-// useEffect below.  It was previously at module-eval time, which triggered MMKV
-// (and through it, react-native-nitro-modules) before the Nitro C++ library had
-// been loaded — causing an unrecoverable native crash on Android release builds.
+// NOTE: react-native-mmkv has been downgraded to v3 (stable JSI bridge) and
+// react-native-nitro-modules has been removed.  v4/Nitro caused an unrecoverable
+// native crash on Android standalone builds because the Nitro C++ library had a
+// JNI load-order race that no JS try/catch could intercept.  v3 uses the
+// traditional synchronous JSI bridge and does not have this problem.
+// Conversations pre-warm remains in the useEffect below (not at module-eval time)
+// so MMKV is only accessed after the full native runtime is ready.
 
 // ─── Splash screen — hold immediately at module-evaluation time ───────────────
 // This runs before any component renders, ensuring the native splash stays
@@ -160,9 +163,8 @@ export default function RootLayout() {
   useEffect(() => {
     // Conversations pre-warm: kick off the SQLite read NOW so ChatsScreen can
     // initialise synchronously from the in-memory snapshot instead of waiting
-    // for an async read.  Doing this inside useEffect (rather than at module-
-    // eval time) ensures Nitro's C++ library has been loaded before we touch
-    // MMKV — avoiding the native crash that occurred at module-eval time.
+    // for an async read.  Doing this inside useEffect (not at module-eval time)
+    // ensures the native runtime is fully up before we touch MMKV storage.
     if (Platform.OS !== "web" && getCachedUserId()) {
       preloadConversations();
     }
