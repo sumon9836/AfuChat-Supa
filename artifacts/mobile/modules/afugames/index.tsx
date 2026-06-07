@@ -17,25 +17,15 @@ type Game = {
   genre: string;
   icon: React.ComponentProps<typeof Ionicons>["name"];
   gradient: [string, string];
-  players: string;
-  comingSoon?: boolean;
 };
 
 const GAMES: Game[] = [
-  { id: "quiz", name: "AfuQuiz", genre: "Trivia", icon: "help-circle", gradient: ["#FF9500", "#FFCC00"], players: "2.4K playing" },
-  { id: "word", name: "AfuWords", genre: "Word", icon: "text", gradient: ["#34C759", "#30D158"], players: "1.8K playing" },
-  { id: "chess", name: "AfuChess", genre: "Strategy", icon: "grid", gradient: ["#1C1C1E", "#3A3A3C"], players: "920 playing", comingSoon: true },
-  { id: "runner", name: "AfuRun", genre: "Action", icon: "flash", gradient: ["#FF3B30", "#FF6B35"], players: "3.1K playing", comingSoon: true },
-  { id: "cards", name: "AfuCards", genre: "Card", icon: "card", gradient: ["#5856D6", "#7B79E8"], players: "560 playing", comingSoon: true },
-  { id: "predict", name: "AfuPredict", genre: "Prediction", icon: "analytics", gradient: ["#00BCD4", "#0097A7"], players: "2.0K playing", comingSoon: true },
-];
-
-const LEADERBOARD = [
-  { rank: 1, name: "Kwame A.", score: "48,200", badge: "🥇" },
-  { rank: 2, name: "Amara T.", score: "41,880", badge: "🥈" },
-  { rank: 3, name: "Bayo K.", score: "39,400", badge: "🥉" },
-  { rank: 4, name: "Fatou S.", score: "34,100", badge: "4th" },
-  { rank: 5, name: "Nana O.", score: "29,750", badge: "5th" },
+  { id: "quiz",    name: "AfuQuiz",    genre: "Trivia",     icon: "help-circle", gradient: ["#FF9500", "#FFCC00"] },
+  { id: "word",    name: "AfuWords",   genre: "Word",       icon: "text",        gradient: ["#34C759", "#30D158"] },
+  { id: "chess",   name: "AfuChess",   genre: "Strategy",   icon: "grid",        gradient: ["#1C1C1E", "#3A3A3C"] },
+  { id: "runner",  name: "AfuRun",     genre: "Action",     icon: "flash",       gradient: ["#FF3B30", "#FF6B35"] },
+  { id: "cards",   name: "AfuCards",   genre: "Card",       icon: "card",        gradient: ["#5856D6", "#7B79E8"] },
+  { id: "predict", name: "AfuPredict", genre: "Prediction", icon: "analytics",   gradient: ["#00BCD4", "#0097A7"] },
 ];
 
 export default function AfuGamesApp() {
@@ -62,16 +52,13 @@ export default function AfuGamesApp() {
         </Text>
       </LinearGradient>
 
-      {/* Games grid */}
+      {/* Games grid — all coming soon, no fake player counts */}
       <Text style={[styles.sectionTitle, { color: colors.textSecondary, paddingHorizontal: 16 }]}>
-        {"GAMES"}
+        {"COMING SOON"}
       </Text>
       <View style={styles.gamesGrid}>
         {GAMES.map((g) => (
-          <Pressable
-            key={g.id}
-            style={({ pressed }) => [styles.gameCard, { backgroundColor: colors.surface, opacity: pressed ? 0.8 : 1 }]}
-          >
+          <View key={g.id} style={[styles.gameCard, { backgroundColor: colors.surface, opacity: 0.75 }]}>
             <LinearGradient
               colors={g.gradient}
               start={{ x: 0, y: 0 }}
@@ -86,40 +73,22 @@ export default function AfuGamesApp() {
             <Text style={[styles.gameGenre, { color: colors.textMuted }]}>
               {g.genre}
             </Text>
-            {g.comingSoon ? (
-              <View style={[styles.soonBadge, { backgroundColor: colors.backgroundSecondary }]}>
-                <Text style={[styles.soonText, { color: colors.textMuted }]}>{"Soon"}</Text>
-              </View>
-            ) : (
-              <Text style={[styles.gamePlayers, { color: accent }]} numberOfLines={1}>
-                {g.players}
-              </Text>
-            )}
-          </Pressable>
-        ))}
-      </View>
-
-      {/* Leaderboard */}
-      <Text style={[styles.sectionTitle, { color: colors.textSecondary, paddingHorizontal: 16, marginTop: 8 }]}>
-        {"LEADERBOARD"}
-      </Text>
-      <View style={[styles.leaderCard, { backgroundColor: colors.surface }]}>
-        {LEADERBOARD.map((entry, i) => (
-          <View key={entry.rank}>
-            {i > 0 && <View style={[styles.sep, { backgroundColor: colors.border }]} />}
-            <View style={styles.leaderRow}>
-              <Text style={[styles.badge, entry.rank <= 3 ? styles.badgeTop : {}]}>
-                {entry.badge}
-              </Text>
-              <Text style={[styles.leaderName, { color: colors.text }]}>
-                {entry.name}
-              </Text>
-              <Text style={[styles.leaderScore, { color: accent }]}>
-                {entry.score}
-              </Text>
+            <View style={[styles.soonBadge, { backgroundColor: colors.backgroundSecondary }]}>
+              <Text style={[styles.soonText, { color: colors.textMuted }]}>{"Soon"}</Text>
             </View>
           </View>
         ))}
+      </View>
+
+      {/* Leaderboard — launches with games, not hardcoded */}
+      <View style={[styles.launchCard, { backgroundColor: colors.surface, borderColor: accent + "33" }]}>
+        <Ionicons name="trophy-outline" size={26} color={accent} />
+        <Text style={[styles.launchTitle, { color: colors.text }]}>
+          {"Leaderboard launching with games"}
+        </Text>
+        <Text style={[styles.launchSub, { color: colors.textMuted }]}>
+          {"Real rankings from real players — coming when games go live."}
+        </Text>
       </View>
     </ScrollView>
   );
@@ -171,24 +140,17 @@ const styles = StyleSheet.create({
   },
   gameName: { fontSize: 12, fontFamily: "Inter_600SemiBold", textAlign: "center" },
   gameGenre: { fontSize: 10, fontFamily: "Inter_400Regular" },
-  gamePlayers: { fontSize: 10, fontFamily: "Inter_500Medium" },
   soonBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   soonText: { fontSize: 9, fontFamily: "Inter_600SemiBold" },
-  leaderCard: {
+  launchCard: {
     marginHorizontal: 16,
+    marginTop: 8,
     borderRadius: 16,
-    overflow: "hidden",
-  },
-  leaderRow: {
-    flexDirection: "row",
+    padding: 20,
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
+    gap: 10,
+    borderWidth: 1,
   },
-  badge: { fontSize: 18, width: 28, textAlign: "center" },
-  badgeTop: {},
-  leaderName: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium" },
-  leaderScore: { fontSize: 14, fontFamily: "Inter_700Bold" },
-  sep: { height: StyleSheet.hairlineWidth },
+  launchTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  launchSub: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
 });
