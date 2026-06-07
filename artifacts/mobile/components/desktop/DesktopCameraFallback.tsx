@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import QRCode from "react-native-qrcode-svg";
+import QRCode from "@/components/ui/QRCode";
 import { router, usePathname } from "expo-router";
 
 import { useTheme } from "@/hooks/useTheme";
