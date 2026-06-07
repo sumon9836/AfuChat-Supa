@@ -148,10 +148,10 @@
             "targetSdkVersion": 36,
             "minSdkVersion": 24,
             "kotlinVersion": "2.1.21",
-            "newArchEnabled": true
+            "newArchEnabled": false
           },
           "ios": {
-            "newArchEnabled": true,
+            "newArchEnabled": false,
             "deploymentTarget": "15.1"
           }
         }

@@ -85,7 +85,7 @@
     "html2canvas": "^1.4.1",
     "libphonenumber-js": "^1.12.42",
     "react-native-mmkv": "^3.2.0",
-    "react-native-pager-view": "^8.0.2",
+    "react-native-pager-view": "8.0.0",
     "react-native-qrcode-svg": "^6.3.21",
     "react-native-track-player": "^4.1.2",
     "react-native-url-polyfill": "^3.0.0",
