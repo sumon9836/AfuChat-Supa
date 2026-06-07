@@ -1,24 +1,21 @@
 # EAS Build History
 
-## v2.2.4 — Android APK (preview) [BUILD #4 — ⏳ PENDING YOUR TRIGGER]
+## v2.2.4 — Android APK (preview) [BUILD #4 — `8dba9696-3223-4130-b48f-4ca68c34dfe2` — 🔨 IN PROGRESS]
 
+- **Dashboard**: https://expo.dev/accounts/amkaweesi1/projects/afuchat/builds/8dba9696-3223-4130-b48f-4ca68c34dfe2
 - **Platform**: Android
 - **Profile**: preview (APK, internal distribution)
 - **versionCode**: 224
 
 - **Changes in this build**:
-  - **New Architecture fully disabled** (`newArchEnabled: false` for Android + iOS)
-    - Eliminates JNI/TurboModule crashes from libraries without full NewArch support
-  - **`react-native-qrcode-svg` completely removed** — had zero codegenConfig (NewArch incompatible)
-    - Replaced with pure-JS `components/ui/QRCode.tsx` using `qrcode` npm package + `react-native-svg`
-    - Used in: digital-id, 2FA setup, desktop camera fallback
-  - **`react-native-pager-view` pinned to `8.0.0`** (was `^8.0.2`, Expo SDK expected `8.0.0`)
-  - **No package version mismatches** confirmed via `expo install --check`
-
-- **To trigger**: Run from `artifacts/mobile/`:
-  ```
-  EAS_NO_VCS=1 EXPO_NO_INTERACTIVE=1 eas build --platform android --profile preview --non-interactive --no-wait
-  ```
+  - **New Architecture completely removed** from `app.json` — `newArchEnabled` key deleted entirely (was `false`)
+  - **7 dormant `app.json` entries deleted**: `updates` block, `reactCompiler`, `enableProguardInReleaseBuilds`, `enableShrinkResources`, `isAndroidBackgroundLocationEnabled`
+  - **`react-native-qrcode-svg` fully eliminated** — replaced across ALL 6 files:
+    - `components/ui/QRCode.tsx` (pure-JS replacement using `qrcode` + `react-native-svg`)
+    - `app/digital-id.tsx`, `app/settings/two-factor.tsx`, `components/desktop/DesktopCameraFallback.tsx`
+    - `modules/afuid/index.tsx`, `modules/afupay/index.tsx`, `modules/afureferral/index.tsx`
+  - **`react-native-pager-view` pinned to `8.0.0`**
+  - **Security & Data** link added to `me.tsx` Account section → `/settings/security`
 
 ---
 
