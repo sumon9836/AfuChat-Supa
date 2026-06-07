@@ -57,7 +57,7 @@ export const LANDING_CSS = `
 /* Nav */
 .lp-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 6%;height:64px;background:var(--bg);border-bottom:1px solid var(--bdr)}
 .lp-nav-brand{display:flex;align-items:center;gap:9px;cursor:pointer;text-decoration:none}
-.lp-nav-logo{width:32px;height:32px;border-radius:8px;object-fit:cover}
+.lp-nav-logo{width:32px;height:32px;object-fit:contain}
 .lp-nav-name{font-size:18px;font-weight:800;color:var(--txt);letter-spacing:-.4px}
 .lp-nav-name em{color:var(--cl);font-style:normal}
 .lp-nav-links{display:flex;align-items:center;gap:2px;list-style:none}
@@ -233,7 +233,7 @@ export const LANDING_CSS = `
 .lp-footer{background:var(--bg);border-top:1px solid var(--bdr);padding:52px 6% 0}
 .lp-footer-main{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;padding-bottom:40px;border-bottom:1px solid var(--bdr)}
 .lp-footer-logo-row{display:flex;align-items:center;gap:9px;margin-bottom:10px}
-.lp-footer-logo{width:28px;height:28px;border-radius:7px;object-fit:cover}
+.lp-footer-logo{width:28px;height:28px;object-fit:contain}
 .lp-footer-logo-name{font-size:16px;font-weight:800;color:var(--txt)}
 .lp-footer-logo-name em{color:var(--cl);font-style:normal}
 .lp-footer-tag{color:var(--txt3);font-size:13px;line-height:1.65;margin-bottom:14px;max-width:240px}
@@ -343,7 +343,7 @@ export function LandingNav({ active }: { active?: string }) {
     <>
       <nav className="lp-nav">
         <a href="/landing" className="lp-nav-brand">
-          <img src="/logo.svg" alt="AfuChat" className="lp-nav-logo" />
+          <img src="/logo.png" alt="AfuChat" className="lp-nav-logo" />
           <span className="lp-nav-name">Afu<em>Chat</em></span>
         </a>
         <ul className="lp-nav-links">
@@ -414,7 +414,7 @@ export function LandingFooter() {
       <div className="lp-footer-main">
         <div>
           <div className="lp-footer-logo-row">
-            <img src="/logo.svg" alt="AfuChat" className="lp-footer-logo" />
+            <img src="/logo.png" alt="AfuChat" className="lp-footer-logo" />
             <span className="lp-footer-logo-name">Afu<em>Chat</em></span>
           </div>
           <p className="lp-footer-tag">The super app built for Africa and the world — messaging, AI, payments, and community in one place.</p>

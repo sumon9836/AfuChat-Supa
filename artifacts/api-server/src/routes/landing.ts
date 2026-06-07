@@ -57,8 +57,7 @@ router.get("/", async (_req, res) => {
 <meta name="twitter:image" content="${URL_}/og-default.png"/>
 <meta name="twitter:image:alt" content="AfuChat — The Social Super App"/>
 <meta name="theme-color" content="${BRAND}"/>
-<link rel="icon" type="image/svg+xml" href="/logo.svg"/>
-<link rel="icon" type="image/png" href="/favicon.png"/>
+<link rel="icon" type="image/png" href="/logo.png"/>
 <script type="text/javascript" src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async></script>
 <script type="application/ld+json">${JSON.stringify({
   "@context": "https://schema.org",
@@ -133,7 +132,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none}
   border-bottom:1px solid rgba(255,255,255,.06);
 }
 .nav-logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
-.nav-logo img{width:32px;height:32px;border-radius:9px}
+.nav-logo img{width:32px;height:32px;object-fit:contain}
 .nav-logo-name{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px}
 .nav-links{display:none;align-items:center;gap:2px;margin:0 auto}
 .nav-links a{
@@ -472,7 +471,7 @@ footer{
 <!-- NAV -->
 <nav class="nav" aria-label="Main navigation">
   <a class="nav-logo" href="/">
-    <img src="/logo.svg" alt="${SITE} logo" width="32" height="32"/>
+    <img src="/logo.png" alt="${SITE} logo" width="32" height="32" style="object-fit:contain"/>
     <span class="nav-logo-name">${SITE}</span>
   </a>
   <div class="nav-links" role="list">
@@ -800,7 +799,7 @@ footer{
 <footer>
   <div class="container">
     <div class="footer-top">
-      <img src="/logo.svg" alt="${SITE} logo" width="30" height="30"/>
+      <img src="/logo.png" alt="${SITE} logo" width="30" height="30" style="object-fit:contain"/>
       <strong>${SITE}</strong>
     </div>
     <nav class="footer-links" aria-label="Footer navigation">

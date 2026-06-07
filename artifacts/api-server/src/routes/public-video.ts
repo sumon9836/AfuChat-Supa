@@ -280,8 +280,7 @@ function renderVideoPage(
   <meta name="twitter:player:height" content="640" />
 
   <meta name="theme-color" content="${BRAND_COLOR}" />
-  <link rel="icon" type="image/svg+xml" href="${SITE_URL}/logo.svg" />
-  <link rel="icon" type="image/png" href="${SITE_URL}/favicon.png" />
+  <link rel="icon" type="image/png" href="${SITE_URL}/logo.png" />
 
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
