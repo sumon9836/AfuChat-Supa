@@ -36,6 +36,14 @@ When switching Expo accounts:
 
 ## Build history (most recent first)
 
+### 2026-06-07 — v2.2.2 (compileSdkVersion bumped 35→36 to fix checkReleaseAarMetadata)
+- Build ID: 8622057e-4317-40cd-8a92-575685ac2b6c
+- Build URL: https://expo.dev/accounts/amkaweesi1/projects/afuchat/builds/8622057e-4317-40cd-8a92-575685ac2b6c
+- Profile: preview (APK, internal distribution)
+- App version: 2.2.2 (com.afuchat.app)
+- Account: amkaweesi1
+- Root cause fixed: androidx.activity:1.11.0 + androidx.core:1.17.0 require compileSdk >= 36
+
 ### 2026-06-06 — v2.2.1 (DesktopShell wired + account switch to amkaweesi1)
 - Build ID: 2275c062-f22e-4412-ae7f-7a6ca5bdc5d0
 - Build URL: https://expo.dev/accounts/amkaweesi1/projects/afuchat/builds/2275c062-f22e-4412-ae7f-7a6ca5bdc5d0

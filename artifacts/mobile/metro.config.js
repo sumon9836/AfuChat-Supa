@@ -49,6 +49,12 @@ config.resolver = {
           type: "sourceFile",
         };
       }
+      if (moduleName === "react-native-pager-view") {
+        return {
+          filePath: path.resolve(__dirname, "lib/pager-view-web-shim.js"),
+          type: "sourceFile",
+        };
+      }
     }
     return context.resolveRequest(context, moduleName, platform);
   },

@@ -13,3 +13,5 @@
 - [EAS build on Replit — EAS_NO_VCS=1](eas-no-vcs-replit.md) — Replit blocks git stash; set EAS_NO_VCS=1 so EAS uses file-system archive instead. Run from artifacts/mobile with --non-interactive.
 - [SDK 55 New Arch migration](sdk55-newarch-migration.md) — SDK 55 mandates New Architecture (RN 0.83). All old-arch guards removed. MMKV v4 (Nitro). Reanimated 4.2.1 + worklets 0.5.1. TabSwipe uses real useSharedValue + GestureDetector.
 - [MMKV v4 Nitro API change](mmkv-v4-api.md) — react-native-mmkv v4 replaced `new MMKV({id})` with `createMMKV({id})`; instance methods (getString, set, getBoolean, getNumber, delete, clearAll, getAllKeys) unchanged.
+- [pager-view web shim](pager-view-web-shim.md) — react-native-pager-view@8.0.2 imports RN internals on web causing Metro bundle failure; add lib/pager-view-web-shim.js and resolve it in metro.config.js resolveRequest.
+- [compileSdkVersion 36 required](compilesdk-36-requirement.md) — EAS_BUILD_UNKNOWN_GRADLE_ERROR hides checkReleaseAarMetadata fail; fix is compileSdkVersion:36 in expo-build-properties when androidx.activity:1.11+ or androidx.core:1.17+ are resolved.
