@@ -105,6 +105,10 @@ cd artifacts/mobile && export EXPO_TOKEN=D0ZX0j9_3ko_Rv9ubaB3-9ymgQgQuEE9lJ1jkBZ
   done"""
 
 [[ports]]
+localPort = 3000
+externalPort = 3002
+
+[[ports]]
 localPort = 5000
 externalPort = 5000
 
