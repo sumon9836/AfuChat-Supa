@@ -2,6 +2,9 @@ import "@/polyfills";
 import "react-native-gesture-handler";
 import "@/lib/callService";
 import { enableScreens } from "react-native-screens";
+import { initCrashReporter, setCrashReporterUserId } from "@/lib/crashReporter";
+
+initCrashReporter();
 
 enableScreens(true);
 
@@ -100,6 +103,12 @@ function ActivityTrackerSync() {
   return null;
 }
 
+function CrashReporterUserSync() {
+  const { user } = useAuth();
+  useEffect(() => { setCrashReporterUserId(user?.id ?? null); }, [user?.id]);
+  return null;
+}
+
 function PageWatcher() {
   const pathname = usePathname();
   useEffect(() => {
@@ -179,6 +188,7 @@ export default function RootLayout() {
                   {/* Gate hides the splash only once fonts + auth are both done */}
                   <AppReadyGate fontsReady={fontsReady} />
                   <ActivityTrackerSync />
+                  <CrashReporterUserSync />
                   <PageWatcher />
                   <PushNotificationManager />
                   <TrustpilotReviewPrompt />
