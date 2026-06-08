@@ -8,7 +8,7 @@ initCrashReporter();
 
 enableScreens(true);
 
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Linking, NativeModules, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack, usePathname } from "expo-router";
@@ -36,6 +36,7 @@ import { AdvancedFeaturesProvider } from "@/context/AdvancedFeaturesContext";
 import { ChatPreferencesProvider } from "@/context/ChatPreferencesContext";
 import { DataModeProvider } from "@/context/DataModeContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SplashScreenView } from "@/components/ui/SplashScreenView";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
@@ -84,18 +85,25 @@ if (Platform.OS !== "web" && NativeModules.TrackPlayerModule) {
 
 // ─── AppReadyGate ─────────────────────────────────────────────────────────────
 // Sits inside AuthProvider so it can read auth loading state.
-// Hides the splash screen the moment BOTH fonts and auth are resolved —
-// preventing any intermediate screen (onboarding, welcome, login) from flashing.
-function AppReadyGate({ fontsReady }: { fontsReady: boolean }) {
+// Signals the parent when BOTH fonts and auth are resolved so the JS splash
+// can animate out before the native splash is hidden.
+function AppReadyGate({
+  fontsReady,
+  onReady,
+}: {
+  fontsReady: boolean;
+  onReady?: () => void;
+}) {
   const { loading } = useAuth();
-  const hidden = useRef(false);
+  const fired = useRef(false);
 
   useEffect(() => {
     if (!fontsReady || loading) return;
-    if (hidden.current) return;
-    hidden.current = true;
-    SplashScreen.hideAsync().catch(() => {});
-  }, [fontsReady, loading]);
+    if (fired.current) return;
+    fired.current = true;
+    if (typeof onReady === "function") onReady();
+    else SplashScreen.hideAsync().catch(() => {});
+  }, [fontsReady, loading, onReady]);
 
   return null;
 }
@@ -149,6 +157,18 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  // Track when both fonts + auth are resolved (triggers JS splash fade-out)
+  const [appReady, setAppReady] = useState(false);
+  // Track when the JS splash fade-out animation has fully completed
+  const [splashGone, setSplashGone] = useState(false);
+
+  const handleAppReady = useCallback(() => setAppReady(true), []);
+
+  const handleSplashDone = useCallback(() => {
+    setSplashGone(true);
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
   // On web, inject font-display:swap for all @font-face rules so the browser
   // shows text immediately with a system fallback and swaps to Inter once loaded.
   // This prevents the "invisible text" flash that occurs when a custom fontFamily
@@ -183,9 +203,8 @@ export default function RootLayout() {
     }
   }, []);
 
-  // On native: keep returning null (splash screen covers it) until fonts load.
-  // On web: render immediately — font-display:swap (injected above) shows
-  // system-font text right away and swaps to Inter once loaded.
+  // On native: keep returning null (native splash covers it) until fonts load.
+  // On web: render immediately with the JS splash overlay on top.
   if (Platform.OS !== "web" && !fontsReady) {
     return null;
   }
@@ -199,8 +218,8 @@ export default function RootLayout() {
               <ThemedStatusBar />
               <DataModeProvider>
                 <AuthProvider>
-                  {/* Gate hides the splash only once fonts + auth are both done */}
-                  <AppReadyGate fontsReady={fontsReady} />
+                  {/* Gate signals onReady when fonts + auth are both resolved */}
+                  <AppReadyGate fontsReady={fontsReady} onReady={handleAppReady} />
                   <ActivityTrackerSync />
                   <CrashReporterUserSync />
                   <PageWatcher />
@@ -239,6 +258,11 @@ export default function RootLayout() {
             </AppAccentProvider>
           </ThemedRoot>
         </ThemeProvider>
+
+        {/* JS splash overlay — sits above everything, fades out when ready */}
+        {!splashGone && (
+          <SplashScreenView ready={appReady} onDone={handleSplashDone} />
+        )}
       </GestureHandlerRootView>
     </ErrorBoundary>
   );
