@@ -606,7 +606,7 @@ const sc = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     height: 54,
-    borderRadius: 14,
+    borderRadius: 999,
     borderWidth: 1.5,
   },
   socialBtnText: {
@@ -616,7 +616,7 @@ const sc = StyleSheet.create({
   },
   createBtn: {
     height: 54,
-    borderRadius: 14,
+    borderRadius: 999,
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
@@ -632,7 +632,7 @@ const sc = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  primaryBtn: { borderRadius: 14, overflow: "hidden", marginTop: 4 },
+  primaryBtn: { borderRadius: 999, overflow: "hidden", marginTop: 4 },
   primaryGrad: { height: 56, alignItems: "center", justifyContent: "center" },
   primaryText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold", letterSpacing: -0.1 },
   footerLink: { fontSize: 12.5, fontFamily: "Inter_500Medium" },

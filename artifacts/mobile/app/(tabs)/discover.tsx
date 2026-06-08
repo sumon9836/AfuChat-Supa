@@ -636,6 +636,38 @@ export default function DiscoverScreen() {
   const [suppressedAuthors, setSuppressedAuthors] = useState<Set<string>>(new Set());
   const [dismissTarget, setDismissTarget] = useState<PostItem | null>(null);
   const [dismissedUpsellVariants, setDismissedUpsellVariants] = useState<Set<string>>(new Set());
+
+  type UndoEntry = { type: "post"; id: string } | { type: "author"; id: string };
+  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const snackAnim = useRef(new Animated.Value(0)).current;
+  const snackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isWeb = Platform.OS === "web";
+
+  const showSnack = useCallback((count: number) => {
+    if (snackTimerRef.current) clearTimeout(snackTimerRef.current);
+    Animated.spring(snackAnim, { toValue: 1, useNativeDriver: !isWeb, tension: 140, friction: 14 }).start();
+    snackTimerRef.current = setTimeout(() => {
+      Animated.timing(snackAnim, { toValue: 0, duration: 260, useNativeDriver: !isWeb }).start();
+    }, 4000);
+  }, [snackAnim, isWeb]);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack(prev => {
+      const last = prev[prev.length - 1];
+      if (!last) return prev;
+      if (last.type === "post") {
+        setDismissedIds(d => { const n = new Set(d); n.delete(last.id); return n; });
+      } else {
+        setSuppressedAuthors(d => { const n = new Set(d); n.delete(last.id); return n; });
+      }
+      const next = prev.slice(0, -1);
+      if (next.length === 0) {
+        if (snackTimerRef.current) clearTimeout(snackTimerRef.current);
+        Animated.timing(snackAnim, { toValue: 0, duration: 260, useNativeDriver: !isWeb }).start();
+      }
+      return next;
+    });
+  }, [snackAnim, isWeb]);
   const PAGE_SIZE = 30;
   const imgViewer = useImageViewer();
 
@@ -679,14 +711,29 @@ export default function DiscoverScreen() {
     setDismissTarget(null);
     if (reason === "mute_author") {
       setSuppressedAuthors(prev => new Set([...prev, author_id]));
+      setUndoStack(prev => {
+        const next = [...prev, { type: "author" as const, id: author_id }];
+        showSnack(next.length);
+        return next;
+      });
     } else {
       setDismissedIds(prev => new Set([...prev, id]));
+      setUndoStack(prev => {
+        const next = [...prev, { type: "post" as const, id }];
+        showSnack(next.length);
+        return next;
+      });
     }
-  }, [dismissTarget]);
+  }, [dismissTarget, showSnack]);
 
   const onMuteAuthor = useCallback((authorId: string, _handle: string) => {
     setSuppressedAuthors(prev => new Set([...prev, authorId]));
-  }, []);
+    setUndoStack(prev => {
+      const next = [...prev, { type: "author" as const, id: authorId }];
+      showSnack(next.length);
+      return next;
+    });
+  }, [showSnack]);
 
   const onOpenComments = useCallback((postId: string, authorId: string) => {
     setCommentPostId(postId);
@@ -1975,6 +2022,34 @@ export default function DiscoverScreen() {
         onSelect={onDismissReason}
         onClose={() => setDismissTarget(null)}
       />
+
+      {/* ── Dismiss undo snackbar ── */}
+      <Animated.View
+        style={[
+          snackStyles.snack,
+          {
+            bottom: insets.bottom + 80,
+            backgroundColor: isDark ? "#2C2C2E" : "#1C1C1E",
+            opacity: snackAnim,
+            transform: [
+              {
+                translateY: snackAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [16, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+        pointerEvents={undoStack.length > 0 ? "auto" : "none"}
+      >
+        <Text style={snackStyles.label}>
+          {undoStack.length} post{undoStack.length !== 1 ? "s" : ""} dismissed
+        </Text>
+        <TouchableOpacity onPress={handleUndo} style={snackStyles.undoBtn} hitSlop={8}>
+          <Text style={[snackStyles.undoText, { color: colors.accent }]}>Undo</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }
@@ -2321,6 +2396,47 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#fff",
     overflow: "hidden",
+  },
+});
+
+const snackStyles = StyleSheet.create({
+  snack: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 16,
+    gap: 12,
+    zIndex: 999,
+    ...Platform.select({
+      web: { boxShadow: "0 4px 20px rgba(0,0,0,0.28)" } as any,
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.28,
+        shadowRadius: 12,
+        elevation: 8,
+      },
+    }),
+  },
+  label: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
+    color: "#FFFFFF",
+    letterSpacing: -0.1,
+  },
+  undoBtn: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  undoText: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.1,
   },
 });
 
