@@ -32,7 +32,6 @@ import NotFoundScreen from "@/app/+not-found";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 
-import AfuLogo from "@/components/ui/AfuLogo";
 const { width: SW } = Dimensions.get("window");
 
 function safeNavigate(path: string, params?: Record<string, string>) {
@@ -197,7 +196,6 @@ function PublicProfileScreen({ handle }: { handle: string }) {
 
         {/* Join AfuChat banner */}
         <View style={[pub.joinCard, { backgroundColor: Colors.brand + "10", borderColor: Colors.brand + "25" }]}>
-          <AfuLogo size={36} />
           <View style={{ flex: 1 }}>
             <Text style={[pub.joinTitle, { color: Colors.brand }]}>Join AfuChat</Text>
             <Text style={[pub.joinSub, { color: colors.textMuted }]}>
@@ -380,7 +378,6 @@ export default function HandleScreen() {
 
   return (
     <View style={[splash.container, { backgroundColor: Colors.brand, paddingTop: insets.top }]}>
-      <AfuLogo size={120} />
       <Text style={splash.brandText}>AfuChat</Text>
       <ActivityIndicator size="small" color="#fff" style={splash.loader} />
       <Text style={splash.subText}>

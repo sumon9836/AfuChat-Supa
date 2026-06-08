@@ -23,7 +23,6 @@ import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
 import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/lib/supabase";
-import AfuLogo from "@/components/ui/AfuLogo";
 
 let ViewShot: any = ({ children, style, ...rest }: any) => <View style={style} {...rest}>{children}</View>;
 try { ViewShot = require("react-native-view-shot").default; } catch (_) {}
@@ -444,7 +443,6 @@ function CardFront({ cardWidth: cw, cardHeight: ch, theme, profile, roleConf, me
 
       {/* HEADER */}
       <View style={s.frontHdr}>
-        <AfuLogo size={28} />
         <View style={{ flex: 1, marginLeft: 8 }}>
           <Text style={s.frontBrand}>AFUCHAT</Text>
           <Text style={s.frontSub}>UNIVERSE · DIGITAL IDENTITY CARD</Text>
@@ -514,8 +512,7 @@ function CardBack({ cardWidth: cw, cardHeight: ch, theme, profile, memberNumber,
 
       {/* HEADER */}
       <View style={s.backHdr}>
-        <AfuLogo size={18} />
-        <Text style={s.backBrand}> AFUCHAT</Text>
+        <Text style={s.backBrand}>AFUCHAT</Text>
         <Text style={[s.backBrand, { color: "#ffffff55", fontWeight: "400" }]}> · DIGITAL</Text>
         <View style={{ flex: 1 }} />
         <View style={s.secureBadge}>

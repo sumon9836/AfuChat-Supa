@@ -26,9 +26,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useAppAccent } from "@/context/AppAccentContext";
 import { showAlert } from "@/lib/alert";
-import { GoogleLogo } from "@/components/ui/OAuthLogos";
 import { googleSignIn } from "@/lib/googleAuth";
-import AfuLogo from "@/components/ui/AfuLogo";
 
 const TERMS_URL = "/terms";
 const PRIVACY_URL = "/privacy";
@@ -308,8 +306,7 @@ export default function SignUpScreen() {
         >
           {/* Logo */}
           <View style={{ alignItems: "center", marginBottom: 36 }}>
-            <AfuLogo size={72} />
-            <Text style={{ fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginTop: 12, color: textColor }}>AfuChat</Text>
+            <Text style={{ fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5, color: textColor }}>AfuChat</Text>
             <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: mutedColor, marginTop: 4 }}>Connect · Discover · Create</Text>
           </View>
 
@@ -375,7 +372,7 @@ export default function SignUpScreen() {
           <TouchableOpacity style={[sc.googleBtn, { marginTop: 20 }]} onPress={handleGoogle} disabled={oauthLoading} activeOpacity={0.75}>
             {oauthLoading
               ? <ActivityIndicator size="small" color="#3C4043" />
-              : <><GoogleLogo size={20} /><Text style={sc.googleText}>Continue with Google</Text></>
+              : <Text style={sc.googleText}>Continue with Google</Text>
             }
           </TouchableOpacity>
 

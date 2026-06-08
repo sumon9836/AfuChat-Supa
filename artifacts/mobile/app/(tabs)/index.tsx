@@ -22,7 +22,6 @@ import {
   View,
 } from "react-native";
 
-import AfuLogo from "@/components/ui/AfuLogo";
 // FlashList v2 module-level code crashes React Native Web (text-node errors).
 // Use a dynamic require that only runs on native so the module never loads on web.
 const SafeFlashList: typeof import("react-native").FlatList =
@@ -1604,8 +1603,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
       // show a tasteful "sign in" placeholder instead of redirecting.
       return (
         <View style={[styles.root, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center", padding: 24 }]}>
-          <AfuLogo size={88} />
-          <Text style={[styles.emptyTitle, { color: colors.text, marginTop: 12 }]}>Sign in to chat</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Sign in to chat</Text>
         </View>
       );
     }
@@ -1770,7 +1768,6 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                       <View style={{ padding: 8 }}>{[1,2,3,4,5,6].map(i => <ChatRowSkeleton key={i} />)}</View>
                     ) : pageChats.length === 0 ? (
                       <View style={styles.center}>
-                        <AfuLogo size={110} />
                         <Text style={[styles.emptyTitle, { color: colors.text }]}>
                           {isAll ? "No chats yet" : `No ${"filter" in page ? page.name : ""} chats`}
                         </Text>
@@ -1870,7 +1867,6 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                       <View style={{ padding: 8 }}>{[1,2,3,4,5,6].map(i => <ChatRowSkeleton key={i} />)}</View>
                     ) : pageChats.length === 0 ? (
                       <View style={styles.center}>
-                        <AfuLogo size={110} />
                         <Text style={[styles.emptyTitle, { color: colors.text }]}>
                           {isAll ? "No chats yet" : `No ${"filter" in page ? page.name : ""} chats`}
                         </Text>
@@ -1953,7 +1949,6 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
               <View style={{ padding: 8 }}>{[1,2,3,4,5,6].map(i => <ChatRowSkeleton key={i} />)}</View>
             ) : filtered.length === 0 ? (
               <View style={styles.center}>
-                <AfuLogo size={110} />
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>
                   {tabFilter === "all" ? "No chats yet" : `No ${TABS.find(t => t.key === tabFilter)?.label.toLowerCase()}`}
                 </Text>

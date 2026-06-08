@@ -30,7 +30,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { SidebarAIWidget } from "./SidebarAIWidget";
 
-import AfuLogo from "@/components/ui/AfuLogo";
 export const SIDEBAR_WIDTH = 240;
 
 type NavItem = {
@@ -195,7 +194,6 @@ export function DesktopSidebar() {
       >
         {/* Brand */}
         <View style={styles.brandRow}>
-          <AfuLogo size={40} />
           <Text style={[styles.brandText, { color: theme.text }]}>AfuChat</Text>
         </View>
 

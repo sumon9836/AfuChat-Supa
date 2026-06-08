@@ -14,7 +14,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 import { useTheme } from "@/hooks/useTheme";
-import AfuLogo from "@/components/ui/AfuLogo";
 
 type Action = {
   key: string;
@@ -53,9 +52,6 @@ export function ChatHomePlaceholder() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={styles.center}>
-        <View style={[styles.logoWrap, { backgroundColor: tileBg }]}>
-          <AfuLogo size={64} />
-        </View>
         <Text style={[styles.title, { color: colors.text }]}>AfuChat for desktop</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Select a conversation on the left to start messaging, or pick a
