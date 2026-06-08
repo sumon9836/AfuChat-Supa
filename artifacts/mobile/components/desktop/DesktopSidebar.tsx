@@ -29,6 +29,7 @@ import { router, usePathname } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { SidebarAIWidget } from "./SidebarAIWidget";
+import AfuLogo from "@/components/ui/AfuLogo";
 
 export const SIDEBAR_WIDTH = 240;
 
@@ -194,6 +195,7 @@ export function DesktopSidebar() {
       >
         {/* Brand */}
         <View style={styles.brandRow}>
+          <AfuLogo size={32} style={{ marginRight: 10 }} />
           <Text style={[styles.brandText, { color: theme.text }]}>AfuChat</Text>
         </View>
 

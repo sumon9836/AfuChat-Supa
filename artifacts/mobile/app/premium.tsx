@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { showAlert } from "@/lib/alert";
+import AfuLogo from "@/components/ui/AfuLogo";
 
 type Plan = {
   id: string;
@@ -400,6 +401,7 @@ export default function PremiumScreen() {
           {/* glow orb */}
           <View style={[s.glowOrb, { backgroundColor: tierColor + "22" }]} />
 
+          <AfuLogo size={64} style={{ marginBottom: 16 }} />
           <Text style={s.heroTitle}>AfuChat Premium</Text>
           <Text style={[s.heroSub, { color: tierColor + "CC" }]}>{cfg?.tagline ?? "Unlock everything"}</Text>
 

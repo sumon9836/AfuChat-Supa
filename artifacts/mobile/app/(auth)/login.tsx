@@ -26,6 +26,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAppAccent } from "@/context/AppAccentContext";
 import { showAlert } from "@/lib/alert";
 import { googleSignIn } from "@/lib/googleAuth";
+import AfuLogo from "@/components/ui/AfuLogo";
 
 const BRAND_TEAL = "#1f95ff";
 
@@ -416,7 +417,8 @@ export default function SignInScreen() {
         >
           {/* Logo */}
           <View style={{ alignItems: "center", marginBottom: 36 }}>
-            <Text style={{ fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5, color: textColor }}>AfuChat</Text>
+            <AfuLogo size={72} />
+            <Text style={{ fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginTop: 12, color: textColor }}>AfuChat</Text>
             <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: mutedColor, marginTop: 4 }}>Connect · Discover · Create</Text>
           </View>
 

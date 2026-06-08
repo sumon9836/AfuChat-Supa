@@ -29,6 +29,8 @@ const SHOTS = {
 };
 
 
+import AfuLogo from "@/components/ui/AfuLogo";
+
 function makeColors(dark: boolean) {
   return {
     teal:    "#1f95ff",
@@ -157,6 +159,7 @@ export default function LandingPage() {
       {/* ── NAV ─────────────────────────────────────────── */}
       <View style={[s.nav, { paddingHorizontal: pH, backgroundColor: C.bg, borderBottomColor: C.border }]}>
         <TouchableOpacity onPress={() => router.replace("/")} style={s.brand}>
+          <AfuLogo size={28} style={{ marginRight: 8 }} />
           <Text style={[s.brandText, { color: C.text }]}>AfuChat</Text>
         </TouchableOpacity>
 
@@ -485,6 +488,7 @@ export default function LandingPage() {
         <View style={{ flexDirection: isDesktop ? "row" : "column" }}>
           <View style={{ flex: isDesktop ? 1.4 : 0, marginBottom: isDesktop ? 0 : 36 }}>
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+              <AfuLogo size={28} style={{ marginRight: 10 }} />
               <Text style={{ color: "#FFFFFF", fontSize: 18, fontFamily: "Inter_700Bold" }}>AfuChat</Text>
             </View>
             <Text style={{ color: "#6B7280", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, maxWidth: 300, marginBottom: 8 }}>
