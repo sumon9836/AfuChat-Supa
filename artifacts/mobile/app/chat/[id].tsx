@@ -4414,6 +4414,8 @@ STRICT RULES:
 
   async function startVoiceRecordingHold() {
     if (recordingActiveRef.current) return;
+    // Guard: Audio is null on web (lazy import) — use the web recorder path instead.
+    if (!Audio) return;
     const safetyTimer = setTimeout(() => {
       if (!recStartedSV.value && recPressActiveSV.value) {
         recPressActiveSV.value = false;
@@ -4431,10 +4433,21 @@ STRICT RULES:
         showAlert("Microphone permission needed", "Go to Settings and allow AfuChat to access your microphone.");
         return;
       }
-      const _rec = new Audio.Recording();
-      await _rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      // Claim the audio session for recording BEFORE creating the Recording
+      // object.  Skipping this setAudioModeAsync call is what causes
+      // "Could not start recording" on both iOS and Android — the OS rejects
+      // the session because it is still configured for playback.
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+      // Use the single-step createAsync API (matches post/[id] and VideoCommentsSheet).
+      // The old new Recording() + prepareToRecordAsync + startAsync sequence is
+      // more fragile and has been deprecated in newer expo-av builds.
+      const { recording: _rec } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+      );
       recorderRef.current = _rec;
-      await _rec.startAsync();
       recordingActiveRef.current = true;
       recStartedSV.value = true;
       clearTimeout(safetyTimer);
@@ -4592,6 +4605,9 @@ STRICT RULES:
         await recorderRef.current?.stopAndUnloadAsync();
         uri = recorderRef.current?.getURI() ?? null;
         recorderRef.current = null;
+        // Restore audio session to playback mode so sound effects and video
+        // audio work normally after the voice message is sent.
+        Audio?.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: false }).catch(() => {});
       }
       recordingActiveRef.current = false;
 
@@ -4684,6 +4700,8 @@ STRICT RULES:
           await recorderRef.current?.stopAndUnloadAsync();
         } catch (_) {}
         recorderRef.current = null;
+        // Restore audio session to playback mode after cancellation.
+        Audio?.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: false }).catch(() => {});
       }
       recordingActiveRef.current = false;
     }

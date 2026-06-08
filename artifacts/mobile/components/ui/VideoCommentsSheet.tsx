@@ -31,7 +31,11 @@ import {
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Audio } from "expo-av";
+// expo-av: lazy-load to avoid "Cannot find native module 'ExponentAV'" on web
+let Audio: typeof import("expo-av").Audio | null = null;
+if (Platform.OS !== "web") {
+  try { Audio = require("expo-av").Audio; } catch {}
+}
 import * as ImagePicker from "expo-image-picker";
 
 import { supabase } from "@/lib/supabase";
