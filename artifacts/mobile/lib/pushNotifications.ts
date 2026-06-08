@@ -18,7 +18,6 @@ export const NOTIF_CATEGORY = {
   NEW_FOLLOWER:    "afuchat_new_follower",
   ORDER_UPDATE:    "afuchat_order_update",
   ORDER_SHIPPED:   "afuchat_order_shipped",
-  INCOMING_CALL:   "afuchat_incoming_call",
   GIFT_RECEIVED:   "afuchat_gift_received",
   MENTION:         "afuchat_mention",
 } as const;
@@ -160,20 +159,6 @@ export async function setupNotificationCategories(): Promise<void> {
         identifier: "view_order",
         buttonTitle: "View Order",
         options: { opensAppToForeground: true },
-      },
-    ]);
-
-    // ── Incoming call: accept (opens app) + decline (background) ──────
-    await Notifications.setNotificationCategoryAsync(NOTIF_CATEGORY.INCOMING_CALL, [
-      {
-        identifier: "accept_call",
-        buttonTitle: "✅ Accept",
-        options: { opensAppToForeground: true },
-      },
-      {
-        identifier: "decline_call",
-        buttonTitle: "❌ Decline",
-        options: { opensAppToForeground: false, isDestructive: true },
       },
     ]);
 
@@ -429,11 +414,6 @@ async function routeNotificationResponse(response: any) {
     else router.push("/shop/my-orders" as any);
     return;
   }
-  if (response.actionIdentifier === "accept_call" && data.callId) {
-    router.push(`/call/${data.callId}` as any);
-    return;
-  }
-
   // Default tap (no action button) — deep link or type-based routing
   if (data?.url) { router.push(data.url as any); return; }
 
@@ -533,7 +513,6 @@ export function setupNotificationListeners() {
         "view_post",
         "view_profile",
         "view_order",
-        "accept_call",
       ].includes(actionIdentifier);
 
       if (isNavAction) {

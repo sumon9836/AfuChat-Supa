@@ -499,33 +499,6 @@ export async function notifyVerificationStatus(params: {
   });
 }
 
-export async function notifyCallInitiated(params: {
-  calleeId: string;
-  callerId: string;
-  callId: string;
-  callType: "voice" | "video";
-  callerName: string;
-}) {
-  callNotify({
-    userId: params.calleeId,
-    title: `Incoming ${params.callType === "video" ? "Video" : "Voice"} Call`,
-    body: `${params.callerName} is calling you`,
-    categoryIdentifier: NOTIF_CATEGORY.INCOMING_CALL,
-    data: {
-      type: "call",
-      callId: params.callId,
-      callType: params.callType,
-      actorId: params.callerId,
-      notifType: "call",
-      url: `/call/${params.callId}`,
-    },
-    notificationType: "call",
-    actorId: params.callerId,
-    referenceId: params.callId,
-    referenceType: "call",
-  });
-}
-
 // ─── Missed Call Notification ─────────────────────────────────────────────────
 // Sent by the CALLER's device when the callee doesn't answer within the ring
 // timeout (30 s). The notification appears in the callee's system tray so

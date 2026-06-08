@@ -125,19 +125,6 @@ export async function handleNotificationAction(
         break;
       }
 
-      // ── Decline an incoming call ───────────────────────────────────
-      case "decline_call": {
-        if (!data.callId) return;
-        const session = (await supabase.auth.getSession()).data.session;
-        if (!session) return;
-        await supabase
-          .from("calls")
-          .update({ status: "declined", ended_at: new Date().toISOString() })
-          .eq("id", data.callId)
-          .eq("callee_id", session.user.id);
-        break;
-      }
-
       // ── Confirm delivery of a shipped order ───────────────────────
       case "confirm_delivery": {
         if (!data.orderId) return;
@@ -175,7 +162,7 @@ export async function handleNotificationAction(
         break;
       }
 
-      // All other identifiers (DEFAULT, "view_*", "accept_call") are
+      // All other identifiers (DEFAULT, "view_*") are
       // navigation-based and handled by routeNotificationResponse in pushNotifications.ts.
       default:
         break;
