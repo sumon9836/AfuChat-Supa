@@ -23,48 +23,72 @@ function simpleHash(pin: string): string {
 
 export async function storePIN(pin: string): Promise<void> {
   if (Platform.OS === "web") return;
-  await SecureStore.setItemAsync(PIN_KEY, simpleHash(pin));
+  try {
+    await SecureStore.setItemAsync(PIN_KEY, simpleHash(pin));
+  } catch {}
 }
 
 export async function verifyPIN(pin: string): Promise<boolean> {
   if (Platform.OS === "web") return true;
-  const stored = await SecureStore.getItemAsync(PIN_KEY);
-  if (!stored) return false;
-  return stored === simpleHash(pin);
+  try {
+    const stored = await SecureStore.getItemAsync(PIN_KEY);
+    if (!stored) return false;
+    return stored === simpleHash(pin);
+  } catch {
+    return false;
+  }
 }
 
 export async function hasPIN(): Promise<boolean> {
   if (Platform.OS === "web") return false;
-  const stored = await SecureStore.getItemAsync(PIN_KEY);
-  return !!stored;
+  try {
+    const stored = await SecureStore.getItemAsync(PIN_KEY);
+    return !!stored;
+  } catch {
+    return false;
+  }
 }
 
 export async function clearPIN(): Promise<void> {
   if (Platform.OS === "web") return;
-  await SecureStore.deleteItemAsync(PIN_KEY);
+  try {
+    await SecureStore.deleteItemAsync(PIN_KEY);
+  } catch {}
 }
 
 export async function setBiometricEnabled(enabled: boolean): Promise<void> {
   if (Platform.OS === "web") return;
-  await SecureStore.setItemAsync(BIOMETRIC_KEY, enabled ? "1" : "0");
+  try {
+    await SecureStore.setItemAsync(BIOMETRIC_KEY, enabled ? "1" : "0");
+  } catch {}
 }
 
 export async function isBiometricEnabled(): Promise<boolean> {
   if (Platform.OS === "web") return false;
-  const val = await SecureStore.getItemAsync(BIOMETRIC_KEY);
-  return val === "1";
+  try {
+    const val = await SecureStore.getItemAsync(BIOMETRIC_KEY);
+    return val === "1";
+  } catch {
+    return false;
+  }
 }
 
 export async function setScreenshotProtectionEnabled(enabled: boolean): Promise<void> {
   if (Platform.OS === "web") return;
-  await SecureStore.setItemAsync(SCREENSHOT_KEY, enabled ? "1" : "0");
-  await applyScreenshotProtection(enabled);
+  try {
+    await SecureStore.setItemAsync(SCREENSHOT_KEY, enabled ? "1" : "0");
+    await applyScreenshotProtection(enabled);
+  } catch {}
 }
 
 export async function isScreenshotProtectionEnabled(): Promise<boolean> {
   if (Platform.OS === "web") return false;
-  const val = await SecureStore.getItemAsync(SCREENSHOT_KEY);
-  return val === "1";
+  try {
+    const val = await SecureStore.getItemAsync(SCREENSHOT_KEY);
+    return val === "1";
+  } catch {
+    return false;
+  }
 }
 
 export async function applyScreenshotProtection(enabled: boolean): Promise<void> {
@@ -80,6 +104,8 @@ export async function applyScreenshotProtection(enabled: boolean): Promise<void>
 
 export async function restoreScreenshotProtection(): Promise<void> {
   if (Platform.OS === "web") return;
-  const enabled = await isScreenshotProtectionEnabled();
-  await applyScreenshotProtection(enabled);
+  try {
+    const enabled = await isScreenshotProtectionEnabled();
+    await applyScreenshotProtection(enabled);
+  } catch {}
 }

@@ -111,6 +111,9 @@ export function AdvancedFeaturesProvider({ children }: { children: React.ReactNo
       .then(({ data }) => {
         if (data) setFeatures({ ...defaults, ...(data as any) });
         setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
       });
   }, [user?.id]);
 
@@ -121,23 +124,25 @@ export function AdvancedFeaturesProvider({ children }: { children: React.ReactNo
     setFeatures((prev) => ({ ...prev, [key]: value }));
     if (!user) return;
 
-    await supabase
-      .from("advanced_feature_settings")
-      .upsert({ user_id: user.id, [key]: value }, { onConflict: "user_id" });
+    try {
+      await supabase
+        .from("advanced_feature_settings")
+        .upsert({ user_id: user.id, [key]: value }, { onConflict: "user_id" });
 
-    if (key === "activity_status") {
-      const status = value as ActivityStatus;
-      const showOnline = status === "online" || status === "busy" || status === "focus";
-      const profileUpdate: Record<string, any> = { show_online_status: showOnline };
-      if (status === "offline" || status === "last_seen") {
-        profileUpdate.last_seen = new Date().toISOString();
+      if (key === "activity_status") {
+        const status = value as ActivityStatus;
+        const showOnline = status === "online" || status === "busy" || status === "focus";
+        const profileUpdate: Record<string, any> = { show_online_status: showOnline };
+        if (status === "offline" || status === "last_seen") {
+          profileUpdate.last_seen = new Date().toISOString();
+        }
+        await supabase.from("profiles").update(profileUpdate).eq("id", user.id);
       }
-      await supabase.from("profiles").update(profileUpdate).eq("id", user.id);
-    }
 
-    if (key === "focus_mode") {
-      await supabase.from("profiles").update({ show_online_status: !(value as boolean) }).eq("id", user.id);
-    }
+      if (key === "focus_mode") {
+        await supabase.from("profiles").update({ show_online_status: !(value as boolean) }).eq("id", user.id);
+      }
+    } catch {}
   }, [user]);
 
   return (

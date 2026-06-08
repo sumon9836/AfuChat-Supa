@@ -110,8 +110,12 @@ async function edgeFnHeaders(accessToken: string): Promise<Record<string, string
 }
 
 async function getAccessToken(): Promise<string | null> {
-  const session = (await supabase.auth.getSession()).data.session;
-  return session?.access_token ?? null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function fileUriToBlob(fileUri: string, mime: string): Promise<Blob> {

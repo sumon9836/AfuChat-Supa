@@ -367,7 +367,9 @@ export async function registerForPushNotifications(userId: string): Promise<stri
 }
 
 export async function clearPushToken(userId: string): Promise<void> {
-  await supabase.from("profiles").update({ expo_push_token: null }).eq("id", userId);
+  try {
+    await supabase.from("profiles").update({ expo_push_token: null }).eq("id", userId);
+  } catch {}
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -499,16 +501,19 @@ export function setupNotificationListeners() {
   const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
     const data = (notification.request.content.data || {}) as Record<string, string>;
     if (data.message_id) {
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (!user) return;
-        supabase
-          .from("message_status")
-          .upsert(
-            { message_id: data.message_id, user_id: user.id, delivered_at: new Date().toISOString() },
-            { onConflict: "message_id,user_id", ignoreDuplicates: true }
-          )
-          .then(() => {});
-      }).catch(() => {});
+      supabase.auth.getUser()
+        .then(({ data: { user } }) => {
+          if (!user) return;
+          supabase
+            .from("message_status")
+            .upsert(
+              { message_id: data.message_id, user_id: user.id, delivered_at: new Date().toISOString() },
+              { onConflict: "message_id,user_id", ignoreDuplicates: true }
+            )
+            .then(() => {})
+            .catch(() => {});
+        })
+        .catch(() => {});
     }
   });
 

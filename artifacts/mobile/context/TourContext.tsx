@@ -96,7 +96,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const complete = useCallback(async () => {
     setIsActive(false);
     setStepIndex(0);
-    await AsyncStorage.setItem(TOUR_KEY, "1");
+    AsyncStorage.setItem(TOUR_KEY, "1").catch(() => {});
   }, []);
 
   const advance = useCallback(() => {

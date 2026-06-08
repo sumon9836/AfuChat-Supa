@@ -251,13 +251,13 @@ export default function MeScreen() {
     const ch = supabase
       .channel(`me-stats:${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${user.id}` }, () =>
-        supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id).then(({ count }) => { setFollowerCount(count ?? 0); persist({ fc: count ?? 0 }); })
+        supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id).then(({ count }) => { setFollowerCount(count ?? 0); persist({ fc: count ?? 0 }); }).catch(() => {})
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` }, () =>
-        supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id).then(({ count }) => { setFollowingCount(count ?? 0); persist({ fgc: count ?? 0 }); })
+        supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id).then(({ count }) => { setFollowingCount(count ?? 0); persist({ fgc: count ?? 0 }); }).catch(() => {})
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "posts", filter: `author_id=eq.${user.id}` }, () =>
-        supabase.from("posts").select("*", { count: "exact", head: true }).eq("author_id", user.id).then(({ count }) => { setPostCount(count ?? 0); persist({ pc: count ?? 0 }); })
+        supabase.from("posts").select("*", { count: "exact", head: true }).eq("author_id", user.id).then(({ count }) => { setPostCount(count ?? 0); persist({ pc: count ?? 0 }); }).catch(() => {})
       )
       .subscribe();
     return () => { supabase.removeChannel(ch); };

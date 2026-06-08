@@ -14,9 +14,13 @@ import * as FileSystem from "expo-file-system/legacy";
 import { getDB } from "./db";
 
 // ── documentDirectory = permanent; OS never clears this automatically ──────────
-const BASE_DIR = ((FileSystem as any).documentDirectory ?? "") + "afuchat_media/";
-const THUMB_DIR = BASE_DIR + "thumbs/";
-const AVATAR_DIR = BASE_DIR + "avatars/";
+// Computed lazily so we never capture a null documentDirectory at module-eval
+// time (can happen in some restricted/sandboxed environments during early boot).
+function getBaseDir(): string {
+  return ((FileSystem as any).documentDirectory ?? "") + "afuchat_media/";
+}
+function getThumbDir(): string { return getBaseDir() + "thumbs/"; }
+function getAvatarDir(): string { return getBaseDir() + "avatars/"; }
 
 // In-memory hot cache for the current session (reset on app restart)
 const _memCache = new Map<string, string>();
@@ -102,7 +106,7 @@ export async function downloadAndCache(
   if (_memCache.has(url)) return _memCache.get(url)!;
 
   try {
-    const dir = type === "avatar" ? AVATAR_DIR : THUMB_DIR;
+    const dir = type === "avatar" ? getAvatarDir() : getThumbDir();
     await ensureDir(dir);
     const localPath = urlToFilename(url, dir);
 
@@ -139,7 +143,7 @@ export function preloadImages(urls: string[], type: "avatar" | "thumb" = "thumb"
 /** User-initiated only — clears ALL downloaded media from device. */
 export async function clearMediaCache(): Promise<void> {
   try {
-    await FileSystem.deleteAsync(BASE_DIR, { idempotent: true });
+    await FileSystem.deleteAsync(getBaseDir(), { idempotent: true });
     _memCache.clear();
     const db = await getDB();
     await db.runAsync("DELETE FROM media_cache");

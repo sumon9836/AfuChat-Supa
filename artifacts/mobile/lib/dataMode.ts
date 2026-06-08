@@ -59,9 +59,11 @@ export async function initDataMode() {
 
   try {
     const NetInfo = require("@react-native-community/netinfo").default;
-    NetInfo.fetch().then((state: any) => {
-      applyNetworkState(detectFromNetState(state));
-    });
+    NetInfo.fetch()
+      .then((state: any) => {
+        applyNetworkState(detectFromNetState(state));
+      })
+      .catch(() => {});
     NetInfo.addEventListener((state: any) => {
       applyNetworkState(detectFromNetState(state));
     });
@@ -83,11 +85,13 @@ export function getIsWifi(): boolean {
 export async function setManualDataMode(mode: DataMode | null) {
   if (Platform.OS === "web") return; // no-op on web
   _manualOverride = mode;
-  if (mode === null) {
-    await AsyncStorage.removeItem(STORAGE_KEY);
-  } else {
-    await AsyncStorage.setItem(STORAGE_KEY, mode);
-  }
+  try {
+    if (mode === null) {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } else {
+      await AsyncStorage.setItem(STORAGE_KEY, mode);
+    }
+  } catch {}
   notify(getEffectiveMode());
 }
 

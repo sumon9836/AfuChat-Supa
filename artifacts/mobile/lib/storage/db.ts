@@ -42,11 +42,18 @@ async function openDB(): Promise<DB> {
 export async function getDB(): Promise<DB> {
   if (_db) return _db;
   if (_initPromise) return _initPromise;
-  _initPromise = openDB().then(async (db) => {
-    await runMigrations(db);
-    _db = db;
-    return db;
-  });
+  _initPromise = openDB()
+    .then(async (db) => {
+      await runMigrations(db);
+      _db = db;
+      return db;
+    })
+    .catch((err) => {
+      // Reset so the next caller can retry instead of receiving the same
+      // rejected promise forever.
+      _initPromise = null;
+      throw err;
+    });
   return _initPromise;
 }
 

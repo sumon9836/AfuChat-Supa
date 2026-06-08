@@ -442,12 +442,16 @@ function StoriesBar({ userId, colors, isDesktop }: { userId: string; colors: any
 
   const loadStories = useCallback(async () => {
     const now = new Date().toISOString();
-    const { data: storiesData } = await supabase
-      .from("stories")
-      .select("id, user_id, caption, privacy, created_at, profiles!stories_user_id_fkey(display_name, avatar_url)")
-      .gt("expires_at", now)
-      .order("created_at", { ascending: true })
-      .limit(100);
+    let storiesData: any[] | null = null;
+    try {
+      const { data } = await supabase
+        .from("stories")
+        .select("id, user_id, caption, privacy, created_at, profiles!stories_user_id_fkey(display_name, avatar_url)")
+        .gt("expires_at", now)
+        .order("created_at", { ascending: true })
+        .limit(100);
+      storiesData = data;
+    } catch {}
 
     if (!storiesData || storiesData.length === 0) {
       setStoryUsers([]);
@@ -823,10 +827,14 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
       return;
     }
 
-    const { data: memberRows } = await supabase
-      .from("chat_members")
-      .select("chat_id")
-      .eq("user_id", user.id);
+    let memberRows: { chat_id: string }[] | null = null;
+    try {
+      const { data } = await supabase
+        .from("chat_members")
+        .select("chat_id")
+        .eq("user_id", user.id);
+      memberRows = data;
+    } catch {}
 
     if (!memberRows || memberRows.length === 0) {
       setChats([]);

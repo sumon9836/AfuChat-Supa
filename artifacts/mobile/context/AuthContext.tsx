@@ -165,9 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profileData) {
         setProfile(profileData as Profile);
         cacheProfile(profileData);
-        // Persist profile to device storage (permanent, offline-first)
         saveLocalProfile(profileData as any).catch(() => {});
-        // Keep the stored account's display metadata fresh
         updateAccountProfile(userId, {
           displayName: (profileData as any).display_name,
           handle: (profileData as any).handle,
@@ -194,9 +192,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return profileData as Profile | null;
     } catch {
-      const cached = await getCachedProfile();
-      if (cached) setProfile(cached as Profile);
-      return cached as Profile | null;
+      try {
+        const cached = await getCachedProfile();
+        if (cached) setProfile(cached as Profile);
+        return cached as Profile | null;
+      } catch {
+        return null;
+      }
     }
   }
 
@@ -226,7 +228,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function saveCurrentSession() {
     if (isSwitchingRef.current || isLinkingRef.current) return;
-    const { data: { session: live } } = await supabase.auth.getSession();
+    let live: Session | null = null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      live = data.session;
+    } catch {
+      return;
+    }
     if (!live || !profile) return;
     await storeAccount({
       userId: live.user.id,
@@ -257,7 +265,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Snapshot current session tokens before we touch anything
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    let currentSession: Session | null = null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      currentSession = data.session;
+    } catch {
+      return { success: false, error: "Failed to read current session." };
+    }
     if (!currentSession) return { success: false, error: "No active session." };
 
     const savedAccess = currentSession.access_token;
@@ -489,73 +503,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Bootstrap ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setSession(session);
-        setUser(session.user);
-        setCachedUserId(session.user.id);
-        const cached = await getCachedProfile();
-        if (cached) setProfile(cached as Profile);
-        setLoading(false);
-        fetchProfile(session.user.id);
-        startOfflineSync();
-        supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", session.user.id)
-          .single()
-          .then(({ data }) => {
-            ensureAfuAiChat(session.user.id, data?.display_name).catch(() => {});
-          });
-      } else {
-        // No live session — try to stay "soft logged in" from local storage.
-        //
-        // HARDENED: SecureStore (tokens) is more durable than MMKV (userId cache).
-        // If MMKV was cleared but SecureStore still has tokens, fall back to the
-        // stored account's userId so the user is NEVER routed to the welcome screen.
-        const cachedUserId = getCachedUserId();
-        const accounts = await getStoredAccounts();
-        const primaryAccount = accounts[0] ?? null;
-
-        // Use stored account userId as fallback when MMKV was wiped
-        const effectiveUserId = cachedUserId ?? primaryAccount?.userId ?? null;
-
-        if (effectiveUserId && primaryAccount) {
-          // Restore MMKV if it was cleared so future startups are instant
-          if (!cachedUserId) setCachedUserId(primaryAccount.userId);
-
+    supabase.auth.getSession()
+      .then(async ({ data: { session } }) => {
+        if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          setCachedUserId(session.user.id);
           const cached = await getCachedProfile();
           if (cached) setProfile(cached as Profile);
-
-          if (isOnline()) {
-            // Pass refresh token explicitly — Supabase's AsyncStorage may have
-            // been cleared by a prior involuntary SIGNED_OUT, so relying on
-            // supabase.auth.refreshSession() with no args can silently fail.
-            supabase.auth
-              .refreshSession({ refresh_token: primaryAccount.refreshToken })
-              .catch(() => {});
-          } else {
-            const syntheticUser = {
-              id: primaryAccount.userId,
-              email: primaryAccount.email,
-              app_metadata: {},
-              user_metadata: {},
-              aud: "authenticated",
-              created_at: "",
-            } as User;
-            setUser(syntheticUser);
-            startOfflineSync();
-          }
           setLoading(false);
+          fetchProfile(session.user.id);
+          startOfflineSync();
+          supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", session.user.id)
+            .single()
+            .then(({ data }) => {
+              ensureAfuAiChat(session.user.id, data?.display_name).catch(() => {});
+            })
+            .catch(() => {});
         } else {
-          const cached = await getCachedProfile();
-          if (cached) setProfile(cached as Profile);
-          setLoading(false);
-        }
-      }
-    });
+          // No live session — try to stay "soft logged in" from local storage.
+          //
+          // HARDENED: SecureStore (tokens) is more durable than MMKV (userId cache).
+          // If MMKV was cleared but SecureStore still has tokens, fall back to the
+          // stored account's userId so the user is NEVER routed to the welcome screen.
+          const cachedUserId = getCachedUserId();
+          const accounts = await getStoredAccounts();
+          const primaryAccount = accounts[0] ?? null;
 
-    refreshLinkedAccounts();
+          // Use stored account userId as fallback when MMKV was wiped
+          const effectiveUserId = cachedUserId ?? primaryAccount?.userId ?? null;
+
+          if (effectiveUserId && primaryAccount) {
+            // Restore MMKV if it was cleared so future startups are instant
+            if (!cachedUserId) setCachedUserId(primaryAccount.userId);
+
+            const cached = await getCachedProfile();
+            if (cached) setProfile(cached as Profile);
+
+            if (isOnline()) {
+              // Pass refresh token explicitly — Supabase's AsyncStorage may have
+              // been cleared by a prior involuntary SIGNED_OUT, so relying on
+              // supabase.auth.refreshSession() with no args can silently fail.
+              supabase.auth
+                .refreshSession({ refresh_token: primaryAccount.refreshToken })
+                .catch(() => {});
+            } else {
+              const syntheticUser = {
+                id: primaryAccount.userId,
+                email: primaryAccount.email,
+                app_metadata: {},
+                user_metadata: {},
+                aud: "authenticated",
+                created_at: "",
+              } as User;
+              setUser(syntheticUser);
+              startOfflineSync();
+            }
+            setLoading(false);
+          } else {
+            const cached = await getCachedProfile();
+            if (cached) setProfile(cached as Profile);
+            setLoading(false);
+          }
+        }
+      })
+      .catch(() => {
+        // getSession failure — don't block the app; show unauthenticated state
+        setLoading(false);
+      });
+
+    refreshLinkedAccounts().catch(() => {});
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
       // Suppress all state mutations during a switch or link operation.
@@ -596,15 +616,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Restore it from SecureStore so that when the user comes back online,
           // refreshSession() and all API calls work correctly again.
           // We do NOT touch React state — the user stays in the app untouched.
-          getStoredAccounts().then((accts) => {
-            const stored = accts[0] ?? null;
-            if (stored) {
-              supabase.auth.setSession({
-                access_token: stored.accessToken,
-                refresh_token: stored.refreshToken,
-              }).catch(() => {});
-            }
-          });
+          getStoredAccounts()
+            .then((accts) => {
+              const stored = accts[0] ?? null;
+              if (stored) {
+                supabase.auth.setSession({
+                  access_token: stored.accessToken,
+                  refresh_token: stored.refreshToken,
+                }).catch(() => {});
+              }
+            })
+            .catch(() => {});
           return;
         }
         // Intentional sign-out — clear everything and stop.
@@ -632,7 +654,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .single()
               .then(({ data }) => {
                 ensureAfuAiChat(newSession.user.id, data?.display_name).catch(() => {});
-              });
+              })
+              .catch(() => {});
           })
           .catch(() => {});
       }
@@ -657,7 +680,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return;
     const updateLastSeen = () => {
-      if (isOnline()) supabase.rpc("update_last_seen").then(() => {});
+      if (isOnline()) supabase.rpc("update_last_seen").catch(() => {});
     };
     updateLastSeen();
     const sub = AppState.addEventListener("change", (state) => {

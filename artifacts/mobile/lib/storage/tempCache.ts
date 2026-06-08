@@ -25,7 +25,9 @@ import * as FileSystem from "expo-file-system/legacy";
 
 // ─── Config ────────────────────────────────────────────────────────────────
 
-const TEMP_DIR = ((FileSystem as any).cacheDirectory ?? "") + "afuchat_temp/";
+function getTempDir(): string {
+  return ((FileSystem as any).cacheDirectory ?? "") + "afuchat_temp/";
+}
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const CACHE_SIZE_LIMIT_BYTES = 200 * 1024 * 1024; // 200 MB
 
@@ -45,9 +47,9 @@ function djb2Hash(str: string): string {
 
 async function ensureDir(): Promise<void> {
   try {
-    const info = await FileSystem.getInfoAsync(TEMP_DIR);
+    const info = await FileSystem.getInfoAsync(getTempDir());
     if (!info.exists) {
-      await FileSystem.makeDirectoryAsync(TEMP_DIR, { intermediates: true });
+      await FileSystem.makeDirectoryAsync(getTempDir(), { intermediates: true });
     }
   } catch {}
 }
@@ -75,7 +77,7 @@ function prefixForExt(ext: string): string {
 export function getTempFilePath(key: string, ext: string): string {
   const hash = djb2Hash(key);
   const prefix = prefixForExt(ext);
-  return TEMP_DIR + `${prefix}_${hash}.${ext}`;
+  return getTempDir() + `${prefix}_${hash}.${ext}`;
 }
 
 /**
@@ -205,14 +207,14 @@ export async function getTempCacheStats(): Promise<TempCacheStats> {
   try {
     await ensureDir();
     const now = Date.now();
-    const items = await FileSystem.readDirectoryAsync(TEMP_DIR);
+    const items = await FileSystem.readDirectoryAsync(getTempDir());
     let bytes = 0;
     let count = 0;
     let oldFileCount = 0;
 
     for (const name of items) {
       try {
-        const info = await FileSystem.getInfoAsync(TEMP_DIR + name, { md5: false });
+        const info = await FileSystem.getInfoAsync(getTempDir() + name, { md5: false });
         if (!info.exists) continue;
         const size = (info as any).size ?? 0;
         const mtime: number = (info as any).modificationTime
@@ -243,14 +245,14 @@ export async function cleanupTempCache(): Promise<number> {
   try {
     await ensureDir();
     const now = Date.now();
-    const items = await FileSystem.readDirectoryAsync(TEMP_DIR);
+    const items = await FileSystem.readDirectoryAsync(getTempDir());
 
     type FileEntry = { name: string; path: string; size: number; mtime: number };
     const entries: FileEntry[] = [];
 
     for (const name of items) {
       try {
-        const path = TEMP_DIR + name;
+        const path = getTempDir() + name;
         const info = await FileSystem.getInfoAsync(path);
         if (!info.exists) continue;
         const size = (info as any).size ?? 0;
@@ -308,10 +310,10 @@ export async function cleanupTempCache(): Promise<number> {
 export async function clearTempCache(): Promise<void> {
   if (Platform.OS === "web") return;
   try {
-    await FileSystem.deleteAsync(TEMP_DIR, { idempotent: true });
+    await FileSystem.deleteAsync(getTempDir(), { idempotent: true });
     _mem.clear();
   } catch {}
 }
 
 // ─── Directory path export (for external tooling) ──────────────────────────
-export const TEMP_CACHE_DIR = TEMP_DIR;
+export const TEMP_CACHE_DIR = getTempDir();

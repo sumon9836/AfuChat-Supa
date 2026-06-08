@@ -90,14 +90,16 @@ export function ChatPreferencesProvider({ children }: { children: React.ReactNod
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
-    const { data } = await supabase
-      .from("chat_preferences")
-      .select("user_id, chat_theme, bubble_style, font_size, sounds_enabled, auto_download, read_receipts, chat_lock, enter_to_send, media_quality, save_to_gallery, link_previews, typing_indicators, archive_on_delete, chat_backup")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (data) {
-      setPrefs({ ...defaults, ...data });
-    }
+    try {
+      const { data } = await supabase
+        .from("chat_preferences")
+        .select("user_id, chat_theme, bubble_style, font_size, sounds_enabled, auto_download, read_receipts, chat_lock, enter_to_send, media_quality, save_to_gallery, link_previews, typing_indicators, archive_on_delete, chat_backup")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setPrefs({ ...defaults, ...data });
+      }
+    } catch {}
     setLoading(false);
   }, [user]);
 
@@ -105,7 +107,7 @@ export function ChatPreferencesProvider({ children }: { children: React.ReactNod
 
   const updatePref = useCallback(async <K extends keyof ChatPrefs>(key: K, value: ChatPrefs[K]) => {
     setPrefs((p) => ({ ...p, [key]: value }));
-    if (key === "chat_theme") AsyncStorage.setItem(APP_ACCENT_KEY, value as string);
+    if (key === "chat_theme") AsyncStorage.setItem(APP_ACCENT_KEY, value as string).catch(() => {});
     if (!user) return;
     // Mirror certain prefs to local settings for offline-first access
     const localKey = CHAT_PREF_TO_LOCAL[key as string];
@@ -115,9 +117,11 @@ export function ChatPreferencesProvider({ children }: { children: React.ReactNod
       if (key === "auto_download") localVal = (value as boolean) ? "wifi_only" : "never";
       patchLocalSetting(user.id, localKey as any, localVal).catch(() => {});
     }
-    await supabase
-      .from("chat_preferences")
-      .upsert({ user_id: user.id, [key]: value }, { onConflict: "user_id" });
+    try {
+      await supabase
+        .from("chat_preferences")
+        .upsert({ user_id: user.id, [key]: value }, { onConflict: "user_id" });
+    } catch {}
   }, [user]);
 
   const themeColors = CHAT_THEME_COLORS[prefs.chat_theme] || CHAT_THEME_COLORS["Teal"];
