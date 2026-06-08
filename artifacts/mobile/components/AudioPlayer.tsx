@@ -9,7 +9,12 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Audio, AVPlaybackStatus } from "expo-av";
+// expo-av: lazy-load to avoid "Cannot find native module 'ExponentAV'" on web
+let Audio: typeof import("expo-av").Audio | null = null;
+if (Platform.OS !== "web") {
+  try { Audio = require("expo-av").Audio; } catch {}
+}
+type AVPlaybackStatus = import("expo-av").AVPlaybackStatus;
 
 interface AudioPlayerProps {
   uri: string;

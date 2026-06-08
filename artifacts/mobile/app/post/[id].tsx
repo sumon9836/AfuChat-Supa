@@ -15,7 +15,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Audio } from "expo-av";
+// expo-av: lazy-load to avoid "Cannot find native module 'ExponentAV'" on web
+let Audio: typeof import("expo-av").Audio | null = null;
+if (Platform.OS !== "web") {
+  try { Audio = require("expo-av").Audio; } catch {}
+}
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { PostDetailSkeleton } from "@/components/ui/Skeleton";

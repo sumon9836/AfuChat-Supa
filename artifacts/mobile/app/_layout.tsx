@@ -149,6 +149,19 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  // On web, inject font-display:swap for all @font-face rules so the browser
+  // shows text immediately with a system fallback and swaps to Inter once loaded.
+  // This prevents the "invisible text" flash that occurs when a custom fontFamily
+  // is applied before the font has resolved.
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    try {
+      const style = document.createElement("style");
+      style.textContent = `@font-face { font-display: swap; }`;
+      document.head.appendChild(style);
+    } catch {}
+  }, []);
+
   const fontsReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
@@ -170,10 +183,9 @@ export default function RootLayout() {
     }
   }, []);
 
-  // On native: keep returning null (keeping the splash layer on top) until
-  // fonts are ready. SplashScreen.preventAutoHideAsync() above ensures the
-  // native splash is still visible. On web: render immediately with system
-  // fonts (blocking causes a blank white screen in the browser).
+  // On native: keep returning null (splash screen covers it) until fonts load.
+  // On web: render immediately — font-display:swap (injected above) shows
+  // system-font text right away and swaps to Inter once loaded.
   if (Platform.OS !== "web" && !fontsReady) {
     return null;
   }

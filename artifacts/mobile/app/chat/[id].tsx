@@ -38,7 +38,11 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as Contacts from "expo-contacts";
 import * as FileSystem from "expo-file-system";
-import { Audio } from "expo-av";
+// expo-av: lazy-load to avoid "Cannot find native module 'ExponentAV'" on web
+let Audio: typeof import("expo-av").Audio | null = null;
+if (Platform.OS !== "web") {
+  try { Audio = require("expo-av").Audio; } catch {}
+}
 import VideoPreview from "@/components/ui/VideoPreview";
 import VideoTrimmerModal from "@/components/chat/VideoTrimmerModal";
 import * as Speech from "expo-speech";
