@@ -22,7 +22,7 @@ R2_PUBLIC_BASE_URL = "https://cdn.afuchat.com"
 R2_DEV_PUBLIC_URL = "https://pub-2e81c468eb99436690ca6da9f89191ce.r2.dev"
 R2_S3_ENDPOINT = "https://42e79186125e8ff83e51f15816e074de.r2.cloudflarestorage.com"
 PESAPAL_ENV = "production"
-EXPO_TOKEN = "9p8fBftccajC95JKK1pDyEIiuyETSmBSDzpab8Fr"
+EXPO_TOKEN = "n4MsqEkQNvqFGcFD47_R58LlPrjDKT_jMjLt66Ji"
 
 [workflows]
 runButton = "Project"
@@ -78,31 +78,32 @@ outputType = "console"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = """
-cd artifacts/mobile && export EXPO_TOKEN=D0ZX0j9_3ko_Rv9ubaB3-9ymgQgQuEE9lJ1jkBZR
-    echo \"=== Triggering new EAS Android APK build (preview profile) ===\"
-    BUILD_JSON=$(EXPO_NO_INTERACTIVE=1 node_modules/.bin/eas build --platform android --profile preview --non-interactive --no-wait --json 2>&1)
-    BUILD_ID=$(echo \"$BUILD_JSON\" | python3 -c \"import sys,json; data=sys.stdin.read(); arr=json.loads(data[data.find('['):data.rfind(']')+1]); print(arr[0]['id'])\" 2>/dev/null || echo \"$BUILD_JSON\" | python3 -c \"import sys,json; data=sys.stdin.read(); obj=json.loads(data[data.find('{'):data.rfind('}')+1]); print(obj['id'])\" 2>/dev/null || echo \"\")
-    if [ -z \"$BUILD_ID\" ]; then
-      echo \"=== Build trigger output ===\"
-      echo \"$BUILD_JSON\"
-      echo \"=== Could not parse build ID — check output above ===\"
-      exit 1
-    fi
-    echo \"Build ID: $BUILD_ID\"
-    echo \"Track: https://expo.dev/accounts/amkaweesi1/projects/afuchat/builds/$BUILD_ID\"
-    while true; do
-      RAW=$(node_modules/.bin/eas build:view $BUILD_ID --json 2>&1)
-      OUT=$(echo \"$RAW\" | python3 -c \"import sys; lines=[l for l in sys.stdin.read().splitlines() if l.strip().startswith('{')]; print(lines[0] if lines else '')\" 2>/dev/null || echo \"\")
-      STATUS=$(echo \"$OUT\" | python3 -c \"import sys,json; print(json.loads(sys.stdin.read())['status'])\" 2>/dev/null || echo \"IN_PROGRESS\")
-      ARTIFACT=$(echo \"$OUT\" | python3 -c \"import sys,json; print(json.loads(sys.stdin.read()).get('artifacts',{}).get('buildUrl','none'))\" 2>/dev/null || echo \"none\")
-      echo \"$(date -u +%H:%M:%S) status=$STATUS apk=$ARTIFACT\"
-      if [ \"$STATUS\" = \"FINISHED\" ] || [ \"$STATUS\" = \"ERRORED\" ] || [ \"$STATUS\" = \"EXPIRED\" ] || [ \"$STATUS\" = \"CANCELLED\" ]; then
-        echo \"=== FINAL STATUS: $STATUS ===\"
-        echo \"=== APK DOWNLOAD: $ARTIFACT ===\"
-        break
+cd artifacts/mobile && export EXPO_TOKEN=n4MsqEkQNvqFGcFD47_R58LlPrjDKT_jMjLt66Ji
+      echo \"=== Triggering new EAS Android APK build (preview profile) ===\"
+      export EAS_NO_VCS=1
+      BUILD_JSON=$(EXPO_NO_INTERACTIVE=1 node_modules/.bin/eas build --platform android --profile preview --non-interactive --no-wait --json 2>&1)
+      BUILD_ID=$(echo \"$BUILD_JSON\" | python3 -c \"import sys,json; data=sys.stdin.read(); arr=json.loads(data[data.find('['):data.rfind(']')+1]); print(arr[0]['id'])\" 2>/dev/null || echo \"$BUILD_JSON\" | python3 -c \"import sys,json; data=sys.stdin.read(); obj=json.loads(data[data.find('{'):data.rfind('}')+1]); print(obj['id'])\" 2>/dev/null || echo \"\")
+      if [ -z \"$BUILD_ID\" ]; then
+        echo \"=== Build trigger output ===\"
+        echo \"$BUILD_JSON\"
+        echo \"=== Could not parse build ID — check output above ===\"
+        exit 1
       fi
-      sleep 60
-    done"""
+      echo \"Build ID: $BUILD_ID\"
+      echo \"Track: https://expo.dev/accounts/afunew/projects/afuchat/builds/$BUILD_ID\"
+      while true; do
+        RAW=$(node_modules/.bin/eas build:view $BUILD_ID --json 2>&1)
+        OUT=$(echo \"$RAW\" | python3 -c \"import sys; lines=[l for l in sys.stdin.read().splitlines() if l.strip().startswith('{')]; print(lines[0] if lines else '')\" 2>/dev/null || echo \"\")
+        STATUS=$(echo \"$OUT\" | python3 -c \"import sys,json; print(json.loads(sys.stdin.read())['status'])\" 2>/dev/null || echo \"IN_PROGRESS\")
+        ARTIFACT=$(echo \"$OUT\" | python3 -c \"import sys,json; print(json.loads(sys.stdin.read()).get('artifacts',{}).get('buildUrl','none'))\" 2>/dev/null || echo \"none\")
+        echo \"$(date -u +%H:%M:%S) status=$STATUS apk=$ARTIFACT\"
+        if [ \"$STATUS\" = \"FINISHED\" ] || [ \"$STATUS\" = \"ERRORED\" ] || [ \"$STATUS\" = \"EXPIRED\" ] || [ \"$STATUS\" = \"CANCELLED\" ]; then
+          echo \"=== FINAL STATUS: $STATUS ===\"
+          echo \"=== APK DOWNLOAD: $ARTIFACT ===\"
+          break
+        fi
+        sleep 60
+      done"""
 
 [[ports]]
 localPort = 3000

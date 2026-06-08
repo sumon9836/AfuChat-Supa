@@ -175,10 +175,10 @@ export default function WelcomeScreen() {
         </Animated.View>
       ))}
 
-      {/* Full-screen gradient — image fades smoothly into background from ~30% down */}
+      {/* Full-screen gradient — image fades into solid background from ~25% down */}
       <LinearGradient
-        colors={["transparent", "transparent", `${bgColor}88`, `${bgColor}DD`, bgColor]}
-        locations={[0, 0.28, 0.50, 0.68, 0.84]}
+        colors={["transparent", `${bgColor}00`, `${bgColor}AA`, `${bgColor}F0`, bgColor, bgColor]}
+        locations={[0, 0.20, 0.44, 0.60, 0.74, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={[StyleSheet.absoluteFill, { pointerEvents: "none" } as any]}
@@ -203,18 +203,18 @@ export default function WelcomeScreen() {
           style={[s.contentInner, { opacity: contentOpacity, transform: [{ translateY: contentY }] }]}
         >
           {/* Feature tag */}
-          <View style={[s.tag, { backgroundColor: slide.accent + "1A" }]}>
+          <View style={[s.tag, { backgroundColor: slide.accent + "28" }]}>
             <View style={[s.tagDot, { backgroundColor: slide.accent }]} />
             <Text style={[s.tagText, { color: slide.accent }]}>{slide.tag}</Text>
           </View>
 
           {/* Title */}
-          <Text style={[s.title, { color: isDark ? "#F2F2F2" : "#0A0A0A" }]}>
+          <Text style={[s.title, { color: isDark ? "#F5F5F5" : "#0A0A0A" }]}>
             {slide.title}
           </Text>
 
           {/* Subtitle */}
-          <Text style={[s.subtitle, { color: isDark ? "rgba(255,255,255,0.52)" : "rgba(0,0,0,0.48)" }]}>
+          <Text style={[s.subtitle, { color: isDark ? "rgba(255,255,255,0.80)" : "rgba(0,0,0,0.72)" }]}>
             {slide.subtitle}
           </Text>
         </Animated.View>
@@ -236,7 +236,7 @@ export default function WelcomeScreen() {
                       width: active ? 24 : 7,
                       backgroundColor: active
                         ? slide.accent
-                        : isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.13)",
+                        : isDark ? "rgba(255,255,255,0.30)" : "rgba(0,0,0,0.22)",
                     },
                   ]}
                 />
@@ -318,16 +318,16 @@ const s = StyleSheet.create({
   tagText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1.4 },
 
   title: {
-    fontSize: 36,
+    fontSize: 38,
     fontFamily: "Inter_700Bold",
     letterSpacing: -1,
-    lineHeight: 44,
-    marginBottom: 12,
+    lineHeight: 46,
+    marginBottom: 14,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 15.5,
     fontFamily: "Inter_400Regular",
-    lineHeight: 23,
+    lineHeight: 24,
   },
 
   dotsRow: {
