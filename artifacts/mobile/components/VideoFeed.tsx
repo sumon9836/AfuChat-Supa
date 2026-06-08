@@ -488,7 +488,7 @@ const VideoItem = React.memo(
 
         {/* Buffering — delayed 400 ms to avoid flash on fast networks */}
         {showBuffering && isActive && !paused && (
-          <View style={styles.centerOverlay} pointerEvents="none">
+          <View style={[styles.centerOverlay, { pointerEvents: "none" } as any]}>
             <ActivityIndicator size="large" color="rgba(255,255,255,0.8)" />
           </View>
         )}
@@ -1236,8 +1236,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
 
       {/* "For You / Following" tab bar — overlaid on top of feed */}
       <View
-        style={[styles.tabBar, { top: TAB_TOP }]}
-        pointerEvents="box-none"
+        style={[styles.tabBar, { top: TAB_TOP, pointerEvents: "box-none" } as any]}
       >
         <TabBtn label="For You"   active={tab === "for_you"}   onPress={() => setTab("for_you")}   />
         <TabBtn label="Following" active={tab === "following"} onPress={() => setTab("following")} />

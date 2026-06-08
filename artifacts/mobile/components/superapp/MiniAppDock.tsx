@@ -29,10 +29,9 @@ export default function MiniAppDock({ openApps, activeAppId, onOpen, onClose }: 
   if (dockApps.length === 0 || activeAppId !== null) return null;
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: "box-none" } as any]}>
       <View
-        pointerEvents="box-none"
-        style={[styles.positioner, { bottom: insets.bottom + 64 }]}
+        style={[styles.positioner, { bottom: insets.bottom + 64, pointerEvents: "box-none" } as any]}
       >
         <View
           style={[

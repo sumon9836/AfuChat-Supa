@@ -207,8 +207,7 @@ export function ToastContainer() {
 
   return (
     <View
-      style={[s.container, { bottom: insets.bottom + 86 }]}
-      pointerEvents="box-none"
+      style={[s.container, { bottom: insets.bottom + 86, pointerEvents: "box-none" } as any]}
     >
       {toasts.map((item) =>
         item.variant === "action" ? (

@@ -61,14 +61,14 @@ export function TrustpilotReviewPrompt() {
       Animated.parallel([
         Animated.spring(slideAnim, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
           tension: 80,
           friction: 10,
         }),
         Animated.timing(opacityAnim, {
           toValue: 1,
           duration: 220,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         }),
       ]).start();
     }
@@ -84,12 +84,12 @@ export function TrustpilotReviewPrompt() {
       Animated.timing(slideAnim, {
         toValue: 300,
         duration: 220,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== "web",
       }),
       Animated.timing(opacityAnim, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== "web",
       }),
     ]).start(() => setVisible(false));
   }
@@ -98,8 +98,8 @@ export function TrustpilotReviewPrompt() {
     storage.setNumber(STORAGE_KEY, Date.now() + 365 * 24 * 60 * 60 * 1000);
     openTrustpilot();
     Animated.parallel([
-      Animated.timing(slideAnim, { toValue: 300, duration: 220, useNativeDriver: true }),
-      Animated.timing(opacityAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 300, duration: 220, useNativeDriver: Platform.OS !== "web" }),
+      Animated.timing(opacityAnim, { toValue: 0, duration: 200, useNativeDriver: Platform.OS !== "web" }),
     ]).start(() => setVisible(false));
   }
 

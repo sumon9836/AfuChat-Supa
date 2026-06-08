@@ -389,7 +389,7 @@ function IdScannerScreenMobile() {
           )}
 
           {/* Overlay: corners + scan line + label */}
-          <View style={st.scanOverlay} pointerEvents="none">
+          <View style={[st.scanOverlay, { pointerEvents: "none" } as any]}>
             <View style={st.scanBox}>
               <View style={[st.corner, st.cornerTL]} />
               <View style={[st.corner, st.cornerTR]} />

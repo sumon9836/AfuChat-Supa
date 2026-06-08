@@ -302,7 +302,7 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
           display: "none",
           backgroundColor: "transparent",
           elevation: 0,
-          shadowOpacity: 0,
+          ...Platform.select({ default: { shadowOpacity: 0 } }),
           borderTopWidth: 0,
         },
         tabBarBackground: () => null,

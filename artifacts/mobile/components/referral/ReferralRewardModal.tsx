@@ -158,7 +158,7 @@ export function ReferralRewardModal({
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         {/* Floating stars */}
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" } as any]}>
           {STARS.map((s, i) => <Star key={i} {...s} />)}
         </View>
 

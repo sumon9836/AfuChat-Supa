@@ -502,7 +502,7 @@ export default function QRScannerScreen() {
       )}
 
       {/* Dark overlay with cutout */}
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <View style={[StyleSheet.absoluteFillObject, { pointerEvents: "none" } as any]}>
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }} />
         <View style={{ flexDirection: "row", height: FRAME_SIZE }}>
           <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }} />
@@ -513,7 +513,7 @@ export default function QRScannerScreen() {
       </View>
 
       {/* Scan frame corners */}
-      <View style={[s.frameWrap, { width: FRAME_SIZE, height: FRAME_SIZE }]} pointerEvents="none">
+      <View style={[s.frameWrap, { width: FRAME_SIZE, height: FRAME_SIZE, pointerEvents: "none" } as any]}>
         {/* Corners */}
         {[
           { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3 },

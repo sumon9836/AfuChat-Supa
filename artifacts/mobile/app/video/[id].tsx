@@ -719,12 +719,12 @@ const VideoItem = React.memo(function VideoItem({
       )}
 
       {showBuffering && isActive && (
-        <View style={vStyles.centerOverlay} pointerEvents="none">
+        <View style={[vStyles.centerOverlay, { pointerEvents: "none" } as any]}>
           <ActivityIndicator color="rgba(255,255,255,0.7)" size="small" />
         </View>
       )}
       {paused && !buffering && (
-        <View style={vStyles.centerOverlay} pointerEvents="none">
+        <View style={[vStyles.centerOverlay, { pointerEvents: "none" } as any]}>
           <View style={vStyles.pauseCircle}>
             <Ionicons name="play" size={32} color="#fff" style={{ marginLeft: 3 }} />
           </View>
@@ -742,7 +742,7 @@ const VideoItem = React.memo(function VideoItem({
       <GradientOverlay position="bottom" height={440} />
 
       {/* Bottom info — author + caption */}
-      <View style={[vStyles.bottomArea, { bottom: insets.bottom + 56 + navOffset }]} pointerEvents="box-none">
+      <View style={[vStyles.bottomArea, { bottom: insets.bottom + 56 + navOffset, pointerEvents: "box-none" } as any]}>
         <TouchableOpacity
           onPress={() => router.push(`/@${item.profile.handle}` as any)}
           style={vStyles.authorRow} activeOpacity={0.8}
@@ -789,7 +789,7 @@ const VideoItem = React.memo(function VideoItem({
       </View>
 
       {/* Right action rail */}
-      <View style={[vStyles.rightCol, { bottom: insets.bottom + 36 + navOffset }]} pointerEvents="box-none">
+      <View style={[vStyles.rightCol, { bottom: insets.bottom + 36 + navOffset, pointerEvents: "box-none" } as any]}>
         {/* Like */}
         <View style={vStyles.actionItem}>
           <Animated.View style={{ transform: [{ scale: heartScale }] }}>
@@ -1723,7 +1723,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       />
 
       {!!downloadToast && (
-        <View style={mStyles.toast} pointerEvents="none">
+        <View style={[mStyles.toast, { pointerEvents: "none" } as any]}>
           <Text style={mStyles.toastText}>{downloadToast}</Text>
         </View>
       )}

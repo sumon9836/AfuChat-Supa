@@ -67,7 +67,7 @@ export function SplashScreenView({ ready, onDone }: Props) {
   }, [ready, opacity, scale, onDone]);
 
   return (
-    <Animated.View style={[styles.container, { opacity }]} pointerEvents="none">
+    <Animated.View style={[styles.container, { opacity, pointerEvents: "none" } as any]}>
       <Animated.View style={[styles.logoWrap, { transform: [{ scale }] }]}>
         <Image
           source={LOGO}

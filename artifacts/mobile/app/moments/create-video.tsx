@@ -457,12 +457,12 @@ function CameraPhase({
         >
           {/* Filter overlay */}
           {filterOverlay && (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: filterOverlay.backgroundColor, opacity: filterOverlay.opacity }]} pointerEvents="none" />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: filterOverlay.backgroundColor, opacity: filterOverlay.opacity, pointerEvents: "none" } as any]} />
           )}
 
           {/* Frame / avatar overlay */}
           {activeFrame.emoji && (
-            <View style={cs.frameWrap} pointerEvents="none">
+            <View style={[cs.frameWrap, { pointerEvents: "none" } as any]}>
               <View style={[cs.frameBubble, { backgroundColor: activeFrame.bg! }]}>
                 <Text style={{ fontSize: 30 }}>{activeFrame.emoji}</Text>
               </View>
@@ -479,7 +479,7 @@ function CameraPhase({
 
           {/* Countdown overlay */}
           {countdown !== null && (
-            <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]} pointerEvents="none">
+            <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", pointerEvents: "none" } as any]}>
               <CountdownNumber n={countdown} />
             </View>
           )}
@@ -896,12 +896,12 @@ function EditPhase({
             isMuted={false}
           />
           {filterOverlay && (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: filterOverlay.bg, opacity: filterOverlay.op }]} pointerEvents="none" />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: filterOverlay.bg, opacity: filterOverlay.op, pointerEvents: "none" } as any]} />
           )}
 
           {/* Frame overlay */}
           {frame.emoji && (
-            <View style={[es.frameTopRight]} pointerEvents="none">
+            <View style={[es.frameTopRight, { pointerEvents: "none" } as any]}>
               <View style={[es.frameBubble, { backgroundColor: frame.bg! }]}>
                 <Text style={{ fontSize: 28 }}>{frame.emoji}</Text>
               </View>

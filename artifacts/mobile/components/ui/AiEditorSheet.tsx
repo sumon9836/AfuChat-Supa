@@ -230,7 +230,7 @@ export default function AiEditorSheet({
             height: sheetH,
           }]}
         >
-          <View style={[StyleSheet.absoluteFill, { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: (colors.border as string) + "80" }]} pointerEvents="none" />
+          <View style={[StyleSheet.absoluteFill, { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: (colors.border as string) + "80", pointerEvents: "none" } as any]} />
 
           <View {...sheetPan.panHandlers} style={s.handle} />
 

@@ -86,7 +86,7 @@ export default function SwipeableBottomSheet({
               },
             ]}
           />
-          <View style={styles.sheetBorder} pointerEvents="none" />
+          <View style={[styles.sheetBorder, { pointerEvents: "none" } as any]} />
           <View {...panResponder.panHandlers} style={styles.handleArea}>
             <View style={styles.handle} />
           </View>

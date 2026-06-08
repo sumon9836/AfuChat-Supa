@@ -130,7 +130,7 @@ function CardDetailModal({
               <View style={detailStyles.closeBtnInner}><Ionicons name="chevron-down" size={20} color="#fff" /></View>
             </Pressable>
             {/* Name overlay */}
-            <LinearGradient colors={["transparent", "rgba(0,0,0,0.85)"]} style={detailStyles.nameOverlay} pointerEvents="none">
+            <LinearGradient colors={["transparent", "rgba(0,0,0,0.85)"]} style={[detailStyles.nameOverlay, { pointerEvents: "none" } as any]}>
               <Text style={detailStyles.profileName}>{candidate.name}{candidate.show_age && age ? `, ${age}` : ""}</Text>
               {candidate.job_title && (
                 <View style={detailStyles.metaRow}>
@@ -335,7 +335,7 @@ function SwipeCard({
       </Animated.View>
 
       {/* Info overlay */}
-      <LinearGradient colors={["transparent", "rgba(0,0,0,0.92)"]} style={styles.cardOverlay} pointerEvents="none">
+      <LinearGradient colors={["transparent", "rgba(0,0,0,0.92)"]} style={[styles.cardOverlay, { pointerEvents: "none" } as any]}>
         <View style={styles.cardInfo}>
           <View style={styles.nameRow}>
             <Text style={styles.cardName} numberOfLines={1}>{candidate.name}{candidate.show_age && age ? `, ${age}` : ""}</Text>
@@ -383,7 +383,7 @@ function MatchModal({ match, onClose, onMessage }: { match: MatchRecord; onClose
   return (
     <View style={matchStyles.overlay}>
       {/* Animated hearts background */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" } as any]}>
         {Array.from({ length: 12 }).map((_, i) => (
           <Text key={i} style={[matchStyles.floatingHeart, { left: `${(i * 8.3) % 100}%`, top: `${(i * 13) % 80}%`, fontSize: 16 + (i % 3) * 8, opacity: 0.3 + (i % 3) * 0.1 }]}>
             {i % 2 === 0 ? "❤️" : "💕"}

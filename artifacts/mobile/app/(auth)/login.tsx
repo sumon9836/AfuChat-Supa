@@ -72,7 +72,7 @@ const inp = StyleSheet.create({
 function GlassModal({ visible, onClose, isDark, children }: { visible: boolean; onClose: () => void; isDark: boolean; children: React.ReactNode }) {
   const opacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(opacity, { toValue: visible ? 1 : 0, duration: 220, useNativeDriver: true }).start();
+    Animated.timing(opacity, { toValue: visible ? 1 : 0, duration: 220, useNativeDriver: Platform.OS !== "web" }).start();
   }, [visible]);
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -498,8 +498,7 @@ export default function SignInScreen() {
 
       {/* ── LANDING PANEL ── */}
       <Animated.View
-        style={[sc.panel, { transform: [{ translateX: landingX }] }]}
-        pointerEvents={step === "landing" ? "auto" : "none"}
+        style={[sc.panel, { transform: [{ translateX: landingX }], pointerEvents: step === "landing" ? "auto" : "none" } as any]}
       >
         <View style={{ flex: 1, paddingHorizontal: 28, paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 }}>
           {/* Logo */}
@@ -599,8 +598,7 @@ export default function SignInScreen() {
 
       {/* ── EMAIL FORM PANEL ── */}
       <Animated.View
-        style={[sc.panel, { transform: [{ translateX: formX }] }]}
-        pointerEvents={step === "email" ? "auto" : "none"}
+        style={[sc.panel, { transform: [{ translateX: formX }], pointerEvents: step === "email" ? "auto" : "none" } as any]}
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView

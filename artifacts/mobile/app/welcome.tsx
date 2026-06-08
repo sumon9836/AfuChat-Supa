@@ -181,8 +181,7 @@ export default function WelcomeScreen() {
         locations={[0, 0.28, 0.50, 0.68, 0.84]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { pointerEvents: "none" } as any]}
       />
 
       {/* Top bar — floats over the image */}

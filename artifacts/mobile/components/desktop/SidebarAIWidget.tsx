@@ -56,7 +56,7 @@ export function SidebarAIWidget({ theme }: { theme: ThemePack }) {
     Animated.timing(fadeAnim, {
       toValue: expanded ? 1 : 0,
       duration: 180,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== "web",
     }).start();
     if (expanded) {
       setTimeout(() => inputRef.current?.focus(), 220);

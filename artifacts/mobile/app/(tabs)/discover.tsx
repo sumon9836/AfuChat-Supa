@@ -2128,9 +2128,9 @@ export default function DiscoverScreen() {
                 }),
               },
             ],
-          },
+            pointerEvents: undoStack.length > 0 ? "auto" : "none",
+          } as any,
         ]}
-        pointerEvents={undoStack.length > 0 ? "auto" : "none"}
       >
         <Text style={snackStyles.label}>
           {undoStack.length} post{undoStack.length !== 1 ? "s" : ""} dismissed
@@ -2162,24 +2162,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tabRow: { flexDirection: "row", flex: 1, gap: 8 },
-  filterChipsRow: {
-    flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-  },
-  filterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  filterChipText: {
-    fontSize: 12,
-  },
   endOfFeed: {
     flexDirection: "row",
     alignItems: "center",

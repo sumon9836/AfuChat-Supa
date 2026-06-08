@@ -269,7 +269,7 @@ export default function VideoTrimmerModal({
           </View>
 
           {/* Draggable handles — positioned relative to the track above */}
-          <View style={s.handleRow} pointerEvents="box-none">
+          <View style={[s.handleRow, { pointerEvents: "box-none" } as any]}>
             <View
               {...startPan.panHandlers}
               style={[

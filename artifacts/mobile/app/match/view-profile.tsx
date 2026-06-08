@@ -125,7 +125,7 @@ export default function ViewProfileScreen() {
           <TouchableOpacity style={[styles.reportBtn, { top: insets.top + 8 }]} onPress={() => setShowReport(true)}>
             <View style={styles.backBtnInner}><Ionicons name="flag" size={18} color="#fff" /></View>
           </TouchableOpacity>
-          <LinearGradient colors={["transparent", "rgba(0,0,0,0.85)"]} style={styles.nameOverlay} pointerEvents="none">
+          <LinearGradient colors={["transparent", "rgba(0,0,0,0.85)"]} style={[styles.nameOverlay, { pointerEvents: "none" } as any]}>
             <Text style={styles.profileName}>{profile.name}{profile.show_age && age ? `, ${age}` : ""}</Text>
             {(profile.job_title || profile.company) && (
               <View style={styles.metaRow}>

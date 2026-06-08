@@ -164,8 +164,8 @@ function TypingDots({ color }: { color: string }) {
       Animated.loop(
         Animated.sequence([
           Animated.delay(i * 150),
-          Animated.timing(dot, { toValue: -4, duration: 280, useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0,  duration: 280, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: -4, duration: 280, useNativeDriver: Platform.OS !== "web" }),
+          Animated.timing(dot, { toValue: 0,  duration: 280, useNativeDriver: Platform.OS !== "web" }),
           Animated.delay(300),
         ])
       )
@@ -765,14 +765,14 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
     setStoriesExpanded(true);
     Animated.parallel([
       Animated.spring(storiesHeightAnim, { toValue: 1, useNativeDriver: false, speed: 18, bounciness: 4 }),
-      Animated.timing(compactAvatarAnim, { toValue: 0, duration: 160, useNativeDriver: true }),
+      Animated.timing(compactAvatarAnim, { toValue: 0, duration: 160, useNativeDriver: Platform.OS !== "web" }),
     ]).start();
   }, [storiesHeightAnim, compactAvatarAnim]);
 
   const collapseStories = useCallback(() => {
     Animated.parallel([
       Animated.spring(storiesHeightAnim, { toValue: 0, useNativeDriver: false, speed: 24, bounciness: 0 }),
-      Animated.timing(compactAvatarAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+      Animated.timing(compactAvatarAnim, { toValue: 1, duration: 180, useNativeDriver: Platform.OS !== "web" }),
     ]).start(() => {
       storiesExpandedRef.current = false;
       setStoriesExpanded(false);
@@ -793,11 +793,11 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
 
     if (dy > 6 && y > 60 && !fabHidden.current) {
       fabHidden.current = true;
-      Animated.spring(fabAnim, { toValue: 0, useNativeDriver: true, speed: 24, bounciness: 0 }).start();
+      Animated.spring(fabAnim, { toValue: 0, useNativeDriver: Platform.OS !== "web", speed: 24, bounciness: 0 }).start();
       if (storiesExpandedRef.current) collapseStories();
     } else if (dy < -4 && fabHidden.current) {
       fabHidden.current = false;
-      Animated.spring(fabAnim, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }).start();
+      Animated.spring(fabAnim, { toValue: 1, useNativeDriver: Platform.OS !== "web", speed: 20, bounciness: 6 }).start();
     }
   }, [fabAnim, expandStories, collapseStories]);
 
@@ -2049,7 +2049,6 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
             >
               {/* Sliding pill highlight — follows active tab */}
               <Animated.View
-                pointerEvents="none"
                 style={{
                   position: "absolute",
                   top: 5,
@@ -2059,6 +2058,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                   left: folderPillX,
                   width: folderPillW,
                   zIndex: 0,
+                  pointerEvents: "none",
                 }}
               />
 

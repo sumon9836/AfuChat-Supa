@@ -36,7 +36,7 @@ function DurationBadge({ label }: { label: string }) {
 function WatchProgressBar({ fraction }: { fraction: number }) {
   if (fraction < 0.02 || fraction > 0.97) return null;
   return (
-    <View style={progressStyles.track} pointerEvents="none">
+    <View style={[progressStyles.track, { pointerEvents: "none" } as any]}>
       <View style={[progressStyles.fill, { width: `${Math.round(fraction * 100)}%` as any }]} />
     </View>
   );

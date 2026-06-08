@@ -531,7 +531,7 @@ export default function PostShortLinkScreen() {
                   {allImages.length > 0 ? (
                     <TouchableOpacity activeOpacity={0.95} onPress={() => imgViewer.openViewer(allImages, 0)} style={styles.heroWrap}>
                       <Image source={{ uri: allImages[0] }} style={styles.articleHero} resizeMode="cover" />
-                      <LinearGradient colors={["transparent", isDark ? "rgba(13,17,23,0.95)" : "rgba(255,255,255,0.92)"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0.35 }} end={{ x: 0, y: 1 }} pointerEvents="none" />
+                      <LinearGradient colors={["transparent", isDark ? "rgba(13,17,23,0.95)" : "rgba(255,255,255,0.92)"]} style={[StyleSheet.absoluteFill, { pointerEvents: "none" } as any]} start={{ x: 0, y: 0.35 }} end={{ x: 0, y: 1 }} />
                       <View style={styles.heroOverlayContent}>
                         <View style={styles.articleBadgeRow}>
                           <Ionicons name="document-text" size={12} color={colors.accent} />

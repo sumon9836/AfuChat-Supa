@@ -327,7 +327,7 @@ export default function AfuIDApp() {
       </View>
 
       {/* HIDDEN CAPTURE LAYERS */}
-      <View style={r.captureLayer} pointerEvents="none">
+      <View style={[r.captureLayer, { pointerEvents: "none" } as any]}>
         <ViewShot ref={frontShotRef} options={{ format: "png", quality: 1, result: "tmpfile" }}>
           <View ref={frontDomRef}><CardFront {...cp} /></View>
         </ViewShot>
@@ -369,7 +369,7 @@ function SecurityPattern({ w, h, color }: { w: number; h: number; color: string 
     lines.push({ x1: i + h, y1: 0, x2: i, y2: h });
   }
   return (
-    <View style={[StyleSheet.absoluteFill, { overflow: "hidden" }]} pointerEvents="none">
+    <View style={[StyleSheet.absoluteFill, { overflow: "hidden", pointerEvents: "none" } as any]}>
       <svg width={w} height={h} style={{ position: "absolute", top: 0, left: 0 } as any}>
         {lines.map((l, i) => (
           <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}

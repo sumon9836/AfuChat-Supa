@@ -201,12 +201,13 @@ function AlbumDisc({ accentColor, isPlaying, size = 230 }: {
         </LinearGradient>
       </Animated.View>
       {!isPlaying && (
-        <View pointerEvents="none" style={{
+        <View style={{
           position: "absolute", right: -8, top: R * 0.1,
           width: 3, height: R * 0.55,
           backgroundColor: "rgba(200,200,200,0.35)", borderRadius: 2,
           transform: [{ rotate: "30deg" }],
-        }} />
+          pointerEvents: "none",
+        } as any} />
       )}
     </View>
   );

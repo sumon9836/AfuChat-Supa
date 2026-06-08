@@ -150,10 +150,10 @@ function WheelColumn({ items, selectedIndex, onSelect, colors, accent, width }: 
     <View style={{ width, height: ITEM_H * VISIBLE, overflow: "hidden" }}>
       {/* Selection highlight */}
       <View
-        pointerEvents="none"
         style={[
           wc.highlight,
           {
+            pointerEvents: "none",
             top: ITEM_H * paddingItems,
             height: ITEM_H,
             borderColor: accent + "60",
