@@ -672,6 +672,10 @@ export function VideoCommentsSheet({
       showAlert("Not supported", "Voice recording is not available on web.");
       return;
     }
+    if (!Audio) {
+      showAlert("Not supported", "Audio recording is not available in this environment.");
+      return;
+    }
     const { granted } = await Audio.requestPermissionsAsync();
     if (!granted) {
       showAlert("Microphone access needed", "Please enable microphone access in Settings to record voice notes.");
@@ -727,7 +731,7 @@ export function VideoCommentsSheet({
       setRecordState("idle");
       setRecordElapsed(0);
     }
-    await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+    Audio?.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
   }
 
   async function pickImage() {

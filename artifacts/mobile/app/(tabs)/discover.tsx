@@ -60,6 +60,9 @@ import { TrendingSoundsSection } from "@/components/TrendingSoundsSection";
 import { SuggestedUsers } from "@/components/ui/SuggestedUsers";
 import { PostShareCaptureModal, type ShareablePost } from "@/components/ui/PostShareCard";
 import { VideoCommentsSheet } from "@/components/ui/VideoCommentsSheet";
+import { UserRecsCard } from "@/components/discover/UserRecsCard";
+import { PremiumUpsellCard } from "@/components/discover/PremiumUpsellCard";
+import { DismissSheet, type DismissReason } from "@/components/discover/DismissSheet";
 
 type PostItem = {
   id: string;
@@ -122,7 +125,7 @@ function BookmarkButton({ bookmarked, onPress }: { bookmarked: boolean; onPress:
   );
 }
 
-const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBookmark, onToggleFollow, onImagePress, onRequireAuth, colWidth, onOpenComments }: { item: PostItem; onToggleLike: (postId: string) => void; onToggleBookmark: (postId: string) => void; onToggleFollow: (authorId: string) => void; onImagePress?: (images: string[], index: number) => void; onRequireAuth?: () => void; colWidth?: number; onOpenComments: (postId: string, authorId: string) => void }) {
+const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBookmark, onToggleFollow, onImagePress, onRequireAuth, colWidth, onOpenComments, onDismiss, onMuteAuthor }: { item: PostItem; onToggleLike: (postId: string) => void; onToggleBookmark: (postId: string) => void; onToggleFollow: (authorId: string) => void; onImagePress?: (images: string[], index: number) => void; onRequireAuth?: () => void; colWidth?: number; onOpenComments: (postId: string, authorId: string) => void; onDismiss?: (postId: string) => void; onMuteAuthor?: (authorId: string, handle: string) => void }) {
   const { horizontalScrollActive } = React.useContext(TabSwipeContext);
   const { colors } = useTheme();
   const { preferredLang } = useLanguage();
@@ -539,6 +542,26 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               <Ionicons name="image-outline" size={22} color={colors.accent} />
               <Text style={[styles.menuItemText, { color: colors.text }]}>Save as Image</Text>
             </TouchableOpacity>
+            {!isOwnPost && (
+              <>
+                <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => { setMenuVisible(false); setTimeout(() => onDismiss?.(item.id), 150); }}
+                >
+                  <Ionicons name="thumbs-down-outline" size={22} color={colors.textMuted} />
+                  <Text style={[styles.menuItemText, { color: colors.text }]}>Not interested</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => { setMenuVisible(false); onMuteAuthor?.(item.author_id, item.profile.handle); }}
+                >
+                  <Ionicons name="volume-mute-outline" size={22} color={colors.textMuted} />
+                  <Text style={[styles.menuItemText, { color: colors.text }]}>Mute @{item.profile.handle}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
             <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
               <Ionicons name="close-outline" size={22} color={colors.textMuted} />
               <Text style={[styles.menuItemText, { color: colors.textMuted }]}>Cancel</Text>
@@ -560,8 +583,15 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
   prev.item.view_count === next.item.view_count &&
   prev.item.isFollowing === next.item.isFollowing &&
   prev.item.content === next.item.content &&
-  prev.colWidth === next.colWidth
+  prev.colWidth === next.colWidth &&
+  prev.onDismiss === next.onDismiss &&
+  prev.onMuteAuthor === next.onMuteAuthor
 );
+
+type FeedEntry =
+  | { _kind: "post"; item: PostItem }
+  | { _kind: "user_recs"; id: string; seed: number }
+  | { _kind: "premium"; id: string; variant: "ai" | "creator" | "wallet" };
 
 export default function DiscoverScreen() {
   "use no memo";
@@ -602,14 +632,61 @@ export default function DiscoverScreen() {
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const [commentPostAuthorId, setCommentPostAuthorId] = useState<string>("");
   const [postTypeFilter, setPostTypeFilter] = useState<"all" | "post" | "video" | "article" | "photo">("all");
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [suppressedAuthors, setSuppressedAuthors] = useState<Set<string>>(new Set());
+  const [dismissTarget, setDismissTarget] = useState<PostItem | null>(null);
+  const [dismissedUpsellVariants, setDismissedUpsellVariants] = useState<Set<string>>(new Set());
   const PAGE_SIZE = 30;
   const imgViewer = useImageViewer();
 
   const filteredPosts = useMemo(() => {
-    if (postTypeFilter === "all") return posts;
-    if (postTypeFilter === "photo") return posts.filter(p => p.post_type !== "video" && p.post_type !== "article" && (p.images.length > 0 || !!p.image_url));
-    return posts.filter(p => p.post_type === postTypeFilter);
-  }, [posts, postTypeFilter]);
+    let base = posts.filter(p => !dismissedIds.has(p.id) && !suppressedAuthors.has(p.author_id));
+    if (postTypeFilter === "all") return base;
+    if (postTypeFilter === "photo") return base.filter(p => p.post_type !== "video" && p.post_type !== "article" && (p.images.length > 0 || !!p.image_url));
+    return base.filter(p => p.post_type === postTypeFilter);
+  }, [posts, postTypeFilter, dismissedIds, suppressedAuthors]);
+
+  const PREMIUM_VARIANTS: Array<"ai" | "creator" | "wallet"> = ["ai", "creator", "wallet"];
+  const augmentedFeed = useMemo<FeedEntry[]>(() => {
+    const entries: FeedEntry[] = [];
+    let recSeed = 0;
+    let premiumIdx = 0;
+    for (let i = 0; i < filteredPosts.length; i++) {
+      entries.push({ _kind: "post", item: filteredPosts[i] });
+      if ((i + 1) % 8 === 0) {
+        entries.push({ _kind: "user_recs", id: `recs_${Math.floor(i / 8)}`, seed: recSeed++ });
+      }
+      if ((i + 1) % 15 === 0) {
+        const variant = PREMIUM_VARIANTS[premiumIdx % PREMIUM_VARIANTS.length];
+        const upsellId = `upsell_${premiumIdx}`;
+        if (!dismissedUpsellVariants.has(upsellId)) {
+          entries.push({ _kind: "premium", id: upsellId, variant });
+        }
+        premiumIdx++;
+      }
+    }
+    return entries;
+  }, [filteredPosts, dismissedUpsellVariants]);
+
+  const onDismissPost = useCallback((postId: string) => {
+    const post = posts.find(p => p.id === postId);
+    if (post) setDismissTarget(post);
+  }, [posts]);
+
+  const onDismissReason = useCallback((reason: DismissReason) => {
+    if (!dismissTarget) return;
+    const { id, author_id } = dismissTarget;
+    setDismissTarget(null);
+    if (reason === "mute_author") {
+      setSuppressedAuthors(prev => new Set([...prev, author_id]));
+    } else {
+      setDismissedIds(prev => new Set([...prev, id]));
+    }
+  }, [dismissTarget]);
+
+  const onMuteAuthor = useCallback((authorId: string, _handle: string) => {
+    setSuppressedAuthors(prev => new Set([...prev, authorId]));
+  }, []);
 
   const onOpenComments = useCallback((postId: string, authorId: string) => {
     setCommentPostId(postId);
@@ -695,11 +772,13 @@ export default function DiscoverScreen() {
   onViewableItemsChangedRef.current = ({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (!user) return;
     for (const vi of viewableItems) {
-      const postId = vi.item?.id as string | undefined;
+      if (vi.item?._kind && vi.item._kind !== "post") continue;
+      const postId = (vi.item?._kind === "post" ? vi.item.item?.id : vi.item?.id) as string | undefined;
       if (!postId || recordedViewsRef.current.has(postId)) continue;
       recordedViewsRef.current.add(postId);
-      const authorId = vi.item?.author_id as string | undefined;
-      const postType = vi.item?.post_type as string | undefined;
+      const postEntry = vi.item?._kind === "post" ? vi.item.item : vi.item;
+      const authorId = postEntry?.author_id as string | undefined;
+      const postType = postEntry?.post_type as string | undefined;
       supabase.from("post_views").insert({ post_id: postId, viewer_id: user.id }).then(() => {
         setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, view_count: (p.view_count || 0) + 1 } : p));
       });
@@ -1721,20 +1800,35 @@ export default function DiscoverScreen() {
       ) : (
         <FlatList
           ref={flatListRef}
-          data={filteredPosts}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <PostCard
-              item={item}
-              onToggleLike={toggleLike}
-              onToggleBookmark={toggleBookmark}
-              onToggleFollow={toggleFollow}
-              onImagePress={imgViewer.openViewer}
-              onRequireAuth={onRequireAuth}
-              colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined}
-              onOpenComments={onOpenComments}
-            />
-          )}
+          data={augmentedFeed}
+          keyExtractor={(entry) => entry._kind === "post" ? entry.item.id : entry.id}
+          renderItem={({ item: entry }) => {
+            if (entry._kind === "user_recs") {
+              return <UserRecsCard seed={entry.seed} onRequireAuth={onRequireAuth} />;
+            }
+            if (entry._kind === "premium") {
+              return (
+                <PremiumUpsellCard
+                  variant={entry.variant}
+                  onDismiss={() => setDismissedUpsellVariants(prev => new Set([...prev, entry.id]))}
+                />
+              );
+            }
+            return (
+              <PostCard
+                item={entry.item}
+                onToggleLike={toggleLike}
+                onToggleBookmark={toggleBookmark}
+                onToggleFollow={toggleFollow}
+                onImagePress={imgViewer.openViewer}
+                onRequireAuth={onRequireAuth}
+                colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined}
+                onOpenComments={onOpenComments}
+                onDismiss={onDismissPost}
+                onMuteAuthor={onMuteAuthor}
+              />
+            );
+          }}
           contentContainerStyle={{
             gap: 8,
             paddingTop: headerHeight + 8,
@@ -1873,6 +1967,13 @@ export default function DiscoverScreen() {
         postAuthorId={commentPostAuthorId}
         onClose={() => { setCommentPostId(null); setCommentPostAuthorId(""); }}
         onReplyCountChange={onCommentReplyCountChange}
+      />
+
+      <DismissSheet
+        visible={!!dismissTarget}
+        authorHandle={dismissTarget?.profile.handle ?? ""}
+        onSelect={onDismissReason}
+        onClose={() => setDismissTarget(null)}
       />
     </View>
   );
@@ -2099,6 +2200,11 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     fontFamily: "Inter_500Medium",
+  },
+  menuDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 4,
+    marginHorizontal: 16,
   },
   fab: {
     position: "absolute",
