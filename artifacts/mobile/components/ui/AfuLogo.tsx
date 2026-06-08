@@ -9,16 +9,20 @@ const LOGO_LIGHT = require("../../assets/images/logo_black.png");
  * AfuChat brand logo — theme-aware.
  * • Dark theme  → white glowing logo (visible on dark backgrounds)
  * • Light theme → black logo (visible on light backgrounds)
+ * • forceTheme  → override system theme ("dark" = white logo, "light" = black logo)
  */
 export function AfuLogo({
   size = 72,
   style,
+  forceTheme,
 }: {
   size?: number;
   style?: StyleProp<ViewStyle>;
+  forceTheme?: "dark" | "light";
 }) {
   const scheme = useColorScheme();
-  const source = scheme === "dark" ? LOGO_DARK : LOGO_LIGHT;
+  const resolved = forceTheme ?? scheme;
+  const source = resolved === "dark" ? LOGO_DARK : LOGO_LIGHT;
 
   if (Platform.OS === "web") {
     return (
