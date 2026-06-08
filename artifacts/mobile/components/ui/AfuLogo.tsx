@@ -1,12 +1,14 @@
 import React from "react";
-import { Image as RNImage, Platform, StyleProp, ViewStyle } from "react-native";
+import { Image as RNImage, Platform, StyleProp, ViewStyle, useColorScheme } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 
-const LOGO = require("../../assets/images/icon.png");
+const LOGO_DARK = require("../../assets/images/logo_white.png");
+const LOGO_LIGHT = require("../../assets/images/logo_black.png");
 
 /**
- * AfuChat brand logo — shows the app icon as a rounded square.
- * Uses the local asset on all platforms for instant, consistent rendering.
+ * AfuChat brand logo — theme-aware.
+ * • Dark theme  → white glowing logo (visible on dark backgrounds)
+ * • Light theme → black logo (visible on light backgrounds)
  */
 export function AfuLogo({
   size = 72,
@@ -15,14 +17,15 @@ export function AfuLogo({
   size?: number;
   style?: StyleProp<ViewStyle>;
 }) {
-  const radius = size * 0.22;
+  const scheme = useColorScheme();
+  const source = scheme === "dark" ? LOGO_DARK : LOGO_LIGHT;
 
   if (Platform.OS === "web") {
     return (
       <RNImage
-        source={LOGO}
-        style={[{ width: size, height: size, borderRadius: radius }, style as any]}
-        resizeMode="cover"
+        source={source}
+        style={[{ width: size, height: size } as any, style as any]}
+        resizeMode="contain"
         accessibilityLabel="AfuChat logo"
       />
     );
@@ -30,9 +33,9 @@ export function AfuLogo({
 
   return (
     <ExpoImage
-      source={LOGO}
-      style={[{ width: size, height: size, borderRadius: radius }, style as any]}
-      contentFit="cover"
+      source={source}
+      style={[{ width: size, height: size }, style as any]}
+      contentFit="contain"
       accessibilityLabel="AfuChat logo"
       cachePolicy="memory-disk"
     />

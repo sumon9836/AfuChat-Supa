@@ -471,7 +471,7 @@ footer{
 <!-- NAV -->
 <nav class="nav" aria-label="Main navigation">
   <a class="nav-logo" href="/">
-    <img src="/logo.png" alt="${SITE} logo" width="32" height="32" style="object-fit:contain"/>
+    <picture><source srcset="/logo_white.png" media="(prefers-color-scheme:dark)"/><img src="/logo_black.png" alt="${SITE} logo" width="32" height="32" style="object-fit:contain"/></picture>
     <span class="nav-logo-name">${SITE}</span>
   </a>
   <div class="nav-links" role="list">
@@ -799,7 +799,7 @@ footer{
 <footer>
   <div class="container">
     <div class="footer-top">
-      <img src="/logo.png" alt="${SITE} logo" width="30" height="30" style="object-fit:contain"/>
+      <picture><source srcset="/logo_white.png" media="(prefers-color-scheme:dark)"/><img src="/logo_black.png" alt="${SITE} logo" width="30" height="30" style="object-fit:contain"/></picture>
       <strong>${SITE}</strong>
     </div>
     <nav class="footer-links" aria-label="Footer navigation">

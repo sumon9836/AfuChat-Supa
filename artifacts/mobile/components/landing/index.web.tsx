@@ -58,6 +58,8 @@ export const LANDING_CSS = `
 .lp-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 6%;height:64px;background:var(--bg);border-bottom:1px solid var(--bdr)}
 .lp-nav-brand{display:flex;align-items:center;gap:9px;cursor:pointer;text-decoration:none}
 .lp-nav-logo{width:32px;height:32px;object-fit:contain}
+.lp-logo-dark{display:none}.lp-logo-light{display:block}
+@media(prefers-color-scheme:dark){.lp-logo-dark{display:block}.lp-logo-light{display:none}}
 .lp-nav-name{font-size:18px;font-weight:800;color:var(--txt);letter-spacing:-.4px}
 .lp-nav-name em{color:var(--cl);font-style:normal}
 .lp-nav-links{display:flex;align-items:center;gap:2px;list-style:none}
@@ -343,7 +345,10 @@ export function LandingNav({ active }: { active?: string }) {
     <>
       <nav className="lp-nav">
         <a href="/landing" className="lp-nav-brand">
-          <img src="/logo.png" alt="AfuChat" className="lp-nav-logo" />
+          <picture>
+            <source srcSet="/logo_white.png" media="(prefers-color-scheme: dark)" />
+            <img src="/logo_black.png" alt="AfuChat" className="lp-nav-logo" />
+          </picture>
           <span className="lp-nav-name">Afu<em>Chat</em></span>
         </a>
         <ul className="lp-nav-links">
@@ -414,7 +419,10 @@ export function LandingFooter() {
       <div className="lp-footer-main">
         <div>
           <div className="lp-footer-logo-row">
-            <img src="/logo.png" alt="AfuChat" className="lp-footer-logo" />
+            <picture>
+              <source srcSet="/logo_white.png" media="(prefers-color-scheme: dark)" />
+              <img src="/logo_black.png" alt="AfuChat" className="lp-footer-logo" />
+            </picture>
             <span className="lp-footer-logo-name">Afu<em>Chat</em></span>
           </div>
           <p className="lp-footer-tag">The super app built for Africa and the world — messaging, AI, payments, and community in one place.</p>
