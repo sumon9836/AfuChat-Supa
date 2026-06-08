@@ -68,7 +68,7 @@ export function PremiumRing({ size, children, square }: Props) {
   const center = outerSize / 2;
   const arcGap = 5;
 
-  if (!hasSvg()) {
+  if (!hasSvg() || Platform.OS === "web") {
     return (
       <Animated.View style={{ width: outerSize, height: outerSize, alignItems: "center", justifyContent: "center", transform: [{ scale: pulse }] }}>
         <View style={{

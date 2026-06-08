@@ -17,6 +17,7 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { storage, KEYS } from "@/lib/storage/mmkv";
+import * as Haptics from "@/lib/haptics";
 
 const SLIDES = [
   {
@@ -72,7 +73,6 @@ export default function WelcomeScreen() {
   const { width: SW, height: SH } = useWindowDimensions();
   const isWeb = Platform.OS === "web";
 
-  const PHOTO_H = Math.round(SH * 0.60);
   const bgColor = isDark ? "#0A0A0A" : "#FFFFFF";
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -99,6 +99,7 @@ export default function WelcomeScreen() {
     isBusyRef.current = true;
     activeIndexRef.current = nextIdx;
     setActiveIndex(nextIdx);
+    Haptics.selectionAsync();
 
     // Content: fade out → slide up slightly → fade in new text
     Animated.sequence([
@@ -147,6 +148,7 @@ export default function WelcomeScreen() {
     if (activeIndex < TOTAL - 1) {
       crossfadeTo(activeIndex + 1);
     } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       finish();
     }
   }
@@ -158,47 +160,45 @@ export default function WelcomeScreen() {
     <View style={[s.root, { backgroundColor: bgColor }]} {...panResponder.panHandlers}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* ── Crossfade image stack ── */}
-      <View style={{ width: SW, height: PHOTO_H, overflow: "hidden" }}>
-        {SLIDES.map((sl, i) => (
-          <Animated.View
-            key={i}
-            style={[StyleSheet.absoluteFill, { opacity: imgOpacities[i] }]}
-          >
-            <Image
-              source={{ uri: sl.photo }}
-              style={StyleSheet.absoluteFill}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-            />
-          </Animated.View>
-        ))}
+      {/* ── Full-screen crossfade image stack ── */}
+      {SLIDES.map((sl, i) => (
+        <Animated.View
+          key={i}
+          style={[StyleSheet.absoluteFill, { opacity: imgOpacities[i] }]}
+        >
+          <Image
+            source={{ uri: sl.photo }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+          />
+        </Animated.View>
+      ))}
 
-        {/* Smooth bottom fade into bg — NO top shadow */}
-        <LinearGradient
-          colors={["transparent", "transparent", `${bgColor}BB`, bgColor]}
-          locations={[0, 0.48, 0.80, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
+      {/* Full-screen gradient — image fades smoothly into background from ~30% down */}
+      <LinearGradient
+        colors={["transparent", "transparent", `${bgColor}88`, `${bgColor}DD`, bgColor]}
+        locations={[0, 0.28, 0.50, 0.68, 0.84]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
 
-        {/* Top bar — transparent, no background */}
-        <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
-          <View />
-          <TouchableOpacity
-            onPress={finish}
-            hitSlop={{ top: 12, bottom: 12, left: 16, right: 16 }}
-          >
-            <View style={s.skipPill}>
-              <Text style={s.skipText}>Skip</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+      {/* Top bar — floats over the image */}
+      <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
+        <View />
+        <TouchableOpacity
+          onPress={finish}
+          hitSlop={{ top: 12, bottom: 12, left: 16, right: 16 }}
+        >
+          <View style={s.skipPill}>
+            <Text style={s.skipText}>Skip</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
-      {/* ── Content area ── */}
+      {/* ── Content area — sits at the bottom, layered above the gradient ── */}
       <View style={[s.content, { paddingBottom: Math.max(insets.bottom, 20) + 12 }]}>
         <Animated.View
           style={[s.contentInner, { opacity: contentOpacity, transform: [{ translateY: contentY }] }]}

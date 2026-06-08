@@ -501,9 +501,13 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
             {/* Share */}
             <TouchableOpacity
               style={styles.footerStat}
-              onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } item.post_type === "video"
-                ? shareVideo({ postId: item.id, authorName: item.profile.display_name, caption: item.content })
-                : sharePost({ postId: item.id, authorName: item.profile.display_name, content: item.content }); }}
+              onPress={() => {
+                if (!currentUser) { onRequireAuth?.(); return; }
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                item.post_type === "video"
+                  ? shareVideo({ postId: item.id, authorName: item.profile.display_name, caption: item.content })
+                  : sharePost({ postId: item.id, authorName: item.profile.display_name, content: item.content });
+              }}
               activeOpacity={0.7}
             >
               <Ionicons name="arrow-redo-outline" size={18} color={colors.textMuted} />
