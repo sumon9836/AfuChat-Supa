@@ -63,7 +63,7 @@ function AuthInput({ icon, placeholder, value, onChangeText, secureTextEntry, ke
   );
 }
 const inp = StyleSheet.create({
-  wrap: { flexDirection: "row", alignItems: "center", borderRadius: 14, paddingHorizontal: 14, height: 54 },
+  wrap: { flexDirection: "row", alignItems: "center", borderRadius: 100, paddingHorizontal: 14, height: 54 },
   icon: { marginRight: 10 },
   text: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", height: 54, outlineStyle: "none" } as any,
 });

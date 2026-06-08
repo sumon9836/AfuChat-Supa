@@ -12,6 +12,7 @@ const ND = Platform.OS !== "web";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { dismissToast, registerToastListener, type ToastItem } from "@/lib/toast";
+import { impactAsync, notificationAsync, ImpactFeedbackStyle, NotificationFeedbackType } from "@/lib/haptics";
 
 // ─── Type-based defaults ──────────────────────────────────────────────────────
 
@@ -73,7 +74,7 @@ function DefaultToast({
   return (
     <Animated.View style={[s.pill, { opacity, transform: [{ translateY }, { scale }] }]}>
       <Pressable
-        onPress={() => { animateOut(); dismissToast(item.id); }}
+        onPress={() => { impactAsync(ImpactFeedbackStyle.Light); animateOut(); dismissToast(item.id); }}
         style={s.pillInner}
         android_ripple={{ color: "rgba(255,255,255,0.08)", borderless: false }}
       >
@@ -128,12 +129,14 @@ function ActionToast({
   }, [item.duration, animateOut]);
 
   function handleAction() {
+    notificationAsync(NotificationFeedbackType.Success);
     item.onAction?.();
     animateOut();
     dismissToast(item.id);
   }
 
   function handleDismiss() {
+    impactAsync(ImpactFeedbackStyle.Light);
     animateOut();
     dismissToast(item.id);
   }
