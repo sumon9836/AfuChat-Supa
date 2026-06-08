@@ -1,5 +1,7 @@
 {pkgs}: {
   deps = [
+    pkgs.nss
+    pkgs.glib
     pkgs.ffmpeg
   ];
 }

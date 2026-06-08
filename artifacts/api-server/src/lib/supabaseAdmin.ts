@@ -18,10 +18,9 @@ export function getSupabaseAdmin(): SupabaseClient | null {
   if (!supabaseUrl || !serviceRoleKey) {
     if (!warnedMissing) {
       warnedMissing = true;
-      logger.warn(
+      logger.info(
         { hasUrl: !!supabaseUrl, hasKey: !!serviceRoleKey },
-        "supabaseAdmin: SUPABASE_SERVICE_ROLE_KEY is not configured. " +
-          "Server-side video pipeline and admin features will be unavailable.",
+        "supabaseAdmin: service-role key not configured — video pipeline and admin features unavailable.",
       );
     }
     return null;

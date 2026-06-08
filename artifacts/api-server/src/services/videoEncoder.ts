@@ -336,9 +336,7 @@ export async function startVideoEncoder(): Promise<void> {
     return;
   }
   if (!isSupabaseAdminConfigured()) {
-    logger.warn(
-      "video encoder NOT started: SUPABASE_SERVICE_ROLE_KEY is not configured",
-    );
+    logger.info("video encoder not started: service key not configured");
     return;
   }
   const caps = await checkFfmpegEncoders();

@@ -21,7 +21,7 @@ let watcherStarted = false;
 export function startRealtimeWatcher() {
   if (watcherStarted || !supabaseUrl || !serviceKey) {
     if (!supabaseUrl || !serviceKey) {
-      logger.warn("[watcher] Missing Supabase config — email watcher not started");
+      logger.info("[watcher] Supabase service key not configured — email watcher not started");
     }
     return;
   }

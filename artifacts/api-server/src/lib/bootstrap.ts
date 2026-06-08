@@ -43,9 +43,8 @@ export interface BootstrapResult {
 export async function loadAppSettings(): Promise<BootstrapResult> {
   const serviceKey = SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {
-    logger.warn(
-      "bootstrap: SUPABASE_SERVICE_ROLE_KEY missing — skipping Supabase settings load. " +
-        "Server will use existing process.env values only.",
+    logger.info(
+      "bootstrap: SUPABASE_SERVICE_ROLE_KEY not set — using process.env values only.",
     );
     return { loaded: 0, skipped: 0, source: "env-only" };
   }
