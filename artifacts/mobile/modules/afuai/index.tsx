@@ -559,7 +559,7 @@ export default function AfuAIApp() {
           >
             {!isUser && (
               <LinearGradient
-                colors={["#6C47FF", "#00BCD4"]}
+                colors={["#6C47FF", "#1f95ff"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.aiBadge}
@@ -621,7 +621,7 @@ export default function AfuAIApp() {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <LinearGradient
-          colors={["#6C47FF", "#00BCD4"]}
+          colors={["#6C47FF", "#1f95ff"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerIcon}
@@ -729,7 +729,7 @@ function ThinkingBubble({ colors, accent }: { colors: any; accent: string }) {
     <View style={styles.bubbleWrap}>
       <View style={[styles.bubble, styles.bubbleAI, { backgroundColor: colors.surface }]}>
         <LinearGradient
-          colors={["#6C47FF", "#00BCD4"]}
+          colors={["#6C47FF", "#1f95ff"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.aiBadge}

@@ -32,7 +32,7 @@ export type ShareablePost = {
   accent?: string;
 };
 
-const DEFAULT_ACCENT = "#00BCD4";
+const DEFAULT_ACCENT = "#1f95ff";
 
 function fmtNum(n: number): string {
   if (!n) return "0";

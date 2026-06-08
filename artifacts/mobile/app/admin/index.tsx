@@ -42,7 +42,7 @@ import { showAlert } from "@/lib/alert";
 import { supabase } from "@/lib/supabase";
 import { AdminSkeleton } from "@/components/ui/Skeleton";
 
-const BRAND = "#00BCD4";
+const BRAND = "#1f95ff";
 const GOLD = "#D4A853";
 type Stats = {
   totalUsers: number;
@@ -2573,7 +2573,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   tabBar: { paddingHorizontal: 12, paddingBottom: 10, gap: 4 },
   tab: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: "transparent" },
-  activeTab: { backgroundColor: "#00BCD415" }, 
+  activeTab: { backgroundColor: "#1f95ff15" }, 
   tabText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   scrollContent: { padding: 16 },
   section: { gap: 12 },
@@ -2640,7 +2640,7 @@ const styles = StyleSheet.create({
   modalBtnRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   modalBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 },
   closeBtn: { alignItems: "center", paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
-  lookupBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#00BCD4", alignItems: "center", justifyContent: "center" },
+  lookupBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#1f95ff", alignItems: "center", justifyContent: "center" },
   lookupErrorBox: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 10, marginTop: 8 },
   lookupProfileHeader: { flexDirection: "row", alignItems: "center", padding: 14, borderRadius: 14, gap: 12 },
   lookupAvatar: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },

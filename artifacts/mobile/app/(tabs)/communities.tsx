@@ -25,7 +25,7 @@ import { showAlert } from "@/lib/alert";
 import { isOnline } from "@/lib/offlineStore";
 import * as Haptics from "@/lib/haptics";
 
-const BRAND = "#00BCD4";
+const BRAND = "#1f95ff";
 const PURPLE = "#8B5CF6";
 
 type Group = {

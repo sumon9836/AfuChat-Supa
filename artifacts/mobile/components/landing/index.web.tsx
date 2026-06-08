@@ -5,7 +5,7 @@ import {
   Layers, Globe, Briefcase, Mail, ShieldCheck, FileText,
 } from "lucide-react";
 
-export const TEAL = "#00BCD4";
+export const TEAL = "#1f95ff";
 export const GOLD = "#D4A853";
 
 const WA_SVG = (
@@ -31,7 +31,7 @@ export const LANDING_CSS = `
   --bg:#FAF8F5; --bg2:#F2EFE9; --bg3:#E8E3DA;
   --surf:#FFFFFF; --bdr:#E0DAD0;
   --txt:#0D0D0D; --txt2:#5A5550; --txt3:#9A9490;
-  --cl:#00BCD4; --gd:#D4A853;
+  --cl:#1f95ff; --gd:#D4A853;
   background:var(--bg); color:var(--txt);
 }
 @media(prefers-color-scheme:dark){

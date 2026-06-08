@@ -56,7 +56,7 @@ type AppView = "library" | "player" | "queue";
 
 const ACCENT_COLORS = [
   "#5856D6", "#FF3B30", "#FF9500", "#34C759",
-  "#AF52DE", "#007AFF", "#FF2D55", "#00BCD4",
+  "#AF52DE", "#007AFF", "#FF2D55", "#1f95ff",
 ];
 
 const SPEEDS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];

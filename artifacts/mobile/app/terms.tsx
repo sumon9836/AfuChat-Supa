@@ -399,7 +399,7 @@ export default function TermsScreen() {
             © {new Date().getFullYear()} AfuChat Limited. All rights reserved.
           </Text>
           <TouchableOpacity onPress={() => router.push("/privacy")} style={{ marginTop: 12 }}>
-            <Text style={{ color: "#00BCD4", fontSize: 14, fontFamily: "Inter_500Medium", textAlign: "center" }}>
+            <Text style={{ color: "#1f95ff", fontSize: 14, fontFamily: "Inter_500Medium", textAlign: "center" }}>
               View Privacy Policy →
             </Text>
           </TouchableOpacity>

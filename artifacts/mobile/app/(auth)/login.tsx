@@ -29,7 +29,7 @@ import { GoogleLogo } from "@/components/ui/OAuthLogos";
 import { googleSignIn } from "@/lib/googleAuth";
 import AfuLogo from "@/components/ui/AfuLogo";
 
-const BRAND_TEAL = "#00BCD4";
+const BRAND_TEAL = "#1f95ff";
 
 // ─── AuthInput ────────────────────────────────────────────────────────────────
 function AuthInput({ icon, placeholder, value, onChangeText, secureTextEntry, keyboardType, autoCapitalize, autoComplete, isDark, rightElement, onSubmitEditing, returnKeyType, inputRef }: any) {
@@ -125,7 +125,7 @@ const mh = StyleSheet.create({
 function ModalActionBtn({ label, onPress, loading, accent }: { label: string; onPress: () => void; loading: boolean; accent: string }) {
   return (
     <TouchableOpacity style={[ma.btn, loading && { opacity: 0.6 }]} onPress={onPress} disabled={loading} activeOpacity={0.85}>
-      <LinearGradient colors={[accent, "#0097A7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={ma.grad}>
+      <LinearGradient colors={[accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={ma.grad}>
         {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={ma.text}>{label}</Text>}
       </LinearGradient>
     </TouchableOpacity>
@@ -458,7 +458,7 @@ export default function SignInScreen() {
 
           {/* Sign In button */}
           <TouchableOpacity style={[sc.primaryBtn, loading && { opacity: 0.6 }, { marginBottom: 20 }]} onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
-            <LinearGradient colors={[accent, "#0097A7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
+            <LinearGradient colors={[accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
               {loading
                 ? <ActivityIndicator color="#fff" size="small" />
                 : <Text style={sc.primaryText}>Sign In</Text>

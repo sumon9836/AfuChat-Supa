@@ -45,7 +45,7 @@ import { uploadToStorage } from "@/lib/mediaUpload";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const USE_NATIVE = Platform.OS !== "web";
-const VID_THREAD_COLORS = ["#00BCD4", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
+const VID_THREAD_COLORS = ["#1f95ff", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
 const QUICK_EMOJIS = ["🔥", "❤️", "😂", "😮", "👏", "💯", "🙌", "😍"];
 const MAX_VOICE_SECS = 60;
 const WAVEFORM_BARS = 30;
@@ -191,9 +191,11 @@ function VoicePlayer({
 
   useEffect(() => {
     let mounted = true;
-    Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false }).catch(() => {});
-    Audio.Sound.createAsync({ uri }, { shouldPlay: false })
-      .then(({ sound: s }) => {
+    async function loadVoice() {
+      try {
+        if (!Audio || !Audio.Sound) return;
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false }).catch(() => {});
+        const { sound: s } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
         if (!mounted) { s.unloadAsync().catch(() => {}); return; }
         s.setOnPlaybackStatusUpdate((st) => {
           if (!st.isLoaded) return;
@@ -206,8 +208,9 @@ function VoicePlayer({
           }
         });
         setSound(s);
-      })
-      .catch(() => {});
+      } catch {}
+    }
+    loadVoice();
     return () => {
       mounted = false;
       setSound((prev) => { prev?.unloadAsync().catch(() => {}); return null; });

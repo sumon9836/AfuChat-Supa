@@ -32,7 +32,7 @@ import AfuLogo from "@/components/ui/AfuLogo";
 
 function makeColors(dark: boolean) {
   return {
-    teal:    "#00BCD4",
+    teal:    "#1f95ff",
     bg:      dark ? "#0A0D14" : "#FFFFFF",
     bg2:     dark ? "#111827" : "#F8FAFC",
     surface: dark ? "#1F2937" : "#FFFFFF",
@@ -544,7 +544,7 @@ const s = StyleSheet.create({
   navLink:    { paddingHorizontal: 14, paddingVertical: 8 },
   navLinkTxt: { fontSize: 15, fontFamily: "Inter_500Medium" },
   navRight:   { flexDirection: "row", alignItems: "center", marginLeft: "auto" },
-  navCta:     { flexDirection: "row", alignItems: "center", backgroundColor: "#00BCD4", paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10, marginLeft: 8 },
+  navCta:     { flexDirection: "row", alignItems: "center", backgroundColor: "#1f95ff", paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10, marginLeft: 8 },
   navCtaTxt:  { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#FFFFFF", marginLeft: 6 },
 
   hero:         { backgroundColor: "#0A0D14" },
@@ -555,7 +555,7 @@ const s = StyleSheet.create({
   h1:           { fontFamily: "Inter_700Bold", color: "#F9FAFB", lineHeight: 60, marginBottom: 20 },
   heroSub:      { fontSize: 18, fontFamily: "Inter_400Regular", color: "#94A3B8", lineHeight: 28, marginBottom: 32, maxWidth: 520 },
   ctaRow:       { marginBottom: 20 },
-  ctaPrimary:   { flexDirection: "row", alignItems: "center", backgroundColor: "#00BCD4", paddingHorizontal: 28, paddingVertical: 15, borderRadius: 12, marginRight: 12, marginBottom: 12 },
+  ctaPrimary:   { flexDirection: "row", alignItems: "center", backgroundColor: "#1f95ff", paddingHorizontal: 28, paddingVertical: 15, borderRadius: 12, marginRight: 12, marginBottom: 12 },
   ctaPrimaryTxt:{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#FFFFFF", marginLeft: 8 },
   ctaSecondary: { flexDirection: "row", alignItems: "center", paddingHorizontal: 24, paddingVertical: 15, borderRadius: 12, marginBottom: 12 },
   ctaSecondaryTxt: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginRight: 6 },
@@ -592,7 +592,7 @@ const s = StyleSheet.create({
   aiChip:    { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(139,92,246,0.1)", borderWidth: 1, borderColor: "rgba(139,92,246,0.2)", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100, margin: 6 },
   aiChipTxt: { fontSize: 14, fontFamily: "Inter_500Medium", color: "#C084FC", marginLeft: 8 },
 
-  statsSection: { backgroundColor: "#00BCD4", paddingVertical: 48 },
+  statsSection: { backgroundColor: "#1f95ff", paddingVertical: 48 },
   statItem:     { alignItems: "center", paddingVertical: 16 },
   statValue:    { fontSize: 36, fontFamily: "Inter_700Bold", color: "#FFFFFF" },
   statLabel:    { fontSize: 14, fontFamily: "Inter_500Medium", color: "rgba(255,255,255,0.75)", marginTop: 4 },
@@ -601,7 +601,7 @@ const s = StyleSheet.create({
 
   nlRow:   { flexDirection: "row", marginBottom: 10 },
   nlInput: { flex: 1, height: 50, borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, fontSize: 15, fontFamily: "Inter_400Regular" },
-  nlBtn:   { backgroundColor: "#00BCD4", paddingHorizontal: 22, borderRadius: 10, alignItems: "center", justifyContent: "center", height: 50, marginLeft: 10 },
+  nlBtn:   { backgroundColor: "#1f95ff", paddingHorizontal: 22, borderRadius: 10, alignItems: "center", justifyContent: "center", height: 50, marginLeft: 10 },
   nlBtnTxt:{ fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#FFFFFF" },
   nlMsg:   { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 8, marginTop: 4 },
   nlMsgTxt:{ fontSize: 13, fontFamily: "Inter_400Regular", flex: 1, marginLeft: 8 },

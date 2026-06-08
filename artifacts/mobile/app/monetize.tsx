@@ -194,7 +194,7 @@ function LineChart({
 // ─── Category meta ────────────────────────────────────────────────────────────
 
 const CAT_META: Record<string, { label: string; icon: string; color: string }> = {
-  messaging:   { label: "Messaging",   icon: "chatbubble-outline",  color: "#00BCD4" },
+  messaging:   { label: "Messaging",   icon: "chatbubble-outline",  color: "#1f95ff" },
   profile:     { label: "Profile",     icon: "person-outline",      color: "#FF9500" },
   content:     { label: "Content",     icon: "play-circle-outline", color: "#FF2D55" },
   marketplace: { label: "Marketplace", icon: "storefront-outline",  color: "#FFD60A" },

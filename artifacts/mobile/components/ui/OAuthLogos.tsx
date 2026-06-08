@@ -102,7 +102,7 @@ export function FacebookLogo({ size = 20 }: { size?: number }) {
 }
 
 // ─── Phone Logo ────────────────────────────────────────────────────────────────
-export function PhoneLogo({ size = 20, color = "#00BCD4" }: { size?: number; color?: string }) {
+export function PhoneLogo({ size = 20, color = "#1f95ff" }: { size?: number; color?: string }) {
   const { Svg, Path } = getSvgComponents();
   if (!Svg || !Path) {
     return <LetterBadge letter="☏" color={color} size={size} />;

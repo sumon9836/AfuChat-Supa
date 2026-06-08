@@ -21,7 +21,7 @@ const APP_VERSION = Constants.expoConfig?.version ?? "2.0.30";
 const BUILD = Constants.expoConfig?.android?.versionCode?.toString() ?? "2030";
 
 const FEATURES = [
-  { icon: "chatbubbles",      color: "#00BCD4", title: "Messaging",         desc: "End-to-end encrypted 1-on-1 and group chats, voice notes, stories, and broadcasts." },
+  { icon: "chatbubbles",      color: "#1f95ff", title: "Messaging",         desc: "End-to-end encrypted 1-on-1 and group chats, voice notes, stories, and broadcasts." },
   { icon: "sparkles",         color: "#AF52DE", title: "AfuAI",             desc: "Your built-in AI assistant — ask questions, generate content, and get smart suggestions." },
   { icon: "wallet",           color: "#D4A853", title: "ACoin Wallet",      desc: "Send, receive, and earn ACoins. Power all in-app transactions with your digital wallet." },
   { icon: "briefcase",        color: "#34C759", title: "Freelance Hub",     desc: "Hire talent or earn by offering your skills on AfuChat's built-in freelance marketplace." },
@@ -190,7 +190,7 @@ export default function AboutScreen() {
             { label: "Privacy Policy",     sub: "How we collect and use your data",      icon: "shield-checkmark-outline", iconBg: "#34C75918",   iconColor: "#34C759",  route: "/privacy" },
             { label: "License",            sub: "Open-source licenses and attributions", icon: "ribbon-outline",           iconBg: "#5856D618",   iconColor: "#5856D6",  route: null,       info: "MIT License · © " + new Date().getFullYear() + " AfuChat" },
             { label: "Support Center",     sub: "Submit a ticket or browse help articles",icon: "help-buoy-outline",       iconBg: "#FF950018",   iconColor: "#FF9500",  route: "/support" },
-            { label: "Contact Us",         sub: "Visit our contact page",               icon: "chatbubble-outline",       iconBg: "#00BCD418",   iconColor: "#00BCD4",  route: "/contact" },
+            { label: "Contact Us",         sub: "Visit our contact page",               icon: "chatbubble-outline",       iconBg: "#1f95ff18",   iconColor: "#1f95ff",  route: "/contact" },
           ].map((item, i, arr) => (
             <React.Fragment key={item.label}>
               {i > 0 && <View style={[st.divider, { backgroundColor: colors.border }]} />}

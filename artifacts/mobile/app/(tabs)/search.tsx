@@ -41,7 +41,7 @@ import { getPersonalizedTags, getSearchSuggestions } from "@/lib/personalization
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BRAND   = "#00BCD4";
+const BRAND   = "#1f95ff";
 const PURPLE  = "#8B5CF6";
 const GOLD    = "#D4A853";
 const SUCCESS = "#34C759";
@@ -284,7 +284,7 @@ export default function SearchScreen() {
   const BRAND = colors.accent;
 
   const CATEGORIES = [
-    { id: "people",   label: "People",   icon: "people",        gradient: [BRAND,  "#0097A7"]   as [string,string] },
+    { id: "people",   label: "People",   icon: "people",        gradient: [BRAND,  "#1a7fd4"]   as [string,string] },
     { id: "posts",    label: "Posts",    icon: "document-text", gradient: ["#007AFF","#5AC8FA"] as [string,string] },
     { id: "videos",   label: "Videos",   icon: "play-circle",   gradient: [RED,    "#FF6B6B"]   as [string,string] },
     { id: "channels", label: "Channels", icon: "megaphone",     gradient: [PURPLE, "#A855F7"]   as [string,string] },
@@ -932,7 +932,7 @@ export default function SearchScreen() {
           <View style={{ width: 48, height: 48, borderRadius: 14, overflow: "hidden" }}>
             {gr.avatar_url
               ? <ExpoImage source={{ uri: gr.avatar_url }} style={{ width: 48, height: 48 }} contentFit="cover" cachePolicy="memory-disk" />
-              : <LinearGradient colors={[BRAND, "#0097A7"]} style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}><Ionicons name="people" size={22} color="#fff" /></LinearGradient>}
+              : <LinearGradient colors={[BRAND, "#1a7fd4"]} style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}><Ionicons name="people" size={22} color="#fff" /></LinearGradient>}
           </View>
           <View style={{ flex: 1, gap: 3 }}>
             <Text style={[ss.rowTitle, { color: colors.text }]} numberOfLines={1}>{gr.name}</Text>

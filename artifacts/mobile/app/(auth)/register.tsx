@@ -177,7 +177,7 @@ function EmailVerifyModal({ visible, email, onClose, onVerified, isDark }: { vis
       <View style={{ paddingHorizontal: 24, paddingBottom: 24, gap: 12 }}>
         <AuthInput icon="keypad-outline" placeholder="6-digit verification code" value={code} onChangeText={setCode} keyboardType="number-pad" isDark={isDark} returnKeyType="go" onSubmitEditing={verify} />
         <TouchableOpacity style={[sc.primaryBtn, (loading || sending) && { opacity: 0.6 }]} onPress={verify} disabled={loading || sending} activeOpacity={0.85}>
-          <LinearGradient colors={[accent, "#0097A7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
+          <LinearGradient colors={[accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
             {(loading || sending) ? <ActivityIndicator color="#fff" size="small" /> : <Text style={sc.primaryText}>Verify Email</Text>}
           </LinearGradient>
         </TouchableOpacity>
@@ -361,7 +361,7 @@ export default function SignUpScreen() {
 
           {/* Create Account button */}
           <TouchableOpacity style={[sc.primaryBtn, loading && { opacity: 0.6 }, { marginBottom: 20 }]} onPress={handleSignup} disabled={loading} activeOpacity={0.85}>
-            <LinearGradient colors={[accent, "#0097A7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
+            <LinearGradient colors={[accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
               {loading
                 ? <ActivityIndicator color="#fff" size="small" />
                 : <Text style={sc.primaryText}>Create Account</Text>

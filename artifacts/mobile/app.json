@@ -16,13 +16,13 @@
     "backgroundColor": "#000000",
     "notification": {
       "icon": "./assets/images/notification-icon-white.png",
-      "color": "#00BCD4"
+      "color": "#1f95ff"
     },
     "android": {
       "package": "com.afuchat.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/notification-icon-transparent.png",
-        "backgroundColor": "#00BCD4"
+        "backgroundColor": "#1f95ff"
       },
       "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": false,
@@ -120,7 +120,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon-white.png",
-          "color": "#00BCD4",
+          "color": "#1f95ff",
           "defaultChannel": "default",
           "sounds": [
             "./assets/sounds/notification.wav"

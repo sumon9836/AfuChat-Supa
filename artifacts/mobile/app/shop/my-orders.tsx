@@ -20,7 +20,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { supabase } from "@/lib/supabase";
 import { ShopOrder, ORDER_STATUS_LABELS, ESCROW_STATUS_LABELS, getBuyerOrders, formatShopAcoin } from "@/lib/shop";
-const BRAND = "#00BCD4";
+const BRAND = "#1f95ff";
 const GOLD = "#D4A853";
 
 type OrderFilter = "all" | "active" | "delivered" | "disputed" | "refunded";
@@ -58,7 +58,7 @@ function OrderCard({ order, onPress }: { order: ShopOrder; onPress: () => void }
           {shopLogo
             ? <Image source={{ uri: shopLogo }} style={st.shopLogo} />
             : (
-              <LinearGradient colors={[BRAND, "#0097A7"]} style={[st.shopLogo, { alignItems: "center", justifyContent: "center" }]}>
+              <LinearGradient colors={[BRAND, "#1a7fd4"]} style={[st.shopLogo, { alignItems: "center", justifyContent: "center" }]}>
                 <Ionicons name="storefront" size={12} color="#fff" />
               </LinearGradient>
             )}

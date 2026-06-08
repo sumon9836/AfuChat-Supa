@@ -58,7 +58,7 @@ type Reply = {
   children?: Reply[];
 };
 
-const ART_THREAD_COLORS = ["#00BCD4", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
+const ART_THREAD_COLORS = ["#1f95ff", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
 
 type ArticleBlock = { type: "text"; content: string } | { type: "image"; url: string };
 
@@ -481,8 +481,8 @@ export default function ArticleDetailScreen() {
           <View style={styles.magazineContent}>
             <View style={styles.topMeta}>
               <View style={[styles.articleBadge, { backgroundColor: "rgba(0,188,212,0.22)", borderColor: "rgba(0,188,212,0.5)", borderWidth: 1 }]}>
-                <Ionicons name="document-text" size={12} color="#00BCD4" />
-                <Text style={[styles.articleBadgeText, { color: "#00BCD4" }]}>Article</Text>
+                <Ionicons name="document-text" size={12} color="#1f95ff" />
+                <Text style={[styles.articleBadgeText, { color: "#1f95ff" }]}>Article</Text>
               </View>
               <View style={styles.readTimeBadge}>
                 <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.6)" />

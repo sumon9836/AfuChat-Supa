@@ -13,7 +13,7 @@ export default function UpdatePasswordNative() {
         To reset your password, please use the AfuChat mobile app — tap "Forgot password?" on the sign-in screen.
       </Text>
       <TouchableOpacity
-        style={[s.btn, { backgroundColor: "#00BCD4" }]}
+        style={[s.btn, { backgroundColor: "#1f95ff" }]}
         onPress={() => Linking.openURL("https://afuchat.com/login")}
         activeOpacity={0.85}
       >

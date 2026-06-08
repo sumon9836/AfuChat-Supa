@@ -20,7 +20,7 @@ const { width: SW } = Dimensions.get("window");
 const SLIDES = [
   {
     icon: "chatbubbles" as const,
-    gradient: ["#00BCD4", "#006B7A"] as [string, string],
+    gradient: ["#1f95ff", "#006B7A"] as [string, string],
     title: "The Super App\nAfrica Deserves",
     subtitle:
       "Chat, share stories, discover people nearby, and stay connected with everyone that matters.",

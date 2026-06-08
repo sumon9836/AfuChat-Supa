@@ -651,7 +651,7 @@ function CompactStoryHeader({ userId, colors, onExpand }: { userId: string; colo
         >
           <Avatar uri={p.avatarUrl} name={p.displayName} size={28} />
           {p.hasUnseen && (
-            <View style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: 5, backgroundColor: "#00BCD4", borderWidth: 1.5, borderColor: colors.background }} />
+            <View style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: 5, backgroundColor: "#1f95ff", borderWidth: 1.5, borderColor: colors.background }} />
           )}
         </View>
       ))}

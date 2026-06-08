@@ -119,7 +119,7 @@ export function SidebarAIWidget({ theme }: { theme: ThemePack }) {
           {/* Panel header */}
           <View style={[styles.panelHeader, { borderBottomColor: theme.divider }]}>
             <View style={styles.panelTitleRow}>
-              <Ionicons name="sparkles" size={14} color="#00BCD4" />
+              <Ionicons name="sparkles" size={14} color="#1f95ff" />
               <Text style={[styles.panelTitle, { color: theme.text }]}>AfuAI</Text>
               <View style={[styles.betaBadge, { borderColor: theme.divider }]}>
                 <Text style={[styles.betaText, { color: theme.textMuted }]}>BETA</Text>
@@ -171,7 +171,7 @@ export function SidebarAIWidget({ theme }: { theme: ThemePack }) {
                   </View>
                 )}
                 {m.role === "user" && (
-                  <View style={[styles.msgUserBubble, { backgroundColor: "#00BCD4" }]}>
+                  <View style={[styles.msgUserBubble, { backgroundColor: "#1f95ff" }]}>
                     <Text style={[styles.msgText, { color: "#fff" }]}>{m.text}</Text>
                   </View>
                 )}
@@ -180,7 +180,7 @@ export function SidebarAIWidget({ theme }: { theme: ThemePack }) {
             {loading && (
               <View style={[styles.msgAiBubble, { backgroundColor: theme.hoverBg, marginLeft: 0, marginRight: 24 }]}>
                 <Text style={[styles.msgSender, { color: theme.accent }]}>AfuAI</Text>
-                <ActivityIndicator size="small" color="#00BCD4" style={{ alignSelf: "flex-start", marginTop: 2 }} />
+                <ActivityIndicator size="small" color="#1f95ff" style={{ alignSelf: "flex-start", marginTop: 2 }} />
               </View>
             )}
           </ScrollView>
@@ -248,7 +248,7 @@ export function SidebarAIWidget({ theme }: { theme: ThemePack }) {
               style={[
                 styles.sendBtn,
                 {
-                  backgroundColor: input.trim() && !loading ? "#00BCD4" : theme.hoverBg,
+                  backgroundColor: input.trim() && !loading ? "#1f95ff" : theme.hoverBg,
                 },
               ]}
             >
@@ -275,7 +275,7 @@ export function SidebarAIWidget({ theme }: { theme: ThemePack }) {
             },
           ]}
         >
-          <Ionicons name="sparkles-outline" size={17} color="#00BCD4" />
+          <Ionicons name="sparkles-outline" size={17} color="#1f95ff" />
           <Text style={[styles.collapsedText, { color: theme.text }]}>
             Ask AfuAI…
           </Text>

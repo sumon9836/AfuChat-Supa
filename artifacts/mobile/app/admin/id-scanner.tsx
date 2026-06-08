@@ -22,7 +22,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 
-const BRAND = "#00BCD4";
+const BRAND = "#1f95ff";
 const GOLD  = "#D4A853";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

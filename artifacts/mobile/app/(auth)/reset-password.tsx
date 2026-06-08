@@ -72,7 +72,7 @@ export default function ResetPasswordNative() {
     }
   }
 
-  const accent = "#00BCD4";
+  const accent = "#1f95ff";
 
   return (
     <KeyboardAvoidingView

@@ -427,7 +427,7 @@ export default function CreateStoryScreen() {
               ]}
             >
               <LinearGradient
-                colors={[accent, "#0097A7"]}
+                colors={[accent, "#1a7fd4"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.shareBtnGradient}

@@ -389,7 +389,7 @@ export default function TwoFactorScreen() {
               setTimeout(() => verifyRef.current?.focus(), 300);
             }}
           >
-            <LinearGradient colors={[colors.accent, "#0097A7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnGrad}>
+            <LinearGradient colors={[colors.accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnGrad}>
               <Text style={styles.primaryBtnText}>I've scanned it — Next</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -453,7 +453,7 @@ export default function TwoFactorScreen() {
               onPress={() => confirmEnroll(factorId)}
               disabled={verifyBusy || verifyCode.length !== 6}
             >
-              <LinearGradient colors={[colors.accent, "#0097A7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnGrad}>
+              <LinearGradient colors={[colors.accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnGrad}>
                 {verifyBusy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Enable Two-Factor Auth</Text>}
               </LinearGradient>
             </TouchableOpacity>

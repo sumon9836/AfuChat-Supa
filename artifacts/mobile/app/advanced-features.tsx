@@ -27,7 +27,7 @@ const { width: SCREEN_W } = Dimensions.get("window");
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const THEMES: { name: ChatTheme; hex: string }[] = [
-  { name: "Teal",    hex: "#00BCD4" },
+  { name: "Teal",    hex: "#1f95ff" },
   { name: "Blue",    hex: "#007AFF" },
   { name: "Purple",  hex: "#AF52DE" },
   { name: "Rose",    hex: "#FF2D55" },
@@ -374,7 +374,7 @@ export default function AdvancedFeaturesScreen() {
             <FloatCard>
               <ToggleRow icon="moon" iconBg="#FF9500" label="Focus Mode" desc="Sets your status to Do Not Disturb and hides your online indicator" value={features.focus_mode} onValueChange={(v) => toggle("focus_mode", v)} />
               <ToggleRow icon="time-outline" iconBg="#5856D6" label="Scheduled Focus Mode" desc="Automatically enable Focus Mode on a timed schedule" value={features.focus_mode_schedule} onValueChange={(v) => toggle("focus_mode_schedule", v)} requiredTier="gold" />
-              <ToggleRow icon="person-circle-outline" iconBg="#00BCD4" label="Mini Profile Popup" desc="Show a quick profile card when you tap on a username" value={features.mini_profile_popup} onValueChange={(v) => toggle("mini_profile_popup", v)} last />
+              <ToggleRow icon="person-circle-outline" iconBg="#1f95ff" label="Mini Profile Popup" desc="Show a quick profile card when you tap on a username" value={features.mini_profile_popup} onValueChange={(v) => toggle("mini_profile_popup", v)} last />
             </FloatCard>
           </>
         )}
@@ -412,7 +412,7 @@ export default function AdvancedFeaturesScreen() {
             <SectionLabel label="INTERFACE" />
             <FloatCard>
               <ToggleRow icon="flash-outline" iconBg="#FF9500" label="Quick Action Menu" desc="Long-press a message to access actions instantly" value={features.quick_action_menu} onValueChange={(v) => toggle("quick_action_menu", v)} />
-              <ToggleRow icon="link-outline" iconBg="#00BCD4" label="Interactive Link Previews" desc="Show rich previews for links shared in chats" value={features.interactive_link_preview} onValueChange={(v) => toggle("interactive_link_preview", v)} />
+              <ToggleRow icon="link-outline" iconBg="#1f95ff" label="Interactive Link Previews" desc="Show rich previews for links shared in chats" value={features.interactive_link_preview} onValueChange={(v) => toggle("interactive_link_preview", v)} />
               <ToggleRow icon="images-outline" iconBg="#34C759" label="Auto Media Organisation" desc="Automatically group shared files, photos, and videos" value={features.auto_media_organization} onValueChange={(v) => toggle("auto_media_organization", v)} />
               <ToggleRow icon="cloud-upload-outline" iconBg="#5856D6" label="Drag & Drop Upload" desc="Drop files directly into a chat to send them (web)" value={features.drag_drop_upload} onValueChange={(v) => toggle("drag_drop_upload", v)} />
               <ToggleRow icon="tablet-landscape-outline" iconBg="#8E8E93" label="Split Screen Mode" desc="View two chats side by side on wide screens" value={features.split_screen_mode} onValueChange={(v) => toggle("split_screen_mode", v)} requiredTier="gold" />

@@ -104,7 +104,7 @@ function ImageGrid({ images, onPress }: { images: string[]; onPress: (i: number)
   );
 }
 
-const THREAD_COLORS = ["#00BCD4", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
+const THREAD_COLORS = ["#1f95ff", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
 
 function ReplyCard({ item, colors, depth, onReplyTo }: { item: Reply; colors: any; depth: number; onReplyTo: (reply: Reply) => void }) {
   const { displayText, isTranslated, lang } = useAutoTranslate(item.content);

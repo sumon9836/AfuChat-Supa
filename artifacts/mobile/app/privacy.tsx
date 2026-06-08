@@ -14,7 +14,7 @@ import { useTheme } from "@/hooks/useTheme";
 
 const EFFECTIVE_DATE = "May 16, 2026";
 const LAST_UPDATED   = "May 16, 2026";
-const TEAL = "#00BCD4";
+const TEAL = "#1f95ff";
 
 type Section = { title: string; body: string };
 

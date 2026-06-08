@@ -19,7 +19,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="AfuChat" />
         <meta name="description" content="AfuChat Technologies Limited — the all-in-one super app for real-time messaging, AI assistance, social discovery, and community. Available worldwide, free on Android and the web." />
-        <meta name="theme-color" content="#00BCD4" />
+        <meta name="theme-color" content="#1f95ff" />
         <meta name="keywords" content="AfuChat, AfuChat Technologies Limited, messaging app, secure chat, communication platform, mobile messaging, web messaging platform, super app, AI chat assistant, group chats, voice notes, social app, chat app download, free messaging, worldwide chat app" />
         <meta name="author" content="AfuChat Technologies Limited — Entebbe, Uganda" />
         <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />

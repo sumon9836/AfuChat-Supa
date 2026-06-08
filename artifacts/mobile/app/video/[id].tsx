@@ -87,7 +87,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwakeAsync } from "expo-keep-awak
 
 const USE_NATIVE = Platform.OS !== "web";
 const VIDEO_PAGE_SIZE = 50;
-const VID_THREAD_COLORS = ["#00BCD4", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
+const VID_THREAD_COLORS = ["#1f95ff", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
 const QUICK_EMOJIS = ["🔥", "❤️", "😂", "😮", "👏", "💯", "🙌", "😍"];
 const SOCIAL_PLATFORMS = [
   { id: "whatsapp",  label: "WhatsApp",  icon: "logo-whatsapp",  color: "#25D366", scheme: (u: string) => `https://wa.me/?text=${encodeURIComponent(u)}` },
@@ -95,7 +95,7 @@ const SOCIAL_PLATFORMS = [
   { id: "facebook",  label: "Facebook",  icon: "logo-facebook",  color: "#1877F2", scheme: (u: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}` },
   { id: "instagram", label: "Instagram", icon: "logo-instagram", color: "#E1306C", scheme: (_: string) => `instagram://app` },
   { id: "copy",      label: "Copy link", icon: "link-outline",   color: "#8E8E93", scheme: null },
-  { id: "more",      label: "More",      icon: "share-social",   color: "#00BCD4", scheme: null },
+  { id: "more",      label: "More",      icon: "share-social",   color: "#1f95ff", scheme: null },
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -755,7 +755,7 @@ const VideoItem = React.memo(function VideoItem({
             disabled={!showExpand}
             style={vStyles.captionWrap}
           >
-            <RichText style={vStyles.caption} numberOfLines={expanded ? undefined : 2} linkColor="#00BCD4">
+            <RichText style={vStyles.caption} numberOfLines={expanded ? undefined : 2} linkColor="#1f95ff">
               {item.content}
             </RichText>
             {showExpand && !expanded && (
@@ -797,7 +797,7 @@ const VideoItem = React.memo(function VideoItem({
         <View style={vStyles.actionItem}>
           <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={8} activeOpacity={0.75}>
             <View style={[vStyles.actionBtnCircle, item.bookmarked && { backgroundColor: "rgba(0,188,212,0.25)" }]}>
-              <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={24} color={item.bookmarked ? "#00BCD4" : "#fff"} />
+              <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={24} color={item.bookmarked ? "#1f95ff" : "#fff"} />
             </View>
           </TouchableOpacity>
         </View>
@@ -854,7 +854,7 @@ const vStyles = StyleSheet.create({
   caption: { color: "rgba(255,255,255,0.93)", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20, ...Platform.select({ web: { textShadow: "0 1px 4px rgba(0,0,0,0.65)" } as any, default: { textShadowColor: "rgba(0,0,0,0.65)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 } }) },
   captionMore: { marginTop: 2, fontSize: 14, lineHeight: 20 },
   captionEllipsis: { color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular" },
-  captionMoreLink: { color: "#00BCD4", fontFamily: "Inter_600SemiBold" },
+  captionMoreLink: { color: "#1f95ff", fontFamily: "Inter_600SemiBold" },
   viewRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   viewText: { color: "rgba(255,255,255,0.45)", fontSize: 11, fontFamily: "Inter_400Regular" },
   rightCol: { position: "absolute", right: 10, gap: 14, alignItems: "center" },

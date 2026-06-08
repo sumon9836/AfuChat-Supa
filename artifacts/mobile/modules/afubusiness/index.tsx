@@ -50,7 +50,7 @@ const TOOLS = [
   { icon: "storefront" as const,  label: "My Shop",   color: "#AF52DE", screen: "shop"         as Screen },
   { icon: "people"     as const,  label: "Audience",  color: "#34C759", screen: "audience"     as Screen },
   { icon: "pricetag"  as const,   label: "Products",  color: "#FF3B30", screen: "products"     as Screen },
-  { icon: "receipt"   as const,   label: "Orders",    color: "#00BCD4", screen: "orders"       as Screen },
+  { icon: "receipt"   as const,   label: "Orders",    color: "#1f95ff", screen: "orders"       as Screen },
 ];
 
 export default function AfuBusinessApp() {
@@ -375,7 +375,7 @@ export default function AfuBusinessApp() {
             </View>
           </View>
           <View style={[styles.shopStat, { backgroundColor: colors.surface }]}>
-            <Ionicons name="receipt" size={22} color="#00BCD4" />
+            <Ionicons name="receipt" size={22} color="#1f95ff" />
             <View>
               <Text style={[styles.shopStatVal, { color: colors.text }]}>{orders.length}</Text>
               <Text style={[styles.shopStatLabel, { color: colors.textMuted }]}>Orders</Text>

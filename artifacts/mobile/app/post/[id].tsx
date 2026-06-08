@@ -124,9 +124,11 @@ function VoicePlayer({ uri, durationSecs, accent, colors }: { uri: string; durat
 
   useEffect(() => {
     let mounted = true;
-    Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false }).catch(() => {});
-    Audio.Sound.createAsync({ uri }, { shouldPlay: false })
-      .then(({ sound: s }) => {
+    async function loadVoice() {
+      try {
+        if (!Audio || !Audio.Sound) return;
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false }).catch(() => {});
+        const { sound: s } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
         if (!mounted) { s.unloadAsync().catch(() => {}); return; }
         s.setOnPlaybackStatusUpdate((st) => {
           if (!st.isLoaded) return;
@@ -135,7 +137,9 @@ function VoicePlayer({ uri, durationSecs, accent, colors }: { uri: string; durat
           if (st.didJustFinish) { setPlaying(false); setPositionMs(0); s.setPositionAsync(0).catch(() => {}); }
         });
         setSound(s);
-      }).catch(() => {});
+      } catch {}
+    }
+    loadVoice();
     return () => { mounted = false; setSound((prev) => { prev?.unloadAsync().catch(() => {}); return null; }); };
   }, [uri]);
 
@@ -143,7 +147,7 @@ function VoicePlayer({ uri, durationSecs, accent, colors }: { uri: string; durat
     if (!sound) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (playing) { await sound.pauseAsync(); setPlaying(false); }
-    else { await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false }).catch(() => {}); await sound.playAsync(); setPlaying(true); }
+    else { if (Audio?.setAudioModeAsync) await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false }).catch(() => {}); await sound.playAsync(); setPlaying(true); }
   }
 
   function handleSeek(x: number) {
@@ -295,7 +299,7 @@ function ImageGrid({ images, onPress }: { images: string[]; onPress: (i: number)
   );
 }
 
-const THREAD_COLORS = ["#00BCD4", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
+const THREAD_COLORS = ["#1f95ff", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
 
 function ReplyCard({
   item,
@@ -768,6 +772,7 @@ export default function PostDetailScreen() {
       showAlert("Not supported", "Voice recording is not available on web.");
       return;
     }
+    if (!Audio?.requestPermissionsAsync) return;
     const { granted } = await Audio.requestPermissionsAsync();
     if (!granted) {
       showAlert("Microphone access needed", "Please enable microphone access in Settings to record voice notes.");
@@ -816,7 +821,7 @@ export default function PostDetailScreen() {
       setRecordState("idle");
       setRecordElapsed(0);
     }
-    await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+    if (Audio?.setAudioModeAsync) await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
   }
 
   async function pickImage() {

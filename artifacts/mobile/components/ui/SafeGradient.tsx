@@ -35,7 +35,7 @@ type Props = {
 };
 
 export function LinearGradient({ colors, style, children, ...rest }: Props) {
-  const fallback = typeof colors[0] === "string" ? (colors[0] as string) : "#00BCD4";
+  const fallback = typeof colors[0] === "string" ? (colors[0] as string) : "#1f95ff";
 
   if (!NativeLinearGradient) {
     return (

@@ -220,7 +220,7 @@ const s = StyleSheet.create({
   headerBtn: { width: 36, alignItems: "flex-start" },
   headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "600" },
   postBtn: {
-    backgroundColor: "#00BCD4",
+    backgroundColor: "#1f95ff",
     paddingHorizontal: 18,
     paddingVertical: 7,
     borderRadius: 20,

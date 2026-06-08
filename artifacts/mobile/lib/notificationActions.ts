@@ -110,7 +110,7 @@ export async function handleNotificationAction(
               ...(Platform.OS === "android" && {
                 icon: "@mipmap/ic_launcher",
                 largeIcon: "@mipmap/ic_launcher",
-                color: "#00BCD4",
+                color: "#1f95ff",
               }),
             },
             trigger: {

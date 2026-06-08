@@ -41,7 +41,7 @@ import Colors from "@/constants/colors";
 import { showAlert } from "@/lib/alert";
 import { Avatar } from "@/components/ui/Avatar";
 
-const BRAND = "#00BCD4";
+const BRAND = "#1f95ff";
 const GOLD = "#D4A853";
 const SUCCESS = "#34C759";
 const DANGER = "#FF3B30";

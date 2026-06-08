@@ -58,7 +58,7 @@ const TABS: { id: SearchTab; label: string; icon: string }[] = [
 ];
 
 const RARITY_COLORS: Record<string, string> = {
-  common: "#9E9E9E", uncommon: "#00BCD4", rare: "#2979FF",
+  common: "#9E9E9E", uncommon: "#1f95ff", rare: "#2979FF",
   epic: "#CE93D8", legendary: "#FFB74D",
 };
 

@@ -12,7 +12,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 
-const TEAL = "#00BCD4";
+const TEAL = "#1f95ff";
 
 const ROLES = [
   {

@@ -185,7 +185,7 @@ export default function StoreStorefront() {
                 {shop.banner_url ? (
                   <Image source={{ uri: shop.banner_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                 ) : (
-                  <LinearGradient colors={["#00BCD4", "#0097A7"]} style={StyleSheet.absoluteFill} />
+                  <LinearGradient colors={["#1f95ff", "#1a7fd4"]} style={StyleSheet.absoluteFill} />
                 )}
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.25)" }]} />
               </View>

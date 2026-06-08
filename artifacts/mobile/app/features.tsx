@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 
 const USE_ND = Platform.OS !== "web";
-const TEAL = "#00BCD4";
+const TEAL = "#1f95ff";
 
 const FEATURES = [
   {

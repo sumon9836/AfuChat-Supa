@@ -242,7 +242,7 @@ export async function setupNotificationChannels(): Promise<void> {
       name: "AfuChat",
       description: "General AfuChat notifications",
       importance: Notifications.AndroidImportance.MAX,
-      lightColor: "#00BCD4",
+      lightColor: "#1f95ff",
       ...base,
     });
 
@@ -250,7 +250,7 @@ export async function setupNotificationChannels(): Promise<void> {
       name: "Messages",
       description: "Chat messages from your contacts",
       importance: Notifications.AndroidImportance.MAX,
-      lightColor: "#00BCD4",
+      lightColor: "#1f95ff",
       ...base,
     });
 
