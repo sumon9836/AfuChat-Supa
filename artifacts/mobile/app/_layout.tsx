@@ -97,13 +97,26 @@ function AppReadyGate({
   const { loading } = useAuth();
   const fired = useRef(false);
 
-  useEffect(() => {
-    if (!fontsReady || loading) return;
+  const fire = useCallback(() => {
     if (fired.current) return;
     fired.current = true;
     if (typeof onReady === "function") onReady();
     else SplashScreen.hideAsync().catch(() => {});
-  }, [fontsReady, loading, onReady]);
+  }, [onReady]);
+
+  // Normal path: both fonts and auth resolved
+  useEffect(() => {
+    if (!fontsReady || loading) return;
+    fire();
+  }, [fontsReady, loading, fire]);
+
+  // Safety net for web: MMKV is not available so auth.loading may never
+  // resolve if onAuthStateChange is slow. After 4 s we dismiss anyway.
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const t = setTimeout(fire, 1500);
+    return () => clearTimeout(t);
+  }, [fire]);
 
   return null;
 }

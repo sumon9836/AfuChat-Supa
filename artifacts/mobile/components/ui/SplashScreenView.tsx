@@ -40,23 +40,30 @@ export function SplashScreenView({ ready, onDone }: Props) {
     if (!ready || doneFired.current) return;
     doneFired.current = true;
 
-    const nativeDriver = Platform.OS !== "web";
-    Animated.parallel([
+    if (Platform.OS === "web") {
+      // On web: opacity-only fade (scale transform can silently block .start callback)
       Animated.timing(opacity, {
         toValue: 0,
-        duration: 380,
-        delay: 120,
-        useNativeDriver: nativeDriver,
-      }),
-      Animated.timing(scale, {
-        toValue: 1.08,
-        duration: 380,
-        delay: 120,
-        useNativeDriver: nativeDriver,
-      }),
-    ]).start(() => {
-      onDone();
-    });
+        duration: 350,
+        delay: 80,
+        useNativeDriver: false,
+      }).start(() => onDone());
+    } else {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 380,
+          delay: 120,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1.08,
+          duration: 380,
+          delay: 120,
+          useNativeDriver: true,
+        }),
+      ]).start(() => onDone());
+    }
   }, [ready, opacity, scale, onDone]);
 
   return (

@@ -28,6 +28,7 @@ import { useAppAccent } from "@/context/AppAccentContext";
 import { showAlert } from "@/lib/alert";
 import { googleSignIn } from "@/lib/googleAuth";
 import AfuLogo from "@/components/ui/AfuLogo";
+import { GoogleLogo } from "@/components/ui/OAuthLogos";
 
 const TERMS_URL = "/terms";
 const PRIVACY_URL = "/privacy";
@@ -371,11 +372,20 @@ export default function SignUpScreen() {
           <OrDivider isDark={isDark} />
 
           {/* Google */}
-          <TouchableOpacity style={[sc.googleBtn, { marginTop: 20 }]} onPress={handleGoogle} disabled={oauthLoading} activeOpacity={0.75}>
-            {oauthLoading
-              ? <ActivityIndicator size="small" color="#3C4043" />
-              : <Text style={sc.googleText}>Continue with Google</Text>
-            }
+          <TouchableOpacity
+            style={[sc.googleBtn, { marginTop: 20, borderColor: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)" }]}
+            onPress={handleGoogle}
+            disabled={oauthLoading}
+            activeOpacity={0.75}
+          >
+            {oauthLoading ? (
+              <ActivityIndicator size="small" color="#3C4043" />
+            ) : (
+              <>
+                <GoogleLogo size={20} />
+                <Text style={sc.googleText}>Continue with Google</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           {/* Switch to login */}
