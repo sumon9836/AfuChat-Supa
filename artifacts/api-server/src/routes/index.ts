@@ -11,6 +11,7 @@ import uploadsRouter from "./uploads";
 import paymentsRouter from "./payments";
 import dataExportRouter from "./data-export";
 import subscribeRouter from "./subscribe";
+import pushNotificationsRouter from "./push-notifications";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(uploadsRouter);
 router.use(paymentsRouter);
 router.use(dataExportRouter);
 router.use(subscribeRouter);
+router.use(pushNotificationsRouter);
 
 export default router;

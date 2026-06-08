@@ -1,51 +1,81 @@
 /**
- * /api/payments/* — Payment routes via Supabase Edge Functions
- *
- * Credentials (Pesapal keys, etc.) live entirely inside Supabase secrets.
- * This server acts as an authenticated proxy so the mobile client never
- * calls edge functions directly.
+ * /api/payments/* — Pesapal payment routes (ported from Supabase Edge Functions)
  *
  * POST /api/payments/initiate   — start a payment (all methods)
- * POST /api/payments/webhook    — Pesapal IPN forwarded to edge function
+ * POST /api/payments/webhook    — Pesapal IPN handler
  * GET  /api/payments/status/:merchantRef — poll order status
  */
 
 import { Router, type Request, type Response } from "express";
-import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin";
-import { SUPABASE_URL } from "../lib/constants";
 import { logger } from "../lib/logger";
 
 const router = Router();
 
-const EDGE_INITIATE = `${SUPABASE_URL}/functions/v1/pesapal-initiate`;
-const EDGE_IPN = `${SUPABASE_URL}/functions/v1/pesapal-ipn`;
+const PESAPAL_ENV = process.env.PESAPAL_ENV || "live";
+const PESAPAL_BASE =
+  PESAPAL_ENV === "sandbox"
+    ? "https://cybqa.pesapal.com/pesapalv3"
+    : "https://pay.pesapal.com/v3";
 
-function getAnonKey(): string {
-  return (
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-    ""
-  );
+const CALLBACK_URL = "https://afuchat.com/wallet/payment-complete";
+
+function getPesapalKeys() {
+  return {
+    consumerKey: process.env.PESAPAL_CONSUMER_KEY || "",
+    consumerSecret: process.env.PESAPAL_CONSUMER_SECRET || "",
+    ipnId: process.env.PESAPAL_IPN_ID || "",
+  };
 }
 
-async function verifyUser(
-  bearerToken: string,
-): Promise<{ id: string; email?: string } | null> {
-  const anonKey = getAnonKey();
-  if (!anonKey) return null;
-  const client = createClient(SUPABASE_URL, anonKey, {
-    global: { headers: { Authorization: `Bearer ${bearerToken}` } },
-    auth: { persistSession: false },
+function isPesapalConfigured(): boolean {
+  const { consumerKey, consumerSecret } = getPesapalKeys();
+  return Boolean(consumerKey && consumerSecret);
+}
+
+async function pesapalToken(): Promise<string> {
+  const { consumerKey, consumerSecret } = getPesapalKeys();
+  const res = await fetch(`${PESAPAL_BASE}/api/Auth/RequestToken`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ consumer_key: consumerKey, consumer_secret: consumerSecret }),
   });
-  const { data: { user }, error } = await client.auth.getUser();
-  if (error || !user) return null;
-  return { id: user.id, email: user.email };
+  if (!res.ok) throw new Error(`Pesapal auth failed (${res.status}): ${await res.text()}`);
+  const data = (await res.json()) as { token?: string };
+  if (!data.token) throw new Error(`No token in Pesapal response`);
+  return data.token;
+}
+
+async function getOrRegisterIPN(token: string, serverDomain: string): Promise<string> {
+  const { ipnId } = getPesapalKeys();
+  if (ipnId) return ipnId;
+  const ipnUrl = `https://${serverDomain}/api/payments/webhook`;
+  const res = await fetch(`${PESAPAL_BASE}/api/URLSetup/RegisterIPN`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ url: ipnUrl, ipn_notification_type: "POST" }),
+  });
+  if (!res.ok) throw new Error(`IPN registration failed (${res.status}): ${await res.text()}`);
+  const data = (await res.json()) as { ipn_id?: string; id?: string };
+  const id = data.ipn_id || data.id;
+  if (!id) throw new Error(`No IPN ID: ${JSON.stringify(data)}`);
+  return id;
+}
+
+async function getTransactionStatus(token: string, trackingId: string) {
+  const res = await fetch(
+    `${PESAPAL_BASE}/api/Transactions/GetTransactionStatus?orderTrackingId=${encodeURIComponent(trackingId)}`,
+    { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) throw new Error(`GetTransactionStatus failed (${res.status}): ${await res.text()}`);
+  return res.json();
 }
 
 // ─── POST /api/payments/initiate ─────────────────────────────────────────────
-// Proxies to the pesapal-initiate edge function.
-// Credentials are Supabase secrets — never touch this server's env.
 
 router.post("/payments/initiate", async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization || "";
@@ -54,85 +84,318 @@ router.post("/payments/initiate", async (req: Request, res: Response) => {
     return;
   }
 
-  const anonKey = getAnonKey();
-  if (!anonKey) {
-    res.status(503).json({ error: "Service not configured" });
+  if (!isPesapalConfigured()) {
+    res.status(503).json({ error: "Payment service not configured" });
+    return;
+  }
+
+  const admin = getSupabaseAdmin();
+  if (!admin) {
+    res.status(503).json({ error: "Server not configured" });
+    return;
+  }
+
+  const jwt = authHeader.slice(7);
+  const { data: { user }, error: authErr } = await admin.auth.getUser(jwt);
+  if (authErr || !user) {
+    res.status(401).json({ error: "Invalid or expired token" });
     return;
   }
 
   try {
-    const edgeRes = await fetch(EDGE_INITIATE, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": authHeader,
-        "apikey": anonKey,
-      },
-      body: JSON.stringify(req.body),
-    });
+    const body = req.body as {
+      acoin_amount?: number;
+      currency?: string;
+      payment_method?: "google_pay" | "card" | "mtn" | "airtel";
+      payment_data?: Record<string, string>;
+    };
 
-    const data = (await edgeRes.json()) as any;
+    const { acoin_amount, currency, payment_method, payment_data } = body;
 
-    if (!edgeRes.ok) {
-      logger.warn(
-        { status: edgeRes.status, err: data?.error },
-        "payments/initiate edge error",
-      );
-      res.status(edgeRes.status).json(data);
+    if (!acoin_amount || typeof acoin_amount !== "number" || acoin_amount < 50) {
+      res.status(400).json({ error: "Minimum top-up is 50 ACoin" });
       return;
     }
 
-    logger.info({ merchantRef: data.merchant_reference }, "payment initiated");
-    res.json(data);
+    const amount_usd = parseFloat((acoin_amount * 0.01).toFixed(2));
+    const finalCurrency = (currency || "USD").toUpperCase();
+    const merchantRef = `AFUCHAT-${user.id.replace(/-/g, "").slice(0, 12)}-${Date.now()}`;
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("display_name, handle")
+      .eq("id", user.id)
+      .single();
+
+    const displayName = (
+      (profile as any)?.display_name ||
+      (profile as any)?.handle ||
+      "AfuChat User"
+    ).trim();
+    const nameParts = displayName.split(" ");
+    const firstName = nameParts[0] || "AfuChat";
+    const lastName = nameParts.slice(1).join(" ") || "User";
+
+    const token = await pesapalToken();
+    const serverDomain =
+      process.env.REPLIT_DEV_DOMAIN || req.hostname || "localhost";
+    const ipnId = await getOrRegisterIPN(token, serverDomain);
+
+    const orderPayload: Record<string, unknown> = {
+      id: merchantRef,
+      currency: finalCurrency,
+      amount: amount_usd,
+      description: `${acoin_amount} ACoin top-up`,
+      callback_url: CALLBACK_URL,
+      notification_id: ipnId,
+      billing_address: {
+        email_address: user.email || "",
+        first_name: firstName,
+        last_name: lastName,
+      },
+    };
+
+    if (payment_method === "mtn" || payment_method === "airtel") {
+      const phone = payment_data?.phone_number || "";
+      if (!phone) {
+        res.status(400).json({ error: "Phone number is required" });
+        return;
+      }
+      const normalized = phone.startsWith("+")
+        ? phone.replace(/[^\d+]/g, "")
+        : `+${phone.replace(/\D/g, "")}`;
+      (orderPayload.billing_address as any).phone_number = normalized;
+      orderPayload.payment_method = payment_method === "mtn" ? "MTN" : "AIRTEL";
+    } else if (payment_method === "card") {
+      const { number, expiry_month, expiry_year, cvv, name_on_card } = payment_data || {};
+      if (!number || !expiry_month || !expiry_year || !cvv) {
+        res.status(400).json({ error: "Card details are incomplete" });
+        return;
+      }
+      orderPayload.payment_method = "card";
+      orderPayload.card = {
+        number: number.replace(/\s/g, ""),
+        expiry_month,
+        expiry_year,
+        cvv,
+        name_on_card: name_on_card || displayName,
+      };
+    } else if (payment_method === "google_pay") {
+      const gpToken = payment_data?.token;
+      if (!gpToken) {
+        res.status(400).json({ error: "Google Pay token is required" });
+        return;
+      }
+      orderPayload.payment_method = "googlepay";
+      orderPayload.google_pay_token = gpToken;
+    }
+
+    logger.info(
+      { merchantRef, userId: user.id, method: payment_method, acoin_amount },
+      "payments/initiate",
+    );
+
+    const orderRes = await fetch(`${PESAPAL_BASE}/api/Transactions/SubmitOrderRequest`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(orderPayload),
+    });
+
+    const orderText = await orderRes.text();
+    if (!orderRes.ok) {
+      throw new Error(`Order submission failed (${orderRes.status}): ${orderText}`);
+    }
+    const orderData = JSON.parse(orderText) as {
+      order_tracking_id?: string;
+      redirect_url?: string;
+    };
+
+    const { error: insertErr } = await admin.from("pesapal_orders").insert({
+      user_id: user.id,
+      merchant_reference: merchantRef,
+      tracking_id: orderData.order_tracking_id || null,
+      acoin_amount,
+      amount_usd,
+      currency: finalCurrency,
+      status: "pending",
+    });
+    if (insertErr) logger.error({ err: insertErr }, "pesapal_orders insert error");
+
+    res.json({
+      merchant_reference: merchantRef,
+      order_tracking_id: orderData.order_tracking_id || null,
+      redirect_url: orderData.redirect_url || null,
+      status: "pending",
+    });
   } catch (err: any) {
     logger.error({ err: err?.message }, "payments/initiate error");
-    res.status(500).json({
-      error: err?.message || "Payment could not be started. Please try again.",
-    });
+    res.status(500).json({ error: err?.message || "Payment could not be started. Please try again." });
   }
 });
 
 // ─── POST /api/payments/webhook — Pesapal IPN ────────────────────────────────
-// Pesapal calls this URL when a payment status changes.
-// We forward it to the pesapal-ipn edge function which verifies and credits.
 
 router.post("/payments/webhook", async (req: Request, res: Response) => {
-  const anonKey = getAnonKey();
+  const admin = getSupabaseAdmin();
+  if (!admin) {
+    res.status(503).json({ error: "Service unavailable" });
+    return;
+  }
+
+  if (!isPesapalConfigured()) {
+    res.status(503).json({ error: "Payment service not configured" });
+    return;
+  }
 
   try {
-    const merchantRef: string =
-      (req.body?.OrderMerchantReference as string) ||
-      (req.query?.OrderMerchantReference as string) ||
-      "";
-    const trackingId: string =
-      (req.body?.OrderTrackingId as string) ||
-      (req.query?.OrderTrackingId as string) ||
-      "";
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    let orderTrackingId: string | null =
+      url.searchParams.get("OrderTrackingId") || (req.body?.OrderTrackingId as string) || null;
+    let merchantReference: string | null =
+      url.searchParams.get("OrderMerchantReference") || (req.body?.OrderMerchantReference as string) || null;
 
-    const ipnUrl = new URL(EDGE_IPN);
-    if (trackingId) ipnUrl.searchParams.set("OrderTrackingId", trackingId);
-    if (merchantRef) ipnUrl.searchParams.set("OrderMerchantReference", merchantRef);
+    logger.info({ orderTrackingId, merchantReference }, "[pesapal-ipn] received");
 
-    const edgeRes = await fetch(ipnUrl.toString(), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": anonKey,
-      },
-      body: JSON.stringify(req.body),
-    });
+    if (!orderTrackingId && !merchantReference) {
+      res.status(400).json({ error: "Missing OrderTrackingId or OrderMerchantReference" });
+      return;
+    }
 
-    const data = await edgeRes.json().catch(() => ({}));
-    logger.info(
-      { merchantRef, trackingId, status: edgeRes.status },
-      "IPN forwarded to edge function",
-    );
-    res.status(edgeRes.ok ? 200 : edgeRes.status).json(data);
+    let orderQuery = admin
+      .from("pesapal_orders")
+      .select("id, user_id, acoin_amount, merchant_reference, tracking_id, status");
+
+    if (orderTrackingId) {
+      orderQuery = (orderQuery as any).eq("tracking_id", orderTrackingId);
+    } else {
+      orderQuery = (orderQuery as any).eq("merchant_reference", merchantReference!);
+    }
+
+    const { data: order, error: orderError } = await (orderQuery as any).maybeSingle();
+
+    if (orderError) {
+      logger.error({ err: orderError }, "[pesapal-ipn] DB error");
+      res.status(500).json({ error: "Database error" });
+      return;
+    }
+
+    if (!order) {
+      if (orderTrackingId && merchantReference) {
+        const { data: fallback } = await admin
+          .from("pesapal_orders")
+          .select("id, user_id, acoin_amount, merchant_reference, tracking_id, status")
+          .eq("merchant_reference", merchantReference)
+          .maybeSingle();
+        if (fallback) {
+          if (!(fallback as any).tracking_id && orderTrackingId) {
+            await admin
+              .from("pesapal_orders")
+              .update({ tracking_id: orderTrackingId })
+              .eq("id", (fallback as any).id);
+          }
+          res.json(
+            await processIpnOrder(
+              admin,
+              { ...(fallback as any), tracking_id: orderTrackingId || (fallback as any).tracking_id },
+            ),
+          );
+          return;
+        }
+      }
+      logger.warn({ orderTrackingId, merchantReference }, "[pesapal-ipn] order not found");
+      res.status(404).json({ error: "Order not found" });
+      return;
+    }
+
+    const trackId = orderTrackingId || (order as any).tracking_id;
+    if (trackId && !(order as any).tracking_id) {
+      await admin.from("pesapal_orders").update({ tracking_id: trackId }).eq("id", (order as any).id);
+    }
+
+    const result = await processIpnOrder(admin, { ...(order as any), tracking_id: trackId });
+    res.json(result);
   } catch (err: any) {
-    logger.error({ err: err?.message }, "payments/webhook error");
-    res.status(500).json({ error: "Webhook processing failed" });
+    logger.error({ err: err?.message }, "[pesapal-ipn] unhandled error");
+    res.status(500).json({ error: err?.message || "Internal server error" });
   }
 });
+
+async function processIpnOrder(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  order: {
+    id: string;
+    user_id: string;
+    acoin_amount: number;
+    merchant_reference: string;
+    tracking_id: string | null;
+    status: string;
+  },
+): Promise<Record<string, unknown>> {
+  if (order.status === "completed") {
+    return { message: "Already processed" };
+  }
+
+  const trackId = order.tracking_id;
+  if (!trackId) {
+    await admin!.from("pesapal_orders").update({ status: "invalid" }).eq("id", order.id);
+    return { error: "No tracking ID — cannot verify payment" };
+  }
+
+  const token = await pesapalToken();
+  const statusData = (await getTransactionStatus(token, trackId)) as {
+    status_code?: number;
+    payment_status_description?: string;
+  };
+
+  logger.info({ statusData }, "[pesapal-ipn] Pesapal status response");
+
+  const statusCode = statusData.status_code ?? 0;
+  const paymentStatusDesc = (statusData.payment_status_description || "").toUpperCase();
+
+  if (statusCode === 1 || paymentStatusDesc === "COMPLETED") {
+    const { error: updateErr } = await admin!
+      .from("pesapal_orders")
+      .update({ status: "completed", tracking_id: trackId })
+      .eq("id", order.id)
+      .eq("status", "pending");
+    if (updateErr) logger.error({ err: updateErr }, "[pesapal-ipn] order update error");
+
+    const { error: rpcErr } = await admin!.rpc("credit_acoin", {
+      p_user_id: order.user_id,
+      p_amount: order.acoin_amount,
+    });
+
+    if (rpcErr) {
+      logger.error({ err: rpcErr }, "[pesapal-ipn] credit_acoin RPC failed");
+      await admin!.from("pesapal_orders").update({ status: "pending" }).eq("id", order.id);
+      return { error: "Failed to credit wallet, will retry" };
+    }
+
+    await admin!.from("acoin_transactions").insert({
+      user_id: order.user_id,
+      amount: order.acoin_amount,
+      transaction_type: "topup",
+      metadata: {
+        merchant_reference: order.merchant_reference,
+        tracking_id: trackId,
+        payment_provider: "pesapal",
+        pesapal_status_code: statusCode,
+      },
+    });
+
+    logger.info({ userId: order.user_id, acoin: order.acoin_amount }, "[pesapal-ipn] wallet credited");
+    return { message: "Payment confirmed, wallet credited" };
+  } else if ([2, 3, 4].includes(statusCode) || ["FAILED", "REVERSED", "INVALID"].includes(paymentStatusDesc)) {
+    await admin!.from("pesapal_orders").update({ status: "failed", tracking_id: trackId }).eq("id", order.id);
+    return { message: "Payment failed or reversed", pesapal_status: paymentStatusDesc };
+  } else {
+    return { message: "Payment still pending", pesapal_status: paymentStatusDesc };
+  }
+}
 
 // ─── GET /api/payments/status/:merchantRef ────────────────────────────────────
 
@@ -142,22 +405,22 @@ router.get("/payments/status/:merchantRef", async (req: Request, res: Response) 
     res.status(401).json({ error: "Sign in required" });
     return;
   }
-  const bearerToken = authHeader.slice(7);
 
-  const user = await verifyUser(bearerToken);
-  if (!user) {
+  const admin = getSupabaseAdmin();
+  if (!admin) {
+    res.status(503).json({ error: "Service unavailable" });
+    return;
+  }
+
+  const jwt = authHeader.slice(7);
+  const { data: { user }, error: authErr } = await admin.auth.getUser(jwt);
+  if (authErr || !user) {
     res.status(401).json({ error: "Session expired" });
     return;
   }
 
   try {
     const { merchantRef } = req.params;
-    const admin = getSupabaseAdmin();
-    if (!admin) {
-      res.status(503).json({ error: "Service unavailable" });
-      return;
-    }
-
     const { data: order } = await admin
       .from("pesapal_orders")
       .select("status, acoin_amount, tracking_id")
@@ -170,7 +433,7 @@ router.get("/payments/status/:merchantRef", async (req: Request, res: Response) 
       return;
     }
 
-    res.json({ status: order.status, acoin_amount: order.acoin_amount });
+    res.json({ status: (order as any).status, acoin_amount: (order as any).acoin_amount });
   } catch (err: any) {
     logger.error({ err: err?.message }, "payments/status error");
     res.status(500).json({ error: "Status check failed" });
