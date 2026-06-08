@@ -21,6 +21,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
+import * as LocalAuthentication from "expo-local-authentication";
+import * as SecureStore from "expo-secure-store";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -31,7 +33,8 @@ import { googleSignIn } from "@/lib/googleAuth";
 import AfuLogo from "@/components/ui/AfuLogo";
 import { GoogleLogo } from "@/components/ui/OAuthLogos";
 
-const BRAND = "#1f95ff";
+const BIO_REFRESH_KEY = "afu_bio_refresh_token";
+const BIO_EMAIL_KEY = "afu_bio_display_email";
 
 // ─── AuthInput ────────────────────────────────────────────────────────────────
 function AuthInput({ icon, placeholder, value, onChangeText, secureTextEntry, keyboardType, autoCapitalize, autoComplete, isDark, rightElement, onSubmitEditing, returnKeyType, inputRef, accent }: any) {
@@ -253,6 +256,82 @@ export default function SignInScreen() {
   const pwdRef = useRef<TextInput>(null);
   const oauthHandledRef = useRef(false);
 
+  // ── Biometric state ─────────────────────────────────────────────────────────
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioStored, setBioStored] = useState(false);
+  const [bioLabel, setBioLabel] = useState<"Face ID" | "Touch ID" | "Biometrics">("Biometrics");
+  const [bioIcon, setBioIcon] = useState<"scan-outline" | "finger-print-outline">("scan-outline");
+  const [bioLoading, setBioLoading] = useState(false);
+
+  useEffect(() => {
+    if (isWeb) return;
+    (async () => {
+      try {
+        const [hw, enrolled] = await Promise.all([
+          LocalAuthentication.hasHardwareAsync(),
+          LocalAuthentication.isEnrolledAsync(),
+        ]);
+        if (!hw || !enrolled) return;
+        setBioAvailable(true);
+        const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+        if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+          setBioLabel("Face ID");
+          setBioIcon("scan-outline");
+        } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+          setBioLabel("Touch ID");
+          setBioIcon("finger-print-outline");
+        }
+        const stored = await SecureStore.getItemAsync(BIO_REFRESH_KEY);
+        setBioStored(!!stored);
+      } catch {}
+    })();
+  }, [isWeb]);
+
+  // Store refresh token after login for future biometric use
+  async function storeSessionForBio(refreshToken: string, email: string) {
+    if (isWeb || !bioAvailable) return;
+    try {
+      await SecureStore.setItemAsync(BIO_REFRESH_KEY, refreshToken);
+      await SecureStore.setItemAsync(BIO_EMAIL_KEY, email);
+      setBioStored(true);
+    } catch {}
+  }
+
+  async function handleBioSignIn() {
+    setBioLoading(true);
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: `Sign in to AfuChat`,
+        cancelLabel: "Use password",
+        disableDeviceFallback: false,
+      });
+      if (!result.success) { setBioLoading(false); return; }
+
+      const storedToken = await SecureStore.getItemAsync(BIO_REFRESH_KEY);
+      if (!storedToken) {
+        setBioStored(false);
+        setBioLoading(false);
+        return showAlert("Session expired", "Please sign in with your email or Google.");
+      }
+
+      const { data, error } = await supabase.auth.refreshSession({ refresh_token: storedToken });
+      if (error || !data.session) {
+        await SecureStore.deleteItemAsync(BIO_REFRESH_KEY);
+        setBioStored(false);
+        setBioLoading(false);
+        return showAlert("Session expired", "Please sign in again to re-enable biometrics.");
+      }
+
+      // Rotate the stored token
+      await SecureStore.setItemAsync(BIO_REFRESH_KEY, data.session.refresh_token);
+      setBioLoading(false);
+      router.replace("/(tabs)/chats");
+    } catch {
+      setBioLoading(false);
+      showAlert("Error", "Biometric authentication failed.");
+    }
+  }
+
   const textColor = isDark ? "#F1F1F1" : "#0F0F0F";
   const mutedColor = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.42)";
   const surfaceColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
@@ -268,7 +347,6 @@ export default function SignInScreen() {
       Animated.spring(landingX, { toValue: -SW, useNativeDriver: !isWeb, tension: 200, friction: 28 }),
       Animated.spring(formX, { toValue: 0, useNativeDriver: !isWeb, tension: 200, friction: 28 }),
     ]).start();
-    setTimeout(() => (pwdRef.current as any)?.clear?.(), 300);
   }
 
   function goToLanding() {
@@ -340,6 +418,10 @@ export default function SignInScreen() {
         ]); return;
       }
     }
+    // Store session for biometric on future visits (fire-and-forget)
+    if (data.session) {
+      storeSessionForBio(data.session.refresh_token, resolvedEmail);
+    }
     setLoading(false);
     router.replace("/(tabs)/chats");
   }
@@ -408,6 +490,7 @@ export default function SignInScreen() {
 
   const idType = detectType(identifier);
   const idIcon = idType === "email" ? "mail-outline" : idType === "phone" ? "call-outline" : "at-outline";
+  const showBioBtn = !isWeb && bioAvailable && bioStored;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, overflow: "hidden" }}>
@@ -419,10 +502,33 @@ export default function SignInScreen() {
         pointerEvents={step === "landing" ? "auto" : "none"}
       >
         <View style={{ flex: 1, paddingHorizontal: 28, paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 }}>
-          {/* Logo + brand */}
-          <View style={{ alignItems: "center", marginBottom: 52 }}>
+          {/* Logo */}
+          <View style={{ alignItems: "center", marginBottom: showBioBtn ? 36 : 52 }}>
             <AfuLogo size={64} />
           </View>
+
+          {/* Biometric quick-sign-in — shown when hardware + stored token available */}
+          {showBioBtn && (
+            <View style={{ alignItems: "center", marginBottom: 32 }}>
+              <TouchableOpacity
+                style={[sc.bioCircle, { borderColor: accent + "40", backgroundColor: accent + "10" }]}
+                onPress={handleBioSignIn}
+                disabled={bioLoading}
+                activeOpacity={0.82}
+              >
+                {bioLoading
+                  ? <ActivityIndicator size="large" color={accent} />
+                  : <Ionicons name={bioIcon} size={34} color={accent} />
+                }
+              </TouchableOpacity>
+              <Text style={{ marginTop: 10, fontSize: 13, fontFamily: "Inter_600SemiBold", color: accent, letterSpacing: 0.1 }}>
+                {bioLoading ? "Verifying…" : `Sign in with ${bioLabel}`}
+              </Text>
+              <Text style={{ marginTop: 4, fontSize: 11.5, fontFamily: "Inter_400Regular", color: mutedColor }}>
+                Tap to unlock instantly
+              </Text>
+            </View>
+          )}
 
           {/* Heading */}
           <Text style={[sc.heading, { color: textColor }]}>Welcome back</Text>
@@ -430,7 +536,7 @@ export default function SignInScreen() {
             Sign in to your AfuChat account
           </Text>
 
-          <View style={{ gap: 12, marginTop: 36 }}>
+          <View style={{ gap: 12, marginTop: 28 }}>
             {/* Google */}
             <TouchableOpacity
               style={[sc.socialBtn, { backgroundColor: surfaceColor, borderColor }]}
@@ -460,7 +566,7 @@ export default function SignInScreen() {
           </View>
 
           {/* Divider */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginVertical: 28 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginVertical: 24 }}>
             <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: borderColor }} />
             <Text style={{ fontSize: 12, fontFamily: "Inter_500Medium", color: mutedColor, letterSpacing: 0.4 }}>or</Text>
             <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: borderColor }} />
@@ -476,7 +582,7 @@ export default function SignInScreen() {
           </TouchableOpacity>
 
           {/* Footer */}
-          <View style={{ marginTop: "auto", paddingTop: 32, alignItems: "center", gap: 6 }}>
+          <View style={{ marginTop: "auto", paddingTop: 28, alignItems: "center", gap: 6 }}>
             <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
               <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/terms")}>Terms</Text>
               <Text style={{ color: mutedColor, fontSize: 12 }}>·</Text>
@@ -503,11 +609,7 @@ export default function SignInScreen() {
             showsVerticalScrollIndicator={false}
           >
             {/* Back */}
-            <TouchableOpacity
-              onPress={goToLanding}
-              style={sc.backBtn}
-              hitSlop={14}
-            >
+            <TouchableOpacity onPress={goToLanding} style={sc.backBtn} hitSlop={14}>
               <Ionicons name="arrow-back" size={22} color={textColor} />
             </TouchableOpacity>
 
@@ -599,6 +701,14 @@ const sc = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Inter_400Regular",
     lineHeight: 22,
+  },
+  bioCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
   socialBtn: {
     flexDirection: "row",

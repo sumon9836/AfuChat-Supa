@@ -1,8 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import {
   Animated,
-  Dimensions,
-  FlatList,
+  PanResponder,
   Platform,
   StatusBar,
   StyleSheet,
@@ -59,6 +58,7 @@ const SLIDES = [
 ];
 
 const TOTAL = SLIDES.length;
+const SWIPE_THRESHOLD = 52;
 
 function finish() {
   try { storage.setBoolean(KEYS.ONBOARDING_DONE, true); } catch {}
@@ -72,42 +72,80 @@ export default function WelcomeScreen() {
   const { width: SW, height: SH } = useWindowDimensions();
   const isWeb = Platform.OS === "web";
 
-  const PHOTO_H = Math.round(SH * 0.58);
+  const PHOTO_H = Math.round(SH * 0.60);
   const bgColor = isDark ? "#0A0A0A" : "#FFFFFF";
 
-  const listRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const activeIndexRef = useRef(0);
+  const isBusyRef = useRef(false);
 
+  // Per-slide image opacity — first slide starts visible
+  const imgOpacities = useRef(SLIDES.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))).current;
+
+  // Content text animation
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentY = useRef(new Animated.Value(0)).current;
-  const activeIndexRef = useRef(0);
 
   useEffect(() => {
     if (user) router.replace("/(tabs)/chats");
   }, [user]);
 
-  const onViewRef = useRef(({ viewableItems }: { viewableItems: any[] }) => {
-    if (viewableItems.length === 0) return;
-    const idx = viewableItems[0].index ?? 0;
-    if (idx === activeIndexRef.current) return;
-    activeIndexRef.current = idx;
+  // ── Crossfade to target slide ───────────────────────────────────────────────
+  function crossfadeTo(nextIdx: number) {
+    if (isBusyRef.current) return;
+    const current = activeIndexRef.current;
+    if (nextIdx === current || nextIdx < 0 || nextIdx >= TOTAL) return;
+
+    isBusyRef.current = true;
+    activeIndexRef.current = nextIdx;
+    setActiveIndex(nextIdx);
+
+    // Content: fade out → slide up slightly → fade in new text
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(contentOpacity, { toValue: 0, duration: 100, useNativeDriver: !isWeb }),
-        Animated.timing(contentY, { toValue: 6, duration: 100, useNativeDriver: !isWeb }),
+        Animated.timing(contentOpacity, { toValue: 0, duration: 120, useNativeDriver: !isWeb }),
+        Animated.timing(contentY, { toValue: 8, duration: 120, useNativeDriver: !isWeb }),
       ]),
       Animated.parallel([
-        Animated.timing(contentOpacity, { toValue: 1, duration: 200, useNativeDriver: !isWeb }),
-        Animated.timing(contentY, { toValue: 0, duration: 200, useNativeDriver: !isWeb }),
+        Animated.timing(contentOpacity, { toValue: 1, duration: 220, useNativeDriver: !isWeb }),
+        Animated.timing(contentY, { toValue: 0, duration: 220, useNativeDriver: !isWeb }),
       ]),
+    ]).start(() => { isBusyRef.current = false; });
+
+    // Image: crossfade old out, new in simultaneously
+    Animated.parallel([
+      Animated.timing(imgOpacities[current], {
+        toValue: 0,
+        duration: 480,
+        useNativeDriver: !isWeb,
+      }),
+      Animated.timing(imgOpacities[nextIdx], {
+        toValue: 1,
+        duration: 480,
+        useNativeDriver: !isWeb,
+      }),
     ]).start();
-    setActiveIndex(idx);
-  });
-  const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 55 });
+  }
+
+  // ── Swipe gesture ───────────────────────────────────────────────────────────
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -SWIPE_THRESHOLD && activeIndexRef.current < TOTAL - 1) {
+          crossfadeTo(activeIndexRef.current + 1);
+        } else if (g.dx > SWIPE_THRESHOLD && activeIndexRef.current > 0) {
+          crossfadeTo(activeIndexRef.current - 1);
+        }
+      },
+    })
+  ).current;
 
   function goNext() {
     if (activeIndex < TOTAL - 1) {
-      listRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
+      crossfadeTo(activeIndex + 1);
     } else {
       finish();
     }
@@ -117,45 +155,36 @@ export default function WelcomeScreen() {
   const isLast = activeIndex === TOTAL - 1;
 
   return (
-    <View style={[s.root, { backgroundColor: bgColor }]}>
+    <View style={[s.root, { backgroundColor: bgColor }]} {...panResponder.panHandlers}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* ── Full-bleed photo pager ── */}
-      <View style={{ width: SW, height: PHOTO_H }}>
-        <FlatList
-          ref={listRef}
-          data={SLIDES}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(_, i) => String(i)}
-          onViewableItemsChanged={onViewRef.current}
-          viewabilityConfig={viewConfig.current}
-          initialNumToRender={2}
-          maxToRenderPerBatch={2}
-          getItemLayout={(_, index) => ({ length: SW, offset: SW * index, index })}
-          renderItem={({ item }) => (
-            <View style={{ width: SW, height: PHOTO_H }}>
-              <Image
-                source={{ uri: item.photo }}
-                style={StyleSheet.absoluteFill}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={300}
-              />
-              {/* Smooth bottom fade only — NO top shadow */}
-              <LinearGradient
-                colors={["transparent", "transparent", `${bgColor}CC`, bgColor]}
-                locations={[0, 0.5, 0.82, 1]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={[StyleSheet.absoluteFill]}
-              />
-            </View>
-          )}
+      {/* ── Crossfade image stack ── */}
+      <View style={{ width: SW, height: PHOTO_H, overflow: "hidden" }}>
+        {SLIDES.map((sl, i) => (
+          <Animated.View
+            key={i}
+            style={[StyleSheet.absoluteFill, { opacity: imgOpacities[i] }]}
+          >
+            <Image
+              source={{ uri: sl.photo }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          </Animated.View>
+        ))}
+
+        {/* Smooth bottom fade into bg — NO top shadow */}
+        <LinearGradient
+          colors={["transparent", "transparent", `${bgColor}BB`, bgColor]}
+          locations={[0, 0.48, 0.80, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
         />
 
-        {/* Top bar — NO background, just transparent */}
+        {/* Top bar — transparent, no background */}
         <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
           <View />
           <TouchableOpacity
@@ -193,15 +222,15 @@ export default function WelcomeScreen() {
 
         {/* Dots */}
         <View style={s.dotsRow}>
-          {SLIDES.map((sl, i) => {
+          {SLIDES.map((_, i) => {
             const active = i === activeIndex;
             return (
               <TouchableOpacity
                 key={i}
-                onPress={() => listRef.current?.scrollToIndex({ index: i, animated: true })}
+                onPress={() => crossfadeTo(i)}
                 hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
               >
-                <Animated.View
+                <View
                   style={[
                     s.dot,
                     {
@@ -223,9 +252,7 @@ export default function WelcomeScreen() {
           onPress={goNext}
           activeOpacity={0.84}
         >
-          <Text style={s.ctaText}>
-            {isLast ? slide.action : slide.action}
-          </Text>
+          <Text style={s.ctaText}>{slide.action}</Text>
           <Text style={s.ctaArrow}> →</Text>
         </TouchableOpacity>
 
