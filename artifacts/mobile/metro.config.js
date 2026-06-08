@@ -139,10 +139,15 @@ config.server = {
       req.socket?.setTimeout?.(120_000);
       res.setTimeout?.(120_000);
 
-      // Prevent the Replit proxy from caching bundles so the preview always
-      // reflects the latest build after a hot-reload or workflow restart.
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-      res.setHeader("Pragma", "no-cache");
+      // For web/browser requests: prevent proxy caching of stale HTML/manifests.
+      // For native bundle requests (.bundle): allow Expo Go to cache locally so
+      // the phone does not have to re-download the full 2 MB bundle on every launch.
+      // Serving .bundle without no-store is safe — Metro invalidates on code change.
+      const isNativeBundle = req.url?.includes(".bundle");
+      if (!isNativeBundle) {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+      }
 
       if (req.url && req.url.startsWith("/api/")) {
         return proxyApi(req, res);
