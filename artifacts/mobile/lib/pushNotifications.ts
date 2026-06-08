@@ -42,14 +42,10 @@ let Device: typeof import("expo-device") | null = null;
 
 if (Platform.OS !== "web") {
   try {
-    const origError = console.error;
-    console.error = (...args: any[]) => {
-      if (typeof args[0] === "string" && args[0].includes("removed from Expo Go")) return;
-      origError(...args);
-    };
+    // Load lazily — "removed from Expo Go" is only a console warning, not an
+    // exception; the surrounding try/catch handles any real import failures.
     Notifications = require("expo-notifications");
     Device = require("expo-device");
-    console.error = origError;
 
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
