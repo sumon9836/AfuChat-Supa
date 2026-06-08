@@ -3,23 +3,21 @@ import {
   Animated,
   Dimensions,
   FlatList,
-  Image,
   Platform,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { storage, KEYS } from "@/lib/storage/mmkv";
-import AfuLogo from "@/components/ui/AfuLogo";
-
-const { width: SW, height: SH } = Dimensions.get("window");
-const PHOTO_H = Math.min(SH * 0.62, 520);
 
 const SLIDES = [
   {
@@ -28,7 +26,8 @@ const SLIDES = [
     tag: "MESSAGING",
     title: "Chat like\nnever before",
     subtitle:
-      "Messages, voice notes & video calls to anyone — with real-time receipts and end-to-end encryption.",
+      "Messages, voice notes & video calls — with real-time receipts and end-to-end encryption.",
+    action: "Explore messaging",
   },
   {
     photo: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80",
@@ -37,6 +36,7 @@ const SLIDES = [
     title: "Find your\ntribe nearby",
     subtitle:
       "Discover people, events and groups around you. Share stories and grow your circle every day.",
+    action: "Find community",
   },
   {
     photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=900&q=80",
@@ -44,7 +44,8 @@ const SLIDES = [
     tag: "AI FEATURES",
     title: "AI that actually\nworks for you",
     subtitle:
-      "Smart replies, image generation, voice transcription and message translation — right in your chats.",
+      "Smart replies, image generation, voice transcription and translation — right in your chats.",
+    action: "Try AI features",
   },
   {
     photo: "https://images.unsplash.com/photo-1573497491765-dccce02b29df?w=900&q=80",
@@ -53,6 +54,7 @@ const SLIDES = [
     title: "Earn as you\nconnect",
     subtitle:
       "Send money, earn Nexa points, tip creators and manage your digital wallet — all in one place.",
+    action: "Get started free",
   },
 ];
 
@@ -64,39 +66,42 @@ function finish() {
 }
 
 export default function WelcomeScreen() {
-  const { isDark, colors } = useTheme();
+  const { isDark } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: SW, height: SH } = useWindowDimensions();
+  const isWeb = Platform.OS === "web";
+
+  const PHOTO_H = Math.round(SH * 0.58);
+  const bgColor = isDark ? "#0A0A0A" : "#FFFFFF";
+
   const listRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const slideOpacity = useRef(new Animated.Value(1)).current;
-  const slideY = useRef(new Animated.Value(0)).current;
+  const contentOpacity = useRef(new Animated.Value(1)).current;
+  const contentY = useRef(new Animated.Value(0)).current;
   const activeIndexRef = useRef(0);
-  const isWeb = Platform.OS === "web";
 
   useEffect(() => {
     if (user) router.replace("/(tabs)/chats");
   }, [user]);
 
   const onViewRef = useRef(({ viewableItems }: { viewableItems: any[] }) => {
-    if (viewableItems.length > 0) {
-      const idx = viewableItems[0].index ?? 0;
-      if (idx !== activeIndexRef.current) {
-        activeIndexRef.current = idx;
-        Animated.sequence([
-          Animated.parallel([
-            Animated.timing(slideOpacity, { toValue: 0, duration: 110, useNativeDriver: !isWeb }),
-            Animated.timing(slideY, { toValue: 8, duration: 110, useNativeDriver: !isWeb }),
-          ]),
-          Animated.parallel([
-            Animated.timing(slideOpacity, { toValue: 1, duration: 180, useNativeDriver: !isWeb }),
-            Animated.timing(slideY, { toValue: 0, duration: 180, useNativeDriver: !isWeb }),
-          ]),
-        ]).start();
-        setActiveIndex(idx);
-      }
-    }
+    if (viewableItems.length === 0) return;
+    const idx = viewableItems[0].index ?? 0;
+    if (idx === activeIndexRef.current) return;
+    activeIndexRef.current = idx;
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(contentOpacity, { toValue: 0, duration: 100, useNativeDriver: !isWeb }),
+        Animated.timing(contentY, { toValue: 6, duration: 100, useNativeDriver: !isWeb }),
+      ]),
+      Animated.parallel([
+        Animated.timing(contentOpacity, { toValue: 1, duration: 200, useNativeDriver: !isWeb }),
+        Animated.timing(contentY, { toValue: 0, duration: 200, useNativeDriver: !isWeb }),
+      ]),
+    ]).start();
+    setActiveIndex(idx);
   });
   const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 55 });
 
@@ -108,15 +113,15 @@ export default function WelcomeScreen() {
     }
   }
 
-  const current = SLIDES[activeIndex];
+  const slide = SLIDES[activeIndex];
   const isLast = activeIndex === TOTAL - 1;
-
-  const bgColor = isDark ? "#0A0A0A" : "#FFFFFF";
 
   return (
     <View style={[s.root, { backgroundColor: bgColor }]}>
-      {/* Full-bleed photo pager */}
-      <View style={[s.photoPane, { height: PHOTO_H }]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      {/* ── Full-bleed photo pager ── */}
+      <View style={{ width: SW, height: PHOTO_H }}>
         <FlatList
           ref={listRef}
           data={SLIDES}
@@ -134,30 +139,29 @@ export default function WelcomeScreen() {
               <Image
                 source={{ uri: item.photo }}
                 style={StyleSheet.absoluteFill}
-                resizeMode="cover"
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={300}
               />
-              {/* Vignette — top */}
+              {/* Smooth bottom fade only — NO top shadow */}
               <LinearGradient
-                colors={["rgba(0,0,0,0.38)", "transparent"]}
+                colors={["transparent", "transparent", `${bgColor}CC`, bgColor]}
+                locations={[0, 0.5, 0.82, 1]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
-                style={[StyleSheet.absoluteFill, { height: "45%" }]}
-              />
-              {/* Fade into bg at bottom */}
-              <LinearGradient
-                colors={["transparent", bgColor]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={[StyleSheet.absoluteFill, { top: "55%" }]}
+                style={[StyleSheet.absoluteFill]}
               />
             </View>
           )}
         />
 
-        {/* Logo + Skip row over the photo */}
-        <View style={[s.topBar, { paddingTop: insets.top + 14 }]}>
-          <AfuLogo size={28} forceTheme="dark" />
-          <TouchableOpacity onPress={finish} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        {/* Top bar — NO background, just transparent */}
+        <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
+          <View />
+          <TouchableOpacity
+            onPress={finish}
+            hitSlop={{ top: 12, bottom: 12, left: 16, right: 16 }}
+          >
             <View style={s.skipPill}>
               <Text style={s.skipText}>Skip</Text>
             </View>
@@ -165,23 +169,25 @@ export default function WelcomeScreen() {
         </View>
       </View>
 
-      {/* Content area */}
-      <View style={[s.content, { paddingBottom: insets.bottom + 20 }]}>
-        <Animated.View style={{ opacity: slideOpacity, transform: [{ translateY: slideY }] }}>
-          {/* Tag chip */}
-          <View style={[s.tagWrap, { backgroundColor: current.accent + "22" }]}>
-            <View style={[s.tagDot, { backgroundColor: current.accent }]} />
-            <Text style={[s.tagText, { color: current.accent }]}>{current.tag}</Text>
+      {/* ── Content area ── */}
+      <View style={[s.content, { paddingBottom: Math.max(insets.bottom, 20) + 12 }]}>
+        <Animated.View
+          style={[s.contentInner, { opacity: contentOpacity, transform: [{ translateY: contentY }] }]}
+        >
+          {/* Feature tag */}
+          <View style={[s.tag, { backgroundColor: slide.accent + "1A" }]}>
+            <View style={[s.tagDot, { backgroundColor: slide.accent }]} />
+            <Text style={[s.tagText, { color: slide.accent }]}>{slide.tag}</Text>
           </View>
 
           {/* Title */}
           <Text style={[s.title, { color: isDark ? "#F2F2F2" : "#0A0A0A" }]}>
-            {current.title}
+            {slide.title}
           </Text>
 
           {/* Subtitle */}
-          <Text style={[s.subtitle, { color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)" }]}>
-            {current.subtitle}
+          <Text style={[s.subtitle, { color: isDark ? "rgba(255,255,255,0.52)" : "rgba(0,0,0,0.48)" }]}>
+            {slide.subtitle}
           </Text>
         </Animated.View>
 
@@ -193,14 +199,16 @@ export default function WelcomeScreen() {
               <TouchableOpacity
                 key={i}
                 onPress={() => listRef.current?.scrollToIndex({ index: i, animated: true })}
-                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
               >
-                <View
+                <Animated.View
                   style={[
                     s.dot,
                     {
-                      width: active ? 22 : 7,
-                      backgroundColor: active ? current.accent : (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)"),
+                      width: active ? 24 : 7,
+                      backgroundColor: active
+                        ? slide.accent
+                        : isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.13)",
                     },
                   ]}
                 />
@@ -211,25 +219,25 @@ export default function WelcomeScreen() {
 
         {/* CTA */}
         <TouchableOpacity
-          style={[s.cta, { backgroundColor: current.accent }]}
+          style={[s.cta, { backgroundColor: slide.accent }]}
           onPress={goNext}
-          activeOpacity={0.85}
+          activeOpacity={0.84}
         >
-          <Text style={s.ctaText}>{isLast ? "Get Started" : "Continue"}</Text>
-          <Text style={s.ctaArrow}>{isLast ? " →" : " →"}</Text>
+          <Text style={s.ctaText}>
+            {isLast ? slide.action : slide.action}
+          </Text>
+          <Text style={s.ctaArrow}> →</Text>
         </TouchableOpacity>
 
-        {/* Bottom auth hint on last slide */}
-        {isLast && (
-          <View style={s.authHint}>
-            <Text style={[s.authHintText, { color: isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.38)" }]}>
-              Already have an account?{" "}
-            </Text>
-            <TouchableOpacity onPress={finish}>
-              <Text style={[s.authHintLink, { color: current.accent }]}>Sign in</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* Auth hint */}
+        <View style={s.hintRow}>
+          <Text style={[s.hintText, { color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }]}>
+            Already have an account?{" "}
+          </Text>
+          <TouchableOpacity onPress={finish} hitSlop={8}>
+            <Text style={[s.hintLink, { color: slide.accent }]}>Sign in</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -238,13 +246,9 @@ export default function WelcomeScreen() {
 const s = StyleSheet.create({
   root: { flex: 1 },
 
-  // Photo pane
-  photoPane: { width: SW, overflow: "hidden" },
   topBar: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -252,90 +256,87 @@ const s = StyleSheet.create({
     zIndex: 10,
   },
   skipPill: {
-    backgroundColor: "rgba(255,255,255,0.18)",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    paddingHorizontal: 16,
+    paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.28)",
+    borderColor: "rgba(255,255,255,0.22)",
   },
   skipText: {
     color: "#fff",
     fontSize: 13,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 0.2,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.1,
   },
 
-  // Content area
   content: {
     flex: 1,
     paddingHorizontal: 28,
-    paddingTop: 8,
-    gap: 0,
+    paddingTop: 4,
+    justifyContent: "flex-end",
   },
-  tagWrap: {
+  contentInner: { marginBottom: 20 },
+
+  tag: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
-    marginBottom: 12,
+    marginBottom: 14,
     gap: 6,
   },
   tagDot: { width: 6, height: 6, borderRadius: 3 },
-  tagText: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 1.2 },
+  tagText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1.4 },
 
   title: {
-    fontSize: 34,
+    fontSize: 36,
     fontFamily: "Inter_700Bold",
-    letterSpacing: -0.8,
-    lineHeight: 42,
+    letterSpacing: -1,
+    lineHeight: 44,
     marginBottom: 12,
   },
   subtitle: {
-    fontSize: 15.5,
+    fontSize: 15,
     fontFamily: "Inter_400Regular",
     lineHeight: 23,
-    marginBottom: 24,
   },
 
-  // Dots
   dotsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginBottom: 20,
+    gap: 7,
+    marginBottom: 22,
   },
   dot: { height: 7, borderRadius: 3.5 },
 
-  // CTA
   cta: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: 54,
+    height: 56,
     borderRadius: 999,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   ctaText: {
     color: "#fff",
     fontSize: 17,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 0.1,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.1,
   },
   ctaArrow: {
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.75)",
     fontSize: 17,
     fontFamily: "Inter_600SemiBold",
   },
 
-  // Auth hint
-  authHint: {
+  hintRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
   },
-  authHintText: { fontSize: 13.5, fontFamily: "Inter_400Regular" },
-  authHintLink: { fontSize: 13.5, fontFamily: "Inter_600SemiBold" },
+  hintText: { fontSize: 13.5, fontFamily: "Inter_400Regular" },
+  hintLink: { fontSize: 13.5, fontFamily: "Inter_700Bold" },
 });

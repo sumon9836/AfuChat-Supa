@@ -7,11 +7,13 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 
 import { router } from "expo-router";
@@ -29,24 +31,23 @@ import { googleSignIn } from "@/lib/googleAuth";
 import AfuLogo from "@/components/ui/AfuLogo";
 import { GoogleLogo } from "@/components/ui/OAuthLogos";
 
-const BRAND_TEAL = "#1f95ff";
+const BRAND = "#1f95ff";
 
 // ─── AuthInput ────────────────────────────────────────────────────────────────
-function AuthInput({ icon, placeholder, value, onChangeText, secureTextEntry, keyboardType, autoCapitalize, autoComplete, isDark, rightElement, onSubmitEditing, returnKeyType, inputRef }: any) {
+function AuthInput({ icon, placeholder, value, onChangeText, secureTextEntry, keyboardType, autoCapitalize, autoComplete, isDark, rightElement, onSubmitEditing, returnKeyType, inputRef, accent }: any) {
   const [focused, setFocused] = useState(false);
-  const { accent } = useAppAccent();
   return (
     <View style={[inp.wrap, {
       backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-      borderColor: focused ? accent + "70" : isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)",
-      borderWidth: 1,
+      borderColor: focused ? accent + "80" : isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.09)",
+      borderWidth: 1.5,
     }]}>
-      <Ionicons name={icon} size={17} color={focused ? accent : isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.30)"} style={inp.icon} />
+      <Ionicons name={icon} size={17} color={focused ? accent : isDark ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.26)"} style={inp.icon} />
       <TextInput
         ref={inputRef}
         style={[inp.text, { color: isDark ? "#F1F1F1" : "#0F0F0F" }]}
         placeholder={placeholder}
-        placeholderTextColor={isDark ? "rgba(255,255,255,0.30)" : "rgba(0,0,0,0.28)"}
+        placeholderTextColor={isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.26)"}
         value={value} onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType} autoCapitalize={autoCapitalize ?? "none"}
@@ -59,22 +60,10 @@ function AuthInput({ icon, placeholder, value, onChangeText, secureTextEntry, ke
   );
 }
 const inp = StyleSheet.create({
-  wrap: { flexDirection: "row", alignItems: "center", borderRadius: 12, paddingHorizontal: 14, height: 52 },
+  wrap: { flexDirection: "row", alignItems: "center", borderRadius: 14, paddingHorizontal: 14, height: 54 },
   icon: { marginRight: 10 },
-  text: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", height: 52, outlineStyle: "none" } as any,
+  text: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", height: 54, outlineStyle: "none" } as any,
 });
-
-// ─── OrDivider ────────────────────────────────────────────────────────────────
-function OrDivider({ isDark }: { isDark: boolean }) {
-  const c = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-      <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: c }} />
-      <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: isDark ? "rgba(255,255,255,0.30)" : "rgba(0,0,0,0.28)", letterSpacing: 1.2 }}>OR</Text>
-      <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: c }} />
-    </View>
-  );
-}
 
 // ─── GlassModal ───────────────────────────────────────────────────────────────
 function GlassModal({ visible, onClose, isDark, children }: { visible: boolean; onClose: () => void; isDark: boolean; children: React.ReactNode }) {
@@ -98,48 +87,8 @@ const gm = StyleSheet.create({
   card: { width: "100%", maxWidth: 420, borderRadius: 24, overflow: "hidden" },
 });
 
-// ─── ModalHeader ──────────────────────────────────────────────────────────────
-function ModalHeader({ title, subtitle, onClose, isDark }: { title: string; subtitle?: string; onClose: () => void; isDark: boolean }) {
-  const textColor = isDark ? "#F1F1F1" : "#0F0F0F";
-  const mutedColor = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)";
-  return (
-    <View style={mh.row}>
-      <View style={{ flex: 1 }}>
-        <Text style={[mh.title, { color: textColor }]}>{title}</Text>
-        {subtitle ? <Text style={[mh.sub, { color: mutedColor }]}>{subtitle}</Text> : null}
-      </View>
-      <TouchableOpacity onPress={onClose} style={mh.closeBtn}>
-        <Ionicons name="close" size={18} color={mutedColor} />
-      </TouchableOpacity>
-    </View>
-  );
-}
-const mh = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16, gap: 12 },
-  title: { fontSize: 20, fontFamily: "Inter_700Bold", letterSpacing: -0.3, marginBottom: 4 },
-  sub: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
-  closeBtn: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", marginTop: 2 },
-});
-
-// ─── ModalActionBtn ───────────────────────────────────────────────────────────
-function ModalActionBtn({ label, onPress, loading, accent }: { label: string; onPress: () => void; loading: boolean; accent: string }) {
-  return (
-    <TouchableOpacity style={[ma.btn, loading && { opacity: 0.6 }]} onPress={onPress} disabled={loading} activeOpacity={0.85}>
-      <LinearGradient colors={[accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={ma.grad}>
-        {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={ma.text}>{label}</Text>}
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-}
-const ma = StyleSheet.create({
-  btn: { borderRadius: 14, overflow: "hidden" },
-  grad: { height: 50, alignItems: "center", justifyContent: "center" },
-  text: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-});
-
 // ─── ForgotPasswordModal ──────────────────────────────────────────────────────
-function ForgotPasswordModal({ visible, onClose, isDark }: { visible: boolean; onClose: () => void; isDark: boolean }) {
-  const { accent } = useAppAccent();
+function ForgotPasswordModal({ visible, onClose, isDark, accent }: { visible: boolean; onClose: () => void; isDark: boolean; accent: string }) {
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -148,6 +97,7 @@ function ForgotPasswordModal({ visible, onClose, isDark }: { visible: boolean; o
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const mutedColor = isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.30)";
+  const textColor = isDark ? "#F1F1F1" : "#0F0F0F";
 
   useEffect(() => {
     if (!visible) {
@@ -180,42 +130,59 @@ function ForgotPasswordModal({ visible, onClose, isDark }: { visible: boolean; o
 
   return (
     <GlassModal visible={visible} onClose={onClose} isDark={isDark}>
-      <ModalHeader
-        title={step === "email" ? "Reset Password" : "Create New Password"}
-        subtitle={step === "email" ? "Enter your email to receive a reset code" : `Code sent to ${email}`}
-        onClose={onClose} isDark={isDark}
-      />
-      <View style={{ paddingHorizontal: 24, paddingBottom: 24, gap: 12 }}>
-        {step === "email" ? (
-          <>
-            <AuthInput icon="mail-outline" placeholder="Email address" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" isDark={isDark} returnKeyType="go" onSubmitEditing={sendCode} />
-            <ModalActionBtn label="Send Reset Code" onPress={sendCode} loading={loading} accent={accent} />
-          </>
-        ) : (
-          <>
-            <AuthInput icon="keypad-outline" placeholder="6-digit code from email" value={code} onChangeText={setCode} keyboardType="number-pad" isDark={isDark} />
-            <AuthInput icon="lock-closed-outline" placeholder="New password" value={newPwd} onChangeText={setNewPwd} secureTextEntry={!showPwd} isDark={isDark}
-              rightElement={<TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}><Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={17} color={mutedColor} /></TouchableOpacity>}
-            />
-            <AuthInput icon="lock-closed-outline" placeholder="Confirm new password" value={confirmPwd} onChangeText={setConfirmPwd} secureTextEntry={!showPwd} isDark={isDark} returnKeyType="go" onSubmitEditing={doReset} />
-            <ModalActionBtn label="Update Password" onPress={doReset} loading={loading} accent={accent} />
-            <TouchableOpacity onPress={() => setStep("email")} style={{ alignSelf: "center", paddingVertical: 4 }}>
-              <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>← Back / Resend code</Text>
-            </TouchableOpacity>
-          </>
-        )}
+      <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <Text style={{ fontSize: 20, fontFamily: "Inter_700Bold", color: textColor }}>
+            {step === "email" ? "Reset password" : "New password"}
+          </Text>
+          <TouchableOpacity onPress={onClose} hitSlop={12}>
+            <Ionicons name="close" size={20} color={mutedColor} />
+          </TouchableOpacity>
+        </View>
+        <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: mutedColor, marginBottom: 20 }}>
+          {step === "email" ? "Enter your email to receive a reset code" : `Reset code sent to ${email}`}
+        </Text>
+        <View style={{ gap: 12 }}>
+          {step === "email" ? (
+            <>
+              <AuthInput icon="mail-outline" placeholder="Email address" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" isDark={isDark} returnKeyType="go" onSubmitEditing={sendCode} accent={accent} />
+              <TouchableOpacity style={[sc.primaryBtn, loading && { opacity: 0.6 }]} onPress={sendCode} disabled={loading} activeOpacity={0.85}>
+                <LinearGradient colors={[accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
+                  {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={sc.primaryText}>Send reset code</Text>}
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <AuthInput icon="keypad-outline" placeholder="6-digit code from email" value={code} onChangeText={setCode} keyboardType="number-pad" isDark={isDark} accent={accent} />
+              <AuthInput icon="lock-closed-outline" placeholder="New password" value={newPwd} onChangeText={setNewPwd} secureTextEntry={!showPwd} isDark={isDark} accent={accent}
+                rightElement={<TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}><Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={17} color={mutedColor} /></TouchableOpacity>}
+              />
+              <AuthInput icon="lock-closed-outline" placeholder="Confirm password" value={confirmPwd} onChangeText={setConfirmPwd} secureTextEntry={!showPwd} isDark={isDark} returnKeyType="go" onSubmitEditing={doReset} accent={accent} />
+              <TouchableOpacity style={[sc.primaryBtn, loading && { opacity: 0.6 }]} onPress={doReset} disabled={loading} activeOpacity={0.85}>
+                <LinearGradient colors={[accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
+                  {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={sc.primaryText}>Update password</Text>}
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setStep("email")} style={{ alignSelf: "center", paddingVertical: 4 }}>
+                <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>← Back / Resend</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </View>
     </GlassModal>
   );
 }
 
 // ─── EmailVerifyModal ─────────────────────────────────────────────────────────
-function EmailVerifyModal({ visible, email, onClose, onVerified, isDark }: { visible: boolean; email: string; onClose: () => void; onVerified: () => void; isDark: boolean }) {
-  const { accent } = useAppAccent();
+function EmailVerifyModal({ visible, email, onClose, onVerified, isDark, accent }: { visible: boolean; email: string; onClose: () => void; onVerified: () => void; isDark: boolean; accent: string }) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const sentRef = useRef(false);
+  const textColor = isDark ? "#F1F1F1" : "#0F0F0F";
+  const mutedColor = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)";
 
   useEffect(() => {
     if (visible && !sentRef.current && email) { sentRef.current = true; sendCode(); }
@@ -239,17 +206,25 @@ function EmailVerifyModal({ visible, email, onClose, onVerified, isDark }: { vis
 
   return (
     <GlassModal visible={visible} onClose={onClose} isDark={isDark}>
-      <ModalHeader
-        title="Verify Your Email"
-        subtitle={sending ? "Sending verification code…" : `We sent a 6-digit code to ${email}`}
-        onClose={onClose} isDark={isDark}
-      />
-      <View style={{ paddingHorizontal: 24, paddingBottom: 24, gap: 12 }}>
-        <AuthInput icon="keypad-outline" placeholder="6-digit verification code" value={code} onChangeText={setCode} keyboardType="number-pad" isDark={isDark} returnKeyType="go" onSubmitEditing={verify} />
-        <ModalActionBtn label="Verify Email" onPress={verify} loading={loading || sending} accent={accent} />
-        <TouchableOpacity onPress={() => { setCode(""); sentRef.current = false; sendCode(); }} disabled={sending} style={{ alignSelf: "center", paddingVertical: 4 }}>
-          <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>{sending ? "Sending…" : "Resend code"}</Text>
-        </TouchableOpacity>
+      <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <Text style={{ fontSize: 20, fontFamily: "Inter_700Bold", color: textColor }}>Verify your email</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={12}><Ionicons name="close" size={20} color={mutedColor} /></TouchableOpacity>
+        </View>
+        <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: mutedColor, marginBottom: 20, lineHeight: 20 }}>
+          {sending ? "Sending verification code…" : `We sent a 6-digit code to ${email}`}
+        </Text>
+        <View style={{ gap: 12 }}>
+          <AuthInput icon="keypad-outline" placeholder="6-digit code" value={code} onChangeText={setCode} keyboardType="number-pad" isDark={isDark} returnKeyType="go" onSubmitEditing={verify} accent={accent} />
+          <TouchableOpacity style={[sc.primaryBtn, (loading || sending) && { opacity: 0.6 }]} onPress={verify} disabled={loading || sending} activeOpacity={0.85}>
+            <LinearGradient colors={[accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
+              {(loading || sending) ? <ActivityIndicator color="#fff" size="small" /> : <Text style={sc.primaryText}>Verify email</Text>}
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => { setCode(""); sentRef.current = false; sendCode(); }} disabled={sending} style={{ alignSelf: "center", paddingVertical: 4 }}>
+            <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>{sending ? "Sending…" : "Resend code"}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </GlassModal>
   );
@@ -261,9 +236,12 @@ export default function SignInScreen() {
   const { accent } = useAppAccent();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: SW } = useWindowDimensions();
+  const isWeb = Platform.OS === "web";
 
   useEffect(() => { if (user) router.replace("/(tabs)/chats"); }, [user]);
 
+  const [step, setStep] = useState<"landing" | "email">("landing");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -276,7 +254,30 @@ export default function SignInScreen() {
   const oauthHandledRef = useRef(false);
 
   const textColor = isDark ? "#F1F1F1" : "#0F0F0F";
-  const mutedColor = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)";
+  const mutedColor = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.42)";
+  const surfaceColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
+  const borderColor = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.09)";
+
+  // Slide animation between landing ↔ email form
+  const landingX = useRef(new Animated.Value(0)).current;
+  const formX = useRef(new Animated.Value(SW)).current;
+
+  function goToEmail() {
+    setStep("email");
+    Animated.parallel([
+      Animated.spring(landingX, { toValue: -SW, useNativeDriver: !isWeb, tension: 200, friction: 28 }),
+      Animated.spring(formX, { toValue: 0, useNativeDriver: !isWeb, tension: 200, friction: 28 }),
+    ]).start();
+    setTimeout(() => (pwdRef.current as any)?.clear?.(), 300);
+  }
+
+  function goToLanding() {
+    setStep("landing");
+    Animated.parallel([
+      Animated.spring(landingX, { toValue: 0, useNativeDriver: !isWeb, tension: 200, friction: 28 }),
+      Animated.spring(formX, { toValue: SW, useNativeDriver: !isWeb, tension: 200, friction: 28 }),
+    ]).start();
+  }
 
   // ── Identifier helpers ──────────────────────────────────────────────────────
   function detectType(raw: string): "email" | "handle" | "phone" {
@@ -409,112 +410,173 @@ export default function SignInScreen() {
   const idIcon = idType === "email" ? "mail-outline" : idType === "phone" ? "call-outline" : "at-outline";
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28, paddingTop: insets.top + 32, paddingBottom: insets.bottom + 40 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Logo */}
-          <View style={{ alignItems: "center", marginBottom: 36 }}>
-            <AfuLogo size={72} />
-            <Text style={{ fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginTop: 12, color: textColor }}>AfuChat</Text>
-            <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: mutedColor, marginTop: 4 }}>Connect · Discover · Create</Text>
+    <View style={{ flex: 1, backgroundColor: colors.background, overflow: "hidden" }}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+      {/* ── LANDING PANEL ── */}
+      <Animated.View
+        style={[sc.panel, { transform: [{ translateX: landingX }] }]}
+        pointerEvents={step === "landing" ? "auto" : "none"}
+      >
+        <View style={{ flex: 1, paddingHorizontal: 28, paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 }}>
+          {/* Logo + brand */}
+          <View style={{ alignItems: "center", marginBottom: 52 }}>
+            <AfuLogo size={64} />
           </View>
 
           {/* Heading */}
-          <Text style={{ fontSize: 24, fontFamily: "Inter_700Bold", letterSpacing: -0.4, color: textColor, marginBottom: 4 }}>Welcome back</Text>
-          <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: mutedColor, marginBottom: 24 }}>Sign in to your account</Text>
+          <Text style={[sc.heading, { color: textColor }]}>Welcome back</Text>
+          <Text style={[sc.subheading, { color: mutedColor }]}>
+            Sign in to your AfuChat account
+          </Text>
 
-          {/* Fields */}
-          <View style={{ gap: 12, marginBottom: 8 }}>
-            <AuthInput
-              icon={idIcon}
-              placeholder="Email, @username, or phone"
-              value={identifier} onChangeText={setIdentifier}
-              keyboardType={idType === "phone" ? "phone-pad" : "email-address"}
-              autoComplete="username" isDark={isDark}
-              returnKeyType="next" onSubmitEditing={() => pwdRef.current?.focus()}
-            />
-            <AuthInput
-              inputRef={pwdRef}
-              icon="lock-closed-outline" placeholder="Password"
-              value={password} onChangeText={setPassword}
-              secureTextEntry={!showPwd} autoComplete="current-password"
-              isDark={isDark} returnKeyType="go" onSubmitEditing={handleLogin}
-              rightElement={
-                <TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}>
-                  <Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={17} color={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.30)"} />
-                </TouchableOpacity>
-              }
-            />
-          </View>
+          <View style={{ gap: 12, marginTop: 36 }}>
+            {/* Google */}
+            <TouchableOpacity
+              style={[sc.socialBtn, { backgroundColor: surfaceColor, borderColor }]}
+              onPress={handleGoogle}
+              disabled={oauthLoading}
+              activeOpacity={0.78}
+            >
+              {oauthLoading ? (
+                <ActivityIndicator size="small" color={accent} />
+              ) : (
+                <>
+                  <GoogleLogo size={20} />
+                  <Text style={[sc.socialBtnText, { color: textColor }]}>Continue with Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
-          {/* Forgot password */}
-          <TouchableOpacity onPress={() => setForgotVisible(true)} style={{ alignSelf: "flex-end", paddingVertical: 6, marginBottom: 20 }}>
-            <Text style={{ fontSize: 13, fontFamily: "Inter_500Medium", color: accent }}>Forgot password?</Text>
-          </TouchableOpacity>
-
-          {/* Sign In button */}
-          <TouchableOpacity style={[sc.primaryBtn, loading && { opacity: 0.6 }, { marginBottom: 20 }]} onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
-            <LinearGradient colors={[accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
-              {loading
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={sc.primaryText}>Sign In</Text>
-              }
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <OrDivider isDark={isDark} />
-
-          {/* Google */}
-          <TouchableOpacity
-            style={[sc.googleBtn, { marginTop: 20, borderColor: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)" }]}
-            onPress={handleGoogle}
-            disabled={oauthLoading}
-            activeOpacity={0.75}
-          >
-            {oauthLoading ? (
-              <ActivityIndicator size="small" color="#3C4043" />
-            ) : (
-              <>
-                <GoogleLogo size={20} />
-                <Text style={sc.googleText}>Continue with Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* Switch to register */}
-          <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 28 }}>
-            <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: mutedColor }}>Don't have an account?</Text>
-            <TouchableOpacity onPress={() => router.push("/(auth)/register")} activeOpacity={0.7}>
-              <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: accent }}>Sign Up</Text>
+            {/* Email */}
+            <TouchableOpacity
+              style={[sc.socialBtn, { backgroundColor: surfaceColor, borderColor }]}
+              onPress={goToEmail}
+              activeOpacity={0.78}
+            >
+              <Ionicons name="mail-outline" size={20} color={textColor} />
+              <Text style={[sc.socialBtnText, { color: textColor }]}>Continue with email</Text>
             </TouchableOpacity>
           </View>
 
+          {/* Divider */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginVertical: 28 }}>
+            <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: borderColor }} />
+            <Text style={{ fontSize: 12, fontFamily: "Inter_500Medium", color: mutedColor, letterSpacing: 0.4 }}>or</Text>
+            <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: borderColor }} />
+          </View>
+
+          {/* Create account */}
+          <TouchableOpacity
+            style={[sc.createBtn, { borderColor }]}
+            onPress={() => router.push("/(auth)/register")}
+            activeOpacity={0.78}
+          >
+            <Text style={[sc.createBtnText, { color: accent }]}>Create a new account</Text>
+          </TouchableOpacity>
+
           {/* Footer */}
-          <View style={{ marginTop: 36, paddingTop: 20, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)", gap: 8 }}>
-            <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 }}>
+          <View style={{ marginTop: "auto", paddingTop: 32, alignItems: "center", gap: 6 }}>
+            <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
               <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/terms")}>Terms</Text>
               <Text style={{ color: mutedColor, fontSize: 12 }}>·</Text>
               <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/privacy")}>Privacy</Text>
               <Text style={{ color: mutedColor, fontSize: 12 }}>·</Text>
               <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/help")}>Help</Text>
             </View>
-            <Text style={{ fontSize: 10.5, fontFamily: "Inter_400Regular", textAlign: "center", color: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)" }}>
+            <Text style={{ fontSize: 10.5, fontFamily: "Inter_400Regular", color: isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.16)" }}>
               © {new Date().getFullYear()} AfuChat Technologies Limited
             </Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+      </Animated.View>
 
-      <ForgotPasswordModal visible={forgotVisible} onClose={() => setForgotVisible(false)} isDark={isDark} />
+      {/* ── EMAIL FORM PANEL ── */}
+      <Animated.View
+        style={[sc.panel, { transform: [{ translateX: formX }] }]}
+        pointerEvents={step === "email" ? "auto" : "none"}
+      >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Back */}
+            <TouchableOpacity
+              onPress={goToLanding}
+              style={sc.backBtn}
+              hitSlop={14}
+            >
+              <Ionicons name="arrow-back" size={22} color={textColor} />
+            </TouchableOpacity>
+
+            <View style={{ marginTop: 28, marginBottom: 36 }}>
+              <Text style={[sc.heading, { color: textColor }]}>Sign in</Text>
+              <Text style={[sc.subheading, { color: mutedColor }]}>
+                Enter your credentials to continue
+              </Text>
+            </View>
+
+            <View style={{ gap: 14 }}>
+              <AuthInput
+                icon={idIcon}
+                placeholder="Email, @username, or phone"
+                value={identifier} onChangeText={setIdentifier}
+                keyboardType={idType === "phone" ? "phone-pad" : "email-address"}
+                autoComplete="username" isDark={isDark}
+                returnKeyType="next" onSubmitEditing={() => pwdRef.current?.focus()}
+                accent={accent}
+              />
+              <AuthInput
+                inputRef={pwdRef}
+                icon="lock-closed-outline" placeholder="Password"
+                value={password} onChangeText={setPassword}
+                secureTextEntry={!showPwd} autoComplete="current-password"
+                isDark={isDark} returnKeyType="go" onSubmitEditing={handleLogin}
+                accent={accent}
+                rightElement={
+                  <TouchableOpacity onPress={() => setShowPwd(p => !p)} style={{ padding: 4 }}>
+                    <Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={18} color={mutedColor} />
+                  </TouchableOpacity>
+                }
+              />
+            </View>
+
+            <TouchableOpacity onPress={() => setForgotVisible(true)} style={{ alignSelf: "flex-end", paddingVertical: 10, marginBottom: 8 }}>
+              <Text style={{ fontSize: 13.5, fontFamily: "Inter_500Medium", color: accent }}>Forgot password?</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[sc.primaryBtn, loading && { opacity: 0.62 }]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <LinearGradient colors={[accent, "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={sc.primaryGrad}>
+                {loading
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={sc.primaryText}>Sign in</Text>
+                }
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 24 }}>
+              <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: mutedColor }}>Don't have an account?</Text>
+              <TouchableOpacity onPress={() => router.push("/(auth)/register")} activeOpacity={0.7}>
+                <Text style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: accent }}>Sign up</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Animated.View>
+
+      <ForgotPasswordModal visible={forgotVisible} onClose={() => setForgotVisible(false)} isDark={isDark} accent={accent} />
       <EmailVerifyModal
         visible={verifyVisible} email={verifyEmail}
         onClose={() => setVerifyVisible(false)}
         onVerified={() => { setVerifyVisible(false); router.replace("/(tabs)/chats"); }}
-        isDark={isDark}
+        isDark={isDark} accent={accent}
       />
     </View>
   );
@@ -522,20 +584,56 @@ export default function SignInScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const sc = StyleSheet.create({
-  primaryBtn: { borderRadius: 999, overflow: "hidden" },
-  primaryGrad: { height: 52, alignItems: "center", justifyContent: "center" },
-  primaryText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold", letterSpacing: 0.2 },
-  googleBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 10, height: 50, borderRadius: 999,
-    backgroundColor: "#FFFFFF",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,0,0,0.12)",
-    ...Platform.select({
-      web: { boxShadow: "0 1px 6px rgba(0,0,0,0.12)" } as any,
-      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 4, elevation: 2 },
-    }),
+  panel: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "transparent",
   },
-  googleText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#3C4043" },
+  heading: {
+    fontSize: 32,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.8,
+    lineHeight: 40,
+    marginBottom: 8,
+  },
+  subheading: {
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 22,
+  },
+  socialBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    height: 54,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  socialBtnText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: -0.1,
+  },
+  createBtn: {
+    height: 54,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createBtnText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryBtn: { borderRadius: 14, overflow: "hidden", marginTop: 4 },
+  primaryGrad: { height: 56, alignItems: "center", justifyContent: "center" },
+  primaryText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold", letterSpacing: -0.1 },
   footerLink: { fontSize: 12.5, fontFamily: "Inter_500Medium" },
 });
