@@ -76,3 +76,37 @@ WORKLETS_LEG="node_modules/react-native-worklets/android/src/legacyBundling/com/
 
 patch_worklets "$WORKLETS_EXP"
 patch_worklets "$WORKLETS_LEG"
+
+# ─── Verify patches applied — fail loudly if not ──────────────────────────────
+# Silent patch failure is worse than a build failure: it produces an APK that
+# crashes on launch with no JS error, no stack trace, and no red-box.
+
+WORKLETS_PATCHED=0
+if grep -q 'catch (Throwable __wt)' "$WORKLETS_EXP" 2>/dev/null; then WORKLETS_PATCHED=1; fi
+if grep -q 'catch (Throwable __wt)' "$WORKLETS_LEG" 2>/dev/null; then WORKLETS_PATCHED=1; fi
+
+if [ "$WORKLETS_PATCHED" -eq 0 ]; then
+  echo "[postinstall] ERROR: WorkletsModule SoLoader patch DID NOT APPLY." >&2
+  echo "[postinstall] The static SoLoader.loadLibrary(\"worklets\") block was not found in either:" >&2
+  echo "  $WORKLETS_EXP" >&2
+  echo "  $WORKLETS_LEG" >&2
+  echo "[postinstall] Without this patch, a libworklets.so load failure crashes the JVM" >&2
+  echo "[postinstall] before any JS error handler can intercept it." >&2
+  echo "[postinstall] Check that react-native-worklets@0.7.4 is installed and its Java" >&2
+  echo "[postinstall] source has not changed the static block format." >&2
+  exit 1
+fi
+echo "[postinstall] WorkletsModule SoLoader patch verified OK."
+
+RNTP_PATCHED=0
+if [ -f "$MUSIC_MODULE" ] && grep -q 'originalItem ?: Bundle()' "$MUSIC_MODULE" 2>/dev/null; then
+  RNTP_PATCHED=$(grep -c 'originalItem ?: Bundle()' "$MUSIC_MODULE")
+fi
+
+if [ -f "$MUSIC_MODULE" ] && [ "$RNTP_PATCHED" -lt 3 ]; then
+  echo "[postinstall] WARNING: RNTP MusicModule.kt null-safety patch applied only $RNTP_PATCHED/3 sites." >&2
+  echo "[postinstall] Expected 3 patched call sites (getTrack, getQueue, getActiveTrack)." >&2
+  echo "[postinstall] This may cause NPE crashes when the music queue is accessed." >&2
+else
+  echo "[postinstall] RNTP MusicModule.kt null-safety patch verified OK ($RNTP_PATCHED sites)."
+fi

@@ -14,44 +14,43 @@ import { SuperAppContext } from "./SuperAppContext";
 import MiniAppWindow from "@/components/superapp/MiniAppWindow";
 import MiniAppDock from "@/components/superapp/MiniAppDock";
 
-import AfuAIApp from "@/modules/afuai";
-import AfuPayApp from "@/modules/afupay";
-import AfuMarketApp from "@/modules/afumarket";
-import AfuGamesApp from "@/modules/afugames";
-import AfuMusicApp from "@/modules/afumusic";
-import AfuBusinessApp from "@/modules/afubusiness";
-import AfuSearchApp from "@/modules/afusearch";
-import AfuLensApp from "@/modules/afulens";
-import AfuIDApp from "@/modules/afuid";
-import AfuQRApp from "@/modules/afuqr";
-import AfuSavedApp from "@/modules/afusaved";
-import AfuReferralApp from "@/modules/afureferral";
-import AfuServicesApp from "@/modules/afuservices";
-import AfuFreelanceApp from "@/modules/afufreelance";
-import AfuCollectionsApp from "@/modules/afucollections";
-import AfuEventsApp from "@/modules/afuevents";
-import AfuUsernamesApp from "@/modules/afuusernames";
+// Mini-app modules are lazy-loaded on first open instead of statically imported.
+// Static imports evaluated 17 module graphs at startup (before any screen rendered),
+// which caused silent native crashes on Android if any module had a bad top-level
+// statement. Lazy require() defers all evaluation until the user actually opens a
+// mini-app, keeping the startup bundle lean and crash-free.
+const _miniAppCache = new Map<string, React.ComponentType>();
 
 function getMiniAppComponent(id: string): React.ComponentType | null {
-  switch (id) {
-    case "afuai":          return AfuAIApp;
-    case "afupay":         return AfuPayApp;
-    case "afumarket":      return AfuMarketApp;
-    case "afugames":       return AfuGamesApp;
-    case "afumusic":       return AfuMusicApp;
-    case "afubusiness":    return AfuBusinessApp;
-    case "afusearch":      return AfuSearchApp;
-    case "afulens":        return AfuLensApp;
-    case "afuid":          return AfuIDApp;
-    case "afuqr":          return AfuQRApp;
-    case "afusaved":       return AfuSavedApp;
-    case "afureferral":    return AfuReferralApp;
-    case "afuservices":    return AfuServicesApp;
-    case "afufreelance":   return AfuFreelanceApp;
-    case "afucollections": return AfuCollectionsApp;
-    case "afuevents":      return AfuEventsApp;
-    case "afuusernames":   return AfuUsernamesApp;
-    default:               return null;
+  if (_miniAppCache.has(id)) return _miniAppCache.get(id)!;
+  try {
+    let mod: any;
+    switch (id) {
+      case "afuai":          mod = require("@/modules/afuai"); break;
+      case "afupay":         mod = require("@/modules/afupay"); break;
+      case "afumarket":      mod = require("@/modules/afumarket"); break;
+      case "afugames":       mod = require("@/modules/afugames"); break;
+      case "afumusic":       mod = require("@/modules/afumusic"); break;
+      case "afubusiness":    mod = require("@/modules/afubusiness"); break;
+      case "afusearch":      mod = require("@/modules/afusearch"); break;
+      case "afulens":        mod = require("@/modules/afulens"); break;
+      case "afuid":          mod = require("@/modules/afuid"); break;
+      case "afuqr":          mod = require("@/modules/afuqr"); break;
+      case "afusaved":       mod = require("@/modules/afusaved"); break;
+      case "afureferral":    mod = require("@/modules/afureferral"); break;
+      case "afuservices":    mod = require("@/modules/afuservices"); break;
+      case "afufreelance":   mod = require("@/modules/afufreelance"); break;
+      case "afucollections": mod = require("@/modules/afucollections"); break;
+      case "afuevents":      mod = require("@/modules/afuevents"); break;
+      case "afuusernames":   mod = require("@/modules/afuusernames"); break;
+      default:               return null;
+    }
+    const Component = mod?.default ?? mod;
+    if (Component) _miniAppCache.set(id, Component);
+    return Component ?? null;
+  } catch (e) {
+    console.warn("[MiniAppRuntime] Failed to load module:", id, e);
+    return null;
   }
 }
 

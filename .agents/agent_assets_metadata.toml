@@ -1,8 +1,13 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "u3EXVL5aKejh-GI8VAQbc"
 uri = "file://artifacts/mobile/assets/images/logo.png"
 type = "image"
 title = "generated_image"
+
+[[outputs]]
+id = "irsPN81pmpqSxtk8C59Id"
+uri = "file://ANDROID_CRASH_AUDIT.md"
+type = "text"
+title = "AfuChat Android Startup Crash Audit"

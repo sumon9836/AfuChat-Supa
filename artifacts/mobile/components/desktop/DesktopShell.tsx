@@ -37,8 +37,26 @@ import {
   DesktopTopBar,
   TOPBAR_HEIGHT,
 } from "@/components/desktop/DesktopTopBar";
-import { ChatsListPanel } from "@/app/(tabs)/index";
 import { ChatHomePlaceholder } from "@/components/desktop/ChatHomePlaceholder";
+
+// ChatsListPanel is lazy-required to break the circular dependency that
+// previously existed between this layout-level component and the route file
+// app/(tabs)/index.tsx. A static import of a route file from a layout
+// component creates a cycle in Expo Router's module graph that can produce
+// silent startup crashes on Android. Lazy require() inside the render path
+// means the route module is only evaluated after the JS runtime is fully up.
+let _ChatsListPanel: React.ComponentType | null = null;
+function getChatsListPanel(): React.ComponentType {
+  if (!_ChatsListPanel) {
+    try {
+      const mod = require("@/app/(tabs)/index");
+      _ChatsListPanel = mod.ChatsListPanel ?? (() => null);
+    } catch {
+      _ChatsListPanel = () => null;
+    }
+  }
+  return _ChatsListPanel!;
+}
 
 const FULLSCREEN_PATTERNS: RegExp[] = [
   /^\/\(auth\)/,
@@ -216,7 +234,7 @@ export function DesktopShell({ children }: { children: React.ReactNode }) {
           </View>
         ) : showMasterDetail ? (
           <View style={styles.masterDetail}>
-            <ChatsListPanel />
+            {React.createElement(getChatsListPanel())}
             <View style={styles.detailColumn}>
               {isChatHome ? <ChatHomePlaceholder /> : children}
             </View>

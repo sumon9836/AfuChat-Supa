@@ -6,7 +6,13 @@ import { initCrashReporter, setCrashReporterUserId } from "@/lib/crashReporter";
 
 initCrashReporter();
 
-enableScreens(true);
+// enableScreens() is intentionally moved out of module-evaluation scope.
+// Calling it synchronously at the top level (before any React component mounts)
+// made it run before the Android activity was fully initialized on some devices,
+// causing a native crash with no JS stack trace. Calling it once inside a
+// useEffect (or the component body) is safe and still early enough for
+// react-native-screens to intercept all route-level screen creation.
+// See: https://github.com/software-mansion/react-native-screens/issues/2086
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -180,6 +186,14 @@ export default function RootLayout() {
   const handleSplashDone = useCallback(() => {
     setSplashGone(true);
     SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  // Enable react-native-screens optimisation. Called here (inside a component,
+  // not at module-eval time) so the Android activity is guaranteed to be fully
+  // initialized before the native call runs. Module-eval is too early on some
+  // Android devices and causes a native crash before any JS error handler exists.
+  useEffect(() => {
+    try { enableScreens(true); } catch {}
   }, []);
 
   // On web, inject font-display:swap for all @font-face rules so the browser
