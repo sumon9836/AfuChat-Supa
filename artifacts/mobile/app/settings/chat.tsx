@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
 
   /* Header */
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5 },
   backBtn: { marginRight: 4 },
   headerTitle: { flex: 1, fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" },
 
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   rowDesc: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2, lineHeight: 16 },
 
   /* Sep */
-  sep: { height: StyleSheet.hairlineWidth, marginLeft: 58 },
+  sep: { height: 0.5, marginLeft: 58 },
 
   /* Theme */
   themeRow: { flexDirection: "row", gap: 12, justifyContent: "center", flexWrap: "wrap" },

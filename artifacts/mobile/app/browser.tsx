@@ -367,7 +367,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 8,
     gap: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
 
   iconBtn: {
@@ -420,7 +420,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-around",
     paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
   },
 
   navBtn: {

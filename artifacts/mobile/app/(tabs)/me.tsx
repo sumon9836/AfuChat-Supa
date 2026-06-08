@@ -91,7 +91,7 @@ const mi = StyleSheet.create({
   value: { fontSize: 13, fontFamily: "Inter_400Regular" },
   badge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20 },
   badgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
-  sep: { height: StyleSheet.hairlineWidth, marginLeft: 62 },
+  sep: { height: 0.5, marginLeft: 62 },
 });
 
 function SectionLabel({ label, colors }: { label: string; colors: any }) {
@@ -109,7 +109,7 @@ function MenuCard({ children, colors }: { children: React.ReactNode; colors: any
   );
 }
 const mc = StyleSheet.create({
-  card: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  card: { borderRadius: 16, borderWidth: 0.5, overflow: "hidden" },
 });
 
 // ─── Profile completion bar ───────────────────────────────────────────────────
@@ -562,7 +562,7 @@ export default function MeScreen() {
         >
           <TouchableOpacity
             activeOpacity={1}
-            style={{ width: "82%", backgroundColor: colors.surface, borderRadius: 22, padding: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, gap: 16 }}
+            style={{ width: "82%", backgroundColor: colors.surface, borderRadius: 22, padding: 24, borderWidth: 0.5, borderColor: colors.border, gap: 16 }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <Text style={{ fontSize: 17, fontFamily: "Inter_700Bold", color: colors.text }}>Username Details</Text>
@@ -587,7 +587,7 @@ export default function MeScreen() {
                 </View>
                 <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: "#FFD60A" }}>🪙 {purchasePopup?.price.toLocaleString()} ACoin</Text>
               </View>
-              <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+              <View style={{ height: 0.5, backgroundColor: colors.border }} />
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                   <Ionicons name="calendar-outline" size={16} color={colors.icon} />
@@ -597,7 +597,7 @@ export default function MeScreen() {
               </View>
               {purchasePopup?.sellerHandle && (
                 <>
-                  <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+                  <View style={{ height: 0.5, backgroundColor: colors.border }} />
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                       <Ionicons name="person-outline" size={16} color={colors.icon} />
@@ -626,30 +626,30 @@ const s = StyleSheet.create({
   content: { gap: 12, paddingHorizontal: 14 },
 
   // Hero
-  heroCard: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, borderTopWidth: 3, overflow: "hidden" },
+  heroCard: { borderRadius: 18, borderWidth: 0.5, borderTopWidth: 3, overflow: "hidden" },
   heroTop: { flexDirection: "row", alignItems: "flex-start", padding: 16, gap: 14 },
   heroName: { fontSize: 19, fontFamily: "Inter_700Bold", flexShrink: 1 },
   heroHandle: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  heroBio: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19, paddingHorizontal: 16, paddingBottom: 12, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10 },
+  heroBio: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19, paddingHorizontal: 16, paddingBottom: 12, borderTopWidth: 0.5, paddingTop: 10 },
   premiumDot: { position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: "#FFD60A", alignItems: "center", justifyContent: "center" },
   businessChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, alignSelf: "flex-start", marginTop: 3 },
   businessChipText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
   // ACoin bar
-  acoinBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 11, borderTopWidth: StyleSheet.hairlineWidth },
+  acoinBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 11, borderTopWidth: 0.5 },
   acoinIconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   acoinEmoji: { fontSize: 18 },
   acoinBalance: { fontSize: 15, fontFamily: "Inter_700Bold" },
   acoinSub: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
 
   // Stats
-  statsRow: { flexDirection: "row", borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 14, paddingHorizontal: 8 },
+  statsRow: { flexDirection: "row", borderRadius: 16, borderWidth: 0.5, paddingVertical: 14, paddingHorizontal: 8 },
   statCell: { flex: 1, alignItems: "center", gap: 3 },
   statValue: { fontSize: 22, fontFamily: "Inter_700Bold" },
   statLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  statDivider: { width: StyleSheet.hairlineWidth, marginVertical: 4 },
+  statDivider: { width: 0.5, marginVertical: 4 },
 
   // Quick actions
-  quickRow: { flexDirection: "row", borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 14, paddingHorizontal: 4 },
+  quickRow: { flexDirection: "row", borderRadius: 16, borderWidth: 0.5, paddingVertical: 14, paddingHorizontal: 4 },
   quickBtn: { flex: 1, alignItems: "center", gap: 7 },
   quickIconWrap: { width: 44, height: 44, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   quickLabel: { fontSize: 10, fontFamily: "Inter_500Medium", textAlign: "center" },

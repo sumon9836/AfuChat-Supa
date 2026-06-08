@@ -145,7 +145,7 @@ const gs = StyleSheet.create({
     alignItems: "center",
     margin: 10,
     borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -351,7 +351,7 @@ const s = StyleSheet.create({
 
   /* Sticker category bar */
   catBar: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     maxHeight: 44,
   },
   catBarContent: {
@@ -380,7 +380,7 @@ const s = StyleSheet.create({
   bottomBar: {
     flexDirection: "row",
     alignItems: "center",
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
     paddingHorizontal: 4,
   },
   bottomTab: {

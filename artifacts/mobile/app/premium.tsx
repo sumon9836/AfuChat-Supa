@@ -473,7 +473,7 @@ export default function PremiumScreen() {
           {/* Feature sections */}
           <View style={[s.featCard, { backgroundColor: isDark ? "#141414" : "#FAFAFA", borderColor: isDark ? "#2A2A2A" : "#EBEBEB" }]}>
             {cfg?.sections.map((section, si) => (
-              <View key={si} style={[s.featSection, si > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDark ? "#222" : "#E8E8E8", paddingTop: 14, marginTop: 4 }]}>
+              <View key={si} style={[s.featSection, si > 0 && { borderTopWidth: 0.5, borderTopColor: isDark ? "#222" : "#E8E8E8", paddingTop: 14, marginTop: 4 }]}>
                 <View style={s.featSectionHeader}>
                   <View style={[s.featSectionIcon, { backgroundColor: tierColor + "18" }]}>
                     <Ionicons name={section.icon as any} size={13} color={tierColor} />

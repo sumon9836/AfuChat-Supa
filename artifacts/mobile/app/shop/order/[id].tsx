@@ -626,7 +626,7 @@ const st = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
@@ -635,7 +635,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
   },
   tabBar: {
-    flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row", borderBottomWidth: 0.5,
   },
   tab: { flex: 1, alignItems: "center", paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: "transparent" },
   escrowCard: {
@@ -659,7 +659,7 @@ const st = StyleSheet.create({
   itemName: { fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 18 },
   itemQty: { fontSize: 12, fontFamily: "Inter_400Regular" },
   itemPrice: { fontSize: 14, fontFamily: "Inter_700Bold" },
-  divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
+  divider: { height: 0.5, marginVertical: 4 },
   totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   totalLabel: { fontSize: 13, fontFamily: "Inter_400Regular" },
   totalVal: { fontSize: 14, fontFamily: "Inter_600SemiBold" },

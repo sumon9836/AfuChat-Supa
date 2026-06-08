@@ -236,7 +236,7 @@ export default function CompanyPageScreen() {
   const onRefresh = () => { setRefreshing(true); load(); };
 
   async function toggleFollow() {
-    if (!user) { router.push("/(auth)/sign-in"); return; }
+    if (!user) { router.push("/(auth)/login"); return; }
     if (!page) return;
     setFollowLoading(true);
     if (following) {
@@ -1345,7 +1345,7 @@ function DetailRow({ icon, text, colors }: { icon: any; text: string; colors: an
 const styles = StyleSheet.create({
   root: { flex: 1 },
 
-  navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
   navTitle: { fontSize: 17, fontFamily: "Inter_700Bold", flex: 1, textAlign: "center" },
   navBarFloat: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 20, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingBottom: 12 },
   navIconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" },
@@ -1381,17 +1381,17 @@ const styles = StyleSheet.create({
   followBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   iconBtn: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
 
-  socialsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12 },
+  socialsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, borderTopWidth: 0.5, paddingTop: 12 },
   socialChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
   socialChipText: { fontSize: 12, fontFamily: "Inter_500Medium" },
 
-  aboutBox: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12, gap: 6, paddingBottom: 4 },
+  aboutBox: { borderTopWidth: 0.5, paddingTop: 12, gap: 6, paddingBottom: 4 },
   aboutHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   sectionLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8 },
   aboutText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21 },
   aboutToggle: { fontSize: 13, fontFamily: "Inter_500Medium", marginTop: 4 },
 
-  detailsBox: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10, gap: 8, paddingBottom: 4 },
+  detailsBox: { borderTopWidth: 0.5, paddingTop: 10, gap: 8, paddingBottom: 4 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   detailText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
 
@@ -1402,31 +1402,31 @@ const styles = StyleSheet.create({
   verifyBannerBtn: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, marginTop: 8 },
   verifyBannerBtnText: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: "#fff" },
 
-  tabs: { flexDirection: "row", alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 10 },
+  tabs: { flexDirection: "row", alignItems: "center", borderBottomWidth: 0.5, borderTopWidth: 0.5, marginTop: 10 },
   tab: { flex: 1, paddingVertical: 12, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 5, borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabText: { fontSize: 13 },
   tabBadge: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 10, minWidth: 18, alignItems: "center" },
   tabBadgeText: { color: "#fff", fontSize: 10, fontFamily: "Inter_700Bold" },
   tabAction: { paddingHorizontal: 12, paddingVertical: 10 },
 
-  postCard: { marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 14, borderWidth: StyleSheet.hairlineWidth, gap: 10 },
+  postCard: { marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 14, borderWidth: 0.5, gap: 10 },
   postHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
   postLogo: { width: 38, height: 38, borderRadius: 8, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   postPageName: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   postDate: { fontSize: 12, fontFamily: "Inter_400Regular" },
   postContent: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 23 },
   postImage: { width: "100%", height: 200, borderRadius: 10 },
-  postFooter: { flexDirection: "row", alignItems: "center", gap: 16, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth },
+  postFooter: { flexDirection: "row", alignItems: "center", gap: 16, paddingTop: 10, borderTopWidth: 0.5 },
   likeBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
   likeBtnText: { fontSize: 13, fontFamily: "Inter_500Medium" },
 
-  followerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 12, marginTop: 8, borderRadius: 14, padding: 12, borderWidth: StyleSheet.hairlineWidth },
+  followerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 12, marginTop: 8, borderRadius: 14, padding: 12, borderWidth: 0.5 },
   followerAvatarWrap: { width: 48, height: 48, borderRadius: 24, overflow: "hidden" },
   followerAvatar: { width: 48, height: 48, borderRadius: 24 },
   followerName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   followerHandle: { fontSize: 13, fontFamily: "Inter_400Regular" },
 
-  jobCard: { marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 14, borderWidth: StyleSheet.hairlineWidth, gap: 10 },
+  jobCard: { marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 14, borderWidth: 0.5, gap: 10 },
   jobCardHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   jobLogoSmall: { width: 40, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 },
   jobTitle: { fontSize: 16, fontFamily: "Inter_700Bold" },
@@ -1461,7 +1461,7 @@ const styles = StyleSheet.create({
   submitBtn: { borderRadius: 12, paddingVertical: 13, alignItems: "center", justifyContent: "center" },
   submitBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
 
-  pageFollowRow: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, padding: 12 },
+  pageFollowRow: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 12, borderWidth: 0.5, padding: 12 },
   pageFollowLogo: { width: 38, height: 38, borderRadius: 4, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   pageFollowChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
 

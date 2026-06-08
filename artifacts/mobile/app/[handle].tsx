@@ -401,7 +401,7 @@ const pub = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   hero: { alignItems: "center", paddingHorizontal: 24, paddingVertical: 32, marginBottom: 2 },
@@ -424,7 +424,7 @@ const pub = StyleSheet.create({
   statBlock: { flex: 1, alignItems: "center", paddingVertical: 16 },
   statNum: { fontSize: 20, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
   statLabel: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  statDivider: { width: StyleSheet.hairlineWidth, marginVertical: 10 },
+  statDivider: { width: 0.5, marginVertical: 10 },
 
   ctaRow: { flexDirection: "row", gap: 10, paddingHorizontal: 20, marginBottom: 16 },
   ctaBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13, borderRadius: 999 },
@@ -459,7 +459,7 @@ const pub = StyleSheet.create({
   },
 
   signinBar: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
     paddingHorizontal: 20,
     paddingTop: 14,
   },

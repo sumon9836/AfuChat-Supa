@@ -229,12 +229,12 @@ export default function MatchSettingsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
   headerIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: BRAND, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   sectionTitle: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 8 },
   group: { marginHorizontal: 16, borderRadius: 14, overflow: "hidden" },
-  sep: { height: StyleSheet.hairlineWidth, marginLeft: 62 },
+  sep: { height: 0.5, marginLeft: 62 },
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 13, gap: 13 },
   rowIcon: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   rowText: { flex: 1 },

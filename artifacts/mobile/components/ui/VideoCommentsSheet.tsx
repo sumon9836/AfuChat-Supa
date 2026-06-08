@@ -399,7 +399,7 @@ function VideoReplyItem({
         </View>
       </View>
       {isTop && !hasChildren && (
-        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.05)", marginLeft: indent + 46, marginTop: 4 }} />
+        <View style={{ height: 0.5, backgroundColor: "rgba(255,255,255,0.05)", marginLeft: indent + 46, marginTop: 4 }} />
       )}
       {!collapsed && r.children?.map((child) => (
         <VideoReplyItem key={child.id} reply={child} depth={depth + 1} onReplyTo={onReplyTo} isCreator={isCreator} isNew={false} accent={accent} likedSet={likedSet} onLike={onLike} />
@@ -479,7 +479,7 @@ function VoicePreviewBar({
 }
 
 const pvStyles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.08)" },
+  row: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 0.5, borderTopColor: "rgba(255,255,255,0.08)" },
   label: { flexDirection: "row", alignItems: "center", gap: 4 },
   discard: { paddingLeft: 4 },
 });
@@ -884,7 +884,7 @@ export function VideoCommentsSheet({
             maxHeight: kbHeight > 0 ? sheetH - kbHeight - 20 : sheetMaxH,
           }]}>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111115", borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
-            <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.12)", pointerEvents: "none" } as any} />
+            <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: "rgba(255,255,255,0.12)", pointerEvents: "none" } as any} />
             <View {...sheetPan.panHandlers} style={cStyles.handle} />
 
             <View style={cStyles.header}>
@@ -908,7 +908,7 @@ export function VideoCommentsSheet({
               </TouchableOpacity>
             </View>
 
-            <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.1)" }} />
+            <View style={{ height: 0.5, backgroundColor: "rgba(255,255,255,0.1)" }} />
 
             {loading ? (
               <View style={{ padding: 32, alignItems: "center" }}>
@@ -1075,18 +1075,18 @@ const cStyles = StyleSheet.create({
   emptyBox: { padding: 32, alignItems: "center", gap: 8 },
   emptyText: { color: "rgba(255,255,255,0.5)", fontSize: 15, fontFamily: "Inter_600SemiBold" },
   emptySub: { color: "rgba(255,255,255,0.3)", fontSize: 13, fontFamily: "Inter_400Regular" },
-  replyingTo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
+  replyingTo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 0.5 },
   replyingToText: { color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "Inter_400Regular" },
-  emojiBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, gap: 2 },
+  emojiBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderTopWidth: 0.5, gap: 2 },
   emojiBtn: { flex: 1, alignItems: "center", paddingVertical: 6 },
   emojiText: { fontSize: 20 },
-  inputRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
+  inputRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 0.5, gap: 8 },
   input: { flex: 1, color: "#fff", fontFamily: "Inter_400Regular", fontSize: 14, maxHeight: 100, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.08)" },
   sendBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   charCounter: { position: "absolute", right: 14, bottom: 10, fontSize: 10, fontFamily: "Inter_500Medium" },
   attachRow: { flexDirection: "row", alignItems: "center", gap: 2 },
   attachBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  imagePreviewBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
+  imagePreviewBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 0.5 },
   imageThumbWrap: { position: "relative" },
   imageThumb: { width: 52, height: 52, borderRadius: 8 },
   imageRemoveBtn: { position: "absolute", top: -6, right: -6 },

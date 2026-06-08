@@ -32,7 +32,7 @@ export function GlassMenuSection({ title, children, style }: GlassMenuSectionPro
           {
             backgroundColor: colors.surface,
             borderColor: colors.border,
-            borderWidth: StyleSheet.hairlineWidth,
+            borderWidth: 0.5,
           },
         ]}
       >
@@ -48,7 +48,7 @@ export function GlassMenuSeparator({ indent = 54 }: { indent?: number }) {
   return (
     <View
       style={{
-        height: StyleSheet.hairlineWidth,
+        height: 0.5,
         backgroundColor: colors.border,
         marginLeft: indent,
         pointerEvents: "none",

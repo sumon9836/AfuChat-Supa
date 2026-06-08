@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 14,
     paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     gap: 10,
   },
   cancelBtn: { padding: 4 },
@@ -830,7 +830,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
     gap: 4,
   },
   bottomAction: {

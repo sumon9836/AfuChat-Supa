@@ -636,9 +636,9 @@ function PrefRow({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5 },
   headerTitle: { flex: 1, fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" },
-  tabBar: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth },
+  tabBar: { flexDirection: "row", borderBottomWidth: 0.5 },
   tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 13, borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   tabBadge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
   prefIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   prefLabel: { fontSize: 15, fontFamily: "Inter_500Medium", marginBottom: 2 },
   prefDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 16 },
-  sep: { height: StyleSheet.hairlineWidth, marginLeft: 62 },
+  sep: { height: 0.5, marginLeft: 62 },
   actionRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
   actionIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   actionLabel: { fontSize: 15, fontFamily: "Inter_500Medium" },

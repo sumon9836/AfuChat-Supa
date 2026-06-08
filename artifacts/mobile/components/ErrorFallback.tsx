@@ -239,7 +239,7 @@ const s = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   headerIconWrap: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 17, fontWeight: "700" },
@@ -252,7 +252,7 @@ const s = StyleSheet.create({
 
   tabRow: {
     flexDirection: "row",
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   tab: { flex: 1, alignItems: "center", paddingVertical: 10 },
   tabActive: { borderBottomWidth: 2 },
@@ -265,18 +265,18 @@ const s = StyleSheet.create({
   errorMsgText: { flex: 1, fontSize: 12, lineHeight: 18 },
 
   logBox: {
-    borderRadius: 8, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8, borderWidth: 0.5,
     padding: 12, overflow: "hidden",
   },
   logText: { fontSize: 11, lineHeight: 17 },
 
   actionBar: {
     flexDirection: "row", gap: 8, padding: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
   },
   actionBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 5, paddingVertical: 10, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth,
+    gap: 5, paddingVertical: 10, borderRadius: 8, borderWidth: 0.5,
   },
   actionBtnPrimary: { borderWidth: 0 },
   actionBtnLabel: { fontSize: 12, fontWeight: "600" },

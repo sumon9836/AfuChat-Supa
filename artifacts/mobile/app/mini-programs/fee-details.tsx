@@ -118,7 +118,7 @@ export default function FeeDetailsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
   headerTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   content: { padding: 16, gap: 14 },
   serviceCard: { borderRadius: 16, padding: 24, alignItems: "center", gap: 10 },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   rowLabel: { fontSize: 14, fontFamily: "Inter_400Regular" },
   rowValue: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  divider: { height: StyleSheet.hairlineWidth },
+  divider: { height: 0.5 },
   totalLabel: { fontSize: 16, fontFamily: "Inter_700Bold" },
   totalValue: { fontSize: 18, fontFamily: "Inter_700Bold" },
   infoCard: { flexDirection: "row", gap: 10, borderRadius: 14, padding: 14, borderWidth: 1 },

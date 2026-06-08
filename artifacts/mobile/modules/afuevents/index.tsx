@@ -144,13 +144,13 @@ export default function AfuEventsApp() {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5 },
   headerTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
   createBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  tabs: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth },
+  tabs: { flexDirection: "row", borderBottomWidth: 0.5 },
   tabBtn: { flex: 1, alignItems: "center", paddingVertical: 12 },
   tabText: { fontSize: 14, fontFamily: "Inter_500Medium" },
-  card: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  card: { borderRadius: 16, borderWidth: 0.5, overflow: "hidden" },
   cover: { width: "100%", height: 140 },
   cardBody: { padding: 14 },
   tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },

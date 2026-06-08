@@ -450,7 +450,7 @@ const af = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 6,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     gap: 4,
   },
   headerBack: { padding: 6 },
@@ -458,7 +458,7 @@ const af = StyleSheet.create({
   headerRight: { width: 40, alignItems: "center" },
   saveDot: { width: 7, height: 7, borderRadius: 3.5 },
 
-  tabBarWrap: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  tabBarWrap: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 0.5 },
   tabBar: {
     flexDirection: "row",
     borderRadius: 14,
@@ -496,7 +496,7 @@ const af = StyleSheet.create({
 
   floatCard: {
     borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     overflow: "hidden",
     ...Platform.select({
       web: { boxShadow: "0 2px 8px rgba(0,0,0,0.06)" } as any,
@@ -522,7 +522,7 @@ const af = StyleSheet.create({
   rowDesc: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2, lineHeight: 17 },
   rowValue: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
-  sep: { height: StyleSheet.hairlineWidth, marginLeft: 62 },
+  sep: { height: 0.5, marginLeft: 62 },
 
   tierPill: {
     borderWidth: 1,

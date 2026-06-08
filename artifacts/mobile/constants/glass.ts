@@ -128,6 +128,6 @@ export const BLUR_TINTS = {
 
 /** Standard glass separator hairline style */
 export const glassSeparator = (isDark: boolean) => ({
-  height: StyleSheet.hairlineWidth,
+  height: 0.5,
   backgroundColor: isDark ? GLASS.border.dark : GLASS.border.light,
 });

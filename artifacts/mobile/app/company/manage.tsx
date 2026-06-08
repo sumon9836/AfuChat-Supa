@@ -681,7 +681,7 @@ export default function ManageCompanyPageScreen() {
                     />
                   </View>
                 </View>
-                <View style={[verSt.infoRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: 10 }]}>
+                <View style={[verSt.infoRow, { borderTopWidth: 0.5, borderTopColor: colors.border, paddingTop: 10 }]}>
                   <Ionicons name="mail-outline" size={14} color={colors.textMuted} />
                   <View style={{ flex: 1 }}>
                     <Text style={[verSt.infoLabel, { color: colors.textMuted }]}>Contact Email</Text>
@@ -697,7 +697,7 @@ export default function ManageCompanyPageScreen() {
                     />
                   </View>
                 </View>
-                <View style={[verSt.infoRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: 10 }]}>
+                <View style={[verSt.infoRow, { borderTopWidth: 0.5, borderTopColor: colors.border, paddingTop: 10 }]}>
                   <Ionicons name="location-outline" size={14} color={colors.textMuted} />
                   <View style={{ flex: 1 }}>
                     <Text style={[verSt.infoLabel, { color: colors.textMuted }]}>Physical Address</Text>
@@ -799,7 +799,7 @@ function Field({ label, children, required, colors }: { label: string; children:
 }
 
 const fieldSt = StyleSheet.create({
-  wrap: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, padding: 12, gap: 6 },
+  wrap: { borderRadius: 12, borderWidth: 0.5, padding: 12, gap: 6 },
   label: { fontSize: 12, fontFamily: "Inter_500Medium", letterSpacing: 0.2 },
 });
 
@@ -815,7 +815,7 @@ const verSt = StyleSheet.create({
   chipText: { fontSize: 12, fontFamily: "Inter_500Medium" },
   dropdown: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 11 },
   dropdownText: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  infoBox: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, padding: 12, gap: 10 },
+  infoBox: { borderRadius: 12, borderWidth: 0.5, padding: 12, gap: 10 },
   infoRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   infoLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
   infoValue: { fontSize: 14, fontFamily: "Inter_500Medium" },
@@ -832,13 +832,13 @@ const verSt = StyleSheet.create({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
   navTitle: { fontSize: 17, fontFamily: "Inter_700Bold", flex: 1, textAlign: "center" },
 
-  imageSection: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  imageSection: { borderRadius: 14, borderWidth: 0.5, overflow: "hidden" },
   coverPickerWrap: { position: "relative" },
   coverPreview: { width: "100%", height: 120 },
-  coverPlaceholder: { height: 120, alignItems: "center", justifyContent: "center", gap: 6, borderBottomWidth: StyleSheet.hairlineWidth },
+  coverPlaceholder: { height: 120, alignItems: "center", justifyContent: "center", gap: 6, borderBottomWidth: 0.5 },
   placeholderLabel: { fontSize: 13, fontFamily: "Inter_400Regular" },
   coverEditBadge: { position: "absolute", bottom: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" },
   logoPickerRow: { flexDirection: "row", alignItems: "center", gap: 14, padding: 14 },
@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
   groupLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold", marginTop: 4 },
   input: { fontSize: 15, fontFamily: "Inter_400Regular", paddingVertical: 4 },
   textarea: { minHeight: 100, textAlignVertical: "top" },
-  slugNote: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 10, borderWidth: StyleSheet.hairlineWidth, padding: 12 },
+  slugNote: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 10, borderWidth: 0.5, padding: 12 },
   slugNoteText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
   verifyCard: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 14, borderWidth: 1, padding: 14 },
   verifyCardTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },

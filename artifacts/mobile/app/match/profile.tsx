@@ -573,7 +573,7 @@ export default function MatchProfileEditScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   saveBtn: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
   sectionTitle: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 8 },
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
   giftSheetName: { fontSize: 18, fontFamily: "Inter_700Bold", marginBottom: 2 },
   giftSheetFrom: { fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 4 },
   giftSheetPrice: { fontSize: 13, fontFamily: "Inter_700Bold" },
-  giftSheetDivider: { height: StyleSheet.hairlineWidth, marginHorizontal: 20, marginVertical: 4 },
+  giftSheetDivider: { height: 0.5, marginHorizontal: 20, marginVertical: 4 },
   giftSheetOption: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 14 },
   giftSheetOptionIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   giftSheetOptionTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", marginBottom: 2 },

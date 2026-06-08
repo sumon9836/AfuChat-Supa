@@ -250,7 +250,7 @@ const s = StyleSheet.create({
   },
   ctaText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   divider: {
-    height: StyleSheet.hairlineWidth,
+    height: 0.5,
     backgroundColor: "#E5E7EB",
     marginHorizontal: 18,
   },

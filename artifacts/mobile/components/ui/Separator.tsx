@@ -15,5 +15,5 @@ export function Separator({ indent = 0 }: { indent?: number }) {
 }
 
 const styles = StyleSheet.create({
-  sep: { height: StyleSheet.hairlineWidth },
+  sep: { height: 0.5 },
 });

@@ -256,8 +256,8 @@ export default function FormatToolbar({
 
 const s = StyleSheet.create({
   container: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
+    borderBottomWidth: 0.5,
     paddingVertical: 7,
     marginBottom: 4,
   },

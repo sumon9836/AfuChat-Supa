@@ -164,9 +164,9 @@ function ReplyCard({ item, colors, depth, onReplyTo }: { item: Reply; colors: an
           </View>
         </View>
       </View>
-      {isTopLevel && !hasChildren && <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 16 + indent + avatarSize + 10, marginRight: 16, marginTop: 4 }} />}
+      {isTopLevel && !hasChildren && <View style={{ height: 0.5, backgroundColor: colors.border, marginLeft: 16 + indent + avatarSize + 10, marginRight: 16, marginTop: 4 }} />}
       {!collapsed && item.children?.map((child) => <ReplyCard key={child.id} item={child} colors={colors} depth={depth + 1} onReplyTo={onReplyTo} />)}
-      {isTopLevel && hasChildren && !collapsed && <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 16, marginRight: 16, marginTop: 6, marginBottom: 2 }} />}
+      {isTopLevel && hasChildren && !collapsed && <View style={{ height: 0.5, backgroundColor: colors.border, marginLeft: 16, marginRight: 16, marginTop: 6, marginBottom: 2 }} />}
     </>
   );
 }
@@ -727,7 +727,7 @@ export default function PostShortLinkScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 0.5 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   postSection: { marginBottom: 8 },
   postHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 16, paddingBottom: 10 },
@@ -743,13 +743,13 @@ const styles = StyleSheet.create({
   imgMainMany: { width: "100%", height: 280 },
   imgColMany: { width: 120, gap: 2 },
   imgThumb: { width: "100%", height: 139 },
-  engagementBar: { flexDirection: "row", alignItems: "center", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 4 },
+  engagementBar: { flexDirection: "row", alignItems: "center", borderTopWidth: 0.5, borderBottomWidth: 0.5, marginTop: 4 },
   engagementBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12 },
   engagementCount: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  engagementDivider: { width: StyleSheet.hairlineWidth, height: 24 },
+  engagementDivider: { width: 0.5, height: 24 },
   repliesHeader: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 16 },
-  repliesHeaderLine: { flex: 1, height: StyleSheet.hairlineWidth },
-  repliesHeaderBadge: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
+  repliesHeaderLine: { flex: 1, height: 0.5 },
+  repliesHeaderBadge: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 0.5 },
   repliesHeaderText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
   aiBtn: { flexDirection: "row", alignItems: "center", gap: 8, margin: 16, padding: 12, borderRadius: 12, borderWidth: 1 },
   aiBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
@@ -757,14 +757,14 @@ const styles = StyleSheet.create({
   aiCardHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
   aiCardTitle: { fontSize: 13, fontFamily: "Inter_700Bold" },
   aiCardText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
-  composerBar: { flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth },
+  composerBar: { flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 12, paddingTop: 10, borderTopWidth: 0.5 },
   composerPill: { flex: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: "row", alignItems: "flex-end" },
   composerInput: { flex: 1, fontSize: 15, maxHeight: 100, fontFamily: "Inter_400Regular" },
   charCount: { fontSize: 12, fontFamily: "Inter_400Regular", marginLeft: 6, marginBottom: 2 },
   sendBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  replyingBanner: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
+  replyingBanner: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 8, borderTopWidth: 0.5 },
   replyingText: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  signInBar: { paddingHorizontal: 16, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth },
+  signInBar: { paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 0.5 },
   signInBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, borderRadius: 12 },
   signInBtnText: { color: "#fff", fontFamily: "Inter_700Bold", fontSize: 15 },
   menuOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
@@ -777,7 +777,7 @@ const styles = StyleSheet.create({
   reportSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 12, paddingHorizontal: 16 },
   reportTitle: { fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center", marginBottom: 4 },
   reportSub: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 16 },
-  reasonRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  reasonRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: 0.5 },
   reasonRadio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   reasonRadioInner: { width: 10, height: 10, borderRadius: 5 },
   reasonText: { fontSize: 15, fontFamily: "Inter_400Regular" },
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
   articleNoHeroPad: { padding: 20 },
   articleHeading: { fontSize: 22, fontFamily: "Inter_700Bold", lineHeight: 28, marginTop: 10 },
   articleContentPad: { padding: 16 },
-  authorByline: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 16, marginBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  authorByline: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 16, marginBottom: 14, borderBottomWidth: 0.5 },
   authorMeta: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
   articleBodyText: { fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 26, marginBottom: 16 },
 });

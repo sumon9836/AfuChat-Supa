@@ -258,7 +258,7 @@ const s = StyleSheet.create({
     borderRadius: 100,
     maxWidth: 340,
     minWidth: 120,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     borderColor: "rgba(255,255,255,0.09)",
     overflow: "hidden",
     ...SHADOW,

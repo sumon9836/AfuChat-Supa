@@ -1000,14 +1000,14 @@ const ss = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", gap: 10,
     paddingHorizontal: 14, paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   backBtn: {
     width: 36, height: 36, alignItems: "center", justifyContent: "center",
   },
   inputWrap: {
     flex: 1, flexDirection: "row", alignItems: "center", gap: 8,
-    borderRadius: 22, paddingHorizontal: 12, height: 40, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 22, paddingHorizontal: 12, height: 40, borderWidth: 0.5,
   },
   input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", height: 40 },
   clearBtn: { width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center" },
@@ -1023,7 +1023,7 @@ const ss = StyleSheet.create({
   },
   aiToggleOffText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
 
-  aiPanelWrap: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  aiPanelWrap: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5 },
   aiPanel: {
     borderRadius: 14, padding: 14, borderWidth: 1,
   },
@@ -1031,7 +1031,7 @@ const ss = StyleSheet.create({
     width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center",
   },
 
-  tabBar: { borderBottomWidth: StyleSheet.hairlineWidth },
+  tabBar: { borderBottomWidth: 0.5 },
   tabContent: { paddingHorizontal: 10, gap: 0 },
   tabBtn: { paddingHorizontal: 4 },
   tabInner: {
@@ -1048,7 +1048,7 @@ const ss = StyleSheet.create({
   row: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingHorizontal: 16, paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   avatarWrap: { position: "relative" },
   typeChip: {

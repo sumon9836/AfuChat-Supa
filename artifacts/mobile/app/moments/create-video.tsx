@@ -1776,7 +1776,7 @@ const es = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
   },
   tabBar: {
-    flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row", borderBottomWidth: 0.5,
   },
   tab: {
     flex: 1, flexDirection: "column", alignItems: "center",
@@ -1853,13 +1853,13 @@ const es = StyleSheet.create({
   soundBanner: {
     flexDirection: "row", alignItems: "center", gap: 12,
     marginHorizontal: 16, marginTop: 12, padding: 12,
-    borderRadius: 12, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12, borderWidth: 0.5,
   },
   soundArt: { width: 44, height: 44, borderRadius: 8 },
   captionWrap: {
     flexDirection: "row", gap: 10,
     marginHorizontal: 16, marginTop: 12, padding: 14,
-    borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, alignItems: "flex-start",
+    borderRadius: 12, borderWidth: 0.5, alignItems: "flex-start",
   },
   captionInput: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22, minHeight: 56 },
   bigPostBtn: {

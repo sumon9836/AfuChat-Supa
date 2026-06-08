@@ -107,7 +107,8 @@ router.post("/videos", async (req: Request, res: Response) => {
     const auth = await authedUser(req, res);
     if (!auth) return;
 
-    const admin = getSupabaseAdmin()!;
+    const admin = getSupabaseAdmin();
+    if (!admin) return res.status(503).json({ error: "Server not configured" });
     const body = (req.body || {}) as RegisterBody;
 
     if (!body.source_path || typeof body.source_path !== "string") {

@@ -615,13 +615,13 @@ const r = StyleSheet.create({
   actionBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 9 },
   dim: { opacity: 0.4 },
   actionBtnTxt: { fontSize: 13, fontWeight: "600" },
-  detailCard: { width: "92%", borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 16, marginTop: 24 },
+  detailCard: { width: "92%", borderRadius: 16, borderWidth: 0.5, padding: 16, marginTop: 24 },
   detailTitle: { fontSize: 10, fontWeight: "700", letterSpacing: 1, marginBottom: 12 },
   infoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10 },
   infoLabel: { fontSize: 13 },
   infoValue: { fontSize: 13, fontWeight: "600" },
   infoMono: { fontFamily: "monospace", letterSpacing: 0.8 },
-  divider: { height: StyleSheet.hairlineWidth },
+  divider: { height: 0.5 },
   captureLayer: { position: "absolute", left: 0, top: 0, opacity: 0, zIndex: -1, pointerEvents: "none" as any },
 });
 

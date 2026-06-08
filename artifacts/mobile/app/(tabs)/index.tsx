@@ -425,7 +425,7 @@ function PostUploadBanner({ colors: _colors }: { colors?: any }) {
 }
 
 const uploadBannerStyles = StyleSheet.create({
-  wrap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth },
+  wrap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, borderBottomWidth: 0.5 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
   iconCircle: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
   label: { fontSize: 13, fontWeight: "600" },
@@ -1620,7 +1620,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
         {
           backgroundColor: colors.background,
           width: panelMode ? 360 : undefined,
-          borderRightWidth: panelMode ? StyleSheet.hairlineWidth : 0,
+          borderRightWidth: panelMode ? 0.5 : 0,
           borderRightColor: colors.border,
         },
       ]}
@@ -2294,7 +2294,7 @@ const selStyles = StyleSheet.create({
     left: 16,
     right: 16,
     borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     paddingHorizontal: 16,
     paddingVertical: 12,
     ...Platform.select({
@@ -2339,7 +2339,7 @@ const styles = StyleSheet.create({
     right: 12,
     zIndex: 20,
     borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     ...Platform.select({
       web: { boxShadow: "0 2px 10px rgba(0,0,0,0.16)" } as any,
       default: { shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.16, shadowRadius: 10, elevation: 8 },

@@ -654,23 +654,23 @@ export default function AfuUsernamesApp() {
 
 const s = StyleSheet.create({
   root:          { flex: 1 },
-  header:        { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, gap: 12 },
+  header:        { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5, gap: 12 },
   headerTitle:   { fontSize: 18, fontFamily: "Inter_700Bold" },
   headerSub:     { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
   listBtn:       { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
   listBtnText:   { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
 
-  searchWrap:    { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  searchWrap:    { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5 },
   searchBar:     { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9 },
   searchInput:   { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
 
-  statsRow:      { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 6 },
+  statsRow:      { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 0.5, marginTop: 6 },
   statItem:      { flex: 1, alignItems: "center", gap: 2 },
   statNum:       { fontSize: 18, fontFamily: "Inter_700Bold" },
   statLabel:     { fontSize: 11, fontFamily: "Inter_400Regular" },
-  statDivider:   { width: StyleSheet.hairlineWidth, height: 32 },
+  statDivider:   { width: 0.5, height: 32 },
 
-  filterRow:     { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, marginBottom: 4 },
+  filterRow:     { flexDirection: "row", borderBottomWidth: 0.5, marginBottom: 4 },
   filterTab:     { flex: 1, alignItems: "center", paddingVertical: 10 },
   filterTabText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
@@ -693,7 +693,7 @@ const s = StyleSheet.create({
   emptySub:      { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
 
   sheetBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
-  sheet:         { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 20, paddingBottom: 32, paddingTop: 12, alignItems: "center", gap: 6 },
+  sheet:         { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 0.5, paddingHorizontal: 20, paddingBottom: 32, paddingTop: 12, alignItems: "center", gap: 6 },
   sheetTall:     { maxHeight: "80%" },
   sheetHandle:   { width: 40, height: 4, borderRadius: 2, marginBottom: 8 },
   sheetTitle:    { fontSize: 18, fontFamily: "Inter_700Bold" },
@@ -703,7 +703,7 @@ const s = StyleSheet.create({
   inputPrefix:   { fontSize: 16, fontFamily: "Inter_700Bold" },
   sheetInput:    { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
   inputSuffix:   { fontSize: 13, fontFamily: "Inter_400Regular" },
-  switchRow:     { flexDirection: "row", alignItems: "center", borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, width: "100%", marginTop: 14 },
+  switchRow:     { flexDirection: "row", alignItems: "center", borderWidth: 0.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, width: "100%", marginTop: 14 },
   switchLabel:   { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   switchSub:     { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
   sheetBtn:      { width: "100%", paddingVertical: 15, borderRadius: 14, alignItems: "center", justifyContent: "center" },

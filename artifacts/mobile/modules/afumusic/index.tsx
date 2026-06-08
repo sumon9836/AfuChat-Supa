@@ -229,7 +229,7 @@ function ProgressBar({ progress, position, duration, accentColor, colors, onSeek
       >
         <View style={[s.progressTrack, { backgroundColor: colors.border + "60" }]}>
           <View style={[s.progressFill, { backgroundColor: accentColor, width: pct }]} />
-          <View style={[s.progressThumb, { backgroundColor: "#fff", left: thumbLeft, shadowColor: accentColor }]} />
+          <View style={[s.progressThumb, { backgroundColor: "#fff", left: thumbLeft, ...(Platform.OS !== "web" ? { shadowColor: accentColor } : {}) }]} />
         </View>
       </Pressable>
       <View style={s.timesRow}>
@@ -819,7 +819,7 @@ const s = StyleSheet.create({
   pBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 26, paddingVertical: 14, borderRadius: 14, marginTop: 8 },
   pBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
 
-  libHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  libHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 0.5 },
   libHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   libIcon: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   libTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
@@ -869,7 +869,7 @@ const s = StyleSheet.create({
   progressHit: { paddingVertical: 10 },
   progressTrack: { height: 4, borderRadius: 2, width: "100%", position: "relative" },
   progressFill: { position: "absolute", left: 0, top: 0, bottom: 0, borderRadius: 2 },
-  progressThumb: { position: "absolute", top: -5, width: 14, height: 14, borderRadius: 7, marginLeft: -7, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
+  progressThumb: { position: "absolute", top: -5, width: 14, height: 14, borderRadius: 7, marginLeft: -7, elevation: 4, ...Platform.select({ web: { boxShadow: "0 2px 4px rgba(0,0,0,0.3)" } as any, default: { shadowOpacity: 0.3, shadowRadius: 4 } }) },
   timesRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
   timeText: { fontSize: 12, fontFamily: "Inter_400Regular" },
 
@@ -882,7 +882,7 @@ const s = StyleSheet.create({
   pillText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   trackCount: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 10 },
 
-  qHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  qHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: 0.5 },
   qTitle: { fontSize: 16, fontFamily: "Inter_700Bold" },
   qSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
   nowLabel: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.8, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6 },

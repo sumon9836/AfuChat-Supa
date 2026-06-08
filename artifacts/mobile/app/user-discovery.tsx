@@ -1206,7 +1206,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 14,
     paddingVertical: 11,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   backBtn: { padding: 2 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
@@ -1215,7 +1215,7 @@ const styles = StyleSheet.create({
 
   tabBar: {
     flexDirection: "row",
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     position: "relative",
   },
   tabItem: {
@@ -1252,7 +1252,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   searchBox: {
     flex: 1,
@@ -1306,7 +1306,7 @@ const styles = StyleSheet.create({
   sortMenuText: { fontSize: 14, fontFamily: "Inter_500Medium" },
 
   chipsRow: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   chipsContent: {
     paddingHorizontal: 12,
@@ -1334,7 +1334,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   rowInfo: { flex: 1, gap: 2 },
 

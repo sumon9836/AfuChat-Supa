@@ -405,8 +405,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-evenly",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
+    borderBottomWidth: 0.5,
     paddingVertical: 14,
     marginHorizontal: 0,
   },
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   statDivider: {
-    width: StyleSheet.hairlineWidth,
+    width: 0.5,
     height: 30,
   },
   actions: {

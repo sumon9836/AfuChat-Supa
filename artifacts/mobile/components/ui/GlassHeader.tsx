@@ -128,7 +128,7 @@ export function GlassHeader({
 
 const styles = StyleSheet.create({
   container: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     zIndex: 10,
   },
   inner: {

@@ -673,7 +673,7 @@ export default function GroupManageScreen() {
                   key={member.user_id}
                   style={[
                     s.memberRow,
-                    !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+                    !isLast && { borderBottomWidth: 0.5, borderBottomColor: colors.border },
                   ]}
                   onPress={() => {
                     if (isMe || !iAmAdmin) {
@@ -821,7 +821,7 @@ export default function GroupManageScreen() {
         <View style={{ backgroundColor: sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
           {selectedMember && (
             <>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sheetBorder }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderBottomWidth: 0.5, borderBottomColor: sheetBorder }}>
                 <Avatar
                   uri={selectedMember.profile.avatar_url}
                   name={selectedMember.profile.display_name}
@@ -877,7 +877,7 @@ export default function GroupManageScreen() {
       {/* ── Add members sheet ─── */}
       <BottomSheet visible={showAddSheet} onClose={() => { if (!addSaving) setShowAddSheet(false); }}>
         <View style={{ backgroundColor: sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sheetBorder }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: sheetBorder }}>
             <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.text }}>
               Add Members
             </Text>
@@ -968,7 +968,7 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
 
@@ -1071,7 +1071,7 @@ const s = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
@@ -1084,7 +1084,7 @@ const s = StyleSheet.create({
   membersCard: {
     marginHorizontal: 16,
     borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     overflow: "hidden",
   },
   memberRow: {

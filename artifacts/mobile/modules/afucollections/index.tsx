@@ -106,10 +106,10 @@ export default function AfuCollectionsApp() {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5 },
   headerTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
   addBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  card: { flex: 1, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  card: { flex: 1, borderRadius: 16, borderWidth: 0.5, overflow: "hidden" },
   cover: { width: "100%", height: 100 },
   coverPlaceholder: { width: "100%", height: 100, alignItems: "center", justifyContent: "center" },
   cardBody: { padding: 10, gap: 5 },

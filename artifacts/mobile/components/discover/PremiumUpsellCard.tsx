@@ -119,11 +119,11 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
     elevation: 6,
+    ...Platform.select({
+      web: { boxShadow: "0 4px 12px rgba(0,0,0,0.18)" } as any,
+      default: { shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
+    }),
   },
   gradient: {
     padding: 20,

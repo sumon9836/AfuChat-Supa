@@ -454,8 +454,8 @@ export default function SupportDashboard() {
                         item.is_internal
                           ? { backgroundColor: "#FFC10720", borderColor: "#FFC10780", borderWidth: 1 }
                           : isUser
-                          ? { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth }
-                          : { backgroundColor: BRAND + "18", borderColor: BRAND + "30", borderWidth: StyleSheet.hairlineWidth },
+                          ? { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 0.5 }
+                          : { backgroundColor: BRAND + "18", borderColor: BRAND + "30", borderWidth: 0.5 },
                       ]}
                     >
                       <Text style={[st.bubbleText, { color: item.is_internal ? "#F59E0B" : colors.text }]}>{item.message}</Text>
@@ -598,7 +598,7 @@ const st = StyleSheet.create({
   staffBadgeText: { color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold" },
 
   splitPane: { flex: 1, flexDirection: "row" },
-  listPane: { width: 320, borderRightWidth: StyleSheet.hairlineWidth },
+  listPane: { width: 320, borderRightWidth: 0.5 },
   threadPane: { flex: 1 },
 
   filterBar: { maxHeight: 54 },
@@ -614,7 +614,7 @@ const st = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   ticketCard: {
-    borderRadius: 12, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12, borderWidth: 0.5,
     padding: 12, gap: 8,
   },
   ticketCardRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
@@ -641,7 +641,7 @@ const st = StyleSheet.create({
 
   threadHeader: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    padding: 14, borderBottomWidth: StyleSheet.hairlineWidth,
+    padding: 14, borderBottomWidth: 0.5,
   },
   threadSubject: { fontSize: 15, fontFamily: "Inter_700Bold" },
   threadMeta: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
@@ -654,7 +654,7 @@ const st = StyleSheet.create({
 
   priorityBar: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: 0.5,
   },
   priorityBarLabel: { fontSize: 12, fontFamily: "Inter_600SemiBold", marginRight: 2 },
   priorityChip: {
@@ -673,7 +673,7 @@ const st = StyleSheet.create({
   systemMsgRow: { alignItems: "center" },
   systemMsgInner: {
     flexDirection: "row", alignItems: "center", gap: 5,
-    borderRadius: 20, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 20, borderWidth: 0.5,
     paddingHorizontal: 12, paddingVertical: 5,
   },
   systemMsgText: { fontSize: 11, fontFamily: "Inter_400Regular", fontStyle: "italic" },
@@ -696,7 +696,7 @@ const st = StyleSheet.create({
   bubble: { borderRadius: 14, padding: 12 },
   bubbleText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21 },
 
-  replyBar: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 12, paddingTop: 8, gap: 8 },
+  replyBar: { borderTopWidth: 0.5, paddingHorizontal: 12, paddingTop: 8, gap: 8 },
   replyTypeRow: { flexDirection: "row", gap: 6 },
   replyTypeBtn: {
     flexDirection: "row", alignItems: "center", gap: 5,
@@ -715,12 +715,12 @@ const st = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", padding: 24 },
   statusModal: { width: "100%", borderRadius: 16, overflow: "hidden" },
   modalTitle: { fontSize: 15, fontFamily: "Inter_700Bold", padding: 16, paddingBottom: 8 },
-  statusOption: { flexDirection: "row", alignItems: "center", gap: 10, padding: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(0,0,0,0.06)" },
+  statusOption: { flexDirection: "row", alignItems: "center", gap: 10, padding: 16, borderTopWidth: 0.5, borderTopColor: "rgba(0,0,0,0.06)" },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   statusOptionText: { flex: 1, fontSize: 15, fontFamily: "Inter_600SemiBold" },
 
   lockCard: {
-    margin: 32, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth,
+    margin: 32, borderRadius: 20, borderWidth: 0.5,
     padding: 32, alignItems: "center", gap: 10,
   },
   lockTitle: { fontSize: 20, fontFamily: "Inter_700Bold", marginTop: 8 },

@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   backBtn: {
     width: 40, height: 40,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   cardList: { gap: 14 },
   card: {
     borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     overflow: "hidden",
     ...Platform.select({
       web: { boxShadow: "0 2px 10px rgba(0,0,0,0.07)" } as any,

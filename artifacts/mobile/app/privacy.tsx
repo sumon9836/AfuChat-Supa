@@ -220,7 +220,7 @@ export default function PrivacyScreen() {
 
 const styles = StyleSheet.create({
   root:        { flex: 1 },
-  header:      { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  header:      { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 0.5 },
   backBtn:     { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontFamily: "Inter_700Bold" },
 
@@ -231,16 +231,16 @@ const styles = StyleSheet.create({
   updated:     { fontSize: 13, fontFamily: "Inter_400Regular" },
 
   highlightBox:  { borderWidth: 1, borderRadius: 14, overflow: "hidden" },
-  highlightRow:  { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  highlightRow:  { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderBottomWidth: 0.5 },
   highlightText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
 
   intro:      { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 23 },
 
-  section:     { paddingHorizontal: 20, paddingVertical: 24, borderTopWidth: StyleSheet.hairlineWidth },
+  section:     { paddingHorizontal: 20, paddingVertical: 24, borderTopWidth: 0.5 },
   sectionTitle:{ fontSize: 17, fontFamily: "Inter_700Bold", lineHeight: 24, marginBottom: 12 },
   sectionBody: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 23 },
 
-  footer:      { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 20, paddingVertical: 36, alignItems: "center", gap: 5 },
+  footer:      { borderTopWidth: 0.5, paddingHorizontal: 20, paddingVertical: 36, alignItems: "center", gap: 5 },
   footerTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginBottom: 4 },
   footerSub:   { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center" },
 });

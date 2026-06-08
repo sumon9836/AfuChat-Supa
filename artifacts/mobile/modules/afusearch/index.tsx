@@ -593,13 +593,13 @@ export default function AfuSearchApp() {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
-  searchBar: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  searchBar: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5 },
   inputWrap: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 22, borderWidth: 1, paddingHorizontal: 14, height: 44 },
   input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
-  tabBar: { borderBottomWidth: StyleSheet.hairlineWidth, maxHeight: 48 },
+  tabBar: { borderBottomWidth: 0.5, maxHeight: 48 },
   tabBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, height: 46 },
   tabLabel: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12, borderBottomWidth: 0.5 },
   avatar: { width: 44, height: 44, borderRadius: 22 },
   videoCover: { width: 72, height: 52, borderRadius: 8, overflow: "hidden" },
   emojiBox: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },

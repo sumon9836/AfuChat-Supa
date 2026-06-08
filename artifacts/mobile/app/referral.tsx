@@ -31,7 +31,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 6,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     gap: 4,
   },
   back: { padding: 6 },

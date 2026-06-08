@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   infoText: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
   sectionTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 },
   group: { marginHorizontal: 16, borderRadius: 14, overflow: "hidden" },
-  sep: { height: StyleSheet.hairlineWidth },
+  sep: { height: 0.5 },
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 14, gap: 14 },
   rowIcon: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   rowText: { flex: 1 },

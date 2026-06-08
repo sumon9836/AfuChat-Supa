@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   modalTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   searchRow: {
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   },
   resultIcon: { width: 24, alignItems: "center" },
   resultName: { flex: 1, fontSize: 15, fontFamily: "Inter_500Medium" },
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: 56 },
+  separator: { height: 0.5, marginLeft: 56 },
   centeredWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
   emptyText: { fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center" },
 });

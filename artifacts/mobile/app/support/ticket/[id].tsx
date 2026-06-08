@@ -260,7 +260,7 @@ export default function TicketDetail() {
                       st.bubble,
                       isUser
                         ? { backgroundColor: BRAND, borderColor: "transparent" }
-                        : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth },
+                        : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 0.5 },
                     ]}
                   >
                     <Text style={[st.bubbleText, { color: isUser ? "#fff" : colors.text }]}>
@@ -272,7 +272,7 @@ export default function TicketDetail() {
                   </Text>
                 </View>
                 {isUser && (
-                  <View style={[st.avatar, { backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }]}>
+                  <View style={[st.avatar, { backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border }]}>
                     <Ionicons name="person" size={14} color={BRAND} />
                   </View>
                 )}
@@ -333,18 +333,18 @@ const st = StyleSheet.create({
   infoStrip: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: 16, paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   infoChip: { flexDirection: "row", alignItems: "center", gap: 5, flex: 1 },
   infoChipText: { fontSize: 12, fontFamily: "Inter_500Medium", textTransform: "capitalize" },
-  infoSep: { width: StyleSheet.hairlineWidth, height: 14, backgroundColor: "#ccc", marginHorizontal: 4 },
+  infoSep: { width: 0.5, height: 14, backgroundColor: "#ccc", marginHorizontal: 4 },
   infoDot: { width: 7, height: 7, borderRadius: 4 },
 
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   threadNotice: {
     flexDirection: "row", alignItems: "flex-start", gap: 8,
-    borderRadius: 12, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12, borderWidth: 0.5,
     padding: 12, marginBottom: 4,
   },
   threadNoticeText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
@@ -355,7 +355,7 @@ const st = StyleSheet.create({
   systemMsgRow: { alignItems: "center" },
   systemMsgPill: {
     flexDirection: "row", alignItems: "center", gap: 5,
-    borderRadius: 20, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 20, borderWidth: 0.5,
     paddingHorizontal: 12, paddingVertical: 5,
   },
   systemMsgText: { fontSize: 11, fontFamily: "Inter_400Regular", fontStyle: "italic" },
@@ -386,7 +386,7 @@ const st = StyleSheet.create({
 
   closedBar: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    padding: 16, borderTopWidth: StyleSheet.hairlineWidth,
+    padding: 16, borderTopWidth: 0.5,
   },
   closedText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
 });

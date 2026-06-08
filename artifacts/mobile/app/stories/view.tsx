@@ -955,7 +955,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     borderBottomColor: "rgba(255,255,255,0.07)",
   },
   viewerName: {
@@ -991,7 +991,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     borderBottomColor: "rgba(255,255,255,0.07)",
   },
   shareOptionIcon: {

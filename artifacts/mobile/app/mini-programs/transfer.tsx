@@ -151,7 +151,7 @@ export default function TransferScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   content: { padding: 16, gap: 12 },
   iconWrap: { alignItems: "center", paddingVertical: 8 },
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   feeValue: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   feeLink: { flexDirection: "row", alignItems: "center", gap: 4 },
   feeLinkText: { fontSize: 14, fontFamily: "Inter_500Medium" },
-  feeDivider: { height: StyleSheet.hairlineWidth },
+  feeDivider: { height: 0.5 },
   feeTotalLabel: { fontSize: 16, fontFamily: "Inter_700Bold" },
   feeTotalValue: { fontSize: 16, fontFamily: "Inter_700Bold" },
   sendBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, paddingVertical: 16, marginTop: 8 },

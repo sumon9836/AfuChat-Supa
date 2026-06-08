@@ -97,7 +97,7 @@ function StatCard({
 
 const sc = StyleSheet.create({
   card: {
-    flex: 1, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth,
+    flex: 1, borderRadius: 16, borderWidth: 0.5,
     padding: 14, gap: 4, alignItems: "flex-start", minWidth: 100,
   },
   iconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 4 },
@@ -259,7 +259,7 @@ function ContentRow({
 }
 
 const cr = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 0.5 },
   rankWrap: { width: 26, height: 26, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   rank: { fontSize: 12, fontFamily: "Inter_700Bold" },
   thumb: { width: 52, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center", overflow: "hidden" },
@@ -596,7 +596,7 @@ const hdr = StyleSheet.create({
   wrap: {
     flexDirection: "row", alignItems: "center", gap: 8,
     paddingHorizontal: 14, paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 18, fontFamily: "Inter_700Bold" },
@@ -607,8 +607,8 @@ const hdr = StyleSheet.create({
 const s = StyleSheet.create({
   content: { gap: 10, paddingHorizontal: 14 },
   statGrid: { flexDirection: "row", gap: 10 },
-  card: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 16 },
-  listCard: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  card: { borderRadius: 16, borderWidth: 0.5, padding: 16 },
+  listCard: { borderRadius: 16, borderWidth: 0.5, overflow: "hidden" },
   empty: { alignItems: "center", justifyContent: "center", paddingVertical: 60, gap: 10 },
   emptyTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
   emptySub: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 30 },

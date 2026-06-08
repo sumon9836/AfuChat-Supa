@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     paddingVertical: 14,
     paddingHorizontal: 14,
     gap: 6,
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
   },
   pricePillText: { fontFamily: "Inter_600SemiBold", fontSize: 11 },
   footer: {

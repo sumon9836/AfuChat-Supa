@@ -592,7 +592,7 @@ const st = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 8, paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   headerCenter: { flexDirection: "row", alignItems: "center", gap: 8 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold", letterSpacing: 0.2 },
@@ -638,7 +638,7 @@ const st = StyleSheet.create({
 
   // Profile card
   profileCard: {
-    borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden",
+    borderRadius: 14, borderWidth: 0.5, overflow: "hidden",
   },
   profileCardTop: { flexDirection: "row", alignItems: "flex-start", gap: 14, padding: 16 },
   avatar: { width: 62, height: 62, borderRadius: 31, flexShrink: 0 },
@@ -655,7 +655,7 @@ const st = StyleSheet.create({
   memberStrip: {
     flexDirection: "row", alignItems: "center", gap: 8,
     paddingHorizontal: 16, paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
   },
   memberStripText: {
     fontSize: 13, fontFamily: "monospace",
@@ -664,11 +664,11 @@ const st = StyleSheet.create({
   memberStripSub: { fontSize: 12, fontFamily: "Inter_400Regular" },
 
   // Sections
-  section: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  section: { borderRadius: 12, borderWidth: 0.5, overflow: "hidden" },
   sectionHeader: {
     flexDirection: "row", alignItems: "center", gap: 8,
     paddingHorizontal: 14, paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   sectionTitle: {
     fontSize: 11, fontFamily: "Inter_700Bold",
@@ -677,7 +677,7 @@ const st = StyleSheet.create({
   row: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start",
     paddingHorizontal: 14, paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   rowLabel: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
   rowValue: { fontSize: 13, fontFamily: "Inter_500Medium", flex: 1.4, textAlign: "right", flexWrap: "wrap" },

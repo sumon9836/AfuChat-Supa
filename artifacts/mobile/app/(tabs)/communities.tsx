@@ -429,7 +429,7 @@ const ss = StyleSheet.create({
   },
   createBtnText: { color: "#fff", fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
-  tabBar: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth },
+  tabBar: { flexDirection: "row", borderBottomWidth: 0.5 },
   tab: {
     flex: 1,
     flexDirection: "row",
@@ -444,7 +444,7 @@ const ss = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     padding: 12,
     gap: 12,
   },

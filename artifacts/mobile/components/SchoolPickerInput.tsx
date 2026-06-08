@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   modalTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   searchRow: {
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   resultTextWrap: { flex: 1, marginHorizontal: 10 },
   resultName: { fontSize: 15, fontFamily: "Inter_500Medium", lineHeight: 20 },
   resultCountry: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: 62 },
+  separator: { height: 0.5, marginLeft: 62 },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
   loadingText: { fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center" },
 });

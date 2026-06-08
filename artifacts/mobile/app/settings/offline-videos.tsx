@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   },
   rowFirst: { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
   rowLast: { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: 14 + 72 + 12 },
+  separator: { height: 0.5, marginLeft: 14 + 72 + 12 },
 
   thumb: {
     width: 72,

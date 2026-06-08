@@ -1512,7 +1512,7 @@ export default function SearchScreen() {
               {history.slice(0, 8).map((term, i) => (
                 <TouchableOpacity
                   key={`h-${i}`}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 0.5, borderColor: colors.border }}
                   onPress={() => onHistoryPress(term)}
                   activeOpacity={0.7}
                 >
@@ -1602,7 +1602,7 @@ export default function SearchScreen() {
                   <TouchableOpacity
                     onPress={() => onTagPress(tag)}
                     activeOpacity={0.72}
-                    style={{ width: half, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 13, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}
+                    style={{ width: half, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 0.5, borderColor: colors.border }}
                   >
                     <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: i < 3 ? RED : colors.textMuted, width: 30, textAlign: "center", letterSpacing: -1 }}>{i + 1}</Text>
                     <View style={{ flex: 1, gap: 2 }}>
@@ -1630,7 +1630,7 @@ export default function SearchScreen() {
               {trendingPeople.slice(0, 10).map((p) => (
                 <TouchableOpacity
                   key={p.id}
-                  style={{ width: 148, backgroundColor: colors.surface, borderRadius: 22, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}
+                  style={{ width: 148, backgroundColor: colors.surface, borderRadius: 22, overflow: "hidden", borderWidth: 0.5, borderColor: colors.border }}
                   onPress={() => router.push(`/@${p.handle}` as any)}
                   activeOpacity={0.8}
                 >
@@ -1685,7 +1685,7 @@ export default function SearchScreen() {
                 return (
                   <View key={v.id} >
                     <TouchableOpacity
-                      style={{ width: vw, backgroundColor: colors.surface, borderRadius: 22, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}
+                      style={{ width: vw, backgroundColor: colors.surface, borderRadius: 22, overflow: "hidden", borderWidth: 0.5, borderColor: colors.border }}
                       onPress={() => router.push(`/post/${v.id}` as any)}
                       activeOpacity={0.82}
                     >
@@ -1897,7 +1897,7 @@ const ss = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingBottom: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     zIndex: 20,
     overflow: "visible" as any,
     ...Platform.select({
@@ -1946,7 +1946,7 @@ const ss = StyleSheet.create({
 
   tabBar: {
     paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   tabBtn: {
     flexDirection: "row",
@@ -1963,7 +1963,7 @@ const ss = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
 
   aiCard: {
@@ -1978,7 +1978,7 @@ const ss = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     borderBottomColor: "#00000008",
   },
   rowTitle: {

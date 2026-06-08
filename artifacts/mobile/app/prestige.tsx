@@ -509,7 +509,7 @@ const s = StyleSheet.create({
 
   heroStats: { flexDirection: "row", backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 16, padding: 12, marginBottom: 20 },
   heroStat: { flex: 1, alignItems: "center", gap: 2 },
-  heroStatDivider: { width: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.25)", marginHorizontal: 8 },
+  heroStatDivider: { width: 0.5, backgroundColor: "rgba(255,255,255,0.25)", marginHorizontal: 8 },
   heroStatValue: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#fff" },
   heroStatLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.65)" },
 
@@ -532,15 +532,15 @@ const s = StyleSheet.create({
   roadmapActiveDot: { position: "absolute", bottom: -5, width: 6, height: 6, borderRadius: 3 },
 
   // Tabs
-  tabBar: { flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, marginHorizontal: 14, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden", marginBottom: 14 },
+  tabBar: { flexDirection: "row", borderTopWidth: 0.5, borderBottomWidth: 0.5, marginHorizontal: 14, borderRadius: 14, borderWidth: 0.5, overflow: "hidden", marginBottom: 14 },
   tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 11 },
   tabLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
 
   // Section layout
   section: { paddingHorizontal: 14, gap: 8 },
   sectionTitle: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.7, marginTop: 4, marginLeft: 2 },
-  card: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
-  sep: { height: StyleSheet.hairlineWidth, marginLeft: 16 },
+  card: { borderRadius: 16, borderWidth: 0.5, overflow: "hidden" },
+  sep: { height: 0.5, marginLeft: 16 },
 
   // Collection row
   collectionRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 12 },

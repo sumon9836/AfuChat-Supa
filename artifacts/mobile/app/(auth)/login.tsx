@@ -78,7 +78,7 @@ function GlassModal({ visible, onClose, isDark, children }: { visible: boolean; 
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View style={[gm.overlay, { opacity, backgroundColor: isDark ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.48)" }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={[gm.card, { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF", borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)", borderWidth: StyleSheet.hairlineWidth }]}>
+        <View style={[gm.card, { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF", borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)", borderWidth: 0.5 }]}>
           {children}
         </View>
       </Animated.View>
@@ -566,9 +566,9 @@ export default function SignInScreen() {
 
           {/* Divider */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginVertical: 24 }}>
-            <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: borderColor }} />
+            <View style={{ flex: 1, height: 0.5, backgroundColor: borderColor }} />
             <Text style={{ fontSize: 12, fontFamily: "Inter_500Medium", color: mutedColor, letterSpacing: 0.4 }}>or</Text>
-            <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: borderColor }} />
+            <View style={{ flex: 1, height: 0.5, backgroundColor: borderColor }} />
           </View>
 
           {/* Create account */}

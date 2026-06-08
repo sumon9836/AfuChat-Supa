@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  separator: { height: StyleSheet.hairlineWidth },
+  separator: { height: 0.5 },
 
   addRow: {
     flexDirection: "row",
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 50,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
   },
   input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
 
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 10,
     borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginTop: 4,

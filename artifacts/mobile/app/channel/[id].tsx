@@ -353,7 +353,7 @@ export default function ChannelDetailScreen() {
             st.bubble,
             fromMe
               ? { backgroundColor: PURPLE, borderBottomRightRadius: 4 }
-              : { backgroundColor: colors.surface, borderBottomLeftRadius: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+              : { backgroundColor: colors.surface, borderBottomLeftRadius: 4, borderWidth: 0.5, borderColor: colors.border },
           ]}>
             {post.image_url && (
               <Image
@@ -611,7 +611,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 4,
     paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     gap: 4,
   },
   topBarBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
@@ -665,7 +665,7 @@ const st = StyleSheet.create({
     marginHorizontal: 8,
     marginVertical: 12,
     borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     gap: 6,
   },
   infoBannerAvatar: { marginBottom: 4 },
@@ -700,7 +700,7 @@ const st = StyleSheet.create({
 
   // Composer
   composer: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
     paddingTop: 8,
     paddingHorizontal: 10,
     gap: 6,
@@ -718,7 +718,7 @@ const st = StyleSheet.create({
     minHeight: 38,
     maxHeight: 120,
     borderRadius: 19,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     paddingHorizontal: 14,
     paddingVertical: 8,
     fontSize: 14,
@@ -755,7 +755,7 @@ const st = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
     flexWrap: "wrap",
   },
   readOnlyText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },

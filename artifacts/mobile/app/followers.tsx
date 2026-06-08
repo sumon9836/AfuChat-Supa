@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   backBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
   headerCenter: { flex: 1, alignItems: "center" },
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   searchBar: {
     flexDirection: "row",
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
 
-  separator: { height: StyleSheet.hairlineWidth },
+  separator: { height: 0.5 },
 
   emptyContainer: {
     alignItems: "center",

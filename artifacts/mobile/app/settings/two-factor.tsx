@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 8,
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   headerBtn: { width: 44, alignItems: "center" },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   rowMeta: { flex: 1, gap: 2 },
   rowLabel: { fontSize: 16, fontFamily: "Inter_400Regular" },
   rowSub: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  sep: { height: StyleSheet.hairlineWidth },
+  sep: { height: 0.5 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   badgeText: { fontSize: 10, fontFamily: "Inter_700Bold" },
 

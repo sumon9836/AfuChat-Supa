@@ -273,9 +273,9 @@ export default function PaidCommunitiesScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5 },
   headerTitle: { flex: 1, fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" },
-  tabBar: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth },
+  tabBar: { flexDirection: "row", borderBottomWidth: 0.5 },
   tab: { flex: 1, paddingVertical: 12, alignItems: "center" },
   tabText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   card: { borderRadius: 16, padding: 16 },

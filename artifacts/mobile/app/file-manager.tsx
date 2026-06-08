@@ -162,5 +162,5 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   name: { fontSize: 15, fontFamily: "Inter_500Medium", marginBottom: 2 },
   meta: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  sep: { height: StyleSheet.hairlineWidth, marginLeft: 72 },
+  sep: { height: 0.5, marginLeft: 72 },
 });

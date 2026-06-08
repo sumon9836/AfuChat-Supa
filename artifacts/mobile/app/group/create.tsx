@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   cancelText: { fontSize: 16, fontFamily: "Inter_400Regular" },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },

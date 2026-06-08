@@ -240,13 +240,13 @@ function ArticleReplyCard({
         </View>
       </View>
       {isTop && !hasChildren && (
-        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 20 + indent + avatarSize + 10, marginRight: 20, marginTop: 4 }} />
+        <View style={{ height: 0.5, backgroundColor: colors.border, marginLeft: 20 + indent + avatarSize + 10, marginRight: 20, marginTop: 4 }} />
       )}
       {!collapsed && item.children?.map((child) => (
         <ArticleReplyCard key={child.id} item={child} colors={colors} depth={depth + 1} onReplyTo={onReplyTo} />
       ))}
       {isTop && hasChildren && !collapsed && (
-        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 20, marginRight: 20, marginTop: 6, marginBottom: 2 }} />
+        <View style={{ height: 0.5, backgroundColor: colors.border, marginLeft: 20, marginRight: 20, marginTop: 6, marginBottom: 2 }} />
       )}
     </>
   );
@@ -644,9 +644,9 @@ export default function ArticleDetailScreen() {
         />
 
         {user ? (
-          <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+          <View style={{ borderTopWidth: 0.5, borderTopColor: colors.border, backgroundColor: colors.surface }}>
             {replyingTo && (
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
                 <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.textMuted }}>
                   Replying to <Text style={{ color: colors.accent, fontFamily: "Inter_600SemiBold" }}>@{replyingTo.author.handle}</Text>
                 </Text>
@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
   readTimeText: { fontSize: 12, fontFamily: "Inter_400Regular" },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", lineHeight: 34, marginBottom: 12, letterSpacing: -0.3 },
   subtitle: { fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 24, marginBottom: 20, fontStyle: "italic" },
-  authorSection: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, marginBottom: 24 },
+  authorSection: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, borderTopWidth: 0.5, borderBottomWidth: 0.5, marginBottom: 24 },
   authorRow: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   authorName: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   authorHandle: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
@@ -731,9 +731,9 @@ const styles = StyleSheet.create({
   statItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   statText: { fontSize: 13, fontFamily: "Inter_500Medium" },
   statDot: { width: 3, height: 3, borderRadius: 1.5 },
-  actionBar: { flexDirection: "row", alignItems: "center", borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, marginBottom: 28, overflow: "hidden" },
+  actionBar: { flexDirection: "row", alignItems: "center", borderRadius: 14, borderWidth: 0.5, marginBottom: 28, overflow: "hidden" },
   actionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12 },
-  actionDivider: { width: StyleSheet.hairlineWidth, height: 24 },
+  actionDivider: { width: 0.5, height: 24 },
   actionLabel: { fontSize: 13, fontFamily: "Inter_500Medium" },
   commentsHeading: { fontSize: 17, fontFamily: "Inter_600SemiBold", marginBottom: 16 },
   replyRow: { flexDirection: "row", gap: 10, padding: 14, borderRadius: 14 },
@@ -743,6 +743,6 @@ const styles = StyleSheet.create({
   replyBar: { flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 16, paddingTop: 10 },
   replyInput: { flex: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, fontFamily: "Inter_400Regular", maxHeight: 100 },
   sendBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  signInBar: { alignItems: "center", paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
+  signInBar: { alignItems: "center", paddingTop: 14, borderTopWidth: 0.5 },
   signInText: { fontSize: 14, fontFamily: "Inter_500Medium" },
 });

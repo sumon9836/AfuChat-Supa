@@ -133,28 +133,32 @@ export async function aiSummarizeThread(post: string, replies: { author: string;
 }
 
 export async function transcribeAudio(audioUrl: string): Promise<string> {
-  // Route to afu-ai-reply (verify_jwt:false, handles {audioUrl} natively via Groq).
-  // Falls back to the dedicated transcribe-audio function if the primary fails.
-  const primary = await fetch(`${getEdgeFnBase()}/afu-ai-reply`, {
-    method: "POST",
-    headers: edgeHeaders(),
-    body: JSON.stringify({ audioUrl }),
-  });
+  try {
+    // Route to afu-ai-reply (verify_jwt:false, handles {audioUrl} natively via Groq).
+    // Falls back to the dedicated transcribe-audio function if the primary fails.
+    const primary = await fetch(`${getEdgeFnBase()}/afu-ai-reply`, {
+      method: "POST",
+      headers: edgeHeaders(),
+      body: JSON.stringify({ audioUrl }),
+    });
 
-  if (primary.ok) {
-    const data = await primary.json();
-    if (data.text !== undefined) return data.text || "";
+    if (primary.ok) {
+      const data = await primary.json();
+      if (data.text !== undefined) return data.text || "";
+    }
+
+    // Fallback: dedicated transcribe-audio function (requires user JWT via supabase client)
+    const fallback = await fetch(`${getEdgeFnBase()}/transcribe-audio`, {
+      method: "POST",
+      headers: edgeHeaders(),
+      body: JSON.stringify({ audioUrl }),
+    });
+    if (!fallback.ok) throw new Error(`Transcription failed: ${fallback.status}`);
+    const data = await fallback.json();
+    return data.text || "";
+  } catch (err) {
+    throw err instanceof Error ? err : new Error("Transcription network error");
   }
-
-  // Fallback: dedicated transcribe-audio function (requires user JWT via supabase client)
-  const fallback = await fetch(`${getEdgeFnBase()}/transcribe-audio`, {
-    method: "POST",
-    headers: edgeHeaders(),
-    body: JSON.stringify({ audioUrl }),
-  });
-  if (!fallback.ok) throw new Error(`Transcription failed: ${fallback.status}`);
-  const data = await fallback.json();
-  return data.text || "";
 }
 
 export async function aiTransformTone(text: string, preset: string): Promise<string> {

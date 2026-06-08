@@ -285,7 +285,7 @@ const s = StyleSheet.create({
   content: { padding: 16, gap: 12 },
   recipientCard: {
     flexDirection: "row", alignItems: "center", gap: 14,
-    borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 16,
+    borderRadius: 16, borderWidth: 0.5, padding: 16,
   },
   recipientInfo: { flex: 1 },
   recipientName: { fontSize: 16, fontFamily: "Inter_600SemiBold" },

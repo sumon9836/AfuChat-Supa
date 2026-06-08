@@ -106,7 +106,7 @@ export default function AlertModal() {
           <View
             style={[
               useVertical ? styles.btnGroupVertical : styles.btnGroupHorizontal,
-              { borderTopColor: divider, borderTopWidth: StyleSheet.hairlineWidth },
+              { borderTopColor: divider, borderTopWidth: 0.5 },
             ]}
           >
             {buttons.map((btn, i) => {
@@ -125,12 +125,12 @@ export default function AlertModal() {
                     useVertical ? styles.btnVertical : styles.btnHorizontal,
                     !useVertical &&
                       i < buttons.length - 1 && {
-                        borderRightWidth: StyleSheet.hairlineWidth,
+                        borderRightWidth: 0.5,
                         borderRightColor: divider,
                       },
                     useVertical &&
                       i < buttons.length - 1 && {
-                        borderBottomWidth: StyleSheet.hairlineWidth,
+                        borderBottomWidth: 0.5,
                         borderBottomColor: divider,
                       },
                   ]}

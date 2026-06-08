@@ -325,7 +325,7 @@ router.post("/payments/webhook", async (req: Request, res: Response) => {
 });
 
 async function processIpnOrder(
-  admin: ReturnType<typeof getSupabaseAdmin>,
+  admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
   order: {
     id: string;
     user_id: string;
@@ -341,7 +341,7 @@ async function processIpnOrder(
 
   const trackId = order.tracking_id;
   if (!trackId) {
-    await admin!.from("pesapal_orders").update({ status: "invalid" }).eq("id", order.id);
+    await admin.from("pesapal_orders").update({ status: "invalid" }).eq("id", order.id);
     return { error: "No tracking ID — cannot verify payment" };
   }
 
@@ -357,25 +357,25 @@ async function processIpnOrder(
   const paymentStatusDesc = (statusData.payment_status_description || "").toUpperCase();
 
   if (statusCode === 1 || paymentStatusDesc === "COMPLETED") {
-    const { error: updateErr } = await admin!
+    const { error: updateErr } = await admin
       .from("pesapal_orders")
       .update({ status: "completed", tracking_id: trackId })
       .eq("id", order.id)
       .eq("status", "pending");
     if (updateErr) logger.error({ err: updateErr }, "[pesapal-ipn] order update error");
 
-    const { error: rpcErr } = await admin!.rpc("credit_acoin", {
+    const { error: rpcErr } = await admin.rpc("credit_acoin", {
       p_user_id: order.user_id,
       p_amount: order.acoin_amount,
     });
 
     if (rpcErr) {
       logger.error({ err: rpcErr }, "[pesapal-ipn] credit_acoin RPC failed");
-      await admin!.from("pesapal_orders").update({ status: "pending" }).eq("id", order.id);
+      await admin.from("pesapal_orders").update({ status: "pending" }).eq("id", order.id);
       return { error: "Failed to credit wallet, will retry" };
     }
 
-    await admin!.from("acoin_transactions").insert({
+    await admin.from("acoin_transactions").insert({
       user_id: order.user_id,
       amount: order.acoin_amount,
       transaction_type: "topup",
@@ -390,7 +390,7 @@ async function processIpnOrder(
     logger.info({ userId: order.user_id, acoin: order.acoin_amount }, "[pesapal-ipn] wallet credited");
     return { message: "Payment confirmed, wallet credited" };
   } else if ([2, 3, 4].includes(statusCode) || ["FAILED", "REVERSED", "INVALID"].includes(paymentStatusDesc)) {
-    await admin!.from("pesapal_orders").update({ status: "failed", tracking_id: trackId }).eq("id", order.id);
+    await admin.from("pesapal_orders").update({ status: "failed", tracking_id: trackId }).eq("id", order.id);
     return { message: "Payment failed or reversed", pesapal_status: paymentStatusDesc };
   } else {
     return { message: "Payment still pending", pesapal_status: paymentStatusDesc };

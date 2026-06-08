@@ -274,7 +274,7 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   navBack: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
   navTitle: { fontSize: 16, fontWeight: "700" },
@@ -316,7 +316,7 @@ const st = StyleSheet.create({
   featureDesc: { fontSize: 11, lineHeight: 16 },
 
   faqCard: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden" },
-  faqItem: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  faqItem: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5 },
   faqRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   faqQ: { flex: 1, fontSize: 14, fontWeight: "600", lineHeight: 20 },
   faqA: { fontSize: 13, lineHeight: 21, marginTop: 10 },
@@ -326,7 +326,7 @@ const st = StyleSheet.create({
   legalIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   legalLabel: { flex: 1, fontSize: 15, fontWeight: "600" },
   legalSub: { fontSize: 12, marginTop: 1 },
-  divider: { height: StyleSheet.hairlineWidth, marginLeft: 66 },
+  divider: { height: 0.5, marginLeft: 66 },
 
   footer: { alignItems: "center", paddingTop: 36, paddingBottom: 16, gap: 6 },
   footerSymbol: { width: 44, height: 44, marginBottom: 4 },

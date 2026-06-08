@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 18,
   },
-  divider: { height: StyleSheet.hairlineWidth, marginLeft: 76 },
+  divider: { height: 0.5, marginLeft: 76 },
 
   errorText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" },
   retryBtn: { marginTop: 4, paddingHorizontal: 20, paddingVertical: 9, borderRadius: 10, borderWidth: 1 },

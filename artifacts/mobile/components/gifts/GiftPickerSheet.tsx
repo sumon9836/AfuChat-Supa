@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   confirmBar: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
     paddingHorizontal: 16,
     paddingTop: 12,
     gap: 10,

@@ -212,7 +212,7 @@ function RecordingBar({ elapsed, onStop, accent, colors }: { elapsed: number; on
 // ─── VoicePreviewBar ──────────────────────────────────────────────────────────
 function VoicePreviewBar({ uri, durationSecs, onDiscard, accent, colors }: { uri: string; durationSecs: number; onDiscard: () => void; accent: string; colors: any }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderTopWidth: 0.5, borderTopColor: colors.border }}>
       <Ionicons name="mic" size={13} color={accent} />
       <Text style={{ color: accent, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>Voice note</Text>
       <View style={{ flex: 1 }}>
@@ -431,7 +431,7 @@ function ReplyCard({
       </View>
 
       {isTopLevel && !hasChildren && (
-        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 16 + indent + avatarSize + 9, marginRight: 16, marginTop: 3 }} />
+        <View style={{ height: 0.5, backgroundColor: colors.border, marginLeft: 16 + indent + avatarSize + 9, marginRight: 16, marginTop: 3 }} />
       )}
 
       {!collapsed && item.children?.map((child) => (
@@ -439,7 +439,7 @@ function ReplyCard({
       ))}
 
       {isTopLevel && hasChildren && !collapsed && (
-        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 16, marginRight: 16, marginTop: 4, marginBottom: 2 }} />
+        <View style={{ height: 0.5, backgroundColor: colors.border, marginLeft: 16, marginRight: 16, marginTop: 4, marginBottom: 2 }} />
       )}
     </>
   );
@@ -1459,7 +1459,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
 
@@ -1507,8 +1507,8 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 10,
     marginBottom: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
+    borderBottomWidth: 0.5,
     marginHorizontal: -12,
     paddingHorizontal: 12,
   },
@@ -1536,8 +1536,8 @@ const styles = StyleSheet.create({
   /* Engagement bar */
   engagementBar: {
     flexDirection: "row",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
+    borderBottomWidth: 0.5,
     marginVertical: 8,
     paddingVertical: 1,
   },
@@ -1549,7 +1549,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingVertical: 7,
   },
-  engagementDivider: { width: StyleSheet.hairlineWidth, marginVertical: 6 },
+  engagementDivider: { width: 0.5, marginVertical: 6 },
   engagementCount: { fontSize: 14, fontFamily: "Inter_500Medium" },
 
   /* AI section */
@@ -1580,7 +1580,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -12,
     paddingHorizontal: 0,
   },
-  repliesHeaderLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  repliesHeaderLine: { flex: 1, height: 0.5 },
   repliesHeaderBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -1588,7 +1588,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
   },
   repliesHeaderText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
 
@@ -1627,7 +1627,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
   },
   replyingText: { fontSize: 12, fontFamily: "Inter_400Regular" },
   emojiBar: {
@@ -1635,7 +1635,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
     gap: 0,
   },
   emojiBtn: { flex: 1, alignItems: "center", paddingVertical: 5 },
@@ -1646,7 +1646,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
   },
   mediaThumb: { width: 48, height: 48, borderRadius: 8 },
   mediaRemoveBtn: { position: "absolute", top: -6, right: -6 },
@@ -1656,7 +1656,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     gap: 7,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
   },
   composerInput: {
     flex: 1,
@@ -1687,7 +1687,7 @@ const styles = StyleSheet.create({
   signInBar: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
   },
   signInBtn: {
     flexDirection: "row",

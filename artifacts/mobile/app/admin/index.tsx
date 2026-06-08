@@ -838,7 +838,7 @@ export default function AdminDashboard() {
               <View style={[styles.lookupCard, { backgroundColor: colors.surface }]}>
                 <Text style={[styles.lookupCardTitle, { color: colors.text }]}>Recent Posts ({u.posts})</Text>
                 {u.recentPosts.map((post: any, i: number) => (
-                  <View key={post.id} style={[styles.lookupListItem, i < u.recentPosts.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+                  <View key={post.id} style={[styles.lookupListItem, i < u.recentPosts.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 0.5 }]}>
                     <Text style={{ color: colors.text, fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 }} numberOfLines={2}>{post.content || "\u2014"}</Text>
                     <View style={{ alignItems: "flex-end", gap: 2 }}>
                       <Text style={{ color: colors.textMuted, fontSize: 10 }}>{timeAgo(post.created_at)}</Text>
@@ -853,7 +853,7 @@ export default function AdminDashboard() {
               <View style={[styles.lookupCard, { backgroundColor: colors.surface }]}>
                 <Text style={[styles.lookupCardTitle, { color: colors.text }]}>Posts Liked ({u.postLikeCount})</Text>
                 {u.likedPosts.map((like: any, i: number) => (
-                  <View key={like.post_id + i} style={[styles.lookupListItem, i < u.likedPosts.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+                  <View key={like.post_id + i} style={[styles.lookupListItem, i < u.likedPosts.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 0.5 }]}>
                     <Text style={{ color: colors.text, fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 }} numberOfLines={2}>{like.posts?.content || "\u2014"}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 10 }}>{timeAgo(like.created_at)}</Text>
                   </View>
@@ -867,7 +867,7 @@ export default function AdminDashboard() {
                 {u.recentChats.map((chat: any, i: number) => {
                   const otherUserId = chat.user1_id === u.id ? chat.user2_id : chat.user1_id;
                   return (
-                    <View key={chat.id} style={[styles.lookupListItem, i < u.recentChats.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+                    <View key={chat.id} style={[styles.lookupListItem, i < u.recentChats.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 0.5 }]}>
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: colors.text, fontSize: 12, fontFamily: "Inter_500Medium" }}>Chat with {otherUserId.slice(0, 8)}...</Text>
                       </View>
@@ -884,7 +884,7 @@ export default function AdminDashboard() {
                 {u.followersList.map((f: any, i: number) => {
                   const p = f.profiles;
                   return (
-                    <View key={f.follower_id} style={[styles.lookupListItem, i < u.followersList.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+                    <View key={f.follower_id} style={[styles.lookupListItem, i < u.followersList.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 0.5 }]}>
                       <View style={[styles.lookupListAvatar, { backgroundColor: BRAND + "20" }]}>
                         <Text style={{ color: BRAND, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>{(p?.display_name || "?")[0].toUpperCase()}</Text>
                       </View>
@@ -904,7 +904,7 @@ export default function AdminDashboard() {
                 {u.followingList.map((f: any, i: number) => {
                   const p = f.profiles;
                   return (
-                    <View key={f.following_id} style={[styles.lookupListItem, i < u.followingList.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+                    <View key={f.following_id} style={[styles.lookupListItem, i < u.followingList.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 0.5 }]}>
                       <View style={[styles.lookupListAvatar, { backgroundColor: "#3B82F620" }]}>
                         <Text style={{ color: "#3B82F6", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>{(p?.display_name || "?")[0].toUpperCase()}</Text>
                       </View>
@@ -1617,7 +1617,7 @@ export default function AdminDashboard() {
           <View style={[styles.lookupCard, { backgroundColor: colors.surface }]}>
             <Text style={[styles.lookupCardTitle, { color: colors.text }]}>Recent Gifts</Text>
             {recentGifts.map((g: any, i: number) => (
-              <View key={g.id} style={[styles.lookupListItem, i < recentGifts.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+              <View key={g.id} style={[styles.lookupListItem, i < recentGifts.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 0.5 }]}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.text, fontSize: 13, fontFamily: "Inter_500Medium" }}>{g.gift_name}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: 11 }}>
@@ -1761,7 +1761,7 @@ export default function AdminDashboard() {
                 {/* Expanded details */}
                 {isExpanded && (
                   <View style={{ marginTop: 12, gap: 10 }}>
-                    <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+                    <View style={{ height: 0.5, backgroundColor: colors.border }} />
 
                     {/* Description */}
                     {orgPage.description ? (
@@ -2566,7 +2566,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   noAccess: { fontSize: 18, fontFamily: "Inter_600SemiBold", marginTop: 12 },
-  header: { borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { borderBottomWidth: 0.5 },
   headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8 },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
@@ -2601,7 +2601,7 @@ const styles = StyleSheet.create({
   postActions: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
   actionBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  filterInput: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: "transparent" },
+  filterInput: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, borderWidth: 0.5, borderColor: "transparent" },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
   planCard: { padding: 16, borderRadius: 14, gap: 8 },
   planHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
@@ -2615,7 +2615,7 @@ const styles = StyleSheet.create({
   currencyRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 },
   currencyLabel: { fontSize: 15, fontFamily: "Inter_400Regular" },
   currencyValue: { fontSize: 17, fontFamily: "Inter_700Bold" },
-  divider: { height: StyleSheet.hairlineWidth },
+  divider: { height: 0.5 },
   currencyBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
   reportCard: { padding: 14, borderRadius: 14, gap: 8 },
   reportHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -2648,7 +2648,7 @@ const styles = StyleSheet.create({
   lookupQuickStat: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center", gap: 4 },
   lookupCard: { borderRadius: 14, padding: 16, gap: 0 },
   lookupCardTitle: { fontSize: 15, fontFamily: "Inter_700Bold", marginBottom: 8 },
-  lookupRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  lookupRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, borderBottomWidth: 0.5 },
   lookupLabel: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
   lookupValue: { fontSize: 13, fontFamily: "Inter_600SemiBold", textAlign: "right", maxWidth: "55%" },
   lookupInterests: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 4 },

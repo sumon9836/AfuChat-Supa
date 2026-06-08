@@ -1110,7 +1110,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   profileDivider: {
-    height: StyleSheet.hairlineWidth,
+    height: 0.5,
     marginVertical: 4,
     marginHorizontal: 8,
   },

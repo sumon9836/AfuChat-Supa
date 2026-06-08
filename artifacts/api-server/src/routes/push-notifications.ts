@@ -104,7 +104,7 @@ type NotifPrefs = {
 };
 
 async function pushToUser(
-  admin: ReturnType<typeof getSupabaseAdmin>,
+  admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
   userId: string,
   push: {
     title: string;
@@ -117,7 +117,7 @@ async function pushToUser(
     bypassQuietHours?: boolean;
   },
 ): Promise<void> {
-  const { data: profile } = await admin!
+  const { data: profile } = await admin
     .from("profiles")
     .select("expo_push_token")
     .eq("id", userId)
@@ -127,7 +127,7 @@ async function pushToUser(
 
   let prefs: Partial<NotifPrefs> | null = null;
   try {
-    const { data } = await admin!
+    const { data } = await admin
       .from("notification_preferences")
       .select(
         "push_enabled, push_messages, push_likes, push_follows, push_gifts, " +
@@ -178,7 +178,7 @@ async function pushToUser(
 
   const result = await sendExpoPush(payload);
   if (result === "stale") {
-    await admin!.from("profiles").update({ expo_push_token: null }).eq("id", userId);
+    await admin.from("profiles").update({ expo_push_token: null }).eq("id", userId);
     logger.info({ userId }, "[push] cleared stale token");
   }
 }
@@ -201,7 +201,7 @@ function messagePreview(content: string | undefined, attachmentType: string | un
 
 // ── Table handlers ─────────────────────────────────────────────────────────
 
-async function handleMessage(admin: ReturnType<typeof getSupabaseAdmin>, record: Record<string, unknown>): Promise<void> {
+async function handleMessage(admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>, record: Record<string, unknown>): Promise<void> {
   const chatId = record["chat_id"] as string | undefined;
   const senderId = record["sender_id"] as string | undefined;
   const rawContent = record["encrypted_content"] as string | undefined;
@@ -212,8 +212,8 @@ async function handleMessage(admin: ReturnType<typeof getSupabaseAdmin>, record:
   const body = messagePreview(rawContent, attachmentType);
 
   const [chatRes, senderRes] = await Promise.all([
-    admin!.from("chats").select("id, is_group, name, chat_members(user_id)").eq("id", chatId).single(),
-    admin!.from("profiles").select("display_name, handle").eq("id", senderId).single(),
+    admin.from("chats").select("id, is_group, name, chat_members(user_id)").eq("id", chatId).single(),
+    admin.from("profiles").select("display_name, handle").eq("id", senderId).single(),
   ]);
 
   if (!chatRes.data) return;
@@ -228,7 +228,7 @@ async function handleMessage(admin: ReturnType<typeof getSupabaseAdmin>, record:
   let mutedUserIds = new Set<string>();
   if (allRecipients.length > 0) {
     try {
-      const { data: muteRows } = await admin!
+      const { data: muteRows } = await admin
         .from("chat_mutes")
         .select("user_id, muted_until")
         .eq("chat_id", chatId)
@@ -259,7 +259,7 @@ async function handleMessage(admin: ReturnType<typeof getSupabaseAdmin>, record:
   );
 }
 
-async function handleCall(admin: ReturnType<typeof getSupabaseAdmin>, record: Record<string, unknown>): Promise<void> {
+async function handleCall(admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>, record: Record<string, unknown>): Promise<void> {
   const calleeId = record["callee_id"] as string | undefined;
   const callerId = record["caller_id"] as string | undefined;
   const callId = record["id"] as string | undefined;
@@ -267,7 +267,7 @@ async function handleCall(admin: ReturnType<typeof getSupabaseAdmin>, record: Re
 
   if (!calleeId || !callerId || !callId) return;
 
-  const { data: caller } = await admin!.from("profiles").select("display_name, handle").eq("id", callerId).single();
+  const { data: caller } = await admin.from("profiles").select("display_name, handle").eq("id", callerId).single();
   const callerName = ((caller as any)?.display_name || (caller as any)?.handle || "Someone") as string;
 
   await pushToUser(admin, calleeId, {
@@ -305,7 +305,7 @@ const NOTIF_TYPE_MAP: Record<string, (record: Record<string, unknown>, actorName
   incoming_call: (r, n) => ({ title: "Incoming Call", body: `${n} is calling you`, category: "afuchat_incoming_call", pushType: "call", url: r["entity_id"] ? `/call/${r["entity_id"]}` : undefined }),
 };
 
-async function handleNotification(admin: ReturnType<typeof getSupabaseAdmin>, record: Record<string, unknown>): Promise<void> {
+async function handleNotification(admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>, record: Record<string, unknown>): Promise<void> {
   const userId = record["user_id"] as string | undefined;
   const actorId = record["actor_id"] as string | undefined;
   const type = record["type"] as string | undefined;
@@ -320,7 +320,7 @@ async function handleNotification(admin: ReturnType<typeof getSupabaseAdmin>, re
 
   let actorName = "Someone";
   if (actorId) {
-    const { data: actor } = await admin!.from("profiles").select("display_name, handle").eq("id", actorId).single();
+    const { data: actor } = await admin.from("profiles").select("display_name, handle").eq("id", actorId).single();
     actorName = ((actor as any)?.display_name || (actor as any)?.handle || "Someone") as string;
   }
 

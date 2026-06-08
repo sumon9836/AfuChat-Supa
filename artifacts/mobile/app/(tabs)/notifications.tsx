@@ -478,7 +478,7 @@ export default function NotificationsScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent} />
           }
           ItemSeparatorComponent={() => (
-            <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+            <View style={{ height: 0.5, backgroundColor: colors.border }} />
           )}
           renderItem={({ item }) => (
             <NotifRow item={item} colors={colors} accent={accent} onPress={handleNotifPress} />
@@ -511,7 +511,7 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   title: {
     fontSize: 28,
@@ -533,7 +533,7 @@ const st = StyleSheet.create({
   },
   pillBar: {
     flexGrow: 0,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   pillBarContent: {
     paddingHorizontal: 14,
@@ -612,7 +612,7 @@ const st = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   unreadBadge: {
     minWidth: 22,

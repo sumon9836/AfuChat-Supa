@@ -2159,7 +2159,7 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     paddingHorizontal: 24,
     marginTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
   },
   endOfFeedDot: {
     width: 4,
@@ -2337,7 +2337,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
   },
   menuDivider: {
-    height: StyleSheet.hairlineWidth,
+    height: 0.5,
     marginVertical: 4,
     marginHorizontal: 16,
   },

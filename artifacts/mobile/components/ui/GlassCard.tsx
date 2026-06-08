@@ -51,7 +51,7 @@ export const GlassCard = React.memo(function GlassCard({
           overflow: "hidden",
         },
         !noBorder && {
-          borderWidth: StyleSheet.hairlineWidth,
+          borderWidth: 0.5,
           borderColor: colors.border,
         },
         style,

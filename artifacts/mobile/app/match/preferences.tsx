@@ -156,11 +156,11 @@ export default function MatchPreferencesScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   sectionTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 8 },
   group: { marginHorizontal: 16, borderRadius: 14, overflow: "hidden" },
-  sep: { height: StyleSheet.hairlineWidth },
+  sep: { height: 0.5 },
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 14, gap: 14 },
   rowIcon: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   rowText: { flex: 1 },
@@ -173,6 +173,6 @@ const styles = StyleSheet.create({
   ageScroll: { gap: 8, paddingVertical: 4 },
   ageChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   ageChipText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  ageDivider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
+  ageDivider: { height: 0.5, marginVertical: 4 },
   hint: { fontSize: 13, fontFamily: "Inter_400Regular", paddingHorizontal: 20, paddingTop: 14, lineHeight: 18 },
 });

@@ -313,7 +313,7 @@ export default function CreateArticleScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, gap: 12 },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5, gap: 12 },
   headerBtn: { padding: 4 },
   headerCenter: { flex: 1 },
   headerTitle: { fontSize: 16, fontFamily: "Inter_700Bold" },
@@ -333,10 +333,10 @@ const styles = StyleSheet.create({
   titleInput: { fontSize: 26, fontFamily: "Inter_700Bold", lineHeight: 34, marginBottom: 16, minHeight: 60 },
   divider: { height: 1, marginBottom: 20 },
   bodyInput: { fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 26, minHeight: 300 },
-  inlinePreviewWrap: { width: "100%", height: 200, borderRadius: 12, marginTop: 12, marginBottom: 4, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth },
+  inlinePreviewWrap: { width: "100%", height: 200, borderRadius: 12, marginTop: 12, marginBottom: 4, overflow: "hidden", borderWidth: 0.5 },
   inlinePreview: { width: "100%", height: "100%" },
   inlineRemoveBtn: { position: "absolute", top: 8, right: 8, backgroundColor: "rgba(0,0,0,0.45)", borderRadius: 12 },
-  footer: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth },
+  footer: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingTop: 10, borderTopWidth: 0.5 },
   footerStat: { fontSize: 12, fontFamily: "Inter_400Regular" },
   footerDot: { width: 3, height: 3, borderRadius: 1.5 },
   insertImgBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },

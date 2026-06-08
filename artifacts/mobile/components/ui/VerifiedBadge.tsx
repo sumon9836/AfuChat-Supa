@@ -227,7 +227,7 @@ const s = StyleSheet.create({
   iconWrap: { width: 76, height: 76, borderRadius: 38, alignItems: "center", justifyContent: "center", marginBottom: 4 },
   title: { fontSize: 18, fontWeight: "700", textAlign: "center" },
   subtitle: { fontSize: 13, lineHeight: 19, textAlign: "center" },
-  divider: { height: StyleSheet.hairlineWidth, marginVertical: 16 },
+  divider: { height: 0.5, marginVertical: 16 },
   sectionLabel: { fontSize: 10, fontWeight: "600", letterSpacing: 0.8, marginBottom: 12 },
   bulletRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
   bulletRowTappable: { borderRadius: 10, borderWidth: 1, paddingVertical: 8, paddingHorizontal: 10, marginHorizontal: -4 },

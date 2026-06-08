@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
 
   composerCard: {
     borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     padding: 16,
     gap: 12,
   },
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },

@@ -269,7 +269,7 @@ function MetricCard({
   );
 }
 const mc = StyleSheet.create({
-  card:      { flex: 1, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 14, gap: 4, minWidth: (SW - 52) / 2 },
+  card:      { flex: 1, borderRadius: 16, borderWidth: 0.5, padding: 14, gap: 4, minWidth: (SW - 52) / 2 },
   iconWrap:  { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 4 },
   value:     { fontSize: 20, fontFamily: "Inter_700Bold" },
   label:     { fontSize: 12, fontFamily: "Inter_400Regular" },
@@ -1155,7 +1155,7 @@ const cs = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
     gap: 8,
   },
   headerBack:  { padding: 6 },
@@ -1164,7 +1164,7 @@ const cs = StyleSheet.create({
   walletPill:  { marginLeft: "auto", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: GOLD + "18" },
   walletText:  { fontSize: 13, fontFamily: "Inter_700Bold" },
 
-  tabBarWrap: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth },
+  tabBarWrap: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 0.5 },
   tabBar:     { flexDirection: "row", borderRadius: 14, padding: 3, position: "relative", overflow: "hidden" },
   tabPill:    { position: "absolute", top: 3, bottom: 3, borderRadius: 11, zIndex: 0 },
   tab:        { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 7, zIndex: 1 },
@@ -1175,14 +1175,14 @@ const cs = StyleSheet.create({
   // Shared card
   card: {
     borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     overflow: "hidden",
     ...Platform.select({
       web: { boxShadow: "0 2px 8px rgba(0,0,0,0.06)" } as any,
       default: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     }),
   },
-  sep:    { height: StyleSheet.hairlineWidth },
+  sep:    { height: 0.5 },
 
   // ── Overview ──────────────────────────────────────────────────────────────
 
@@ -1194,13 +1194,13 @@ const cs = StyleSheet.create({
   streakWrap:   { alignItems: "center", gap: 2 },
   streakNum:    { fontSize: 22, fontFamily: "Inter_700Bold" },
   streakLabel:  { fontSize: 10, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)" },
-  levelStats:   { flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.1)", paddingTop: 14 },
+  levelStats:   { flexDirection: "row", borderTopWidth: 0.5, borderTopColor: "rgba(255,255,255,0.1)", paddingTop: 14 },
   levelStat:    { flex: 1, alignItems: "center" },
-  levelStatDiv: { width: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.12)", marginVertical: 2 },
+  levelStatDiv: { width: 0.5, backgroundColor: "rgba(255,255,255,0.12)", marginVertical: 2 },
   levelStatVal: { fontSize: 14, fontFamily: "Inter_700Bold", marginBottom: 2 },
   levelStatLabel: { fontSize: 10, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)" },
 
-  goalCard:  { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 16 },
+  goalCard:  { borderRadius: 18, borderWidth: 0.5, padding: 16 },
   goalTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
   goalPct:   { fontSize: 15, fontFamily: "Inter_700Bold" },
   goalSub:   { fontSize: 11, fontFamily: "Inter_400Regular" },
@@ -1222,7 +1222,7 @@ const cs = StyleSheet.create({
   periodBtn: { paddingHorizontal: 18, paddingVertical: 7, borderRadius: 10 },
   periodLabel: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
-  chartCard:    { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 16, overflow: "hidden" },
+  chartCard:    { borderRadius: 18, borderWidth: 0.5, padding: 16, overflow: "hidden" },
   chartTitle:   { fontSize: 12, fontFamily: "Inter_500Medium" },
   chartValue:   { fontSize: 26, fontFamily: "Inter_700Bold", marginTop: 2 },
   deltaPill:    { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
@@ -1259,7 +1259,7 @@ const cs = StyleSheet.create({
     width: (SW - 32 - 30) / 4,
     aspectRatio: 1,
     borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
@@ -1283,7 +1283,7 @@ const cs = StyleSheet.create({
   payHistRow:  { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 12 },
   payHistIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
 
-  emptyCard:    { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 32, alignItems: "center", gap: 10 },
+  emptyCard:    { borderRadius: 18, borderWidth: 0.5, padding: 32, alignItems: "center", gap: 10 },
   emptyTitle:   { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   emptySub:     { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
   emptyBtn:     { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24, marginTop: 4 },
@@ -1313,7 +1313,7 @@ const cs = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     padding: 8,
     gap: 8,
   },
@@ -1325,7 +1325,7 @@ const cs = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     padding: 14,
     gap: 12,
   },

@@ -84,7 +84,8 @@ interface ClaimedJob {
 }
 
 async function claimNext(): Promise<ClaimedJob | null> {
-  const admin = getSupabaseAdmin()!;
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Supabase admin not configured");
   const { data, error } = await admin.rpc("claim_video_job", {
     p_worker_id: WORKER_ID,
     p_codecs: ["h264", "av1"],
@@ -98,7 +99,8 @@ async function claimNext(): Promise<ClaimedJob | null> {
 }
 
 async function loadAsset(assetId: string) {
-  const admin = getSupabaseAdmin()!;
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Supabase admin not configured");
   const { data, error } = await admin
     .from("video_assets")
     .select("id, owner_id, source_path, height, poster_path")
@@ -137,7 +139,8 @@ async function markRenditionReady(
     height: number;
   },
 ): Promise<void> {
-  const admin = getSupabaseAdmin()!;
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Supabase admin not configured");
   await admin
     .from("video_renditions")
     .update({
@@ -155,7 +158,8 @@ async function markRenditionFailed(
   renditionId: string,
   errorMessage: string,
 ): Promise<void> {
-  const admin = getSupabaseAdmin()!;
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Supabase admin not configured");
   await admin
     .from("video_renditions")
     .update({ status: "failed", error: errorMessage.slice(0, 1000) })
@@ -167,7 +171,8 @@ async function finishJob(
   success: boolean,
   errorMessage?: string,
 ): Promise<void> {
-  const admin = getSupabaseAdmin()!;
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Supabase admin not configured");
   if (success) {
     await admin
       .from("video_jobs")
@@ -211,7 +216,8 @@ async function uploadPosterIfMissing(
     await extractPoster(sourceFsPath, posterFs, 1);
     const path = posterStoragePath(asset.owner_id, asset.id);
     await uploadFileToBucket(posterFs, path, "image/jpeg");
-    const admin = getSupabaseAdmin()!;
+    const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Supabase admin not configured");
     await admin
       .from("video_assets")
       .update({ poster_path: path })
@@ -222,7 +228,8 @@ async function uploadPosterIfMissing(
 }
 
 async function processJob(job: ClaimedJob): Promise<void> {
-  const admin = getSupabaseAdmin()!;
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Supabase admin not configured");
   const asset = await loadAsset(job.asset_id);
   const workDir = join(TMP_ROOT, job.id);
   await mkdir(workDir, { recursive: true });

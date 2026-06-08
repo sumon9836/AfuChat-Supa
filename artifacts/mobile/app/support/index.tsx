@@ -500,7 +500,7 @@ const st = StyleSheet.create({
   supportBadge: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
   supportBadgeText: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" },
 
-  tabBar: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth },
+  tabBar: { flexDirection: "row", borderBottomWidth: 0.5 },
   tabItem: { flex: 1, paddingVertical: 11, alignItems: "center", gap: 3 },
   tabLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
 
@@ -508,7 +508,7 @@ const st = StyleSheet.create({
 
   heroCard: {
     flexDirection: "row", alignItems: "center", gap: 14,
-    borderRadius: 16, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16, borderWidth: 0.5,
     padding: 18, marginBottom: 24,
   },
   heroIcon: { width: 52, height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
@@ -519,7 +519,7 @@ const st = StyleSheet.create({
 
   catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 24 },
   catCard: {
-    width: "47.5%", borderRadius: 14, borderWidth: StyleSheet.hairlineWidth,
+    width: "47.5%", borderRadius: 14, borderWidth: 0.5,
     padding: 14, gap: 10,
   },
   catIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
@@ -533,7 +533,7 @@ const st = StyleSheet.create({
   primaryBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
 
   infoCard: {
-    borderRadius: 14, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 14, borderWidth: 0.5,
     padding: 14, flexDirection: "row", gap: 12, alignItems: "flex-start",
   },
   infoTitle: { fontSize: 13, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
@@ -558,7 +558,7 @@ const st = StyleSheet.create({
   },
   pillText: { fontSize: 13, fontFamily: "Inter_500Medium" },
 
-  submitBar: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12, paddingHorizontal: 20 },
+  submitBar: { borderTopWidth: 0.5, paddingTop: 12, paddingHorizontal: 20 },
 
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
 
@@ -568,7 +568,7 @@ const st = StyleSheet.create({
   emptySub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
 
   ticketCard: {
-    borderRadius: 14, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 14, borderWidth: 0.5,
     padding: 14, gap: 6,
   },
   ticketCardTop: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -583,7 +583,7 @@ const st = StyleSheet.create({
 
   deviceToggle: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    borderRadius: 14, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 14, borderWidth: 0.5,
     paddingHorizontal: 14, paddingVertical: 13, marginBottom: 8,
   },
   deviceToggleIcon: {
@@ -603,14 +603,14 @@ const st = StyleSheet.create({
 
   devicePreviewToggle: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    borderRadius: 8, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8, borderWidth: 0.5,
     paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8,
     alignSelf: "flex-start",
   },
   devicePreviewToggleText: { fontSize: 12, fontFamily: "Inter_400Regular" },
 
   deviceInfoBox: {
-    borderRadius: 12, borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12, borderWidth: 0.5,
     padding: 14, gap: 6, marginBottom: 16,
   },
   deviceInfoRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },

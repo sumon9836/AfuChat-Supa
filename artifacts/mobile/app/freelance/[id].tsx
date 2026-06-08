@@ -532,7 +532,7 @@ function Section({
 const st = StyleSheet.create({
   root:        { flex: 1 },
   center:      { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
-  header:      { flexDirection: "row", alignItems: "center", paddingHorizontal: 4, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  header:      { flexDirection: "row", alignItems: "center", paddingHorizontal: 4, paddingBottom: 10, borderBottomWidth: 0.5 },
   headerBtn:   { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   headerTitle: { flex: 1, fontSize: 16, fontFamily: "Inter_600SemiBold", textAlign: "center", letterSpacing: -0.2 },
 
@@ -559,10 +559,10 @@ const st = StyleSheet.create({
   tagChip:   { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   tagText:   { fontSize: 12, fontFamily: "Inter_500Medium" },
 
-  reviewRow:    { paddingTop: 10, marginTop: 6, borderTopWidth: StyleSheet.hairlineWidth },
+  reviewRow:    { paddingTop: 10, marginTop: 6, borderTopWidth: 0.5 },
   reviewHandle: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
-  actionBar:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  actionBar:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 0.5 },
   actionPrice: { fontSize: 20, fontFamily: "Inter_700Bold" },
   orderBtn:    { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14 },
   orderBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff" },

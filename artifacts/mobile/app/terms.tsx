@@ -421,7 +421,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.5,
   },
   backBtn:     { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontFamily: "Inter_700Bold" },
@@ -434,9 +434,9 @@ const st = StyleSheet.create({
   introBannerText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
   introBody:     { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
 
-  divider:       { height: StyleSheet.hairlineWidth, marginHorizontal: 20, marginVertical: 4 },
+  divider:       { height: 0.5, marginHorizontal: 20, marginVertical: 4 },
 
-  quickLinks:    { paddingHorizontal: 20, paddingVertical: 20, borderBottomWidth: StyleSheet.hairlineWidth },
+  quickLinks:    { paddingHorizontal: 20, paddingVertical: 20, borderBottomWidth: 0.5 },
   quickLinksTitle: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 1.2, marginBottom: 10 },
   quickChip:     { borderWidth: 1, borderRadius: 100, paddingHorizontal: 12, paddingVertical: 5 },
   quickChipText: { fontSize: 12, fontFamily: "Inter_400Regular" },
@@ -449,7 +449,7 @@ const st = StyleSheet.create({
   clauseBody:    { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 23 },
 
   footer: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.5,
     paddingHorizontal: 20,
     paddingVertical: 32,
     gap: 5,

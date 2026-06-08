@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 16,
     padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     gap: 12,
   },
   addHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
