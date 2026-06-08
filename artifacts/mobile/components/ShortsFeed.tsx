@@ -206,15 +206,19 @@ function NativeShortsPlayer({
 
   // Play / pause control
   React.useEffect(() => {
-    if (active && !paused && !preloadOnly) {
-      player.muted = muted;
-      player.play();
-    } else {
-      player.pause();
-    }
+    // expo-video player methods throw when the underlying AVPlayer has been
+    // deallocated (e.g. rapid list scrolls) or is in an unrecoverable state.
+    try {
+      if (active && !paused && !preloadOnly) {
+        player.muted = muted;
+        player.play();
+      } else {
+        player.pause();
+      }
+    } catch {}
   }, [active, paused, preloadOnly]);
 
-  React.useEffect(() => { player.muted = muted; }, [muted]);
+  React.useEffect(() => { try { player.muted = muted; } catch {} }, [muted]);
 
   return (
     <View

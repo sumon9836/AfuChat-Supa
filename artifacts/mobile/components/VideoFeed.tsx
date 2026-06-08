@@ -270,7 +270,15 @@ const VideoItem = React.memo(
     // ── Player source update when resolved URI changes ────────────────────
     useEffect(() => {
       if (!playUri || !isNearActive) return;
-      try { player.replace({ uri: playUri }); } catch (_) {}
+      // Use replaceAsync — the synchronous replace() blocks the iOS main thread
+      // and will be deprecated in a future expo-video release.
+      player.replaceAsync({ uri: playUri }).catch(() => {
+        // replaceAsync failed (bad URI, network, codec mismatch).
+        // Flip videoError so playUri falls back to the raw video_url on the
+        // next render; guard !videoError to avoid a re-render loop when the
+        // fallback URL itself also fails.
+        if (!videoError) setVideoError(true);
+      });
     }, [playUri, isNearActive]);
 
     // ── Play / pause control ───────────────────────────────────────────────

@@ -555,48 +555,67 @@ const VideoItem = React.memo(function VideoItem({
   // ── Player source update ───────────────────────────────────────────────
   useEffect(() => {
     if (!playbackUri || !shouldMountVideo) return;
-    player.replaceAsync({ uri: playbackUri }).catch(() => {});
+    player.replaceAsync({ uri: playbackUri }).catch(() => {
+      // replaceAsync failed (bad URI, network error, codec unsupported).
+      // Flip videoError so playbackUri falls back to the raw video_url on
+      // the next render; guard prevents a re-render loop if the raw URL
+      // itself also fails.
+      if (!videoError) setVideoError(true);
+    });
   }, [playbackUri, shouldMountVideo]);
 
   // ── Play / pause control ───────────────────────────────────────────────
   useEffect(() => {
-    if (!shouldMountVideo) { player.pause(); return; }
-    if (!isActive || paused || preloadOnly || !tabFocused) { player.pause(); } else { player.play(); }
+    // player.play() / player.pause() throw when the AVPlayer has been
+    // deallocated or enters an unrecoverable error state (rapid swipes,
+    // background audio session conflicts, etc.).
+    try {
+      if (!shouldMountVideo) { player.pause(); return; }
+      if (!isActive || paused || preloadOnly || !tabFocused) { player.pause(); } else { player.play(); }
+    } catch {}
   }, [isActive, paused, preloadOnly, tabFocused, shouldMountVideo]);
 
   // ── Progress + started + buffering polling (100 ms) ────────────────────
   useEffect(() => {
     if (!isActive) return;
     const timer = setInterval(() => {
-      if (player.playing && !videoStartedRef.current) {
-        videoStartedRef.current = true;
-        setVideoStarted(true);
-        if (bufferingTimerRef.current) { clearTimeout(bufferingTimerRef.current); bufferingTimerRef.current = null; }
-        setShowBuffering(false);
-      }
-      const isLoading = (player.status as string) === "loading";
-      if (isLoading !== bufferingRef.current) {
-        bufferingRef.current = isLoading;
-        setBuffering(isLoading);
-        if (isLoading) {
-          if (!bufferingTimerRef.current) bufferingTimerRef.current = setTimeout(() => { setShowBuffering(true); bufferingTimerRef.current = null; }, 400);
-        } else {
+      // Wrap the entire body — expo-video property accesses (player.playing,
+      // player.status, player.duration, player.currentTime) throw when the
+      // underlying AVPlayer has been deallocated mid-interval (e.g. rapid
+      // swipe away) or when the player enters an unrecoverable error state.
+      // A silent swallow here is intentional: one failed tick is harmless,
+      // and the interval cleans up on unmount via the return below.
+      try {
+        if (player.playing && !videoStartedRef.current) {
+          videoStartedRef.current = true;
+          setVideoStarted(true);
           if (bufferingTimerRef.current) { clearTimeout(bufferingTimerRef.current); bufferingTimerRef.current = null; }
           setShowBuffering(false);
         }
-      }
-      const dur = player.duration;
-      if (dur > 0) {
-        const frac = player.currentTime / dur;
-        const now = Date.now();
-        if (now - lastProgressFrameRef.current >= 250) {
-          lastProgressFrameRef.current = now;
-          setDurationMs(dur * 1000);
-          setProgress(frac);
-          if (frac >= 0.97) clearVideoProgress(item.id);
-          else if (now - lastSavedProgressRef.current >= 2000) { lastSavedProgressRef.current = now; saveVideoProgress(item.id, frac); }
+        const isLoading = (player.status as string) === "loading";
+        if (isLoading !== bufferingRef.current) {
+          bufferingRef.current = isLoading;
+          setBuffering(isLoading);
+          if (isLoading) {
+            if (!bufferingTimerRef.current) bufferingTimerRef.current = setTimeout(() => { setShowBuffering(true); bufferingTimerRef.current = null; }, 400);
+          } else {
+            if (bufferingTimerRef.current) { clearTimeout(bufferingTimerRef.current); bufferingTimerRef.current = null; }
+            setShowBuffering(false);
+          }
         }
-      }
+        const dur = player.duration;
+        if (dur > 0) {
+          const frac = player.currentTime / dur;
+          const now = Date.now();
+          if (now - lastProgressFrameRef.current >= 250) {
+            lastProgressFrameRef.current = now;
+            setDurationMs(dur * 1000);
+            setProgress(frac);
+            if (frac >= 0.97) clearVideoProgress(item.id);
+            else if (now - lastSavedProgressRef.current >= 2000) { lastSavedProgressRef.current = now; saveVideoProgress(item.id, frac); }
+          }
+        }
+      } catch {}
     }, 100);
     return () => clearInterval(timer);
   }, [isActive]);

@@ -135,6 +135,15 @@ function VideoThumbnailWeb({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [autoDuration, setAutoDuration] = useState<number | null>(null);
 
+  // Only mount a <video> element to probe duration when:
+  //   • not in low-data mode, AND
+  //   • the caller didn't already supply durationSeconds, AND
+  //   • there's no fallback image to show instead
+  // Browsers cap concurrent media elements (~6-10 per tab). Mounting one per
+  // thumbnail row in a long list silently kills older elements, causing black
+  // frames and play failures in the active feed players.
+  const needsVideoProbe = !lowData && durationSeconds == null && !fallbackImageUrl;
+
   const handleLoadedMetadata = useCallback(() => {
     if (videoRef.current) {
       videoRef.current.currentTime = SEEK_TIME;
@@ -149,7 +158,21 @@ function VideoThumbnailWeb({
     ? formatDuration(resolvedDuration) : "";
   const badgeBottom = hasFraction ? 10 : 6;
 
-  if (lowData) {
+  // Common badge/overlay content reused in both branches
+  const overlays = (
+    <>
+      {hasFraction && <WatchProgressBar fraction={watchedFraction!} />}
+      {!!durationLabel && (
+        <View style={[badgeStyles.wrap, { bottom: badgeBottom }]}>
+          <Text style={badgeStyles.text}>{durationLabel}</Text>
+        </View>
+      )}
+    </>
+  );
+
+  // When we have a fallback image (most cases) or are in low-data mode,
+  // render a plain image — no <video> element in the DOM at all.
+  if (!needsVideoProbe) {
     return (
       <View style={style}>
         {fallbackImageUrl ? (
@@ -157,16 +180,12 @@ function VideoThumbnailWeb({
         ) : (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: "#0a0a0a" }]} />
         )}
-        {hasFraction && <WatchProgressBar fraction={watchedFraction!} />}
-        {!!durationLabel && (
-          <View style={[badgeStyles.wrap, { bottom: badgeBottom }]}>
-            <Text style={badgeStyles.text}>{durationLabel}</Text>
-          </View>
-        )}
+        {overlays}
       </View>
     );
   }
 
+  // Rare case: no fallback image and duration unknown — probe via hidden video.
   return (
     <View style={style}>
       {/* @ts-ignore */}
@@ -184,12 +203,7 @@ function VideoThumbnailWeb({
           objectFit: "cover",
         }}
       />
-      {hasFraction && <WatchProgressBar fraction={watchedFraction!} />}
-      {!!durationLabel && (
-        <View style={[badgeStyles.wrap, { bottom: badgeBottom }]}>
-          <Text style={badgeStyles.text}>{durationLabel}</Text>
-        </View>
-      )}
+      {overlays}
     </View>
   );
 }
