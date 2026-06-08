@@ -328,7 +328,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                onPress={() => { Haptics.impactAsync?.(); setMenuVisible(true); }}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMenuVisible(true); }}
                 hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
               >
                 <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
@@ -561,7 +561,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.menuItem}
-                  onPress={() => { setMenuVisible(false); onMuteAuthor?.(item.author_id, item.profile.handle); }}
+                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setMenuVisible(false); onMuteAuthor?.(item.author_id, item.profile.handle); }}
                 >
                   <Ionicons name="volume-mute-outline" size={22} color={colors.textMuted} />
                   <Text style={[styles.menuItemText, { color: colors.text }]}>Mute @{item.profile.handle}</Text>
@@ -1730,17 +1730,6 @@ export default function DiscoverScreen() {
           ]}
         >
           <View style={[styles.tabRow, { position: "relative" }]}>
-            <Animated.View
-              style={{
-                position: "absolute",
-                bottom: 0,
-                height: 2.5,
-                backgroundColor: colors.text,
-                borderRadius: 1.5,
-                left: discoverPillX,
-                width: discoverPillW,
-              }}
-            />
             <TouchableOpacity
               style={styles.tabPill}
               onPress={() => {
@@ -2183,7 +2172,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     letterSpacing: 0.1,
   },
-  tabPill: { paddingVertical: 12, paddingHorizontal: 16, alignItems: "center", borderBottomWidth: 3 },
+  tabPill: { paddingVertical: 12, paddingHorizontal: 16, alignItems: "center" },
   tabPillText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   card: {
     overflow: "hidden",

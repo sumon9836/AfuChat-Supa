@@ -51,6 +51,7 @@ type SuggestedUser = {
 };
 
 const DISMISSED_KEY = "suggested_users_dismissed_v1";
+const PERSIST_KEY   = "suggested_users_cache_v1";
 const MAX_DISMISSED  = 200;
 const CARD_WIDTH     = 148;
 const POOL_SIZE      = 40;
@@ -68,6 +69,23 @@ type CachedResult = {
 };
 let _cachedResult: CachedResult | null = null;
 const CACHE_TTL_MS = 5 * 60 * 1000;
+
+// ─── Persistent cache helpers (AsyncStorage, survives app restarts) ───────────
+async function loadPersistedUsers(userId: string): Promise<SuggestedUser[] | null> {
+  try {
+    const raw = await AsyncStorage.getItem(PERSIST_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed.userId !== userId) return null;
+    return parsed.users as SuggestedUser[];
+  } catch { return null; }
+}
+
+async function persistUsers(userId: string, users: SuggestedUser[]) {
+  try {
+    await AsyncStorage.setItem(PERSIST_KEY, JSON.stringify({ userId, users: users.slice(0, DISPLAY_SIZE) }));
+  } catch {}
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 async function loadDismissed(): Promise<Set<string>> {
@@ -277,9 +295,16 @@ export function SuggestedUsers({
       return;
     }
 
-    // Only show skeleton if there are no users currently displayed.
-    // When re-fetching in background with existing suggestions, keep them visible.
-    if (usersRef.current.length === 0) setLoading(true);
+    // Show persisted users instantly (no spinner) while fresh data loads in background
+    if (usersRef.current.length === 0) {
+      const persisted = await loadPersistedUsers(user.id);
+      if (persisted && persisted.length > 0 && mountedRef.current) {
+        setUsers(shuffle(persisted).slice(0, maxCards));
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    }
 
     const [dis, followRes, followersRes] = await Promise.all([
       loadDismissed(),
@@ -440,11 +465,15 @@ export function SuggestedUsers({
       expiresAt: Date.now() + CACHE_TTL_MS,
     };
 
-    setUsers(finalUsers.slice(0, maxCards));
-    setFollowingSet(followingSetLocal);
-    setFollowersSet(followersSetLocal);
-    setDismissed(dis);
-    setLoading(false);
+    if (mountedRef.current) {
+      setUsers(finalUsers.slice(0, maxCards));
+      setFollowingSet(followingSetLocal);
+      setFollowersSet(followersSetLocal);
+      setDismissed(dis);
+      setLoading(false);
+    }
+
+    persistUsers(user.id, finalUsers);
   }, [user, profile?.interests, maxCards]);
 
   useEffect(() => { load(); }, [load]);
@@ -600,7 +629,6 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
     padding: 14,
     alignItems: "center",
     gap: 6,

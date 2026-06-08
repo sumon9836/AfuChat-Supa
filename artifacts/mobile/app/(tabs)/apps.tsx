@@ -19,13 +19,11 @@ import { useSuperApp } from "@/lib/superapp/MiniAppRuntime";
 import { useTheme } from "@/hooks/useTheme";
 import OfflineBanner from "@/components/ui/OfflineBanner";
 import { useAuth } from "@/context/AuthContext";
-import { GlassCard } from "@/components/ui/GlassCard";
 import { showAlert } from "@/lib/alert";
 
 const USAGE_KEY = "afu_app_usage";
 const COLS = 4;
 const H_PAD = 16;
-const CARD_PAD = 8;
 
 type AppItem = {
   id: string;
@@ -240,7 +238,6 @@ const CATEGORIES: Category[] = [
 ];
 
 const ALL_APPS = CATEGORIES.flatMap((c) => c.apps);
-const DEFAULT_FEATURED_ID = "afuai";
 
 function resolveGradient(gradient: [string, string], accent: string): [string, string] {
   return gradient.map((c) => (c === "#1f95ff" ? accent : c)) as [string, string];
@@ -297,7 +294,7 @@ function AppTile({
             end={{ x: 1, y: 1 }}
             style={styles.iconGradient}
           >
-            <Ionicons name={app.icon} size={28} color="#fff" />
+            <Ionicons name={app.icon} size={22} color="#fff" />
           </LinearGradient>
           {app.badge ? (
             <View style={styles.badge}>
@@ -352,95 +349,6 @@ function AppGrid({
   );
 }
 
-function FeaturedBanner({
-  app,
-  onTap,
-  openApp,
-}: {
-  app: AppItem;
-  onTap: (id: string) => void;
-  openApp: (id: string) => void;
-}) {
-  const { colors, accent } = useTheme();
-
-  function handlePress() {
-    Haptics.selectionAsync();
-    if (app.comingSoon) {
-      showAlert(`${app.label} — Coming Soon`, "This feature is not available yet. Stay tuned!");
-      return;
-    }
-    onTap(app.id);
-    if (app.miniApp && Platform.OS !== "web") {
-      openApp(app.id);
-    } else {
-      safeRouter.push(app.route as any);
-    }
-  }
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      style={[styles.featuredCard, { marginHorizontal: H_PAD, marginBottom: 20 }]}
-      android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
-    >
-      <LinearGradient
-        colors={resolveGradient(app.gradient, accent)}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0.8 }}
-        style={styles.featuredGradient}
-      >
-        <View style={styles.featuredTop}>
-          <View style={styles.featuredIconWrap}>
-            <Ionicons name={app.icon} size={30} color="#fff" />
-          </View>
-          {app.badge ? (
-            <View style={styles.featuredBadge}>
-              <Text style={styles.featuredBadgeText}>{app.badge}</Text>
-            </View>
-          ) : null}
-        </View>
-        <Text style={styles.featuredTitle}>{app.label}</Text>
-        <Text style={styles.featuredSub} numberOfLines={2}>
-          {app.featuredSub ?? app.label}
-        </Text>
-        <View style={styles.featuredCtaRow}>
-          <Text style={styles.featuredCtaText}>Open</Text>
-          <Ionicons name="arrow-forward" size={14} color="rgba(255,255,255,0.9)" />
-        </View>
-      </LinearGradient>
-    </Pressable>
-  );
-}
-
-function TrendingSection({
-  apps,
-  tileWidth,
-  usageCounts,
-  onTap,
-  openApp,
-  colors,
-}: {
-  apps: AppItem[];
-  tileWidth: number;
-  usageCounts: Record<string, number>;
-  onTap: (id: string) => void;
-  openApp: (id: string) => void;
-  colors: any;
-}) {
-  if (apps.length === 0) return null;
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{"TRENDING"}</Text>
-        <Text style={{ fontSize: 14 }}>{"🔥"}</Text>
-      </View>
-      <GlassCard style={[styles.categoryCard, { marginHorizontal: H_PAD }]} variant="medium">
-        <AppGrid apps={apps} tileWidth={tileWidth} usageCounts={usageCounts} onTap={onTap} openApp={openApp} />
-      </GlassCard>
-    </View>
-  );
-}
-
 export default function AppsScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -450,7 +358,7 @@ export default function AppsScreen() {
   const isAdmin = !!profile?.is_admin;
   const { openApp } = useSuperApp();
 
-  const tileWidth = Math.floor((SW - H_PAD * 2 - CARD_PAD * 2) / COLS);
+  const tileWidth = Math.floor((SW - H_PAD * 2) / COLS);
 
   useEffect(() => {
     AsyncStorage.getItem(USAGE_KEY).then((raw) => {
@@ -479,21 +387,6 @@ export default function AppsScreen() {
 
   const visibleApps = ALL_APPS.filter(isVisible);
 
-  const visibleCategories = CATEGORIES.map((cat) => ({
-    ...cat,
-    apps: cat.apps.filter(isVisible),
-  })).filter((cat) => cat.apps.length > 0);
-
-  const trendingApps = [...visibleApps]
-    .filter((a) => (usageCounts[a.id] ?? 0) > 0)
-    .sort((a, b) => (usageCounts[b.id] ?? 0) - (usageCounts[a.id] ?? 0))
-    .slice(0, 4);
-
-  const featuredApp =
-    trendingApps[0] ??
-    visibleApps.find((a) => a.id === DEFAULT_FEATURED_ID) ??
-    visibleApps[0];
-
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <OfflineBanner />
@@ -502,6 +395,7 @@ export default function AppsScreen() {
         contentContainerStyle={{
           paddingTop: insets.top + 8,
           paddingBottom: insets.bottom + 100,
+          paddingHorizontal: H_PAD,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -515,33 +409,13 @@ export default function AppsScreen() {
           ) : null}
         </View>
 
-        {featuredApp ? <FeaturedBanner app={featuredApp} onTap={trackTap} openApp={openApp} /> : null}
-
-        <TrendingSection
-          apps={trendingApps}
+        <AppGrid
+          apps={visibleApps}
           tileWidth={tileWidth}
           usageCounts={usageCounts}
           onTap={trackTap}
           openApp={openApp}
-          colors={colors}
         />
-
-        {visibleCategories.map((cat) => (
-          <View key={cat.id} style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary, paddingHorizontal: H_PAD }]}>
-              {cat.title.toUpperCase()}
-            </Text>
-            <GlassCard style={[styles.categoryCard, { marginHorizontal: H_PAD }]} variant="medium">
-              <AppGrid
-                apps={cat.apps}
-                tileWidth={tileWidth}
-                usageCounts={usageCounts}
-                onTap={trackTap}
-                openApp={openApp}
-              />
-            </GlassCard>
-          </View>
-        ))}
       </ScrollView>
     </View>
   );
@@ -554,7 +428,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingHorizontal: H_PAD,
     paddingBottom: 16,
   },
   headerTitle: {
@@ -575,84 +448,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
   },
-  featuredCard: {
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  featuredGradient: {
-    padding: 20,
-    paddingBottom: 16,
-  },
-  featuredTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  featuredIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  featuredBadge: {
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  featuredBadgeText: {
-    color: "#fff",
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-  },
-  featuredTitle: {
-    color: "#fff",
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    marginBottom: 4,
-  },
-  featuredSub: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 20,
-    marginBottom: 14,
-  },
-  featuredCtaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  featuredCtaText: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: H_PAD,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  categoryCard: {
-    borderRadius: 20,
-    overflow: "hidden",
-    paddingVertical: 4,
-    paddingHorizontal: CARD_PAD,
-  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -668,9 +463,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   iconGradient: {
-    width: 58,
-    height: 58,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -69,7 +69,7 @@ export function UserRecsCard({ seed = 0, onRequireAuth }: Props) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.container, { backgroundColor: colors.surface }]}>
         <ActivityIndicator size="small" color={colors.accent} style={{ margin: 24 }} />
       </View>
     );
@@ -78,7 +78,7 @@ export function UserRecsCard({ seed = 0, onRequireAuth }: Props) {
   if (users.length === 0) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View style={[styles.container, { backgroundColor: colors.surface }]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="sparkles" size={16} color={colors.accent} />
@@ -97,7 +97,7 @@ export function UserRecsCard({ seed = 0, onRequireAuth }: Props) {
         {users.map((u) => (
           <TouchableOpacity
             key={u.id}
-            style={[styles.card, { backgroundColor: colors.background, borderColor: colors.border }]}
+            style={[styles.card, { backgroundColor: colors.background }]}
             onPress={() => safeRouter.push(`/@${u.handle}` as any)}
             activeOpacity={0.88}
           >
@@ -146,7 +146,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginVertical: 4,
     borderRadius: 16,
-    borderWidth: 1,
     overflow: "hidden",
   },
   header: {
