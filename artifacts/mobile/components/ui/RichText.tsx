@@ -11,7 +11,7 @@
  *
  * Also renders URLs, @mentions, and #hashtags as tappable links.
  */
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Linking, Platform, StyleSheet, Text } from "react-native";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -226,7 +226,7 @@ export function RichText({
     );
   }
 
-  const spans = parseRichText(children);
+  const spans = useMemo(() => parseRichText(children), [children]);
 
   const inheritedColor = extractColor(style, "#000000");
 

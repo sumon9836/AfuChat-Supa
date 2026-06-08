@@ -31,7 +31,7 @@ function buildDeviceInfo(): string {
     (Constants as any).manifest?.version ||
     "unknown";
   return [
-    `Platform: ${"Android"}`,
+    `Platform: ${Platform.OS}`,
     `OS Version: ${Device.osVersion || "unknown"}`,
     `Device Model: ${Device.modelName || "unknown"}`,
     `Device Brand: ${(Device as any).brand || "unknown"}`,

@@ -175,10 +175,11 @@ export default function ContactsScreen() {
     if (!addQuery.trim()) return;
     setAddLoading(true);
     setAddResult(null);
+    const safeQ = addQuery.trim().replace(/[%,()]/g, "");
     const { data } = await supabase
       .from("profiles")
       .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified")
-      .or(`handle.ilike.%${addQuery.trim()}%,display_name.ilike.%${addQuery.trim()}%`)
+      .or(`handle.ilike.%${safeQ}%,display_name.ilike.%${safeQ}%`)
       .neq("id", user?.id)
       .limit(1)
       .single();

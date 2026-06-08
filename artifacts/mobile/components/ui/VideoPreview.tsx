@@ -31,7 +31,7 @@ export default function VideoPreview({
 
   useEffect(() => {
     if (!uri) return;
-    player.replace({ uri });
+    player.replaceAsync({ uri }).catch(() => {});
     player.loop = isLooping;
     player.muted = isMuted;
     if (shouldPlay) player.play(); else player.pause();

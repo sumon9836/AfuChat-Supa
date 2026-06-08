@@ -51,23 +51,12 @@ export async function processServiceTransaction(
 
   const fee = calculateFee(serviceType, amount);
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("acoin")
-    .eq("id", userId)
-    .single();
+  const { error: deductError } = await supabase
+    .rpc("deduct_acoin", { p_user_id: userId, p_amount: fee.total })
+    .maybeSingle();
 
-  if (!profile || profile.acoin < fee.total) {
-    return { success: false, error: "Insufficient ACoins balance" };
-  }
-
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update({ acoin: profile.acoin - fee.total })
-    .eq("id", userId);
-
-  if (updateError) {
-    return { success: false, error: "Failed to process payment" };
+  if (deductError) {
+    return { success: false, error: "Insufficient ACoins balance or payment failed" };
   }
 
   const { data: tx, error: txError } = await supabase
@@ -92,10 +81,7 @@ export async function processServiceTransaction(
     .single();
 
   if (txError) {
-    await supabase
-      .from("profiles")
-      .update({ acoin: profile.acoin })
-      .eq("id", userId);
+    await supabase.rpc("credit_acoin", { p_user_id: userId, p_amount: fee.total }).catch(() => {});
     return { success: false, error: "Failed to record transaction" };
   }
 

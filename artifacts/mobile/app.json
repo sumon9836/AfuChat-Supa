@@ -154,7 +154,25 @@
         }
       ],
       "expo-secure-store",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "AfuChat uses your contacts to help you find and connect with people you know."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "AfuChat uses Face ID to let you sign in quickly and securely."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "AfuChat uses the microphone to record voice messages."
+        }
+      ]
     ],
     "updates": {
       "enabled": false
@@ -169,7 +187,16 @@
       }
     },
     "ios": {
-      "buildNumber": "2.2.4"
+      "bundleIdentifier": "com.afuchat.app",
+      "buildNumber": "2.2.4",
+      "infoPlist": {
+        "NSCameraUsageDescription": "AfuChat uses the camera to take photos and videos for stories and messages.",
+        "NSMicrophoneUsageDescription": "AfuChat uses the microphone to record voice messages and video with audio.",
+        "NSPhotoLibraryUsageDescription": "AfuChat uses your photo library to let you save and share media.",
+        "NSLocationWhenInUseUsageDescription": "AfuChat uses your location only when the Nearby Friends feature is open.",
+        "NSContactsUsageDescription": "AfuChat uses your contacts to help you find and connect with people you know.",
+        "NSFaceIDUsageDescription": "AfuChat uses Face ID to let you sign in quickly and securely."
+      }
     }
   }
 }

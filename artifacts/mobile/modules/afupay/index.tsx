@@ -402,14 +402,17 @@ function SendView({ colors, insets, user, profile, onBack, onSuccess }: any) {
       if (ce) { await supabase.from("profiles").update({ xp: profile?.xp || 0 }).eq("id", user.id); showAlert("Error", "Could not credit recipient."); setSending(false); return; }
       await supabase.from("xp_transfers").insert({ sender_id: user.id, receiver_id: recipient.id, amount: amt, message: note.trim() || null });
     } else {
-      const { data: ok, error } = await supabase.from("profiles").update({ acoin: (profile?.acoin || 0) - amt }).eq("id", user.id).gte("acoin", amt).select("id").maybeSingle();
-      if (error || !ok) { showAlert("Error", "Could not deduct ACoin."); setSending(false); return; }
-      const { error: ce } = await supabase.from("profiles").update({ acoin: (profile?.acoin || 0) + amt }).eq("id", recipient.id);
-      if (ce) { await supabase.from("profiles").update({ acoin: profile?.acoin || 0 }).eq("id", user.id); showAlert("Error", "Could not credit recipient."); setSending(false); return; }
+      const { error: deductErr } = await supabase.rpc("deduct_acoin", { p_user_id: user.id, p_amount: amt }).maybeSingle();
+      if (deductErr) { showAlert("Error", "Could not deduct ACoin."); setSending(false); return; }
+      const { error: creditErr } = await supabase.rpc("credit_acoin", { p_user_id: recipient.id, p_amount: amt });
+      if (creditErr) {
+        await supabase.rpc("credit_acoin", { p_user_id: user.id, p_amount: amt }).catch(() => {});
+        showAlert("Error", "Could not credit recipient. Your balance has been restored."); setSending(false); return;
+      }
       await Promise.all([
         supabase.from("acoin_transactions").insert({ user_id: user.id, amount: -amt, transaction_type: "acoin_transfer_sent", metadata: { to_handle: handle.trim().toLowerCase(), message: note.trim() || null } }),
         supabase.from("acoin_transactions").insert({ user_id: recipient.id, amount: amt, transaction_type: "acoin_transfer_received", metadata: { from_handle: profile?.handle, message: note.trim() || null } }),
-      ]);
+      ]).catch(() => {});
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showAlert("Sent!", `${fmtAmt(amt)} ${currency === "acoin" ? "ACoin" : "Nexa"} sent to ${recipient.display_name}`);

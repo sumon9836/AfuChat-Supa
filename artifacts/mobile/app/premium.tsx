@@ -283,12 +283,10 @@ export default function PremiumScreen() {
         onPress: async () => {
           setSubscribing(true);
           const { error: deductError } = await supabase
-            .from("profiles")
-            .update({ acoin: (profile.acoin || 0) - selectedPlan.acoin_price })
-            .eq("id", profile.id)
-            .gte("acoin", selectedPlan.acoin_price);
+            .rpc("deduct_acoin", { p_user_id: profile.id, p_amount: selectedPlan.acoin_price })
+            .maybeSingle();
           if (deductError) {
-            showAlert("Error", "Could not deduct ACoin. Please try again.");
+            showAlert("Error", "Could not deduct ACoin. Please check your balance and try again.");
             setSubscribing(false);
             return;
           }
@@ -303,7 +301,7 @@ export default function PremiumScreen() {
             acoin_paid: selectedPlan.acoin_price,
           }, { onConflict: "user_id" });
           if (subError) {
-            await supabase.from("profiles").update({ acoin: profile.acoin || 0 }).eq("id", profile.id);
+            await supabase.rpc("credit_acoin", { p_user_id: profile.id, p_amount: selectedPlan.acoin_price }).catch(() => {});
             showAlert("Error", "Could not activate subscription. Your ACoin has been refunded.");
             setSubscribing(false);
             return;

@@ -1744,9 +1744,6 @@ export default function SearchScreen() {
   }
 
   // ─── Main render ──────────────────────────────────────────────────────────────
-  // On native the mini app handles search — render nothing here
-  if (Platform.OS !== "web") return null;
-
   return (
     <View style={[ss.root, { backgroundColor: colors.backgroundSecondary }]}>
 

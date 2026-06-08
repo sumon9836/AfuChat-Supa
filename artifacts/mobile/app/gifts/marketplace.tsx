@@ -189,9 +189,8 @@ export default function GiftMarketplaceScreen() {
       const sellerReceives = totalCost - fee;
 
       const { error: buyerErr } = await supabase
-        .from("profiles")
-        .update({ acoin: (freshBuyer.acoin || 0) - totalCost })
-        .eq("id", user.id);
+        .rpc("deduct_acoin", { p_user_id: user.id, p_amount: totalCost })
+        .maybeSingle();
 
       if (buyerErr) {
         await supabase.from("gift_marketplace").update({ status: "listed", buyer_id: null, sold_at: null }).eq("id", selectedListing.id);
@@ -200,14 +199,12 @@ export default function GiftMarketplaceScreen() {
         return;
       }
 
-      const { data: sellerProfile } = await supabase.from("profiles").select("acoin").eq("id", listing.seller_id).single();
       const { error: sellerErr } = await supabase
-        .from("profiles")
-        .update({ acoin: (sellerProfile?.acoin || 0) + sellerReceives })
-        .eq("id", listing.seller_id);
+        .rpc("credit_acoin", { p_user_id: listing.seller_id, p_amount: sellerReceives })
+        .maybeSingle();
 
       if (sellerErr) {
-        await supabase.from("profiles").update({ acoin: (freshBuyer.acoin || 0) }).eq("id", user.id);
+        await supabase.rpc("credit_acoin", { p_user_id: user.id, p_amount: totalCost }).catch(() => {});
         await supabase.from("gift_marketplace").update({ status: "listed", buyer_id: null, sold_at: null }).eq("id", selectedListing.id);
         showAlert("Error", "Could not credit seller. Transaction reversed.");
         setBuying(false);
@@ -222,8 +219,8 @@ export default function GiftMarketplaceScreen() {
         .select("id");
 
       if (transferErr || !transferred || transferred.length === 0) {
-        await supabase.from("profiles").update({ acoin: (freshBuyer.acoin || 0) }).eq("id", user.id);
-        await supabase.from("profiles").update({ acoin: (sellerProfile?.acoin || 0) }).eq("id", listing.seller_id);
+        await supabase.rpc("credit_acoin", { p_user_id: user.id, p_amount: totalCost }).catch(() => {});
+        await supabase.rpc("deduct_acoin", { p_user_id: listing.seller_id, p_amount: sellerReceives }).catch(() => {});
         await supabase.from("gift_marketplace").update({ status: "listed", buyer_id: null, sold_at: null }).eq("id", selectedListing.id);
         showAlert("Error", "Gift transfer failed. Transaction reversed.");
         setBuying(false);

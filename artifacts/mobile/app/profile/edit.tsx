@@ -34,7 +34,9 @@ const NAME_COOLDOWN_DAYS   = 7;
 
 function getDaysRemaining(storedMs: string | undefined, cooldownDays: number): number {
   if (!storedMs) return 0;
-  const elapsed  = Date.now() - parseInt(storedMs, 10);
+  const ts = parseInt(storedMs, 10);
+  if (!Number.isFinite(ts)) return 0;
+  const elapsed  = Date.now() - ts;
   const remaining = cooldownDays * 24 * 60 * 60 * 1000 - elapsed;
   return remaining > 0 ? Math.ceil(remaining / (24 * 60 * 60 * 1000)) : 0;
 }

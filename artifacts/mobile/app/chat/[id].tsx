@@ -3899,9 +3899,9 @@ STRICT RULES:
         await supabase.from("profiles").update({ xp: (recipient.xp || 0) + amt }).eq("id", recipient.id);
         await supabase.from("xp_transfers").insert({ sender_id: user.id, receiver_id: recipient.id, amount: amt, message: noteText }).catch(() => {});
       } else {
-        const { error: deductErr } = await supabase.from("profiles").update({ acoin: (profile.acoin || 0) - amt }).eq("id", user.id);
-        if (deductErr) { showAlert("Error", "Could not deduct ACoin. Please try again."); setWalletSending(false); return; }
-        await supabase.from("profiles").update({ acoin: (recipient.acoin || 0) + amt }).eq("id", recipient.id);
+        const { error: deductErr } = await supabase.rpc("deduct_acoin", { p_user_id: user.id, p_amount: amt }).maybeSingle();
+        if (deductErr) { showAlert("Error", "Could not deduct ACoin. Please check your balance and try again."); setWalletSending(false); return; }
+        await supabase.rpc("credit_acoin", { p_user_id: recipient.id, p_amount: amt }).catch(() => {});
         await Promise.all([
           supabase.from("acoin_transactions").insert({ user_id: user.id, amount: -amt, transaction_type: "acoin_transfer_sent", metadata: { to_user_id: recipient.id, to_handle: recipient.handle, message: noteText } }),
           supabase.from("acoin_transactions").insert({ user_id: recipient.id, amount: amt, transaction_type: "acoin_transfer_received", metadata: { from_user_id: user.id, from_handle: profile.handle, message: noteText } }),
@@ -4155,7 +4155,7 @@ STRICT RULES:
     });
 
     if (txErr) {
-      await supabase.from("profiles").update({ acoin: (senderProfile.acoin || 0) }).eq("id", user.id);
+      await supabase.rpc("credit_acoin", { p_user_id: user.id, p_amount: price }).catch(() => {});
       showAlert("Error", "Could not send gift. Your ACoins have been refunded.");
       setGiftSending(false);
       return;
