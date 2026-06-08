@@ -1746,6 +1746,7 @@ function ChatScreen() {
   const [recLocked, setRecLocked] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingTenths, setRecordingTenths] = useState(0);
+  const [recAmplitudes, setRecAmplitudes] = useState<number[]>([]);
   const recorderRef = useRef<Audio.Recording | null>(null);
   const webMediaRecorderRef = useRef<MediaRecorder | null>(null);
   const webChunksRef = useRef<Blob[]>([]);
@@ -1754,6 +1755,9 @@ function ChatScreen() {
   const recordingTimer = useRef<any>(null);
   const meterInterval = useRef<any>(null);
   const recordingDurationRef = useRef(0);
+  const recAmpHistoryRef = useRef<number[]>([]);
+  const webAnalyserRef = useRef<any>(null);
+  const webAudioCtxRef = useRef<any>(null);
   const recLockedSV = useSharedValue(false);
   const recCancelledSV = useSharedValue(false);
   const recStartedSV = useSharedValue(false);
@@ -4444,10 +4448,23 @@ STRICT RULES:
       // Use the single-step createAsync API (matches post/[id] and VideoCommentsSheet).
       // The old new Recording() + prepareToRecordAsync + startAsync sequence is
       // more fragile and has been deprecated in newer expo-av builds.
-      const { recording: _rec } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
+      // isMeteringEnabled exposes status.metering (dBFS) for the live waveform.
+      const { recording: _rec } = await Audio.Recording.createAsync({
+        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        isMeteringEnabled: true,
+      });
       recorderRef.current = _rec;
+      // Seed history with silence so bars render immediately at min height
+      recAmpHistoryRef.current = new Array(20).fill(0);
+      setRecAmplitudes([...recAmpHistoryRef.current]);
+      _rec.setOnRecordingStatusUpdate((status) => {
+        if (!status.isRecording) return;
+        // dBFS: roughly −160 (silence) → 0 (peak). Normalise to 0–1.
+        const db = (status as any).metering ?? -60;
+        const amp = Math.min(1, Math.max(0, (db + 60) / 60));
+        recAmpHistoryRef.current = [...recAmpHistoryRef.current.slice(-19), amp];
+        setRecAmplitudes([...recAmpHistoryRef.current]);
+      });
       recordingActiveRef.current = true;
       recStartedSV.value = true;
       clearTimeout(safetyTimer);
@@ -4518,6 +4535,25 @@ STRICT RULES:
       };
 
       recorder.start(100);
+      // Live waveform via Web Audio AnalyserNode — samples RMS every 80ms
+      try {
+        const audioCtx = new AudioContext();
+        webAudioCtxRef.current = audioCtx;
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        audioCtx.createMediaStreamSource(stream).connect(analyser);
+        webAnalyserRef.current = analyser;
+        const dataArr = new Uint8Array(analyser.frequencyBinCount);
+        recAmpHistoryRef.current = new Array(20).fill(0);
+        setRecAmplitudes([...recAmpHistoryRef.current]);
+        meterInterval.current = setInterval(() => {
+          if (!webAnalyserRef.current) return;
+          webAnalyserRef.current.getByteFrequencyData(dataArr);
+          const avg = dataArr.reduce((a: number, b: number) => a + b, 0) / dataArr.length / 255;
+          recAmpHistoryRef.current = [...recAmpHistoryRef.current.slice(-19), avg];
+          setRecAmplitudes([...recAmpHistoryRef.current]);
+        }, 80);
+      } catch (_) {}
       recordingActiveRef.current = true;
       recStartedSV.value = true;
       recLockedSV.value = true;
@@ -4554,6 +4590,11 @@ STRICT RULES:
     const capturedDuration = recordingDurationRef.current;
     clearInterval(recordingTimer.current);
     clearInterval(meterInterval.current);
+    recAmpHistoryRef.current = [];
+    setRecAmplitudes([]);
+    try { webAudioCtxRef.current?.close(); } catch (_) {}
+    webAnalyserRef.current = null;
+    webAudioCtxRef.current = null;
     setIsRecording(false);
     setRecLocked(false);
     recLockedSV.value = false;
@@ -4676,6 +4717,11 @@ STRICT RULES:
   async function cancelVoiceRecording() {
     clearInterval(recordingTimer.current);
     clearInterval(meterInterval.current);
+    recAmpHistoryRef.current = [];
+    setRecAmplitudes([]);
+    try { webAudioCtxRef.current?.close(); } catch (_) {}
+    webAnalyserRef.current = null;
+    webAudioCtxRef.current = null;
     setIsRecording(false);
     setRecLocked(false);
     recLockedSV.value = false;
@@ -5385,7 +5431,7 @@ STRICT RULES:
                 <TouchableOpacity onPress={cancelVoiceRecording} hitSlop={12} style={st.recLockedTrash}>
                   <Ionicons name="trash" size={20} color="#FF3B30" />
                 </TouchableOpacity>
-                <VoiceWaveform active={isRecording} color={BRAND} />
+                <VoiceWaveform active={isRecording} color={BRAND} amplitudes={recAmplitudes} />
                 <Text style={[st.recordingText, { color: colors.text, marginLeft: 8, flex: 1 }]}>
                   {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")}
                 </Text>
@@ -5418,7 +5464,7 @@ STRICT RULES:
                           <Ionicons name="trash-outline" size={20} color="#FF3B30" />
                         </TouchableOpacity>
                         <View style={st.recWaveRow}>
-                          <VoiceWaveform active={isRecording} color={BRAND} />
+                          <VoiceWaveform active={isRecording} color={BRAND} amplitudes={recAmplitudes} />
                           <Text style={[st.recordingText, { color: colors.text, marginLeft: 8 }]}>
                             {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")}.{recordingTenths}
                           </Text>
