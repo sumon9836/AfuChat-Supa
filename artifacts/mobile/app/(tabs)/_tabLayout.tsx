@@ -145,9 +145,7 @@ function CompactTabBar({
 
         {TABS.map((tab) => {
           const focused   = active === tab.route;
-          const iconColor = focused
-            ? colors.accent
-            : isDark ? "rgba(95,93,105,1)" : "rgba(110,108,118,1)";
+          const iconColor = isDark ? "rgba(95,93,105,1)" : "rgba(110,108,118,1)";
           const isProfile = tab.route === "/(tabs)/me";
 
           return (

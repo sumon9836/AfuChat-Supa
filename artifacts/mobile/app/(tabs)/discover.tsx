@@ -18,7 +18,10 @@ import {
   ViewToken,
   useWindowDimensions,
 } from "react-native";
-import { ScrollView as GHScrollView } from "react-native-gesture-handler";
+// PagerView gives true native 1:1 finger-tracking on Android/iOS.
+const _PagerView: any = Platform.OS !== "web"
+  ? (() => { try { return require("react-native-pager-view").default; } catch { return null; } })()
+  : null;
 import { TabSwipeContext } from "@/context/TabSwipeContext";
 import { Image as ExpoImage } from "expo-image";
 import { showAlert } from "@/lib/alert";
@@ -631,7 +634,6 @@ export default function DiscoverScreen() {
   const [bgRefreshing, setBgRefreshing] = useState(false);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const [commentPostAuthorId, setCommentPostAuthorId] = useState<string>("");
-  const [postTypeFilter, setPostTypeFilter] = useState<"all" | "post" | "video" | "article" | "photo">("all");
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [suppressedAuthors, setSuppressedAuthors] = useState<Set<string>>(new Set());
   const [dismissTarget, setDismissTarget] = useState<PostItem | null>(null);
@@ -672,11 +674,8 @@ export default function DiscoverScreen() {
   const imgViewer = useImageViewer();
 
   const filteredPosts = useMemo(() => {
-    let base = posts.filter(p => !dismissedIds.has(p.id) && !suppressedAuthors.has(p.author_id));
-    if (postTypeFilter === "all") return base;
-    if (postTypeFilter === "photo") return base.filter(p => p.post_type !== "video" && p.post_type !== "article" && (p.images.length > 0 || !!p.image_url));
-    return base.filter(p => p.post_type === postTypeFilter);
-  }, [posts, postTypeFilter, dismissedIds, suppressedAuthors]);
+    return posts.filter(p => !dismissedIds.has(p.id) && !suppressedAuthors.has(p.author_id));
+  }, [posts, dismissedIds, suppressedAuthors]);
 
   const PREMIUM_VARIANTS: Array<"ai" | "creator" | "wallet"> = ["ai", "creator", "wallet"];
   const augmentedFeed = useMemo<FeedEntry[]>(() => {
@@ -760,6 +759,10 @@ export default function DiscoverScreen() {
   const midExhaustedRef = useRef(false);
   const flatListRef = useRef<FlatList>(null);
   const recordedViewsRef = useRef<Set<string>>(new Set());
+  const pagerRef = useRef<any>(null);
+  const discoverPillX = useRef(new Animated.Value(0)).current;
+  const discoverPillW = useRef(new Animated.Value(0)).current;
+  const discoverTabLayoutsRef = useRef<Record<number, { x: number; width: number }>>({});
 
   // ── Scroll-aware header ──────────────────────────────────────────────────
   // Uses Animated.event (not a plain onScroll function) so FlatList's internal
@@ -845,8 +848,37 @@ export default function DiscoverScreen() {
   useEffect(() => {
     if (!user && feedTabRef.current === "following") {
       setFeedTab("for_you");
+      pagerRef.current?.setPage(0);
     }
   }, [user]);
+
+  // Sync the animated tab underline to the current feedTab on change.
+  useEffect(() => {
+    const idx = feedTab === "for_you" ? 0 : 1;
+    const layout = discoverTabLayoutsRef.current[idx];
+    if (!layout) return;
+    Animated.spring(discoverPillX, { toValue: layout.x + 4, damping: 22, stiffness: 200, useNativeDriver: false }).start();
+    Animated.spring(discoverPillW, { toValue: layout.width - 8, damping: 22, stiffness: 200, useNativeDriver: false }).start();
+  }, [feedTab]);
+
+  const handleDiscoverPageScroll = useCallback((e: any) => {
+    const { position, offset } = e.nativeEvent;
+    const fromLayout = discoverTabLayoutsRef.current[position];
+    const toLayout = discoverTabLayoutsRef.current[position + 1];
+    if (!fromLayout) return;
+    if (!toLayout || offset === 0) {
+      discoverPillX.setValue(fromLayout.x + 4);
+      discoverPillW.setValue(fromLayout.width - 8);
+      return;
+    }
+    discoverPillX.setValue(fromLayout.x + (toLayout.x - fromLayout.x) * offset + 4);
+    discoverPillW.setValue(fromLayout.width + (toLayout.width - fromLayout.width) * offset - 8);
+  }, [discoverPillX, discoverPillW]);
+
+  const handleDiscoverPageSelected = useCallback((e: any) => {
+    const idx = e.nativeEvent.position;
+    setFeedTab(idx === 0 ? "for_you" : "following");
+  }, []);
 
   useEffect(() => {
     getMergedLearnedWeights().then((w) => { learnedWeightsRef.current = w; });
@@ -1413,7 +1445,6 @@ export default function DiscoverScreen() {
     setHasMore(true);
     setFollowingEmpty(false);
     setNewPostAuthors([]);
-    setPostTypeFilter("all");
     newPostAuthorIdsRef.current.clear();
 
     if (cached.length > 0) {
@@ -1694,10 +1725,32 @@ export default function DiscoverScreen() {
             { paddingTop: insets.top + 8 },
           ]}
         >
-          <View style={styles.tabRow}>
+          <View style={[styles.tabRow, { position: "relative" }]}>
+            <Animated.View
+              style={{
+                position: "absolute",
+                bottom: 0,
+                height: 2.5,
+                backgroundColor: colors.text,
+                borderRadius: 1.5,
+                left: discoverPillX,
+                width: discoverPillW,
+              }}
+            />
             <TouchableOpacity
-              style={[styles.tabPill, { borderBottomColor: feedTab === "for_you" ? colors.text : "transparent" }]}
-              onPress={() => setFeedTab("for_you")}
+              style={styles.tabPill}
+              onPress={() => {
+                setFeedTab("for_you");
+                pagerRef.current?.setPage(0);
+              }}
+              onLayout={(e) => {
+                const { x, width } = e.nativeEvent.layout;
+                discoverTabLayoutsRef.current[0] = { x, width };
+                if (feedTab === "for_you") {
+                  discoverPillX.setValue(x + 4);
+                  discoverPillW.setValue(width - 8);
+                }
+              }}
             >
               <Text style={[
                 styles.tabPillText,
@@ -1708,30 +1761,30 @@ export default function DiscoverScreen() {
               </Text>
             </TouchableOpacity>
             {user && (
-            <TouchableOpacity
-              style={[styles.tabPill, { borderBottomColor: feedTab === "following" ? colors.text : "transparent" }]}
-              onPress={() => setFeedTab("following")}
-            >
-              <Text style={[
-                styles.tabPillText,
-                { color: feedTab === "following" ? colors.text : colors.textMuted,
-                  fontFamily: feedTab === "following" ? "Inter_700Bold" : "Inter_500Medium" },
-              ]}>
-                Following
-              </Text>
-            </TouchableOpacity>
-            )}
-            <TouchableOpacity
+              <TouchableOpacity
                 style={styles.tabPill}
-                onPress={() => safeRouter.push("/shorts" as any)}
+                onPress={() => {
+                  setFeedTab("following");
+                  pagerRef.current?.setPage(1);
+                }}
+                onLayout={(e) => {
+                  const { x, width } = e.nativeEvent.layout;
+                  discoverTabLayoutsRef.current[1] = { x, width };
+                  if (feedTab === "following") {
+                    discoverPillX.setValue(x + 4);
+                    discoverPillW.setValue(width - 8);
+                  }
+                }}
               >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Ionicons name="play-circle-outline" size={15} color={colors.textMuted} />
-                  <Text style={[styles.tabPillText, { color: colors.textMuted, fontFamily: "Inter_500Medium" }]}>
-                    Shorts
-                  </Text>
-                </View>
+                <Text style={[
+                  styles.tabPillText,
+                  { color: feedTab === "following" ? colors.text : colors.textMuted,
+                    fontFamily: feedTab === "following" ? "Inter_700Bold" : "Inter_500Medium" },
+                ]}>
+                  Following
+                </Text>
               </TouchableOpacity>
+            )}
           </View>
 
           {!user && (
@@ -1745,55 +1798,6 @@ export default function DiscoverScreen() {
           )}
         </View>
 
-        {/* ── Filter chips ── */}
-        <GHScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterChipsRow}
-          style={{ marginTop: 2, marginBottom: 4 }}
-          onScrollBeginDrag={() => { horizontalScrollActive.value = true; }}
-          onScrollEndDrag={() => { horizontalScrollActive.value = false; }}
-          onMomentumScrollEnd={() => { horizontalScrollActive.value = false; }}
-        >
-          {([
-            { key: "all",     label: "All",      icon: "apps-outline" },
-            { key: "post",    label: "Posts",    icon: "create-outline" },
-            { key: "video",   label: "Videos",   icon: "videocam-outline" },
-            { key: "article", label: "Articles", icon: "document-text-outline" },
-            { key: "photo",   label: "Photos",   icon: "image-outline" },
-          ] as const).map(({ key, label, icon }) => {
-            const active = postTypeFilter === key;
-            return (
-              <TouchableOpacity
-                key={key}
-                style={[
-                  styles.filterChip,
-                  {
-                    backgroundColor: active ? colors.accent : colors.surface,
-                    borderColor: active ? colors.accent : colors.border,
-                  },
-                ]}
-                onPress={() => setPostTypeFilter(key)}
-                activeOpacity={0.75}
-              >
-                <Ionicons
-                  name={icon}
-                  size={13}
-                  color={active ? "#fff" : colors.textMuted}
-                />
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    { color: active ? "#fff" : colors.textSecondary,
-                      fontFamily: active ? "Inter_600SemiBold" : "Inter_500Medium" },
-                  ]}
-                >
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </GHScrollView>
 
         {/* New posts indicator — lives inside the animated block */}
         {newPostAuthors.length > 0 && (
@@ -1824,127 +1828,208 @@ export default function DiscoverScreen() {
       </Animated.View>
       {/* ────────────────────────────────────────────────────────────────── */}
 
-      {feedTab === "following" && !user ? (
-        <View style={[styles.center, { paddingTop: headerHeight + 80 }]}>
-          <Ionicons name="lock-closed-outline" size={56} color={colors.textMuted} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Sign in to see Following</Text>
-          <Text style={[styles.emptySub, { color: colors.textSecondary }]}>Follow people to see their posts here</Text>
-          <TouchableOpacity style={[styles.createBtn, { backgroundColor: colors.accent }]} onPress={() => safeRouter.push("/(auth)/login")}>
-            <Text style={styles.createBtnText}>Sign In</Text>
-          </TouchableOpacity>
-        </View>
-      ) : feedTab === "following" && followingEmpty ? (
-        <View style={[styles.center, { paddingTop: headerHeight + 80 }]}>
-          <Ionicons name="people-outline" size={56} color={colors.textMuted} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No one followed yet</Text>
-          <Text style={[styles.emptySub, { color: colors.textSecondary }]}>Follow people to see their posts here</Text>
-          <TouchableOpacity style={[styles.createBtn, { backgroundColor: colors.accent }]} onPress={() => setFeedTab("for_you")}>
-            <Text style={styles.createBtnText}>Browse For You</Text>
-          </TouchableOpacity>
-        </View>
-      ) : loading ? (
-        <View style={{ padding: 8, paddingTop: headerHeight + 8, gap: 8 }}>{[1,2,3].map(i => <PostSkeleton key={i} />)}</View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={augmentedFeed}
-          keyExtractor={(entry) => entry._kind === "post" ? entry.item.id : entry.id}
-          renderItem={({ item: entry }) => {
-            if (entry._kind === "user_recs") {
-              return <UserRecsCard seed={entry.seed} onRequireAuth={onRequireAuth} />;
-            }
-            if (entry._kind === "premium") {
-              return (
-                <PremiumUpsellCard
-                  variant={entry.variant}
-                  onDismiss={() => setDismissedUpsellVariants(prev => new Set([...prev, entry.id]))}
+      {_PagerView && !isDesktop ? (
+        <_PagerView
+          ref={pagerRef}
+          style={{ flex: 1 }}
+          initialPage={0}
+          onPageScroll={handleDiscoverPageScroll}
+          onPageSelected={handleDiscoverPageSelected}
+          overdrag={false}
+        >
+          {/* Page 0: For You */}
+          <View key="for_you" style={{ flex: 1 }}>
+            {feedTab === "for_you" ? (
+              loading ? (
+                <View style={{ padding: 8, paddingTop: headerHeight + 8, gap: 8 }}>
+                  {[1,2,3].map(i => <PostSkeleton key={i} />)}
+                </View>
+              ) : (
+                <FlatList
+                  ref={flatListRef}
+                  data={augmentedFeed}
+                  keyExtractor={(entry) => entry._kind === "post" ? entry.item.id : entry.id}
+                  renderItem={({ item: entry }) => {
+                    if (entry._kind === "user_recs") return <UserRecsCard seed={entry.seed} onRequireAuth={onRequireAuth} />;
+                    if (entry._kind === "premium") return <PremiumUpsellCard variant={entry.variant} onDismiss={() => setDismissedUpsellVariants(prev => new Set([...prev, entry.id]))} />;
+                    return (
+                      <PostCard item={entry.item} onToggleLike={toggleLike} onToggleBookmark={toggleBookmark} onToggleFollow={toggleFollow} onImagePress={imgViewer.openViewer} onRequireAuth={onRequireAuth} colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined} onOpenComments={onOpenComments} onDismiss={onDismissPost} onMuteAuthor={onMuteAuthor} />
+                    );
+                  }}
+                  contentContainerStyle={{ gap: 8, paddingTop: headerHeight + 8, paddingBottom: insets.bottom + 100 }}
+                  showsVerticalScrollIndicator={false}
+                  onScroll={onFeedScroll}
+                  scrollEventThrottle={16}
+                  onEndReached={loadMore}
+                  onEndReachedThreshold={0.3}
+                  onViewableItemsChanged={onViewableItemsChanged}
+                  viewabilityConfig={viewabilityConfig}
+                  initialNumToRender={5}
+                  maxToRenderPerBatch={3}
+                  windowSize={5}
+                  updateCellsBatchingPeriod={100}
+                  removeClippedSubviews={Platform.OS !== "web"}
+                  refreshControl={
+                    <RefreshControl refreshing={refreshing} progressViewOffset={headerHeight} onRefresh={() => { revealHeader(); setRefreshing(true); setHasMore(true); setNewPostAuthors([]); newPostAuthorIdsRef.current.clear(); loadPosts(feedTab); }} tintColor={colors.accent} />
+                  }
+                  ListHeaderComponent={
+                    <View><TrendingSoundsSection />{user && <SuggestedUsers />}</View>
+                  }
+                  ListFooterComponent={
+                    loadingMore ? (
+                      <View style={{ padding: 8, gap: 8 }}>{[1,2,3].map(i => <PostSkeleton key={i} />)}</View>
+                    ) : !hasMore && filteredPosts.length > 0 ? (
+                      <View style={[styles.endOfFeed, { borderTopColor: colors.border }]}>
+                        <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
+                        <Text style={[styles.endOfFeedText, { color: colors.textMuted }]}>You're all caught up</Text>
+                        <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
+                      </View>
+                    ) : null
+                  }
                 />
+              )
+            ) : (
+              <View style={{ flex: 1, paddingTop: headerHeight }} />
+            )}
+          </View>
+          {/* Page 1: Following */}
+          <View key="following" style={{ flex: 1 }}>
+            {feedTab === "following" ? (
+              !user ? (
+                <View style={[styles.center, { paddingTop: headerHeight + 80 }]}>
+                  <Ionicons name="lock-closed-outline" size={56} color={colors.textMuted} />
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>Sign in to see Following</Text>
+                  <Text style={[styles.emptySub, { color: colors.textSecondary }]}>Follow people to see their posts here</Text>
+                  <TouchableOpacity style={[styles.createBtn, { backgroundColor: colors.accent }]} onPress={() => safeRouter.push("/(auth)/login")}>
+                    <Text style={styles.createBtnText}>Sign In</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : followingEmpty ? (
+                <View style={[styles.center, { paddingTop: headerHeight + 80 }]}>
+                  <Ionicons name="people-outline" size={56} color={colors.textMuted} />
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>No one followed yet</Text>
+                  <Text style={[styles.emptySub, { color: colors.textSecondary }]}>Follow people to see their posts here</Text>
+                  <TouchableOpacity style={[styles.createBtn, { backgroundColor: colors.accent }]} onPress={() => { setFeedTab("for_you"); pagerRef.current?.setPage(0); }}>
+                    <Text style={styles.createBtnText}>Browse For You</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : loading ? (
+                <View style={{ padding: 8, paddingTop: headerHeight + 8, gap: 8 }}>
+                  {[1,2,3].map(i => <PostSkeleton key={i} />)}
+                </View>
+              ) : (
+                <FlatList
+                  ref={flatListRef}
+                  data={augmentedFeed}
+                  keyExtractor={(entry) => entry._kind === "post" ? entry.item.id : entry.id}
+                  renderItem={({ item: entry }) => {
+                    if (entry._kind === "user_recs") return <UserRecsCard seed={entry.seed} onRequireAuth={onRequireAuth} />;
+                    if (entry._kind === "premium") return <PremiumUpsellCard variant={entry.variant} onDismiss={() => setDismissedUpsellVariants(prev => new Set([...prev, entry.id]))} />;
+                    return (
+                      <PostCard item={entry.item} onToggleLike={toggleLike} onToggleBookmark={toggleBookmark} onToggleFollow={toggleFollow} onImagePress={imgViewer.openViewer} onRequireAuth={onRequireAuth} colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined} onOpenComments={onOpenComments} onDismiss={onDismissPost} onMuteAuthor={onMuteAuthor} />
+                    );
+                  }}
+                  contentContainerStyle={{ gap: 8, paddingTop: headerHeight + 8, paddingBottom: insets.bottom + 100 }}
+                  showsVerticalScrollIndicator={false}
+                  onScroll={onFeedScroll}
+                  scrollEventThrottle={16}
+                  onEndReached={loadMore}
+                  onEndReachedThreshold={0.3}
+                  onViewableItemsChanged={onViewableItemsChanged}
+                  viewabilityConfig={viewabilityConfig}
+                  initialNumToRender={5}
+                  maxToRenderPerBatch={3}
+                  windowSize={5}
+                  updateCellsBatchingPeriod={100}
+                  removeClippedSubviews={Platform.OS !== "web"}
+                  refreshControl={
+                    <RefreshControl refreshing={refreshing} progressViewOffset={headerHeight} onRefresh={() => { revealHeader(); setRefreshing(true); setHasMore(true); setNewPostAuthors([]); newPostAuthorIdsRef.current.clear(); loadPosts(feedTab); }} tintColor={colors.accent} />
+                  }
+                  ListFooterComponent={
+                    loadingMore ? (
+                      <View style={{ padding: 8, gap: 8 }}>{[1,2,3].map(i => <PostSkeleton key={i} />)}</View>
+                    ) : !hasMore && filteredPosts.length > 0 ? (
+                      <View style={[styles.endOfFeed, { borderTopColor: colors.border }]}>
+                        <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
+                        <Text style={[styles.endOfFeedText, { color: colors.textMuted }]}>You're all caught up</Text>
+                        <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
+                      </View>
+                    ) : null
+                  }
+                />
+              )
+            ) : (
+              <View style={{ flex: 1, paddingTop: headerHeight, alignItems: "center", justifyContent: "center" }}>
+                <ActivityIndicator color={colors.accent} />
+              </View>
+            )}
+          </View>
+        </_PagerView>
+      ) : (
+        feedTab === "following" && !user ? (
+          <View style={[styles.center, { paddingTop: headerHeight + 80 }]}>
+            <Ionicons name="lock-closed-outline" size={56} color={colors.textMuted} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>Sign in to see Following</Text>
+            <Text style={[styles.emptySub, { color: colors.textSecondary }]}>Follow people to see their posts here</Text>
+            <TouchableOpacity style={[styles.createBtn, { backgroundColor: colors.accent }]} onPress={() => safeRouter.push("/(auth)/login")}>
+              <Text style={styles.createBtnText}>Sign In</Text>
+            </TouchableOpacity>
+          </View>
+        ) : feedTab === "following" && followingEmpty ? (
+          <View style={[styles.center, { paddingTop: headerHeight + 80 }]}>
+            <Ionicons name="people-outline" size={56} color={colors.textMuted} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No one followed yet</Text>
+            <Text style={[styles.emptySub, { color: colors.textSecondary }]}>Follow people to see their posts here</Text>
+            <TouchableOpacity style={[styles.createBtn, { backgroundColor: colors.accent }]} onPress={() => setFeedTab("for_you")}>
+              <Text style={styles.createBtnText}>Browse For You</Text>
+            </TouchableOpacity>
+          </View>
+        ) : loading ? (
+          <View style={{ padding: 8, paddingTop: headerHeight + 8, gap: 8 }}>{[1,2,3].map(i => <PostSkeleton key={i} />)}</View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={augmentedFeed}
+            keyExtractor={(entry) => entry._kind === "post" ? entry.item.id : entry.id}
+            renderItem={({ item: entry }) => {
+              if (entry._kind === "user_recs") return <UserRecsCard seed={entry.seed} onRequireAuth={onRequireAuth} />;
+              if (entry._kind === "premium") return <PremiumUpsellCard variant={entry.variant} onDismiss={() => setDismissedUpsellVariants(prev => new Set([...prev, entry.id]))} />;
+              return (
+                <PostCard item={entry.item} onToggleLike={toggleLike} onToggleBookmark={toggleBookmark} onToggleFollow={toggleFollow} onImagePress={imgViewer.openViewer} onRequireAuth={onRequireAuth} colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined} onOpenComments={onOpenComments} onDismiss={onDismissPost} onMuteAuthor={onMuteAuthor} />
               );
+            }}
+            contentContainerStyle={{ gap: 8, paddingTop: headerHeight + 8, paddingBottom: insets.bottom + 100 }}
+            showsVerticalScrollIndicator={false}
+            onScroll={onFeedScroll}
+            scrollEventThrottle={16}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.3}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            initialNumToRender={5}
+            maxToRenderPerBatch={3}
+            windowSize={5}
+            updateCellsBatchingPeriod={100}
+            removeClippedSubviews={Platform.OS !== "web"}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} progressViewOffset={headerHeight} onRefresh={() => { revealHeader(); setRefreshing(true); setHasMore(true); setNewPostAuthors([]); newPostAuthorIdsRef.current.clear(); loadPosts(feedTab); }} tintColor={colors.accent} />
             }
-            return (
-              <PostCard
-                item={entry.item}
-                onToggleLike={toggleLike}
-                onToggleBookmark={toggleBookmark}
-                onToggleFollow={toggleFollow}
-                onImagePress={imgViewer.openViewer}
-                onRequireAuth={onRequireAuth}
-                colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined}
-                onOpenComments={onOpenComments}
-                onDismiss={onDismissPost}
-                onMuteAuthor={onMuteAuthor}
-              />
-            );
-          }}
-          contentContainerStyle={{
-            gap: 8,
-            paddingTop: headerHeight + 8,
-            paddingBottom: insets.bottom + 100,
-          }}
-          showsVerticalScrollIndicator={false}
-          onScroll={onFeedScroll}
-          scrollEventThrottle={16}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.3}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          initialNumToRender={5}
-          maxToRenderPerBatch={3}
-          windowSize={5}
-          updateCellsBatchingPeriod={100}
-          removeClippedSubviews={Platform.OS !== "web"}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              progressViewOffset={headerHeight}
-              onRefresh={() => {
-                revealHeader();
-                setRefreshing(true);
-                setHasMore(true);
-                setNewPostAuthors([]);
-                newPostAuthorIdsRef.current.clear();
-                loadPosts(feedTab);
-              }}
-              tintColor={colors.accent}
-            />
-          }
-          ListHeaderComponent={feedTab === "for_you" ? (
-            <View>
-              <TrendingSoundsSection />
-              {user && <SuggestedUsers />}
-            </View>
-          ) : null}
-          ListFooterComponent={
-            loadingMore ? (
-              <View style={{ padding: 8, gap: 8 }}>
-                {[1, 2, 3].map(i => <PostSkeleton key={i} />)}
-              </View>
-            ) : !hasMore && filteredPosts.length > 0 ? (
-              <View style={[styles.endOfFeed, { borderTopColor: colors.border }]}>
-                <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
-                <Text style={[styles.endOfFeedText, { color: colors.textMuted }]}>You're all caught up</Text>
-                <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
-              </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            !loading && posts.length > 0 && filteredPosts.length === 0 ? (
-              <View style={[styles.center, { paddingTop: 60 }]}>
-                <Ionicons name="funnel-outline" size={40} color={colors.textMuted} />
-                <Text style={[styles.emptyTitle, { color: colors.text, fontSize: 16 }]}>No results</Text>
-                <Text style={[styles.emptySub, { color: colors.textSecondary, textAlign: "center" }]}>
-                  No posts match this filter yet.{"\n"}Try a different one or check back later.
-                </Text>
-                <TouchableOpacity
-                  style={[styles.createBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
-                  onPress={() => setPostTypeFilter("all")}
-                >
-                  <Text style={[styles.createBtnText, { color: colors.text }]}>Show all posts</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null
-          }
-        />
+            ListHeaderComponent={feedTab === "for_you" ? (
+              <View><TrendingSoundsSection />{user && <SuggestedUsers />}</View>
+            ) : null}
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={{ padding: 8, gap: 8 }}>{[1,2,3].map(i => <PostSkeleton key={i} />)}</View>
+              ) : !hasMore && filteredPosts.length > 0 ? (
+                <View style={[styles.endOfFeed, { borderTopColor: colors.border }]}>
+                  <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
+                  <Text style={[styles.endOfFeedText, { color: colors.textMuted }]}>You're all caught up</Text>
+                  <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
+                </View>
+              ) : null
+            }
+          />
+        )
       )}
       </DesktopFeedLayout>
       {user && (
