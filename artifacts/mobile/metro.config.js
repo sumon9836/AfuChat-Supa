@@ -16,6 +16,14 @@ config.resolver = {
     /node_modules[\\/]\.pnpm[\\/]typedoc[^/]*[\\/]node_modules[\\/]typedoc[\\/]node_modules.*/,
     // require-main-filename pnpm entry is a broken symlink — exclude to prevent ENOENT watcher crash
     /node_modules[\\/]\.pnpm[\\/]require-main-filename[^/]*[\\/]node_modules[\\/]require-main-filename.*/,
+    // sucrase dist/esm is missing in pnpm virtual store — exclude to prevent ENOENT watcher crash
+    /node_modules[\\/]\.pnpm[\\/]sucrase[^/]*[\\/]node_modules[\\/]sucrase[\\/]dist[\\/]esm.*/,
+    // react-native-mmkv cpp/ios/src dirs missing in pnpm virtual store
+    /node_modules[\\/]\.pnpm[\\/]react-native-mmkv[^/]*[\\/]node_modules[\\/]react-native-mmkv[\\/](cpp|ios|src).*/,
+    // react-native-track-player android dirs missing in pnpm virtual store
+    /node_modules[\\/]\.pnpm[\\/]react-native-track-player[^/]*[\\/]node_modules[\\/]react-native-track-player[\\/]android[\\/]src.*/,
+    // recharts umd dir missing in pnpm virtual store
+    /node_modules[\\/]\.pnpm[\\/]recharts[^/]*[\\/]node_modules[\\/]recharts[\\/]umd.*/,
   ],
   // Enable symlink following so Metro resolves pnpm's content-addressed store
   // correctly on Android (pnpm creates symlinks that Metro doesn't follow by default).
