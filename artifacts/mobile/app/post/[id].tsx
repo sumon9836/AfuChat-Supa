@@ -737,13 +737,21 @@ export default function PostDetailScreen() {
     if (!post) return;
     if (!user) { router.push("/(auth)/login"); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (post.liked) {
+    const wasLiked = post.liked;
+    const prevCount = post.likeCount;
+    if (wasLiked) {
+      setPost({ ...post, liked: false, likeCount: Math.max(0, post.likeCount - 1) });
       const { error } = await supabase.from("post_acknowledgments").delete().eq("post_id", post.id).eq("user_id", user.id);
-      if (!error) setPost({ ...post, liked: false, likeCount: Math.max(0, post.likeCount - 1) });
+      if (error) setPost({ ...post, liked: wasLiked, likeCount: prevCount });
     } else {
-      const { error } = await supabase.from("post_acknowledgments").insert({ post_id: post.id, user_id: user.id });
-      if (!error) {
-        setPost({ ...post, liked: true, likeCount: post.likeCount + 1 });
+      setPost({ ...post, liked: true, likeCount: post.likeCount + 1 });
+      const { error } = await supabase.from("post_acknowledgments").upsert(
+        { post_id: post.id, user_id: user.id },
+        { onConflict: "post_id,user_id", ignoreDuplicates: true }
+      );
+      if (error) {
+        setPost({ ...post, liked: wasLiked, likeCount: prevCount });
+      } else {
         if (post.author.id !== user.id) {
           notifyPostLike({ postAuthorId: post.author.id, likerName: myProfile?.display_name || "Someone", likerUserId: user.id, postId: post.id });
         }
@@ -1239,6 +1247,7 @@ export default function PostDetailScreen() {
           renderItem={({ item }) => (
             <ReplyCard item={item} colors={colors} accent={accent} depth={0} onReplyTo={handleReplyTo} />
           )}
+          style={{ backgroundColor: colors.background }}
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         />

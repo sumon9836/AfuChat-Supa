@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Animated, Platform, StyleSheet, View, ViewStyle } from "react-native";
 const ND = Platform.OS !== "web";
 import { useTheme } from "../../hooks/useTheme";
@@ -8,35 +8,61 @@ type SkeletonProps = {
   height: number;
   borderRadius?: number;
   style?: ViewStyle;
-  /** Force white-on-dark styling regardless of app theme (use on dark/black backgrounds). */
   forceDark?: boolean;
 };
 
 export function Skeleton({ width, height, borderRadius = 8, style, forceDark }: SkeletonProps) {
   const { isDark } = useTheme();
-  const anim = useRef(new Animated.Value(0.3)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+  const [containerWidth, setContainerWidth] = useState(typeof width === "number" ? width : 240);
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 800, useNativeDriver: ND }),
-        Animated.timing(anim, { toValue: 0.3, duration: 800, useNativeDriver: ND }),
+        Animated.timing(shimmerAnim, { toValue: 1, duration: 900, useNativeDriver: false }),
+        Animated.delay(80),
+        Animated.timing(shimmerAnim, { toValue: 0, duration: 700, useNativeDriver: false }),
+        Animated.delay(120),
       ])
     );
     loop.start();
     return () => loop.stop();
-  }, [anim]);
+  }, [shimmerAnim]);
 
   const useDark = forceDark ?? isDark;
-  const bgColor = useDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.10)";
+  const baseColor = useDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)";
+  const highlightColor = useDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.11)";
+
+  const shimmerTX = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-containerWidth * 0.8, containerWidth * 1.6],
+  });
+
+  const shimmerOpacity = shimmerAnim.interpolate({
+    inputRange: [0, 0.3, 0.7, 1],
+    outputRange: [0, 1, 1, 0],
+  });
 
   return (
-    <Animated.View
-      style={[
-        { width: width as any, height, borderRadius, backgroundColor: bgColor, opacity: anim },
-        style,
-      ]}
-    />
+    <View
+      style={[{ width: width as any, height, borderRadius, backgroundColor: baseColor, overflow: "hidden" }, style]}
+      onLayout={(e) => {
+        const w = e.nativeEvent.layout.width;
+        if (w > 0 && w !== containerWidth) setContainerWidth(w);
+      }}
+    >
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          width: "55%",
+          backgroundColor: highlightColor,
+          opacity: shimmerOpacity,
+          transform: [{ translateX: shimmerTX }],
+        }}
+      />
+    </View>
   );
 }
 
@@ -75,20 +101,23 @@ export function PostSkeleton() {
     <View style={[sk.postCard, { backgroundColor: colors.surface }]}>
       <View style={sk.postHeader}>
         <Skeleton width={40} height={40} borderRadius={20} />
-        <View style={{ marginLeft: 10, flex: 1 }}>
-          <Skeleton width={120} height={14} />
-          <Skeleton width={60} height={10} style={{ marginTop: 6 }} />
+        <View style={{ marginLeft: 10, flex: 1, gap: 6 }}>
+          <Skeleton width={130} height={13} borderRadius={6} />
+          <Skeleton width={80} height={11} borderRadius={5} />
         </View>
       </View>
-      <View style={{ paddingLeft: 50 }}>
-        <Skeleton width="100%" height={14} style={{ marginTop: 12 }} />
-        <Skeleton width="80%" height={14} style={{ marginTop: 6 }} />
-        <Skeleton width="60%" height={14} style={{ marginTop: 6 }} />
+      <View style={{ paddingLeft: 50, gap: 6, marginTop: 10 }}>
+        <Skeleton width="96%" height={13} borderRadius={5} />
+        <Skeleton width="82%" height={13} borderRadius={5} />
+        <Skeleton width="68%" height={13} borderRadius={5} />
+      </View>
+      <View style={{ paddingLeft: 50, marginTop: 8 }}>
+        <Skeleton width="94%" height={140} borderRadius={10} />
       </View>
       <View style={[sk.postActions, { paddingLeft: 44 }]}>
-        <Skeleton width={50} height={20} borderRadius={10} />
-        <Skeleton width={50} height={20} borderRadius={10} />
-        <Skeleton width={50} height={20} borderRadius={10} />
+        <Skeleton width={46} height={18} borderRadius={9} />
+        <Skeleton width={46} height={18} borderRadius={9} />
+        <Skeleton width={46} height={18} borderRadius={9} />
       </View>
     </View>
   );
@@ -98,7 +127,6 @@ export function ProfileSkeleton() {
   const { colors } = useTheme();
   return (
     <View style={{ backgroundColor: colors.background }}>
-      {/* Avatar (left) + Posts/Followers/Following stats (right) */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14 }}>
         <Skeleton width={78} height={78} borderRadius={39} />
         <View style={{ flex: 1, flexDirection: "row", justifyContent: "space-around", marginLeft: 18 }}>
@@ -110,28 +138,22 @@ export function ProfileSkeleton() {
           ))}
         </View>
       </View>
-      {/* Display name + badge placeholder */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginBottom: 7 }}>
         <Skeleton width={150} height={16} borderRadius={5} />
         <Skeleton width={40} height={16} borderRadius={8} />
       </View>
-      {/* Bio */}
       <Skeleton width="88%" height={13} borderRadius={4} style={{ marginHorizontal: 16, marginBottom: 5 }} />
       <Skeleton width="65%" height={13} borderRadius={4} style={{ marginHorizontal: 16, marginBottom: 14 }} />
-      {/* Handle chip */}
       <Skeleton width={90} height={18} borderRadius={9} style={{ marginHorizontal: 16, marginBottom: 14 }} />
-      {/* CTA: Follow + Message */}
       <View style={{ flexDirection: "row", gap: 10, marginHorizontal: 16, marginBottom: 14 }}>
         <Skeleton width="48%" height={38} borderRadius={20} />
         <Skeleton width="48%" height={38} borderRadius={20} />
       </View>
-      {/* XP strip */}
       <View style={{ height: 36, backgroundColor: colors.backgroundSecondary, justifyContent: "center", paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
         <Skeleton width={80} height={12} borderRadius={4} />
         <Skeleton width="40%" height={8} borderRadius={4} />
         <Skeleton width={28} height={12} borderRadius={4} />
       </View>
-      {/* Tab bar: 3 equal tabs */}
       <View style={{ flexDirection: "row", height: 46, borderTopColor: colors.border }}>
         {[0, 1, 2].map((i) => (
           <View key={i} style={{ flex: 1, justifyContent: "center", alignItems: "center", borderTopWidth: i === 0 ? 2 : 0, borderTopColor: colors.accent }}>
@@ -139,9 +161,8 @@ export function ProfileSkeleton() {
           </View>
         ))}
       </View>
-      {/* Grid photo placeholders (2 rows × 3 cols) */}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 2, paddingHorizontal: 0, marginTop: 2 }}>
-        {[0,1,2,3,4,5].map((i) => (
+        {[0, 1, 2, 3, 4, 5].map((i) => (
           <Skeleton key={i} width="32.5%" height={110} borderRadius={0} />
         ))}
       </View>
@@ -200,24 +221,35 @@ export function WalletSkeleton() {
 export function PostDetailSkeleton() {
   const { colors } = useTheme();
   return (
-    <View style={{ padding: 16, gap: 12 }}>
+    <View style={{ padding: 16, gap: 12, backgroundColor: colors.background }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <Skeleton width={44} height={44} borderRadius={22} />
-        <View style={{ flex: 1 }}>
-          <Skeleton width={120} height={16} />
-          <Skeleton width={80} height={12} style={{ marginTop: 4 }} />
+        <View style={{ flex: 1, gap: 6 }}>
+          <Skeleton width={130} height={15} borderRadius={6} />
+          <Skeleton width={90} height={11} borderRadius={5} />
         </View>
       </View>
-      <Skeleton width="100%" height={16} style={{ marginTop: 8 }} />
-      <Skeleton width="90%" height={16} />
-      <Skeleton width="70%" height={16} />
-      <Skeleton width="100%" height={200} borderRadius={12} style={{ marginTop: 8 }} />
-      <Skeleton width={140} height={12} style={{ marginTop: 8 }} />
-      <View style={{ flexDirection: "row", gap: 28, marginTop: 12 }}>
-        <Skeleton width={50} height={20} borderRadius={10} />
-        <Skeleton width={50} height={20} borderRadius={10} />
-        <Skeleton width={50} height={20} borderRadius={10} />
+      <Skeleton width="100%" height={15} borderRadius={5} style={{ marginTop: 4 }} />
+      <Skeleton width="90%" height={15} borderRadius={5} />
+      <Skeleton width="76%" height={15} borderRadius={5} />
+      <Skeleton width="100%" height={200} borderRadius={12} style={{ marginTop: 6 }} />
+      <Skeleton width={140} height={12} borderRadius={5} style={{ marginTop: 4 }} />
+      <View style={{ flexDirection: "row", gap: 28, marginTop: 8 }}>
+        <Skeleton width={52} height={20} borderRadius={10} />
+        <Skeleton width={52} height={20} borderRadius={10} />
+        <Skeleton width={52} height={20} borderRadius={10} />
       </View>
+      <View style={{ height: 1, backgroundColor: colors.border, marginTop: 8 }} />
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={{ flexDirection: "row", gap: 10, paddingTop: 8 }}>
+          <Skeleton width={34} height={34} borderRadius={17} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Skeleton width={110} height={13} borderRadius={5} />
+            <Skeleton width="88%" height={13} borderRadius={5} />
+            <Skeleton width="65%" height={13} borderRadius={5} />
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -379,7 +411,6 @@ export function MeTabSkeleton() {
   const { colors } = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary, padding: 16, gap: 12 }}>
-      {/* Profile card: avatar left + name/handle/bio right + chevron */}
       <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 14 }}>
         <Skeleton width={68} height={68} borderRadius={34} />
         <View style={{ flex: 1, gap: 7 }}>
@@ -392,7 +423,6 @@ export function MeTabSkeleton() {
         </View>
         <Skeleton width={16} height={16} borderRadius={4} />
       </View>
-      {/* Stats row: 3 items (Nexa / ACoin / Grade) with vertical dividers */}
       <View style={{ backgroundColor: colors.surface, borderRadius: 16, flexDirection: "row", alignItems: "center", paddingVertical: 14 }}>
         {[["20", "36", "32"], ["20", "36", "44"], ["20", "56", "40"]].map(([iconH, valW, labelW], i) => (
           <React.Fragment key={i}>
@@ -405,13 +435,9 @@ export function MeTabSkeleton() {
           </React.Fragment>
         ))}
       </View>
-      {/* XP level bar (slim) */}
       <Skeleton width="100%" height={34} borderRadius={12} />
-      {/* Profile completion bar (slim) */}
       <Skeleton width="100%" height={34} borderRadius={12} />
-      {/* Premium banner */}
       <Skeleton width="100%" height={56} borderRadius={14} />
-      {/* Menu items: icon circle + label + spacer + chevron */}
       {[140, 110, 130, 120, 150].map((labelW, i) => (
         <View key={i} style={{ backgroundColor: colors.surface, borderRadius: 14, flexDirection: "row", alignItems: "center", gap: 12, padding: 14 }}>
           <Skeleton width={36} height={36} borderRadius={10} />
@@ -439,19 +465,19 @@ export function VideoFeedSkeleton() {
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <Skeleton width={40} height={40} borderRadius={20} />
+            <Skeleton width={40} height={40} borderRadius={20} forceDark />
             <View style={{ gap: 5 }}>
-              <Skeleton width={120} height={14} />
-              <Skeleton width={80} height={11} />
+              <Skeleton width={120} height={14} forceDark />
+              <Skeleton width={80} height={11} forceDark />
             </View>
           </View>
-          <Skeleton width="85%" height={14} style={{ marginBottom: 6 }} />
-          <Skeleton width="65%" height={14} style={{ marginBottom: 20 }} />
+          <Skeleton width="85%" height={14} forceDark style={{ marginBottom: 6 }} />
+          <Skeleton width="65%" height={14} forceDark style={{ marginBottom: 20 }} />
           <View style={{ position: "absolute", right: 14, bottom: 110, gap: 20, alignItems: "center" }}>
             {[48, 48, 48, 48].map((s, j) => (
               <View key={j} style={{ alignItems: "center", gap: 4 }}>
-                <Skeleton width={s} height={s} borderRadius={24} />
-                <Skeleton width={30} height={11} />
+                <Skeleton width={s} height={s} borderRadius={24} forceDark />
+                <Skeleton width={30} height={11} forceDark />
               </View>
             ))}
           </View>
@@ -466,9 +492,7 @@ export function ShortsFeedSkeleton({ dark = true }: { dark?: boolean }) {
   const bg = dark ? "#0a0a0a" : colors.background;
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
-      {/* Main content area — pushed to bottom like the real video UI */}
       <View style={{ flex: 1, justifyContent: "flex-end", paddingHorizontal: 16, paddingBottom: 90 }}>
-        {/* Creator info row */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
           <Skeleton width={44} height={44} borderRadius={22} forceDark={dark} />
           <View style={{ gap: 6 }}>
@@ -476,12 +500,9 @@ export function ShortsFeedSkeleton({ dark = true }: { dark?: boolean }) {
             <Skeleton width={80} height={11} forceDark={dark} />
           </View>
         </View>
-        {/* Caption lines */}
         <Skeleton width="78%" height={13} forceDark={dark} style={{ marginBottom: 6 }} />
         <Skeleton width="58%" height={13} forceDark={dark} style={{ marginBottom: 4 }} />
       </View>
-
-      {/* Right-side action rail */}
       <View style={{ position: "absolute", right: 14, bottom: 110, gap: 22, alignItems: "center" }}>
         {[44, 44, 44, 44].map((s, i) => (
           <View key={i} style={{ alignItems: "center", gap: 5 }}>
@@ -505,13 +526,34 @@ export function AiRedirectSkeleton() {
   );
 }
 
+export function ReplyListSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={{ gap: 0, backgroundColor: colors.background }}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={{ flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 }}>
+          <Skeleton width={34} height={34} borderRadius={17} />
+          <View style={{ flex: 1, gap: 7 }}>
+            <Skeleton width={110} height={13} borderRadius={5} />
+            <Skeleton width="90%" height={13} borderRadius={5} />
+            <Skeleton width="70%" height={13} borderRadius={5} />
+            <View style={{ flexDirection: "row", gap: 16, marginTop: 4 }}>
+              <Skeleton width={40} height={11} borderRadius={4} />
+              <Skeleton width={40} height={11} borderRadius={4} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const sk = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
     padding: 14,
     gap: 12,
-    
   },
   rowContent: {
     flex: 1,

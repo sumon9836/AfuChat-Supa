@@ -95,6 +95,7 @@ type PostItem = {
   org_slug?: string;
   org_type?: string;
   org_verified?: boolean;
+  showThreadLine?: boolean;
 };
 
 function formatNum(n: number): string {
@@ -252,6 +253,22 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
         // @ts-ignore — RN Web supports onContextMenu
         onContextMenu={Platform.OS === "web" ? ctxBind.onContextMenu : undefined}
       >
+          {/* X/Twitter-style thread connector line */}
+          {item.showThreadLine && (
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                left: isDesktop ? 38 : 35,
+                top: isDesktop ? 70 : 64,
+                bottom: -8,
+                width: 2,
+                backgroundColor: colors.border,
+                borderRadius: 1,
+                zIndex: 1,
+              }}
+            />
+          )}
           {/* ── Header ── */}
           <View style={styles.cardHeader}>
             {item.org_page_id ? (
@@ -687,7 +704,14 @@ export default function DiscoverScreen() {
     let recSeed = 0;
     let premiumIdx = 0;
     for (let i = 0; i < filteredPosts.length; i++) {
-      entries.push({ _kind: "post", item: filteredPosts[i] });
+      const curr = filteredPosts[i];
+      const next = filteredPosts[i + 1];
+      const showThreadLine = !!(
+        next &&
+        next.author_id === curr.author_id &&
+        new Date(curr.created_at).toDateString() === new Date(next.created_at).toDateString()
+      );
+      entries.push({ _kind: "post", item: showThreadLine ? { ...curr, showThreadLine: true } : curr });
       if ((i + 1) % 8 === 0) {
         entries.push({ _kind: "user_recs", id: `recs_${Math.floor(i / 8)}`, seed: recSeed++ });
       }
@@ -1722,57 +1746,45 @@ export default function DiscoverScreen() {
         {/* Flat header background */}
         <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "#0F0F0F" : "#F5F0E8", zIndex: 0 }]} />
 
-        {/* Tab switcher — YouTube-style underline tabs */}
+        {/* Tab switcher — centered underline tabs */}
         <View
           style={[
             styles.header,
-            { paddingTop: insets.top + 8 },
+            { paddingTop: insets.top + 8, justifyContent: "center" },
           ]}
         >
-          <View style={[styles.tabRow, { position: "relative" }]}>
+          <View style={styles.tabRow}>
             <TouchableOpacity
-              style={styles.tabPill}
+              style={[
+                styles.tabPill,
+                feedTab === "for_you" && { borderBottomWidth: 2.5, borderBottomColor: colors.accent },
+              ]}
               onPress={() => {
                 setFeedTab("for_you");
                 pagerRef.current?.setPage(0);
               }}
-              onLayout={(e) => {
-                const { x, width } = e.nativeEvent.layout;
-                discoverTabLayoutsRef.current[0] = { x, width };
-                if (feedTab === "for_you") {
-                  discoverPillX.setValue(x + 4);
-                  discoverPillW.setValue(width - 8);
-                }
-              }}
             >
               <Text style={[
                 styles.tabPillText,
-                { color: feedTab === "for_you" ? colors.text : colors.textMuted,
-                  fontFamily: feedTab === "for_you" ? "Inter_700Bold" : "Inter_500Medium" },
+                { color: feedTab === "for_you" ? colors.accent : colors.textMuted },
               ]}>
                 For You
               </Text>
             </TouchableOpacity>
             {user && (
               <TouchableOpacity
-                style={styles.tabPill}
+                style={[
+                  styles.tabPill,
+                  feedTab === "following" && { borderBottomWidth: 2.5, borderBottomColor: colors.accent },
+                ]}
                 onPress={() => {
                   setFeedTab("following");
                   pagerRef.current?.setPage(1);
                 }}
-                onLayout={(e) => {
-                  const { x, width } = e.nativeEvent.layout;
-                  discoverTabLayoutsRef.current[1] = { x, width };
-                  if (feedTab === "following") {
-                    discoverPillX.setValue(x + 4);
-                    discoverPillW.setValue(width - 8);
-                  }
-                }}
               >
                 <Text style={[
                   styles.tabPillText,
-                  { color: feedTab === "following" ? colors.text : colors.textMuted,
-                    fontFamily: feedTab === "following" ? "Inter_700Bold" : "Inter_500Medium" },
+                  { color: feedTab === "following" ? colors.accent : colors.textMuted },
                 ]}>
                   Following
                 </Text>
@@ -1783,7 +1795,7 @@ export default function DiscoverScreen() {
           {!user && (
             <TouchableOpacity
               onPress={() => safeRouter.push("/(auth)/login")}
-              style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}
+              style={{ position: "absolute", right: 12, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8, paddingVertical: 6 }}
             >
               <Ionicons name="log-in-outline" size={16} color={colors.text} />
               <Text style={{ color: colors.text, fontSize: 13, fontFamily: "Inter_600SemiBold" }}>Sign in</Text>
@@ -1814,7 +1826,11 @@ export default function DiscoverScreen() {
         {/* Background refresh indicator */}
         {bgRefreshing && newPostAuthors.length === 0 && (
           <View style={[styles.bgRefreshBar, { backgroundColor: colors.accent + "18" }]}>
-            <ActivityIndicator size={10} color={colors.accent} />
+            <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }}>
+              {[0, 1, 2].map(i => (
+                <Animated.View key={i} style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.accent }} />
+              ))}
+            </View>
             <Text style={[styles.bgRefreshText, { color: colors.accent }]}>Updating feed…</Text>
           </View>
         )}
@@ -1829,6 +1845,7 @@ export default function DiscoverScreen() {
           onPageScroll={handleDiscoverPageScroll}
           onPageSelected={handleDiscoverPageSelected}
           overdrag={false}
+          scrollEnabled={false}
         >
           {/* Page 0: For You */}
           <View key="for_you" style={{ flex: 1 }}>
@@ -1952,8 +1969,8 @@ export default function DiscoverScreen() {
                 />
               )
             ) : (
-              <View style={{ flex: 1, paddingTop: headerHeight, alignItems: "center", justifyContent: "center" }}>
-                <ActivityIndicator color={colors.accent} />
+              <View style={{ padding: 8, paddingTop: headerHeight + 8, gap: 8 }}>
+                {[1, 2, 3].map(i => <PostSkeleton key={i} />)}
               </View>
             )}
           </View>
@@ -2150,7 +2167,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     gap: 12,
   },
-  tabRow: { flexDirection: "row", flex: 1, gap: 8 },
+  tabRow: { flexDirection: "row", gap: 0 },
   endOfFeed: {
     flexDirection: "row",
     alignItems: "center",
@@ -2171,8 +2188,8 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     letterSpacing: 0.1,
   },
-  tabPill: { paddingVertical: 12, paddingHorizontal: 16, alignItems: "center" },
-  tabPillText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  tabPill: { paddingVertical: 12, paddingHorizontal: 22, alignItems: "center" },
+  tabPillText: { fontSize: 15, fontFamily: "Inter_700Bold" },
   card: {
     overflow: "hidden",
   },

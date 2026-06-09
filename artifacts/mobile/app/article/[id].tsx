@@ -377,13 +377,21 @@ export default function ArticleDetailScreen() {
     if (!user) { router.push("/(auth)/login"); return; }
     if (liking || !article) return;
     setLiking(true);
-    if (article.liked) {
-      await supabase.from("post_acknowledgments").delete().eq("post_id", article.id).eq("user_id", user.id);
+    const wasLiked = article.liked;
+    const prevCount = article.likeCount;
+    if (wasLiked) {
       setArticle((a) => a ? { ...a, liked: false, likeCount: Math.max(0, a.likeCount - 1) } : a);
+      const { error } = await supabase.from("post_acknowledgments").delete().eq("post_id", article.id).eq("user_id", user.id);
+      if (error) setArticle((a) => a ? { ...a, liked: wasLiked, likeCount: prevCount } : a);
     } else {
-      await supabase.from("post_acknowledgments").insert({ post_id: article.id, user_id: user.id });
       setArticle((a) => a ? { ...a, liked: true, likeCount: a.likeCount + 1 } : a);
-      if (article.author.id !== user.id) {
+      const { error } = await supabase.from("post_acknowledgments").upsert(
+        { post_id: article.id, user_id: user.id },
+        { onConflict: "post_id,user_id", ignoreDuplicates: true }
+      );
+      if (error) {
+        setArticle((a) => a ? { ...a, liked: wasLiked, likeCount: prevCount } : a);
+      } else if (article.author.id !== user.id) {
         notifyPostLike({ postAuthorId: article.author.id, likerName: myProfile?.display_name || "Someone", likerUserId: user.id, postId: article.id });
       }
     }
