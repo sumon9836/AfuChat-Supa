@@ -1,25 +1,32 @@
 import { logger } from "../lib/logger";
-import { query } from "../lib/db";
+import { getAdminClient } from "../lib/supabase-admin";
 
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function cleanupExpiredStories(): Promise<void> {
   try {
-    const expired = await query<{ id: string }>(
-      `SELECT id FROM public.stories WHERE expires_at < now()`,
-    );
+    const supabase = getAdminClient();
+    const now = new Date().toISOString();
 
-    if (!expired.length) {
+    const { data: expired, error } = await supabase
+      .from("stories")
+      .select("id")
+      .lt("expires_at", now);
+
+    if (error) throw error;
+    if (!expired?.length) {
       logger.debug("[stories-cleanup] No expired stories to delete");
       return;
     }
 
-    const ids = expired.map((s) => s.id);
-    const placeholders = ids.map((_, i) => `$${i + 1}`).join(",");
+    const ids = expired.map((s: { id: string }) => s.id);
 
-    await query(`DELETE FROM public.story_replies WHERE story_id IN (${placeholders})`, ids);
-    await query(`DELETE FROM public.story_views WHERE story_id IN (${placeholders})`, ids);
-    await query(`DELETE FROM public.stories WHERE id IN (${placeholders})`, ids);
+    await Promise.all([
+      supabase.from("story_replies").delete().in("story_id", ids),
+      supabase.from("story_views").delete().in("story_id", ids),
+    ]);
+    const { error: delErr } = await supabase.from("stories").delete().in("id", ids);
+    if (delErr) throw delErr;
 
     logger.info({ count: ids.length }, "[stories-cleanup] Deleted expired stories");
   } catch (err) {

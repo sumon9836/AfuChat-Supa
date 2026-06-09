@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { queryOne } from "../lib/db";
+import { getAdminClient } from "../lib/supabase-admin";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -26,21 +26,26 @@ router.post("/auth/resolve-identifier", async (req, res) => {
     const isPhone = raw.startsWith("+") || /^\d{7,15}$/.test(digitsOnly);
 
     let userId: string | null = null;
+    const supabase = getAdminClient();
 
     if (isPhone) {
       const normalized = raw.startsWith("+") ? raw.replace(/[^\d+]/g, "") : `+${digitsOnly}`;
       const alt = normalized.replace(/^\+/, "");
-      const profile = await queryOne<{ id: string }>(
-        `SELECT id FROM public.profiles WHERE phone_number = $1 OR phone_number = $2 LIMIT 1`,
-        [normalized, alt],
-      );
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .or(`phone_number.eq.${normalized},phone_number.eq.${alt}`)
+        .limit(1)
+        .single();
       userId = profile?.id ?? null;
     } else {
       const handle = raw.replace(/^@/, "").toLowerCase();
-      const profile = await queryOne<{ id: string }>(
-        `SELECT id FROM public.profiles WHERE handle = $1 LIMIT 1`,
-        [handle],
-      );
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("handle", handle)
+        .limit(1)
+        .single();
       userId = profile?.id ?? null;
     }
 
@@ -48,13 +53,9 @@ router.post("/auth/resolve-identifier", async (req, res) => {
       return res.status(404).json({ error: "No account found with that identifier" });
     }
 
-    // Look up email from auth.users
-    const authUser = await queryOne<{ email: string }>(
-      `SELECT email FROM auth.users WHERE id = $1 LIMIT 1`,
-      [userId],
-    );
-    if (!authUser?.email) {
-      logger.warn({ userId }, "resolve-identifier: no email in auth.users");
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.admin.getUserById(userId);
+    if (authErr || !authUser?.email) {
+      logger.warn({ userId, err: authErr }, "resolve-identifier: no email in auth.users");
       return res.status(404).json({ error: "No account found with that identifier" });
     }
 

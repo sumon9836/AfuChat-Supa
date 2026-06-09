@@ -7,17 +7,21 @@
  */
 
 import { Router, type Request, type Response } from "express";
-import { query, queryOne } from "../lib/db";
+import { getAdminClient } from "../lib/supabase-admin";
 import { authedUser as verifyAuth } from "../lib/auth";
 import { logger } from "../lib/logger";
 
 const router = Router();
 
-const PESAPAL_ENV = process.env.PESAPAL_ENV || "live";
-const PESAPAL_BASE =
-  PESAPAL_ENV === "sandbox"
+function getPesapalEnv() {
+  return process.env.PESAPAL_ENV || "live";
+}
+
+function getPesapalBase() {
+  return getPesapalEnv() === "sandbox"
     ? "https://cybqa.pesapal.com/pesapalv3"
     : "https://pay.pesapal.com/v3";
+}
 
 const CALLBACK_URL = "https://afuchat.com/wallet/payment-complete";
 
@@ -36,7 +40,7 @@ function isPesapalConfigured(): boolean {
 
 async function pesapalToken(): Promise<string> {
   const { consumerKey, consumerSecret } = getPesapalKeys();
-  const res = await fetch(`${PESAPAL_BASE}/api/Auth/RequestToken`, {
+  const res = await fetch(`${getPesapalBase()}/api/Auth/RequestToken`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ consumer_key: consumerKey, consumer_secret: consumerSecret }),
@@ -51,7 +55,7 @@ async function getOrRegisterIPN(token: string, serverDomain: string): Promise<st
   const { ipnId } = getPesapalKeys();
   if (ipnId) return ipnId;
   const ipnUrl = `https://${serverDomain}/api/payments/webhook`;
-  const res = await fetch(`${PESAPAL_BASE}/api/URLSetup/RegisterIPN`, {
+  const res = await fetch(`${getPesapalBase()}/api/URLSetup/RegisterIPN`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -69,7 +73,7 @@ async function getOrRegisterIPN(token: string, serverDomain: string): Promise<st
 
 async function getTransactionStatus(token: string, trackingId: string) {
   const res = await fetch(
-    `${PESAPAL_BASE}/api/Transactions/GetTransactionStatus?orderTrackingId=${encodeURIComponent(trackingId)}`,
+    `${getPesapalBase()}/api/Transactions/GetTransactionStatus?orderTrackingId=${encodeURIComponent(trackingId)}`,
     { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } },
   );
   if (!res.ok) throw new Error(`GetTransactionStatus failed (${res.status}): ${await res.text()}`);
@@ -106,20 +110,22 @@ router.post("/payments/initiate", async (req: Request, res: Response) => {
     const finalCurrency = (currency || "USD").toUpperCase();
     const merchantRef = `AFUCHAT-${authUser.userId.replace(/-/g, "").slice(0, 12)}-${Date.now()}`;
 
-    const profile = await queryOne<{ display_name: string | null; handle: string | null; email: string | null }>(
-      `SELECT p.display_name, p.handle, u.email
-       FROM public.profiles p
-       LEFT JOIN auth.users u ON u.id = p.id
-       WHERE p.id = $1 LIMIT 1`,
-      [authUser.userId],
-    );
+    const supabase = getAdminClient();
+
+    const [profileResult, authResult] = await Promise.all([
+      supabase.from("profiles").select("display_name, handle").eq("id", authUser.userId).single(),
+      supabase.auth.admin.getUserById(authUser.userId),
+    ]);
+
+    const profile = profileResult.data;
+    const authUserData = authResult.data?.user;
 
     const displayName = (
       profile?.display_name ||
       profile?.handle ||
       "AfuChat User"
     ).trim();
-    const userEmail = profile?.email || "";
+    const userEmail = authUserData?.email || "";
     const nameParts = displayName.split(" ");
     const firstName = nameParts[0] || "AfuChat";
     const lastName = nameParts.slice(1).join(" ") || "User";
@@ -183,7 +189,7 @@ router.post("/payments/initiate", async (req: Request, res: Response) => {
       "payments/initiate",
     );
 
-    const orderRes = await fetch(`${PESAPAL_BASE}/api/Transactions/SubmitOrderRequest`, {
+    const orderRes = await fetch(`${getPesapalBase()}/api/Transactions/SubmitOrderRequest`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -203,12 +209,19 @@ router.post("/payments/initiate", async (req: Request, res: Response) => {
     };
 
     try {
-      await query(
-        `INSERT INTO public.pesapal_orders (user_id, merchant_reference, tracking_id, acoin_amount, amount_usd, currency, status)
-         VALUES ($1,$2,$3,$4,$5,$6,'pending')`,
-        [authUser.userId, merchantRef, orderData.order_tracking_id || null, acoin_amount, amount_usd, finalCurrency],
-      );
-    } catch (dbErr) { logger.error({ err: dbErr }, "pesapal_orders insert error"); }
+      const { error: insertErr } = await supabase.from("pesapal_orders").insert({
+        user_id: authUser.userId,
+        merchant_reference: merchantRef,
+        tracking_id: orderData.order_tracking_id || null,
+        acoin_amount,
+        amount_usd,
+        currency: finalCurrency,
+        status: "pending",
+      });
+      if (insertErr) logger.error({ err: insertErr }, "pesapal_orders insert error");
+    } catch (dbErr) {
+      logger.error({ err: dbErr }, "pesapal_orders insert error");
+    }
 
     res.json({
       merchant_reference: merchantRef,
@@ -244,23 +257,45 @@ router.post("/payments/webhook", async (req: Request, res: Response) => {
       return;
     }
 
+    const supabase = getAdminClient();
     const ORDER_COLS = "id, user_id, acoin_amount, merchant_reference, tracking_id, status";
     let order: PesapalOrder | null = null;
 
     if (orderTrackingId) {
-      order = await queryOne<PesapalOrder>(`SELECT ${ORDER_COLS} FROM public.pesapal_orders WHERE tracking_id = $1 LIMIT 1`, [orderTrackingId]);
+      const { data } = await supabase
+        .from("pesapal_orders")
+        .select(ORDER_COLS)
+        .eq("tracking_id", orderTrackingId)
+        .limit(1)
+        .single();
+      order = data as PesapalOrder | null;
     } else {
-      order = await queryOne<PesapalOrder>(`SELECT ${ORDER_COLS} FROM public.pesapal_orders WHERE merchant_reference = $1 LIMIT 1`, [merchantReference!]);
+      const { data } = await supabase
+        .from("pesapal_orders")
+        .select(ORDER_COLS)
+        .eq("merchant_reference", merchantReference!)
+        .limit(1)
+        .single();
+      order = data as PesapalOrder | null;
     }
 
     if (!order) {
       if (orderTrackingId && merchantReference) {
-        const fallback = await queryOne<PesapalOrder>(`SELECT ${ORDER_COLS} FROM public.pesapal_orders WHERE merchant_reference = $1 LIMIT 1`, [merchantReference]);
+        const { data: fallback } = await supabase
+          .from("pesapal_orders")
+          .select(ORDER_COLS)
+          .eq("merchant_reference", merchantReference)
+          .limit(1)
+          .single();
         if (fallback) {
-          if (!fallback.tracking_id && orderTrackingId) {
-            await query(`UPDATE public.pesapal_orders SET tracking_id = $1 WHERE id = $2`, [orderTrackingId, fallback.id]);
+          const fb = fallback as PesapalOrder;
+          if (!fb.tracking_id && orderTrackingId) {
+            await supabase
+              .from("pesapal_orders")
+              .update({ tracking_id: orderTrackingId })
+              .eq("id", fb.id);
           }
-          res.json(await processIpnOrder({ ...fallback, tracking_id: orderTrackingId || fallback.tracking_id }));
+          res.json(await processIpnOrder({ ...fb, tracking_id: orderTrackingId || fb.tracking_id }));
           return;
         }
       }
@@ -271,7 +306,11 @@ router.post("/payments/webhook", async (req: Request, res: Response) => {
 
     const trackId = orderTrackingId || order.tracking_id;
     if (trackId && !order.tracking_id) {
-      await query(`UPDATE public.pesapal_orders SET tracking_id = $1 WHERE id = $2`, [trackId, order.id]);
+      const supabase2 = getAdminClient();
+      await supabase2
+        .from("pesapal_orders")
+        .update({ tracking_id: trackId })
+        .eq("id", order.id);
     }
 
     const result = await processIpnOrder({ ...order, tracking_id: trackId });
@@ -296,9 +335,10 @@ async function processIpnOrder(order: PesapalOrder): Promise<Record<string, unkn
     return { message: "Already processed" };
   }
 
+  const supabase = getAdminClient();
   const trackId = order.tracking_id;
   if (!trackId) {
-    await query(`UPDATE public.pesapal_orders SET status = 'invalid' WHERE id = $1`, [order.id]);
+    await supabase.from("pesapal_orders").update({ status: "invalid" }).eq("id", order.id);
     return { error: "No tracking ID — cannot verify payment" };
   }
 
@@ -315,35 +355,46 @@ async function processIpnOrder(order: PesapalOrder): Promise<Record<string, unkn
 
   if (statusCode === 1 || paymentStatusDesc === "COMPLETED") {
     try {
-      await query(
-        `UPDATE public.pesapal_orders SET status = 'completed', tracking_id = $1 WHERE id = $2 AND status = 'pending'`,
-        [trackId, order.id],
-      );
-    } catch (e) { logger.error({ err: e }, "[pesapal-ipn] order update error"); }
+      await supabase
+        .from("pesapal_orders")
+        .update({ status: "completed", tracking_id: trackId })
+        .eq("id", order.id)
+        .eq("status", "pending");
+    } catch (e) {
+      logger.error({ err: e }, "[pesapal-ipn] order update error");
+    }
 
     try {
-      await query(`SELECT credit_acoin($1, $2)`, [order.user_id, order.acoin_amount]);
+      const { error: rpcErr } = await supabase.rpc("credit_acoin", {
+        p_user_id: order.user_id,
+        p_amount: order.acoin_amount,
+      });
+      if (rpcErr) throw rpcErr;
     } catch (rpcErr) {
       logger.error({ err: rpcErr }, "[pesapal-ipn] credit_acoin failed");
-      await query(`UPDATE public.pesapal_orders SET status = 'pending' WHERE id = $1`, [order.id]);
+      await supabase.from("pesapal_orders").update({ status: "pending" }).eq("id", order.id);
       return { error: "Failed to credit wallet, will retry" };
     }
 
-    await query(
-      `INSERT INTO public.acoin_transactions (user_id, amount, transaction_type, metadata)
-       VALUES ($1,$2,'topup',$3)`,
-      [order.user_id, order.acoin_amount, JSON.stringify({
+    await supabase.from("acoin_transactions").insert({
+      user_id: order.user_id,
+      amount: order.acoin_amount,
+      transaction_type: "topup",
+      metadata: {
         merchant_reference: order.merchant_reference,
         tracking_id: trackId,
         payment_provider: "pesapal",
         pesapal_status_code: statusCode,
-      })],
-    );
+      },
+    });
 
     logger.info({ userId: order.user_id, acoin: order.acoin_amount }, "[pesapal-ipn] wallet credited");
     return { message: "Payment confirmed, wallet credited" };
   } else if ([2, 3, 4].includes(statusCode) || ["FAILED", "REVERSED", "INVALID"].includes(paymentStatusDesc)) {
-    await query(`UPDATE public.pesapal_orders SET status = 'failed', tracking_id = $1 WHERE id = $2`, [trackId, order.id]);
+    await supabase
+      .from("pesapal_orders")
+      .update({ status: "failed", tracking_id: trackId })
+      .eq("id", order.id);
     return { message: "Payment failed or reversed", pesapal_status: paymentStatusDesc };
   } else {
     return { message: "Payment still pending", pesapal_status: paymentStatusDesc };
@@ -357,12 +408,16 @@ router.get("/payments/status/:merchantRef", async (req: Request, res: Response) 
   if (!authUser) return;
 
   try {
-    const order = await queryOne<{ status: string; acoin_amount: number }>(
-      `SELECT status, acoin_amount FROM public.pesapal_orders WHERE merchant_reference = $1 AND user_id = $2 LIMIT 1`,
-      [req.params.merchantRef, authUser.userId],
-    );
+    const supabase = getAdminClient();
+    const { data: order, error } = await supabase
+      .from("pesapal_orders")
+      .select("status, acoin_amount")
+      .eq("merchant_reference", req.params.merchantRef)
+      .eq("user_id", authUser.userId)
+      .limit(1)
+      .single();
 
-    if (!order) {
+    if (error || !order) {
       res.status(404).json({ error: "Order not found" });
       return;
     }

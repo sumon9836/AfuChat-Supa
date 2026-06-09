@@ -17,18 +17,22 @@ export function getDb(): pg.Pool {
     const connectionString = process.env.SUPABASE_DB_URL;
     if (!connectionString) {
       throw new Error(
-        "SUPABASE_DB_URL environment variable is required. " +
-        "Set it in the Replit Secrets panel (Settings > Secrets)."
+        "SUPABASE_DB_URL is not configured. " +
+        "Add it to the public.app_settings table in Supabase " +
+        "(key: SUPABASE_DB_URL, value: your Session Pooler connection string). " +
+        "The bootstrap process will load it automatically on next server restart."
       );
     }
+    // Determine SSL settings. The Supabase Session Pooler uses a self-signed
+    // certificate chain, so we enable SSL but skip cert verification.
+    // Never override if sslmode=disable is explicitly requested.
+    const sslDisabled = connectionString.includes("sslmode=disable");
     pool = new Pool({
       connectionString,
-      ssl: connectionString.includes("sslmode=disable")
-        ? false
-        : { rejectUnauthorized: false },
+      ssl: sslDisabled ? false : { rejectUnauthorized: false },
       max: 10,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      connectionTimeoutMillis: 10000,
     });
     pool.on("error", (err) => {
       logger.error({ err }, "pg pool error");

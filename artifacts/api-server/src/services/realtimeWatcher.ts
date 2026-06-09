@@ -2,13 +2,13 @@
  * Realtime watcher — polls Supabase for events that need async processing:
  *   • New support tickets  → send confirmation emails + generate AI draft reply
  *
- * Uses polling via the direct Supabase PostgreSQL connection (SUPABASE_DB_URL).
+ * Uses polling via the Supabase JS admin client (HTTPS/PostgREST).
  * Email notifications are sent via Resend (RESEND_API_KEY).
  * AI drafts are generated via Groq/Gemini (GROQ_API_KEY / GEMINI_API_KEY).
  */
 
 import { logger } from "../lib/logger";
-import { query } from "../lib/db";
+import { getAdminClient } from "../lib/supabase-admin";
 import {
   emailUserTicketCreated,
   emailStaffNewTicket,
@@ -20,14 +20,8 @@ let watcherStarted = false;
 export function startRealtimeWatcher() {
   if (watcherStarted) return;
 
-  const hasDb = !!process.env.SUPABASE_DB_URL;
   const hasResend = !!process.env.RESEND_API_KEY;
   const hasAi = !!(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY);
-
-  if (!hasDb) {
-    logger.info("[watcher] SUPABASE_DB_URL not configured — watcher not started");
-    return;
-  }
 
   watcherStarted = true;
   logger.info(
@@ -42,28 +36,33 @@ export function startRealtimeWatcher() {
       const cutoff = lastTicketCheck.toISOString();
       lastTicketCheck = new Date();
 
-      const tickets = await query<any>(
-        `SELECT t.*, p.display_name, p.handle
-         FROM public.support_tickets t
-         LEFT JOIN public.profiles p ON p.id = t.user_id
-         WHERE t.created_at > $1
-         ORDER BY t.created_at ASC`,
-        [cutoff],
-      );
+      const supabase = getAdminClient();
 
-      for (const ticket of tickets) {
-        // Fetch the first user message for this ticket
-        const msgs = await query<any>(
-          `SELECT message FROM public.support_messages
-           WHERE ticket_id = $1 AND sender_type = 'user'
-           ORDER BY created_at ASC LIMIT 1`,
-          [ticket.id],
-        ).catch(() => []);
+      const { data: tickets, error: ticketsErr } = await supabase
+        .from("support_tickets")
+        .select("*, profiles:user_id(display_name, handle)")
+        .gt("created_at", cutoff)
+        .order("created_at", { ascending: true });
 
-        const preview = msgs[0]?.message || "(no message)";
-        const userName = ticket.display_name || ticket.handle || "User";
+      if (ticketsErr) {
+        logger.warn({ err: ticketsErr }, "[watcher] ticket query error (non-fatal)");
+        return;
+      }
 
-        // ── Email notifications ──────────────────────────────────────────
+      for (const ticket of tickets ?? []) {
+        const profile = (ticket as any).profiles as { display_name: string | null; handle: string | null } | null;
+
+        const { data: msgs } = await supabase
+          .from("support_messages")
+          .select("message")
+          .eq("ticket_id", ticket.id)
+          .eq("sender_type", "user")
+          .order("created_at", { ascending: true })
+          .limit(1);
+
+        const preview = msgs?.[0]?.message || "(no message)";
+        const userName = profile?.display_name || profile?.handle || "User";
+
         if (hasResend) {
           if (ticket.email) {
             emailUserTicketCreated({
@@ -86,9 +85,6 @@ export function startRealtimeWatcher() {
           }).catch((e) => logger.error(e, "[watcher] emailStaffNewTicket failed"));
         }
 
-        // ── AI draft generation ──────────────────────────────────────────
-        // Fire-and-forget: a failed draft never blocks email delivery.
-        // The draft appears in the ticket thread as sender_type = 'ai'.
         if (hasAi && preview !== "(no message)") {
           generateAiDraft({
             ticketId: ticket.id,
@@ -100,8 +96,8 @@ export function startRealtimeWatcher() {
         }
       }
 
-      if (tickets.length > 0) {
-        logger.info({ count: tickets.length }, "[watcher] Processed new tickets");
+      if ((tickets?.length ?? 0) > 0) {
+        logger.info({ count: tickets!.length }, "[watcher] Processed new tickets");
       }
     } catch (err) {
       logger.warn({ err }, "[watcher] ticket polling error (non-fatal)");

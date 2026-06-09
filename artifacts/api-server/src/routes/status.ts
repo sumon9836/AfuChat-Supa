@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { checkDb } from "../lib/db";
+import { getAdminClient } from "../lib/supabase-admin";
 import { isR2Configured } from "../lib/r2";
 
 const router = Router();
@@ -20,11 +20,18 @@ interface StatusResponse {
 }
 
 async function checkDatabase(): Promise<ServiceCheck> {
-  const { ok, latency_ms } = await checkDb();
-  if (!ok) {
-    return { name: "Database", status: "outage", latency_ms, message: "Connection failed" };
+  const start = Date.now();
+  try {
+    const supabase = getAdminClient();
+    const { error } = await supabase.from("app_settings").select("key").limit(1);
+    const latency_ms = Date.now() - start;
+    if (error) {
+      return { name: "Database", status: "outage", latency_ms, message: error.message };
+    }
+    return { name: "Database", status: "operational", latency_ms };
+  } catch (e: any) {
+    return { name: "Database", status: "outage", latency_ms: Date.now() - start, message: e?.message };
   }
-  return { name: "Database", status: "operational", latency_ms };
 }
 
 function checkStorage(): ServiceCheck {
@@ -40,14 +47,9 @@ function checkStorage(): ServiceCheck {
 }
 
 function checkVideoProcessing(): ServiceCheck {
-  const hasDb = !!process.env["SUPABASE_DB_URL"];
   const workerDisabled = process.env["VIDEO_WORKER_ENABLED"] === "false";
-  if (!hasDb || workerDisabled) {
-    return {
-      name: "Video Processing",
-      status: "degraded",
-      message: hasDb ? "Video worker disabled" : "SUPABASE_DB_URL not configured",
-    };
+  if (workerDisabled) {
+    return { name: "Video Processing", status: "degraded", message: "Video worker disabled" };
   }
   return { name: "Video Processing", status: "operational" };
 }

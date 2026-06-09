@@ -12,7 +12,7 @@
 
 import { Router, type Request, type Response } from "express";
 import { authedUser as verifyAuth } from "../lib/auth";
-import { query, queryOne } from "../lib/db";
+import { getAdminClient } from "../lib/supabase-admin";
 import { publicUrlFor } from "../lib/videoStorage";
 import { RENDITION_HEIGHTS, type Codec } from "../lib/ffmpeg";
 import { logger } from "../lib/logger";
@@ -32,17 +32,14 @@ async function authedUser(
 const HEIGHT_PRIORITY: Record<number, number> = { 720: 0, 1080: 5, 360: 10 };
 
 const PRIORITY_BY_CODEC: Record<Codec, number> = {
-  h264: 10, // fast, baseline — encode first so playback is available quickly
-  av1: 50,  // background — bandwidth optimization
+  h264: 10,
+  av1: 50,
 };
 
 function planRenditions(sourceHeight: number | null) {
-  // If we don't know source dimensions, plan all heights and rely on ffmpeg
-  // to upscale-skip via the worker (it will short-circuit when source < target).
   const heights = RENDITION_HEIGHTS.filter(
     (h) => sourceHeight == null || h <= sourceHeight,
   );
-  // Always include at least 360p so universally-compatible playback exists.
   const finalHeights = heights.length ? heights : [360];
 
   const plan: Array<{
@@ -78,7 +75,7 @@ function mimeFor(codec: Codec, container: string): string {
 // ─── POST /api/videos ─────────────────────────────────────────────────────
 
 interface RegisterBody {
-  source_path: string;          // path in the `videos` bucket
+  source_path: string;
   post_id?: string | null;
   duration?: number | null;
   width?: number | null;
@@ -101,43 +98,61 @@ router.post("/videos", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "source_path is not owned by caller" });
     }
 
-    const assets = await query<{ id: string }>(
-      `INSERT INTO public.video_assets (owner_id, post_id, source_path, source_size_bytes, source_mime, duration_seconds, width, height, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pending') RETURNING id`,
-      [auth.userId, body.post_id ?? null, body.source_path, body.source_size_bytes ?? null,
-       body.source_mime ?? null, body.duration ?? null, body.width ?? null, body.height ?? null],
-    );
-    if (!assets.length) {
-      logger.error("video_assets insert returned no rows");
+    const supabase = getAdminClient();
+
+    const { data: assetData, error: assetErr } = await supabase
+      .from("video_assets")
+      .insert({
+        owner_id: auth.userId,
+        post_id: body.post_id ?? null,
+        source_path: body.source_path,
+        source_size_bytes: body.source_size_bytes ?? null,
+        source_mime: body.source_mime ?? null,
+        duration_seconds: body.duration ?? null,
+        width: body.width ?? null,
+        height: body.height ?? null,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+
+    if (assetErr || !assetData) {
+      logger.error({ err: assetErr }, "video_assets insert failed");
       return res.status(500).json({ error: "insert failed" });
     }
-    const assetId = assets[0].id;
+    const assetId = assetData.id;
 
     const plan = planRenditions(body.height ?? null);
     const renditions: Array<{ id: string; codec: string; height: number }> = [];
+
     for (const p of plan) {
-      const rows = await query<{ id: string }>(
-        `INSERT INTO public.video_renditions (asset_id, codec, container, height, status)
-         VALUES ($1,$2,'mp4',$3,'pending') RETURNING id`,
-        [assetId, p.codec, p.height],
-      );
-      if (rows.length) renditions.push({ id: rows[0].id, codec: p.codec, height: p.height });
+      const { data: rData, error: rErr } = await supabase
+        .from("video_renditions")
+        .insert({ asset_id: assetId, codec: p.codec, container: "mp4", height: p.height, status: "pending" })
+        .select("id")
+        .single();
+      if (!rErr && rData) {
+        renditions.push({ id: rData.id, codec: p.codec, height: p.height });
+      }
     }
 
     for (const r of renditions) {
-      await query(
-        `INSERT INTO public.video_jobs (asset_id, rendition_id, codec, height, priority, status)
-         VALUES ($1,$2,$3,$4,$5,'queued')`,
-        [assetId, r.id, r.codec, r.height,
-         PRIORITY_BY_CODEC[r.codec as Codec] + (HEIGHT_PRIORITY[r.height] ?? 20)],
-      );
+      await supabase.from("video_jobs").insert({
+        asset_id: assetId,
+        rendition_id: r.id,
+        codec: r.codec,
+        height: r.height,
+        priority: PRIORITY_BY_CODEC[r.codec as Codec] + (HEIGHT_PRIORITY[r.height] ?? 20),
+        status: "queued",
+      });
     }
 
     if (body.post_id) {
-      await query(
-        `UPDATE public.posts SET video_asset_id = $1 WHERE id = $2 AND author_id = $3`,
-        [assetId, body.post_id, auth.userId],
-      );
+      await supabase
+        .from("posts")
+        .update({ video_asset_id: assetId })
+        .eq("id", body.post_id)
+        .eq("author_id", auth.userId);
     }
 
     notifyJobsAvailable();
@@ -175,20 +190,23 @@ const CODEC_ORDER: Record<string, number> = { av1: 0, h264: 1 };
 async function loadAssetWithRenditions(
   assetId: string,
 ): Promise<{ asset: AssetRow; renditions: RenditionRow[] } | null> {
-  const assets = await query<AssetRow>(
-    `SELECT id, status, duration_seconds, width, height, poster_path, source_path
-     FROM public.video_assets WHERE id = $1 LIMIT 1`,
-    [assetId],
-  );
-  if (!assets.length) return null;
+  const supabase = getAdminClient();
 
-  const renditions = await query<RenditionRow>(
-    `SELECT codec, container, height, width, bitrate_kbps, storage_path, status
-     FROM public.video_renditions WHERE asset_id = $1`,
-    [assetId],
-  );
+  const { data: asset, error: assetErr } = await supabase
+    .from("video_assets")
+    .select("id, status, duration_seconds, width, height, poster_path, source_path")
+    .eq("id", assetId)
+    .limit(1)
+    .single();
 
-  return { asset: assets[0], renditions };
+  if (assetErr || !asset) return null;
+
+  const { data: renditions } = await supabase
+    .from("video_renditions")
+    .select("codec, container, height, width, bitrate_kbps, storage_path, status")
+    .eq("asset_id", assetId);
+
+  return { asset: asset as AssetRow, renditions: (renditions ?? []) as RenditionRow[] };
 }
 
 function buildManifest(
@@ -220,8 +238,6 @@ function buildManifest(
     width: asset.width,
     height: asset.height,
     poster: asset.poster_path ? publicUrlFor(asset.poster_path) : null,
-    // Source URL is always available as the universal fallback while encoding
-    // is still in flight. Clients should prefer `sources` when populated.
     fallback_url: publicUrlFor(asset.source_path),
     sources,
   };
@@ -246,11 +262,15 @@ router.get("/videos/:id/manifest", async (req, res) => {
 // ─── GET /api/videos/by-post/:postId/manifest ─────────────────────────────
 
 router.get("/videos/by-post/:postId/manifest", async (req, res) => {
-  const post = await queryOne<{ video_asset_id: string | null }>(
-    `SELECT video_asset_id FROM public.posts WHERE id = $1 LIMIT 1`,
-    [req.params.postId],
-  );
-  if (!post) return res.status(404).json({ error: "Not found" });
+  const supabase = getAdminClient();
+  const { data: post, error } = await supabase
+    .from("posts")
+    .select("video_asset_id")
+    .eq("id", req.params.postId)
+    .limit(1)
+    .single();
+
+  if (error || !post) return res.status(404).json({ error: "Not found" });
   if (!post.video_asset_id) return res.status(404).json({ error: "No video asset for post" });
 
   const loaded = await loadAssetWithRenditions(post.video_asset_id);

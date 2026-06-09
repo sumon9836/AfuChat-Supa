@@ -13,7 +13,7 @@
 
 import { Router, type Request, type Response } from "express";
 import { authedUser as verifyAuth } from "../lib/auth";
-import { query, queryOne } from "../lib/db";
+import { getAdminClient } from "../lib/supabase-admin";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -117,22 +117,26 @@ async function pushToUser(
     bypassQuietHours?: boolean;
   },
 ): Promise<void> {
-  const profile = await queryOne<{ expo_push_token: string | null }>(
-    `SELECT expo_push_token FROM public.profiles WHERE id = $1 LIMIT 1`,
-    [userId],
-  );
+  const supabase = getAdminClient();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("expo_push_token")
+    .eq("id", userId)
+    .limit(1)
+    .single();
 
   if (!profile?.expo_push_token) return;
 
   let prefs: Partial<NotifPrefs> | null = null;
   try {
-    prefs = await queryOne<NotifPrefs>(
-      `SELECT push_enabled, push_messages, push_likes, push_follows, push_gifts,
-              push_mentions, push_replies, quiet_hours_enabled, quiet_hours_start,
-              quiet_hours_end, quiet_hours_timezone
-       FROM public.notification_preferences WHERE user_id = $1 LIMIT 1`,
-      [userId],
-    );
+    const { data } = await supabase
+      .from("notification_preferences")
+      .select("push_enabled, push_messages, push_likes, push_follows, push_gifts, push_mentions, push_replies, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone")
+      .eq("user_id", userId)
+      .limit(1)
+      .single();
+    prefs = data as Partial<NotifPrefs> | null;
   } catch {
     // table may not exist yet — proceed with defaults
   }
@@ -154,7 +158,7 @@ async function pushToUser(
   const isCall = type === "call";
 
   const payload: Record<string, unknown> = {
-    to: (profile as any).expo_push_token,
+    to: profile.expo_push_token,
     title: (push.title ?? "").substring(0, 100),
     body: (push.body ?? "").substring(0, 200),
     data: { recipientUserId: userId, ...(push.data ?? {}) },
@@ -174,7 +178,7 @@ async function pushToUser(
 
   const result = await sendExpoPush(payload);
   if (result === "stale") {
-    await query(`UPDATE public.profiles SET expo_push_token = NULL WHERE id = $1`, [userId]);
+    await supabase.from("profiles").update({ expo_push_token: null }).eq("id", userId);
     logger.info({ userId }, "[push] cleared stale token");
   }
 }
@@ -206,42 +210,42 @@ async function handleMessage(record: Record<string, unknown>): Promise<void> {
   if (!chatId || !senderId) return;
 
   const body = messagePreview(rawContent, attachmentType);
+  const supabase = getAdminClient();
 
-  const [chats, senders] = await Promise.all([
-    query<{ id: string; is_group: boolean; name: string | null }>(
-      `SELECT id, is_group, name FROM public.chats WHERE id = $1 LIMIT 1`, [chatId],
-    ),
-    query<{ display_name: string | null; handle: string | null }>(
-      `SELECT display_name, handle FROM public.profiles WHERE id = $1 LIMIT 1`, [senderId],
-    ),
+  const [chatResult, senderResult] = await Promise.all([
+    supabase.from("chats").select("id, is_group, name").eq("id", chatId).limit(1).single(),
+    supabase.from("profiles").select("display_name, handle").eq("id", senderId).limit(1).single(),
   ]);
 
-  if (!chats.length) return;
+  if (chatResult.error || !chatResult.data) return;
 
-  const chat = chats[0];
-  const sender = senders[0];
+  const chat = chatResult.data as { id: string; is_group: boolean; name: string | null };
+  const sender = senderResult.data as { display_name: string | null; handle: string | null } | null;
   const senderName = (sender?.display_name || sender?.handle || "Someone") as string;
   const title = (chat.is_group && chat.name) ? `${senderName} in ${chat.name}` : senderName;
 
-  const members = await query<{ user_id: string }>(
-    `SELECT user_id FROM public.chat_members WHERE chat_id = $1`, [chatId],
-  );
+  const { data: membersData } = await supabase
+    .from("chat_members")
+    .select("user_id")
+    .eq("chat_id", chatId);
+
+  const members = (membersData ?? []) as { user_id: string }[];
   const allRecipients = members.filter((m) => m.user_id !== senderId);
 
   let mutedUserIds = new Set<string>();
   if (allRecipients.length > 0) {
     try {
       const userIdList = allRecipients.map((m) => m.user_id);
-      const placeholders = userIdList.map((_, i) => `$${i + 2}`).join(",");
-      const muteRows = await query<{ user_id: string; muted_until: string | null }>(
-        `SELECT user_id, muted_until FROM public.chat_mutes WHERE chat_id = $1 AND user_id IN (${placeholders})`,
-        [chatId, ...userIdList],
-      );
+      const { data: muteRows } = await supabase
+        .from("chat_mutes")
+        .select("user_id, muted_until")
+        .eq("chat_id", chatId)
+        .in("user_id", userIdList);
       const now = new Date().toISOString();
       mutedUserIds = new Set(
-        muteRows
-          .filter((m) => m.muted_until === null || m.muted_until > now)
-          .map((m) => m.user_id),
+        (muteRows ?? [])
+          .filter((m: any) => m.muted_until === null || m.muted_until > now)
+          .map((m: any) => m.user_id),
       );
     } catch { /* chat_mutes may not exist yet */ }
   }
@@ -271,10 +275,15 @@ async function handleCall(record: Record<string, unknown>): Promise<void> {
 
   if (!calleeId || !callerId || !callId) return;
 
-  const callers = await query<{ display_name: string | null; handle: string | null }>(
-    `SELECT display_name, handle FROM public.profiles WHERE id = $1 LIMIT 1`, [callerId],
-  );
-  const callerName = (callers[0]?.display_name || callers[0]?.handle || "Someone") as string;
+  const supabase = getAdminClient();
+  const { data: callerData } = await supabase
+    .from("profiles")
+    .select("display_name, handle")
+    .eq("id", callerId)
+    .limit(1)
+    .single();
+
+  const callerName = (callerData?.display_name || callerData?.handle || "Someone") as string;
 
   await pushToUser(calleeId, {
     title: `Incoming ${callType === "video" ? "Video" : "Voice"} Call`,
@@ -326,10 +335,14 @@ async function handleNotification(record: Record<string, unknown>): Promise<void
 
   let actorName = "Someone";
   if (actorId) {
-    const actors = await query<{ display_name: string | null; handle: string | null }>(
-      `SELECT display_name, handle FROM public.profiles WHERE id = $1 LIMIT 1`, [actorId],
-    );
-    actorName = (actors[0]?.display_name || actors[0]?.handle || "Someone") as string;
+    const supabase = getAdminClient();
+    const { data: actorData } = await supabase
+      .from("profiles")
+      .select("display_name, handle")
+      .eq("id", actorId)
+      .limit(1)
+      .single();
+    actorName = (actorData?.display_name || actorData?.handle || "Someone") as string;
   }
 
   const mapped = mapper(record, actorName);
@@ -362,7 +375,6 @@ type WebhookPayload = {
 };
 
 router.post("/push/webhook", async (req: Request, res: Response) => {
-  // Verify webhook token
   const webhookToken = process.env.PUSH_WEBHOOK_TOKEN || "";
   if (webhookToken) {
     const incoming = req.headers["x-webhook-token"] as string | undefined;
@@ -421,7 +433,12 @@ router.post("/push/register-token", async (req: Request, res: Response) => {
   }
 
   try {
-    await query(`UPDATE public.profiles SET expo_push_token = $1 WHERE id = $2`, [token, authUser.userId]);
+    const supabase = getAdminClient();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ expo_push_token: token })
+      .eq("id", authUser.userId);
+    if (error) throw error;
     res.json({ ok: true });
   } catch (err: any) {
     logger.error({ err }, "[push] failed to save push token");

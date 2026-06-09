@@ -20,7 +20,7 @@
 
 import { Router, raw, type Request, type Response } from "express";
 import { authedUser as verifyAuth } from "../lib/auth";
-import { query } from "../lib/db";
+import { getAdminClient } from "../lib/supabase-admin";
 import { getR2PublicBaseUrl as _getR2PublicBaseUrl } from "../lib/r2";
 import {
   isR2Configured,
@@ -217,16 +217,18 @@ router.delete("/uploads/object", async (req, res): Promise<void> => {
         ? `${baseUrl}/${key.split("/").map(encodeURIComponent).join("/")}`
         : null;
       if (publicUrl) {
+        const supabase = getAdminClient();
+        const likePattern = `${publicUrl}%`;
         if (bucket === "avatars") {
-          await query(`UPDATE public.profiles SET avatar_url = NULL WHERE id = $1 AND avatar_url LIKE $2`, [userId, `${publicUrl}%`]);
+          await supabase.from("profiles").update({ avatar_url: null }).eq("id", userId).like("avatar_url", likePattern);
         } else if (bucket === "banners") {
-          await query(`UPDATE public.profiles SET banner_url = NULL WHERE id = $1 AND banner_url LIKE $2`, [userId, `${publicUrl}%`]);
+          await supabase.from("profiles").update({ banner_url: null }).eq("id", userId).like("banner_url", likePattern);
         } else if (bucket === "post-images") {
-          await query(`DELETE FROM public.posts WHERE author_id = $1 AND image_url LIKE $2`, [userId, `${publicUrl}%`]);
+          await supabase.from("posts").delete().eq("author_id", userId).like("image_url", likePattern);
         } else if (bucket === "videos") {
-          await query(`DELETE FROM public.posts WHERE author_id = $1 AND video_url LIKE $2`, [userId, `${publicUrl}%`]);
+          await supabase.from("posts").delete().eq("author_id", userId).like("video_url", likePattern);
         } else if (bucket === "stories") {
-          await query(`DELETE FROM public.stories WHERE user_id = $1 AND media_url LIKE $2`, [userId, `${publicUrl}%`]);
+          await supabase.from("stories").delete().eq("user_id", userId).like("media_url", likePattern);
         }
       }
     } catch (cleanupErr: any) {
