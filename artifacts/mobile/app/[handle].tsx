@@ -10,8 +10,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
-  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -24,7 +22,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { GlassHeader } from "@/components/ui/GlassHeader";
 import { useTheme } from "@/hooks/useTheme";
 import { Avatar } from "@/components/ui/Avatar";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
@@ -32,8 +29,7 @@ import NotFoundScreen from "@/app/+not-found";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import AfuLogo from "@/components/ui/AfuLogo";
-
-const { width: SW } = Dimensions.get("window");
+import { T } from "@/constants/theme";
 
 function safeNavigate(path: string, params?: Record<string, string>) {
   try {
@@ -47,7 +43,7 @@ function safeNavigate(path: string, params?: Record<string, string>) {
   }
 }
 
-// ─── Public Profile (shown to unauthenticated visitors of /@username) ──────────
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 type PubProfile = {
   id: string;
@@ -64,8 +60,10 @@ type PubProfile = {
 
 type PubCounts = { followers: number; following: number; posts: number };
 
+// ─── Public Profile (shown to unauthenticated visitors of /@username) ──────────
+
 function PublicProfileScreen({ handle }: { handle: string }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState<PubProfile | null>(null);
   const [counts, setCounts] = useState<PubCounts>({ followers: 0, following: 0, posts: 0 });
@@ -74,7 +72,6 @@ function PublicProfileScreen({ handle }: { handle: string }) {
 
   useEffect(() => {
     async function load() {
-      // Try primary handle first, then alias table
       let profileData: PubProfile | null = null;
 
       const { data: primary } = await supabase
@@ -86,7 +83,6 @@ function PublicProfileScreen({ handle }: { handle: string }) {
       if (primary) {
         profileData = primary as PubProfile;
       } else {
-        // Try owned_usernames alias
         const { data: alias } = await supabase
           .from("owned_usernames")
           .select("owner_id")
@@ -126,144 +122,165 @@ function PublicProfileScreen({ handle }: { handle: string }) {
   }
   if (notFound || !profile) return <NotFoundScreen />;
 
-  function StatBlock({ label, value }: { label: string; value: number }) {
-    return (
-      <View style={pub.statBlock}>
-        <Text style={[pub.statNum, { color: colors.text }]}>{value.toLocaleString()}</Text>
-        <Text style={[pub.statLabel, { color: colors.textMuted }]}>{label}</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={[pub.root, { backgroundColor: colors.backgroundSecondary }]}>
-      <GlassHeader title="Profile" />
+    <View style={[pub.root, { backgroundColor: colors.background }]}>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
-        {/* Profile hero */}
-        <View style={[pub.hero, { backgroundColor: colors.surface }]}>
+      {/* ── Flat header ─────────────────────────────────────────────────── */}
+      <View style={[pub.header, { paddingTop: insets.top, borderBottomColor: colors.separator }]}>
+        <TouchableOpacity
+          style={pub.headerBack}
+          onPress={() => {
+            if (Platform.OS === "web" && typeof window !== "undefined") {
+              window.history.back();
+            } else {
+              router.back();
+            }
+          }}
+          hitSlop={{ top: 8, left: 8, right: 12, bottom: 8 }}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.brand} />
+        </TouchableOpacity>
+        <Text style={[pub.headerTitle, { color: colors.text }]} numberOfLines={1}>
+          {profile.display_name}
+        </Text>
+        <View style={pub.headerSide} />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 130 }}>
+
+        {/* ── Identity block ────────────────────────────────────────────── */}
+        <View style={[pub.identityBlock, { borderBottomColor: colors.separator }]}>
           <Avatar
             uri={profile.avatar_url}
             name={profile.display_name}
-            size={88}
-            style={pub.avatar}
+            size={80}
+            style={{ marginBottom: 14 }}
           />
           <View style={pub.nameRow}>
             <Text style={[pub.displayName, { color: colors.text }]}>{profile.display_name}</Text>
             {(profile.is_verified || profile.is_organization_verified) && (
-              <VerifiedBadge size={20} />
+              <VerifiedBadge size={19} />
             )}
           </View>
           <Text style={[pub.handleText, { color: colors.textMuted }]}>@{profile.handle}</Text>
+
           {profile.bio ? (
-            <Text style={[pub.bio, { color: colors.text }]} numberOfLines={4}>{profile.bio}</Text>
+            <Text style={[pub.bio, { color: colors.textSecondary }]} numberOfLines={4}>
+              {profile.bio}
+            </Text>
           ) : null}
+
           {profile.country ? (
-            <View style={pub.locationRow}>
+            <View style={pub.metaRow}>
               <Ionicons name="location-outline" size={13} color={colors.textMuted} />
-              <Text style={[pub.locationText, { color: colors.textMuted }]}>{profile.country}</Text>
+              <Text style={[pub.metaText, { color: colors.textMuted }]}>{profile.country}</Text>
+            </View>
+          ) : null}
+
+          {profile.current_grade ? (
+            <View style={pub.metaRow}>
+              <Ionicons name="flash-outline" size={13} color={colors.textMuted} />
+              <Text style={[pub.metaText, { color: colors.textMuted }]}>
+                {profile.current_grade} · {profile.xp.toLocaleString()} Nexa
+              </Text>
             </View>
           ) : null}
         </View>
 
-        {/* Stats */}
-        <View style={[pub.statsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <StatBlock label="Posts" value={counts.posts} />
-          <View style={[pub.statDivider, { backgroundColor: colors.border }]} />
-          <StatBlock label="Followers" value={counts.followers} />
-          <View style={[pub.statDivider, { backgroundColor: colors.border }]} />
-          <StatBlock label="Following" value={counts.following} />
+        {/* ── Stats ─────────────────────────────────────────────────────── */}
+        <View style={[pub.statsRow, { borderBottomColor: colors.separator }]}>
+          {[
+            { label: "Posts",     value: counts.posts },
+            { label: "Followers", value: counts.followers },
+            { label: "Following", value: counts.following },
+          ].map((s, i) => (
+            <React.Fragment key={s.label}>
+              {i > 0 && <View style={[pub.statSep, { backgroundColor: colors.separator }]} />}
+              <View style={pub.statCell}>
+                <Text style={[pub.statNum, { color: colors.text }]}>{s.value.toLocaleString()}</Text>
+                <Text style={[pub.statLabel, { color: colors.textMuted }]}>{s.label}</Text>
+              </View>
+            </React.Fragment>
+          ))}
         </View>
 
-        {/* CTA buttons */}
-        <View style={pub.ctaRow}>
+        {/* ── Actions ───────────────────────────────────────────────────── */}
+        <View style={[pub.actionsBlock, { borderBottomColor: colors.separator }]}>
           <TouchableOpacity
-            style={[pub.ctaBtn, { backgroundColor: Colors.brand }]}
+            style={[pub.btnPrimary, { backgroundColor: Colors.brand }]}
             onPress={() => router.push("/(auth)/login" as any)}
             activeOpacity={0.85}
           >
-            <Ionicons name="person-add" size={18} color="#fff" />
-            <Text style={pub.ctaBtnText}>Follow</Text>
+            <Ionicons name="person-add-outline" size={17} color="#fff" />
+            <Text style={pub.btnPrimaryText}>Follow</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[pub.ctaBtn, pub.ctaBtnOutline, { borderColor: colors.border }]}
+            style={[pub.btnSecondary, { borderColor: colors.border }]}
             onPress={() => router.push("/(auth)/login" as any)}
             activeOpacity={0.85}
           >
-            <Ionicons name="chatbubble-outline" size={18} color={colors.text} />
-            <Text style={[pub.ctaBtnText, { color: colors.text }]}>Message</Text>
+            <Ionicons name="chatbubble-outline" size={17} color={colors.text} />
+            <Text style={[pub.btnSecondaryText, { color: colors.text }]}>Message</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Join AfuChat banner */}
-        <View style={[pub.joinCard, { backgroundColor: Colors.brand + "10", borderColor: Colors.brand + "25" }]}>
-          <AfuLogo size={36} style={{ marginRight: 10 }} />
+        {/* ── Join AfuChat prompt ───────────────────────────────────────── */}
+        <View style={[pub.joinBlock, { borderBottomColor: colors.separator }]}>
+          <AfuLogo size={30} style={{ flexShrink: 0 }} />
           <View style={{ flex: 1 }}>
-            <Text style={[pub.joinTitle, { color: Colors.brand }]}>Join AfuChat</Text>
+            <Text style={[pub.joinTitle, { color: colors.text }]}>
+              Join AfuChat
+            </Text>
             <Text style={[pub.joinSub, { color: colors.textMuted }]}>
-              Connect with @{profile.handle} and millions of others on AfuChat
+              Connect with @{profile.handle} and millions of others
             </Text>
           </View>
           <TouchableOpacity
             style={[pub.joinBtn, { backgroundColor: Colors.brand }]}
             onPress={() => router.push("/(auth)/register" as any)}
+            activeOpacity={0.85}
           >
             <Text style={pub.joinBtnText}>Sign up</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Nexa grade pill */}
-        {profile.current_grade && (
-          <View style={{ paddingHorizontal: 20 }}>
-            <View style={[pub.gradePill, { backgroundColor: "#FF950010", borderColor: "#FF950030" }]}>
-              <Ionicons name="flash" size={14} color="#FF9500" />
-              <Text style={{ color: "#FF9500", fontSize: 13, fontFamily: "Inter_600SemiBold" }}>
-                {profile.current_grade} · {profile.xp.toLocaleString()} Nexa
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Bottom padding so content clears the sticky sign-in bar */}
-        <View style={{ height: 110 }} />
       </ScrollView>
 
-      {/* ── Sticky sign-in prompt ─────────────────────────────────────────── */}
+      {/* ── Sticky bottom sign-in bar ─────────────────────────────────────── */}
       <View
         style={[
-          pub.signinBar,
+          pub.bottomBar,
           {
-            backgroundColor: colors.surface,
-            borderTopColor: colors.border,
-            paddingBottom: insets.bottom + 12,
+            backgroundColor: colors.background,
+            borderTopColor: colors.separator,
+            paddingBottom: Math.max(insets.bottom, 16),
           },
         ]}
       >
-        <View style={pub.signinBarInner}>
-          <Ionicons name="lock-closed" size={18} color={Colors.brand} style={{ marginTop: 1 }} />
+        <View style={pub.bottomBarInner}>
           <View style={{ flex: 1 }}>
-            <Text style={[pub.signinBarTitle, { color: colors.text }]}>
+            <Text style={[pub.bottomBarTitle, { color: colors.text }]}>
               Sign in to follow or message
             </Text>
-            <Text style={[pub.signinBarSub, { color: colors.textMuted }]}>
+            <Text style={[pub.bottomBarSub, { color: colors.textMuted }]}>
               Join AfuChat to connect with @{profile.handle}
             </Text>
           </View>
         </View>
-        <View style={pub.signinBtnRow}>
+        <View style={pub.bottomBtnRow}>
           <TouchableOpacity
-            style={[pub.signinBtn, { backgroundColor: Colors.brand }]}
+            style={[pub.bottomBtn, { backgroundColor: Colors.brand }]}
             onPress={() => router.push("/(auth)/login" as any)}
             activeOpacity={0.85}
           >
-            <Text style={pub.signinBtnText}>Sign In</Text>
+            <Text style={pub.bottomBtnText}>Sign In</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[pub.signinBtn, pub.signinBtnOutline, { borderColor: Colors.brand }]}
+            style={[pub.bottomBtn, pub.bottomBtnOutline, { borderColor: Colors.brand }]}
             onPress={() => router.push("/(auth)/register" as any)}
             activeOpacity={0.85}
           >
-            <Text style={[pub.signinBtnText, { color: Colors.brand }]}>Create Account</Text>
+            <Text style={[pub.bottomBtnText, { color: Colors.brand }]}>Create Account</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -288,19 +305,11 @@ export default function HandleScreen() {
   const cleanHandle = (rawHandle || "").replace(/^@/, "").toLowerCase();
   const isValidHandle = /^[a-zA-Z0-9_]+$/.test(cleanHandle);
 
-  // ── All hooks run unconditionally — React requires this ─────────────────────
-  // Conditional returns are at the BOTTOM, after every hook.
-
-  // Effect 1: resolve handle → profile ID (skipped in public-profile mode)
-  // Checks primary handle first, then owned_usernames aliases so ALL handles a
-  // user owns always route to the same profile.
   useEffect(() => {
-    // Public profile mode (/@handle + guest): PublicProfileScreen fetches its own data.
     if (isAtHandle && !authLoading && !session) return;
     if (!cleanHandle || !isValidHandle) { setDataReady(true); return; }
 
     async function resolve() {
-      // 1. Try the primary handle stored on the profile
       const { data: primary } = await supabase
         .from("profiles")
         .select("id")
@@ -309,7 +318,6 @@ export default function HandleScreen() {
 
       if (primary?.id) { setProfileId(primary.id); setDataReady(true); return; }
 
-      // 2. Fall back to owned_usernames alias table
       const { data: alias } = await supabase
         .from("owned_usernames")
         .select("owner_id")
@@ -324,14 +332,12 @@ export default function HandleScreen() {
     resolve();
   }, [cleanHandle, isValidHandle, isAtHandle, authLoading, session]);
 
-  // Effect 2: navigate once data is ready
   useEffect(() => {
     if (hasNavigated.current) return;
     if (!dataReady) return;
     if (authLoading) return;
     if (!navigationState?.key) return;
     if (profileNotFound || !cleanHandle || !isValidHandle) return;
-    // Public profile mode handled inline below — no navigation needed.
     if (isAtHandle && !session) return;
 
     hasNavigated.current = true;
@@ -340,7 +346,6 @@ export default function HandleScreen() {
       if (profileId) safeNavigate("/contact/[id]", { id: profileId });
     } else {
       if (profileId) {
-        // Only save referrer when it's the /username (not @username) route
         if (!isAtHandle) {
           AsyncStorage.setItem("referrer_handle", cleanHandle).catch(() => {});
         }
@@ -349,11 +354,10 @@ export default function HandleScreen() {
     }
   }, [dataReady, authLoading, navigationState?.key, cleanHandle, isValidHandle, profileId, profileNotFound, session, isAtHandle]);
 
-  // Effect 3: web fallback timeout
   useEffect(() => {
     if (Platform.OS !== "web") return;
     if (hasNavigated.current) return;
-    if (isAtHandle && !session) return; // public profile — no redirect
+    if (isAtHandle && !session) return;
     const timeout = setTimeout(() => {
       if (hasNavigated.current) return;
       if (!dataReady) return;
@@ -368,9 +372,6 @@ export default function HandleScreen() {
     return () => clearTimeout(timeout);
   }, [dataReady, session, profileNotFound, isAtHandle]);
 
-  // ── Conditional renders — hooks are all done, safe to return early ───────────
-
-  // /@username visited by a guest → show public profile card (no auth required)
   if (isAtHandle && !authLoading && !session) {
     if (!isValidHandle) return <NotFoundScreen />;
     return <PublicProfileScreen handle={cleanHandle} />;
@@ -395,116 +396,157 @@ export default function HandleScreen() {
 const pub = StyleSheet.create({
   root: { flex: 1 },
   centered: { alignItems: "center", justifyContent: "center" },
+
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingHorizontal: T.pageH,
+    paddingBottom: 12,
+    paddingTop: 8,
     borderBottomWidth: 0.5,
   },
-  headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
-  hero: { alignItems: "center", paddingHorizontal: 24, paddingVertical: 32, marginBottom: 2 },
-  avatar: { marginBottom: 16 },
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
-  displayName: { fontSize: 22, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  handleText: { fontSize: 15, fontFamily: "Inter_400Regular", marginBottom: 12 },
-  bio: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20, marginBottom: 10 },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  locationText: { fontSize: 13, fontFamily: "Inter_400Regular" },
-
-  statsCard: {
-    flexDirection: "row",
-    marginHorizontal: 20,
-    marginVertical: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: "hidden",
+  headerBack: {
+    width: 40,
+    height: 40,
+    alignItems: "flex-start",
+    justifyContent: "center",
   },
-  statBlock: { flex: 1, alignItems: "center", paddingVertical: 16 },
-  statNum: { fontSize: 20, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  statLabel: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  statDivider: { width: 0.5, marginVertical: 10 },
+  headerTitle: {
+    flex: 1,
+    ...T.title,
+    textAlign: "center",
+  },
+  headerSide: { width: 40 },
 
-  ctaRow: { flexDirection: "row", gap: 10, paddingHorizontal: 20, marginBottom: 16 },
-  ctaBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13, borderRadius: 999 },
-  ctaBtnOutline: { borderWidth: 1 },
-  ctaBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
+  // Identity block — centered, no card
+  identityBlock: {
+    alignItems: "center",
+    paddingHorizontal: T.pageH,
+    paddingTop: 28,
+    paddingBottom: 24,
+    borderBottomWidth: 0.5,
+    gap: 4,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 4,
+  },
+  displayName: { ...T.h2, textAlign: "center" },
+  handleText: { ...T.caption, textAlign: "center", marginTop: 2 },
+  bio: {
+    ...T.body,
+    textAlign: "center",
+    marginTop: 12,
+    lineHeight: 22,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 8,
+  },
+  metaText: { ...T.caption },
 
-  joinCard: {
+  // Stats — inline row, no card
+  statsRow: {
+    flexDirection: "row",
+    paddingVertical: 20,
+    paddingHorizontal: T.pageH,
+    borderBottomWidth: 0.5,
+  },
+  statCell: { flex: 1, alignItems: "center", gap: 2 },
+  statNum: { fontSize: 20, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
+  statLabel: { ...T.caption, marginTop: 1 },
+  statSep: { width: 0.5, marginVertical: 4 },
+
+  // Action buttons
+  actionsBlock: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: T.pageH,
+    paddingVertical: 16,
+    borderBottomWidth: 0.5,
+  },
+  btnPrimary: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  btnPrimaryText: {
+    color: "#fff",
+    ...T.bodySemi,
+  },
+  btnSecondary: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  btnSecondaryText: { ...T.bodySemi },
+
+  // Join AfuChat row
+  joinBlock: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingHorizontal: T.pageH,
+    paddingVertical: 16,
+    borderBottomWidth: 0.5,
   },
-  joinLogo: { width: 60, height: 60, borderRadius: 10 },
-  joinTitle: { fontSize: 14, fontFamily: "Inter_700Bold", marginBottom: 2 },
-  joinSub: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 16 },
-  joinBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 },
-  joinBtnText: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" },
-
-  gradePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  joinTitle: { ...T.bodyMed, marginBottom: 1 },
+  joinSub: { ...T.caption, lineHeight: 17 },
+  joinBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    alignSelf: "flex-start",
+    borderRadius: 8,
   },
+  joinBtnText: { color: "#fff", ...T.captionMed, fontFamily: "Inter_600SemiBold" },
 
-  signinBar: {
+  // Bottom sticky bar
+  bottomBar: {
     borderTopWidth: 0.5,
-    paddingHorizontal: 20,
+    paddingHorizontal: T.pageH,
     paddingTop: 14,
   },
-  signinBarInner: {
+  bottomBarInner: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10,
     marginBottom: 12,
   },
-  signinBarTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    marginBottom: 2,
-  },
-  signinBarSub: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 18,
-  },
-  signinBtnRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  signinBtn: {
+  bottomBarTitle: { ...T.bodyMed, marginBottom: 2 },
+  bottomBarSub: { ...T.caption, lineHeight: 18 },
+  bottomBtnRow: { flexDirection: "row", gap: 10 },
+  bottomBtn: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: 10,
   },
-  signinBtnOutline: {
+  bottomBtnOutline: {
     borderWidth: 1.5,
     backgroundColor: "transparent",
   },
-  signinBtnText: {
+  bottomBtnText: {
     color: "#fff",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
+    ...T.bodySemi,
   },
 });
 
 const splash = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  logo: { width: 120, height: 120, borderRadius: 20 },
-  brandText: { color: "#fff", fontSize: 24, fontWeight: "700", marginTop: 12 },
+  brandText: { color: "#fff", fontSize: 24, fontFamily: "Inter_700Bold", marginTop: 12 },
   loader: { marginTop: 24 },
-  subText: { color: "rgba(255,255,255,0.7)", fontSize: 14, marginTop: 8 },
+  subText: { color: "rgba(255,255,255,0.7)", ...T.caption, marginTop: 8 },
 });

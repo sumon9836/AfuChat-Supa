@@ -98,18 +98,18 @@ function SectionLabel({ label, colors }: { label: string; colors: any }) {
   return <Text style={[sl.text, { color: colors.textMuted }]}>{label.toUpperCase()}</Text>;
 }
 const sl = StyleSheet.create({
-  text: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8, marginBottom: 6, marginLeft: 4 },
+  text: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.7, marginBottom: 6, marginTop: 24, marginLeft: 20 },
 });
 
 function MenuCard({ children, colors }: { children: React.ReactNode; colors: any }) {
   return (
-    <View style={[mc.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View style={[mc.card, { backgroundColor: colors.surface }]}>
       {children}
     </View>
   );
 }
 const mc = StyleSheet.create({
-  card: { borderRadius: 16, borderWidth: 0.5, overflow: "hidden" },
+  card: { overflow: "hidden" },
 });
 
 // ─── Profile completion bar ───────────────────────────────────────────────────
@@ -183,7 +183,7 @@ const pc = StyleSheet.create({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function MeScreen() {
-  const { colors, accent } = useTheme();
+  const { colors, accent, isDark } = useTheme();
   const { isDesktop } = useIsDesktop();
   const { profile, isPremium, subscription, loading, user } = useAuth();
   const [avatarOpen, setAvatarOpen] = useState(false);
@@ -309,7 +309,7 @@ export default function MeScreen() {
   const acoin = profile?.acoin || 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <OfflineBanner />
 
       <ScrollView
@@ -325,7 +325,7 @@ export default function MeScreen() {
       >
 
         {/* ── Hero Card ─────────────────────────────────────────────────── */}
-        <View style={[s.heroCard, { backgroundColor: colors.surface, borderColor: colors.border, borderTopColor: accent }]}>
+        <View style={[s.heroCard, { backgroundColor: colors.surface, borderBottomColor: colors.separator }]}>
 
           {/* Avatar row */}
           <View style={s.heroTop}>
@@ -396,7 +396,7 @@ export default function MeScreen() {
         </View>
 
         {/* ── Stats Row ─────────────────────────────────────────────────── */}
-        <View style={[s.statsRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[s.statsRow, { backgroundColor: colors.surface, borderBottomColor: colors.separator }]}>
           {[
             {
               label: "Followers", count: followerCount,
@@ -422,12 +422,12 @@ export default function MeScreen() {
         </View>
 
         {/* ── Quick Actions ──────────────────────────────────────────────── */}
-        <View style={[s.quickRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[s.quickRow, { backgroundColor: colors.surface, borderBottomColor: colors.separator }]}>
           {[
-            { icon: "person-circle-outline", label: "View Profile", color: accent,       onPress: () => profile?.handle && router.push(`/@${profile.handle}` as any) },
-            { icon: "create-outline",        label: "Edit Profile", color: colors.icon, onPress: () => router.push("/profile/edit") },
-            { icon: "card-outline",          label: "Digital ID",   color: colors.icon, onPress: () => router.push("/digital-id" as any) },
-            { icon: "qr-code-outline",       label: "QR Code",      color: colors.icon, onPress: () => router.push("/qr-scanner" as any) },
+            { icon: "person-circle-outline", label: "View Profile", color: Colors.brand, onPress: () => profile?.handle && router.push(`/@${profile.handle}` as any) },
+            { icon: "create-outline",        label: "Edit Profile", color: colors.icon,  onPress: () => router.push("/profile/edit") },
+            { icon: "card-outline",          label: "Digital ID",   color: colors.icon,  onPress: () => router.push("/digital-id" as any) },
+            { icon: "qr-code-outline",       label: "QR Code",      color: colors.icon,  onPress: () => router.push("/qr-scanner" as any) },
           ].map((a) => (
             <TouchableOpacity key={a.label} style={s.quickBtn} onPress={a.onPress} activeOpacity={0.75}>
               <View style={[s.quickIconWrap, { backgroundColor: a.color + "15" }]}>
@@ -444,7 +444,7 @@ export default function MeScreen() {
         {/* ── Premium ────────────────────────────────────────────────────── */}
         {!isPremium ? (
           <TouchableOpacity
-            style={[s.premiumBanner, { backgroundColor: "#0f1923", borderColor: "#FFD60A30" }]}
+            style={[s.premiumBanner, { backgroundColor: isDark ? "#0f1923" : "#1A1208", borderBottomColor: colors.separator }]}
             onPress={() => router.push("/premium")}
             activeOpacity={0.88}
           >
@@ -479,9 +479,9 @@ export default function MeScreen() {
         <View>
           <SectionLabel label="Content" colors={colors} />
           <MenuCard colors={colors}>
-            <MenuItem icon="grid-outline" iconColor={accent} label="My Posts" value={`${fmtCount(postCount)} posts`} onPress={() => router.push("/my-posts")} showSeparator colors={colors} />
-            <MenuItem icon="bookmark-outline" iconColor="#FF9F0A" label="Saved Posts" onPress={() => router.push("/saved-posts" as any)} showSeparator colors={colors} />
-            <MenuItem icon="bar-chart-outline" iconColor="#34C759" label="Creator Analytics" onPress={() => router.push("/video-analytics" as any)} colors={colors} />
+            <MenuItem icon="grid-outline" iconColor={Colors.brand} label="My Posts" value={`${fmtCount(postCount)} posts`} onPress={() => router.push("/my-posts")} showSeparator colors={colors} />
+            <MenuItem icon="bookmark-outline" iconColor={colors.icon} label="Saved Posts" onPress={() => router.push("/saved-posts" as any)} showSeparator colors={colors} />
+            <MenuItem icon="bar-chart-outline" iconColor={colors.icon} label="Creator Analytics" onPress={() => router.push("/video-analytics" as any)} colors={colors} />
           </MenuCard>
         </View>
 
@@ -491,7 +491,7 @@ export default function MeScreen() {
           <MenuCard colors={colors}>
             <MenuItem
               icon="document-text-outline"
-              iconColor={accent}
+              iconColor={Colors.brand}
               label="My Notes"
               badge={notesLoading ? "…" : undefined}
               onPress={openMyNotes}
@@ -499,7 +499,7 @@ export default function MeScreen() {
               colors={colors}
             />
             <MenuItem icon="at-outline" iconColor={colors.icon} label="Username Market" onPress={() => router.push("/username-market")} showSeparator colors={colors} />
-            <MenuItem icon="gift-outline" iconColor="#FF6B6B" label="Referral Program" onPress={() => router.push("/referral" as any)} colors={colors} />
+            <MenuItem icon="gift-outline" iconColor={colors.icon} label="Referral Program" onPress={() => router.push("/referral" as any)} colors={colors} />
           </MenuCard>
         </View>
 
@@ -507,7 +507,7 @@ export default function MeScreen() {
         <View>
           <SectionLabel label="Account" colors={colors} />
           <MenuCard colors={colors}>
-            <MenuItem icon="shield-checkmark-outline" iconColor="#00C2CB" label="Security & Data" onPress={() => router.push("/settings/security" as any)} colors={colors} />
+            <MenuItem icon="shield-checkmark-outline" iconColor={colors.icon} label="Security & Data" onPress={() => router.push("/settings/security" as any)} colors={colors} />
             <MenuItem icon="settings-outline" iconColor={colors.icon} label="Settings" onPress={() => router.push("/settings")} colors={colors} />
           </MenuCard>
         </View>
@@ -517,7 +517,7 @@ export default function MeScreen() {
           <SectionLabel label="Growth" colors={colors} />
           <MenuCard colors={colors}>
             <MenuItem icon="trophy-outline" iconColor={Colors.gold} label="Prestige Status" badge="NEW" badgeColor={Colors.gold} onPress={() => router.push("/prestige")} showSeparator colors={colors} />
-            <MenuItem icon="people-outline" iconColor={accent} label="Find People" onPress={() => router.push("/user-discovery")} colors={colors} />
+            <MenuItem icon="people-outline" iconColor={colors.icon} label="Find People" onPress={() => router.push("/user-discovery")} colors={colors} />
           </MenuCard>
         </View>
 
@@ -623,42 +623,42 @@ export default function MeScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  content: { gap: 12, paddingHorizontal: 14 },
+  content: { gap: 0, paddingHorizontal: 0 },
 
-  // Hero
-  heroCard: { borderRadius: 18, borderWidth: 0.5, borderTopWidth: 3, overflow: "hidden" },
-  heroTop: { flexDirection: "row", alignItems: "flex-start", padding: 16, gap: 14 },
+  // Hero — flat full-width, bottom separator only
+  heroCard: { borderBottomWidth: 0.5, overflow: "hidden" },
+  heroTop: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14, gap: 14 },
   heroName: { fontSize: 19, fontFamily: "Inter_700Bold", flexShrink: 1 },
   heroHandle: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  heroBio: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19, paddingHorizontal: 16, paddingBottom: 12, borderTopWidth: 0.5, paddingTop: 10 },
+  heroBio: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19, paddingHorizontal: 20, paddingBottom: 14, borderTopWidth: 0.5, paddingTop: 12 },
   premiumDot: { position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: "#FFD60A", alignItems: "center", justifyContent: "center" },
-  businessChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, alignSelf: "flex-start", marginTop: 3 },
+  businessChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, alignSelf: "flex-start", marginTop: 3 },
   businessChipText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
   // ACoin bar
-  acoinBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 11, borderTopWidth: 0.5 },
-  acoinIconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  acoinBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 0.5 },
+  acoinIconWrap: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   acoinEmoji: { fontSize: 18 },
   acoinBalance: { fontSize: 15, fontFamily: "Inter_700Bold" },
   acoinSub: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
 
-  // Stats
-  statsRow: { flexDirection: "row", borderRadius: 16, borderWidth: 0.5, paddingVertical: 14, paddingHorizontal: 8 },
+  // Stats — flat, bottom separator only
+  statsRow: { flexDirection: "row", borderBottomWidth: 0.5, paddingVertical: 16, paddingHorizontal: 8 },
   statCell: { flex: 1, alignItems: "center", gap: 3 },
   statValue: { fontSize: 22, fontFamily: "Inter_700Bold" },
   statLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
   statDivider: { width: 0.5, marginVertical: 4 },
 
-  // Quick actions
-  quickRow: { flexDirection: "row", borderRadius: 16, borderWidth: 0.5, paddingVertical: 14, paddingHorizontal: 4 },
+  // Quick actions — flat, bottom separator only
+  quickRow: { flexDirection: "row", borderBottomWidth: 0.5, paddingVertical: 16, paddingHorizontal: 4 },
   quickBtn: { flex: 1, alignItems: "center", gap: 7 },
-  quickIconWrap: { width: 44, height: 44, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  quickIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   quickLabel: { fontSize: 10, fontFamily: "Inter_500Medium", textAlign: "center" },
 
-  // Premium banner
-  premiumBanner: { borderRadius: 16, borderWidth: 1, padding: 16, flexDirection: "row", alignItems: "center", gap: 14 },
-  premiumIconWrap: { width: 44, height: 44, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  // Premium banner — flat with subtle bg
+  premiumBanner: { padding: 20, flexDirection: "row", alignItems: "center", gap: 14, borderBottomWidth: 0.5 },
+  premiumIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   premiumTitle: { color: "#FFD60A", fontSize: 15, fontFamily: "Inter_700Bold" },
   premiumSub: { color: "rgba(255,255,255,0.45)", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  premiumChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  premiumChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   premiumChipText: { color: "#FFD60A", fontSize: 12, fontFamily: "Inter_600SemiBold" },
 });

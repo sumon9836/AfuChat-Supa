@@ -29,11 +29,7 @@ export function GlassMenuSection({ title, children, style }: GlassMenuSectionPro
       <View
         style={[
           styles.sectionCard,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            borderWidth: 0.5,
-          },
+          { backgroundColor: colors.surface },
         ]}
       >
         {children}
@@ -49,7 +45,7 @@ export function GlassMenuSeparator({ indent = 54 }: { indent?: number }) {
     <View
       style={{
         height: 0.5,
-        backgroundColor: colors.border,
+        backgroundColor: colors.separator,
         marginLeft: indent,
         pointerEvents: "none",
       }}
@@ -184,15 +180,16 @@ export const GlassMenuItem = React.memo(function GlassMenuItem({
 });
 
 const styles = StyleSheet.create({
-  sectionWrap: { gap: 8 },
+  sectionWrap: { gap: 0 },
   sectionLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Inter_600SemiBold",
-    letterSpacing: 0.6,
-    marginLeft: 4,
+    letterSpacing: 0.7,
+    marginLeft: 20,
+    marginBottom: 6,
+    marginTop: 22,
   },
-  // overflow:"hidden" clips Android ripple to the card shape automatically.
-  sectionCard: { borderRadius: 16, overflow: "hidden" },
+  sectionCard: { overflow: "hidden" },
 
   row: {
     flexDirection: "row",

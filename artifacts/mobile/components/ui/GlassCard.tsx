@@ -46,13 +46,7 @@ export const GlassCard = React.memo(function GlassCard({
     <View
       style={[
         {
-          borderRadius: r,
           backgroundColor: bg,
-          overflow: "hidden",
-        },
-        !noBorder && {
-          borderWidth: 0.5,
-          borderColor: colors.border,
         },
         style,
         pointerEvents ? ({ pointerEvents } as any) : undefined,
