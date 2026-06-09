@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { logger } from "../lib/logger";
 import { emailUserStaffReply } from "../lib/email";
 import { SUPABASE_URL } from "../lib/constants";
+import { generateAiDraft } from "../services/aiAutoResponder";
 
 const router = Router();
 
@@ -18,16 +19,12 @@ function getAdmin() {
 /**
  * POST /api/support/inbound-email
  * Webhook endpoint for Resend inbound email processing.
- * When a user replies to a support email thread, Resend POSTs here.
- * We parse the ticket ID from the To address (support+<ticketId>@afuchat.com)
- * and append the reply to the ticket thread.
  */
 router.post("/support/inbound-email", async (req: Request, res: Response) => {
   try {
     const payload = req.body;
     logger.info({ from: payload?.from }, "[support] Inbound email received");
 
-    // Extract ticket ID from "To" address: support+<uuid>@afuchat.com
     const toAddresses: string[] = payload?.to || [];
     let ticketId: string | null = null;
     for (const addr of toAddresses) {
@@ -42,7 +39,6 @@ router.post("/support/inbound-email", async (req: Request, res: Response) => {
 
     const admin = getAdmin();
 
-    // Verify ticket exists
     const { data: ticket, error: ticketErr } = await admin
       .from("support_tickets")
       .select("id, user_id, status, subject")
@@ -60,7 +56,6 @@ router.post("/support/inbound-email", async (req: Request, res: Response) => {
       return;
     }
 
-    // Insert user reply message
     await admin.from("support_messages").insert({
       ticket_id: ticketId,
       sender_id: ticket.user_id,
@@ -68,23 +63,24 @@ router.post("/support/inbound-email", async (req: Request, res: Response) => {
       message: messageBody.substring(0, 5000),
     });
 
-    // Update ticket status back to open if it was resolved
     if (ticket.status === "resolved") {
-      await admin.from("support_tickets").update({ status: "open", updated_at: new Date().toISOString() }).eq("id", ticketId);
+      await admin
+        .from("support_tickets")
+        .update({ status: "open", updated_at: new Date().toISOString() })
+        .eq("id", ticketId);
     }
 
     logger.info({ ticketId }, "[support] Inbound email added to ticket");
     res.status(200).json({ ok: true });
   } catch (err: any) {
     logger.error(err, "[support] Inbound email error");
-    res.status(200).json({ ok: true }); // Always 200 to Resend webhook
+    res.status(200).json({ ok: true });
   }
 });
 
 /**
  * POST /api/support/staff-reply
- * Called from admin dashboard when staff submits a reply.
- * Authenticated route — staff member must be admin or support_staff.
+ * Staff-only: submit a reply to a ticket.
  */
 router.post("/support/staff-reply", async (req: Request, res: Response) => {
   try {
@@ -102,7 +98,6 @@ router.post("/support/staff-reply", async (req: Request, res: Response) => {
       return;
     }
 
-    // Check staff permissions
     const { data: profile } = await admin
       .from("profiles")
       .select("is_admin, is_support_staff, display_name, handle")
@@ -120,7 +115,6 @@ router.post("/support/staff-reply", async (req: Request, res: Response) => {
       return;
     }
 
-    // Insert staff message
     await admin.from("support_messages").insert({
       ticket_id: ticketId,
       sender_id: user.id,
@@ -129,16 +123,12 @@ router.post("/support/staff-reply", async (req: Request, res: Response) => {
       is_internal: Boolean(isInternal),
     });
 
-    // Update ticket status if provided
     const updates: any = { updated_at: new Date().toISOString() };
     if (newStatus) updates.status = newStatus;
-    if (newStatus === "in_progress" || newStatus === "resolved") {
-      updates.assigned_to = user.id;
-    }
+    if (newStatus === "in_progress" || newStatus === "resolved") updates.assigned_to = user.id;
     if (newStatus === "resolved") updates.resolved_at = new Date().toISOString();
     await admin.from("support_tickets").update(updates).eq("id", ticketId);
 
-    // Send email to user (if not internal note)
     if (!isInternal) {
       const { data: ticket } = await admin
         .from("support_tickets")
@@ -167,7 +157,7 @@ router.post("/support/staff-reply", async (req: Request, res: Response) => {
 
 /**
  * PATCH /api/support/ticket/:id
- * Update ticket status, priority, assignment — staff only.
+ * Staff-only: update ticket status, priority, or assignment.
  */
 router.patch("/support/ticket/:id", async (req: Request, res: Response) => {
   try {
@@ -179,7 +169,12 @@ router.patch("/support/ticket/:id", async (req: Request, res: Response) => {
     const { data: { user }, error: authError } = await admin.auth.getUser(jwt);
     if (authError || !user) { res.status(401).json({ error: "Invalid token" }); return; }
 
-    const { data: profile } = await admin.from("profiles").select("is_admin, is_support_staff").eq("id", user.id).single();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("is_admin, is_support_staff")
+      .eq("id", user.id)
+      .single();
+
     if (!profile || (!(profile as any).is_admin && !(profile as any).is_support_staff)) {
       res.status(403).json({ error: "Forbidden" }); return;
     }
@@ -194,6 +189,73 @@ router.patch("/support/ticket/:id", async (req: Request, res: Response) => {
     await admin.from("support_tickets").update(updates).eq("id", req.params.id);
     res.json({ ok: true });
   } catch (err: any) {
+    res.status(500).json({ error: "Internal error", detail: err.message });
+  }
+});
+
+/**
+ * POST /api/support/ai-draft/:id
+ * Staff-only: (re)generate an AI draft reply for a ticket.
+ * Useful when the automatic draft was skipped or needs refreshing.
+ */
+router.post("/support/ai-draft/:id", async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const jwt = authHeader.slice(7);
+    const admin = getAdmin();
+
+    const { data: { user }, error: authError } = await admin.auth.getUser(jwt);
+    if (authError || !user) { res.status(401).json({ error: "Invalid token" }); return; }
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("is_admin, is_support_staff")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || (!(profile as any).is_admin && !(profile as any).is_support_staff)) {
+      res.status(403).json({ error: "Forbidden" }); return;
+    }
+
+    const ticketId = req.params.id;
+    const { data: ticket } = await admin
+      .from("support_tickets")
+      .select("id, subject, category")
+      .eq("id", ticketId)
+      .single();
+
+    if (!ticket) { res.status(404).json({ error: "Ticket not found" }); return; }
+
+    const msgs = await admin
+      .from("support_messages")
+      .select("message")
+      .eq("ticket_id", ticketId)
+      .eq("sender_type", "user")
+      .order("created_at", { ascending: true })
+      .limit(1);
+
+    const userMessage = (msgs.data?.[0] as any)?.message || "(no message)";
+
+    // Delete any existing AI draft so it regenerates fresh
+    if (req.body.force) {
+      await admin
+        .from("support_messages")
+        .delete()
+        .eq("ticket_id", ticketId)
+        .eq("sender_type", "ai");
+    }
+
+    const ok = await generateAiDraft({
+      ticketId: (ticket as any).id,
+      subject: (ticket as any).subject,
+      category: (ticket as any).category,
+      userMessage,
+    });
+
+    res.json({ ok, regenerated: req.body.force ?? false });
+  } catch (err: any) {
+    logger.error(err, "[support] ai-draft error");
     res.status(500).json({ error: "Internal error", detail: err.message });
   }
 });
