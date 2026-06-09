@@ -35,19 +35,27 @@ export function SplashScreenView({ ready, onDone }: Props) {
   const opacity = useRef(new Animated.Value(1)).current;
   const scale = useRef(new Animated.Value(1)).current;
   const doneFired = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     if (!ready || doneFired.current) return;
     doneFired.current = true;
 
     if (Platform.OS === "web") {
-      // On web: opacity-only fade (scale transform can silently block .start callback)
+      // On web: opacity-only fade. Use a ref-stored setTimeout for onDone
+      // because (a) the Animated .start() callback is unreliable on RN Web
+      // when the native animated module is absent, and (b) storing the timer
+      // in a ref prevents the effect cleanup from cancelling it on re-renders
+      // after doneFired is already true.
       Animated.timing(opacity, {
         toValue: 0,
         duration: 350,
         delay: 80,
         useNativeDriver: false,
-      }).start(() => onDone());
+      }).start();
+      timerRef.current = setTimeout(() => onDoneRef.current(), 480);
     } else {
       Animated.parallel([
         Animated.timing(opacity, {
@@ -62,9 +70,16 @@ export function SplashScreenView({ ready, onDone }: Props) {
           delay: 120,
           useNativeDriver: true,
         }),
-      ]).start(() => onDone());
+      ]).start(() => onDoneRef.current());
     }
-  }, [ready, opacity, scale, onDone]);
+
+    return () => {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [ready, opacity, scale]);
 
   return (
     <Animated.View style={[styles.container, { opacity, pointerEvents: "none" } as any]}>
