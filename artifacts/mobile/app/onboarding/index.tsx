@@ -673,8 +673,8 @@ export default function OnboardingScreen() {
                   {phoneAvailStatus === "taken" && <Ionicons name="close-circle" size={20} color="#FF3B30" style={{ marginRight: 8 }} />}
                 </View>
               </View>
-              {phoneNumber && !phoneV.valid && phoneV.reason === "tooShort" && <Text style={[st.fieldHint, { color: colors.textMuted }]}>Number seems too short</Text>}
-              {phoneNumber && !phoneV.valid && phoneV.reason === "tooLong"  && <Text style={st.errorHint}>Number seems too long</Text>}
+              {!!phoneNumber && !phoneV.valid && phoneV.reason === "tooShort" && <Text style={[st.fieldHint, { color: colors.textMuted }]}>Number seems too short</Text>}
+              {!!phoneNumber && !phoneV.valid && phoneV.reason === "tooLong"  && <Text style={st.errorHint}>Number seems too long</Text>}
               {phoneV.valid && phoneAvailStatus === "available" && <Text style={st.successHint}>✓ Phone number is available</Text>}
               {phoneAvailStatus === "taken" && takenPhoneProfile && (
                 <View style={[st.takenCard, { backgroundColor: colors.inputBg, borderColor: "#FF3B30" }]}>

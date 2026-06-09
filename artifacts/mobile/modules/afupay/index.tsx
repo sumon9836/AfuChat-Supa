@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
-  Linking,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "@/components/ui/SafeGradient";
@@ -176,7 +177,7 @@ export default function AfuPayApp() {
     : transactions.filter(t => t.currency === txFilter);
 
   if (view === "history") return <HistoryView colors={colors} insets={insets} txs={filteredTx} loading={txLoading} filter={txFilter} setFilter={setTxFilter} refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadTransactions(); }} onBack={() => setView("home")} />;
-  if (view === "topup") return <TopUpView colors={colors} insets={insets} profile={profile} onBack={() => setView("home")} />;
+  if (view === "topup") return <TopUpView colors={colors} insets={insets} profile={profile} onBack={() => setView("home")} onSuccess={() => { loadTransactions(); refreshProfile?.(); }} />;
   if (view === "send") return <SendView colors={colors} insets={insets} user={user} profile={profile} onBack={() => setView("home")} onSuccess={() => { loadTransactions(); refreshProfile?.(); setView("home"); }} />;
   if (view === "receive") return <ReceiveView colors={colors} insets={insets} profile={profile} onBack={() => setView("home")} />;
   if (view === "exchange") return <ExchangeView colors={colors} insets={insets} user={user} profile={profile} currSettings={currSettings} onBack={() => setView("home")} onSuccess={() => { loadTransactions(); refreshProfile?.(); setView("home"); }} />;
@@ -307,10 +308,79 @@ function HistoryView({ colors, insets, txs, loading, filter, setFilter, refreshi
   );
 }
 
-function TopUpView({ colors, insets, profile, onBack }: any) {
+function PaymentWebViewModal({ url, colors, insets, onClose, onComplete }: {
+  url: string; colors: any; insets: any; onClose: () => void; onComplete: () => void;
+}) {
+  const [webLoading, setWebLoading] = useState(true);
+
+  function handleNavChange(nav: any) {
+    const u: string = nav.url || "";
+    if (u.includes("payment-complete") || u.includes("payment_complete") || u.includes("paymentcomplete")) {
+      onComplete();
+    }
+  }
+
+  function shouldStart(req: any) {
+    const u: string = req.url || "";
+    if (u.includes("payment-complete") || u.includes("payment_complete") || u.includes("paymentcomplete")) {
+      onComplete();
+      return false;
+    }
+    return true;
+  }
+
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{
+          flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+          paddingHorizontal: 16, paddingTop: insets.top + 8, paddingBottom: 12,
+          borderBottomWidth: 0.5, borderBottomColor: colors.border, backgroundColor: colors.background,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Ionicons name="lock-closed" size={13} color="#34C759" />
+            <Text style={{ fontFamily: "Inter_600SemiBold", fontSize: 15, color: colors.text }}>Secure Checkout</Text>
+            <View style={{ backgroundColor: "#34C75920", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+              <Text style={{ fontSize: 11, fontFamily: "Inter_500Medium", color: "#34C759" }}>Pesapal</Text>
+            </View>
+          </View>
+          <TouchableOpacity onPress={onClose} hitSlop={12} style={{ padding: 6 }}>
+            <Ionicons name="close" size={22} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+        {webLoading && (
+          <View style={{ height: 3, backgroundColor: Colors.brand + "30" }}>
+            <View style={{ width: "60%", height: 3, backgroundColor: Colors.brand }} />
+          </View>
+        )}
+        <WebView
+          source={{ uri: url }}
+          style={{ flex: 1, backgroundColor: colors.background }}
+          onLoadStart={() => setWebLoading(true)}
+          onLoadEnd={() => setWebLoading(false)}
+          onNavigationStateChange={handleNavChange}
+          onShouldStartLoadWithRequest={shouldStart}
+          javaScriptEnabled
+          domStorageEnabled
+          startInLoadingState
+          renderLoading={() => (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
+              <ActivityIndicator size="large" color={Colors.brand} />
+              <Text style={{ marginTop: 12, color: colors.textMuted, fontFamily: "Inter_400Regular", fontSize: 14 }}>Loading secure payment…</Text>
+            </View>
+          )}
+        />
+        <View style={{ height: insets.bottom, backgroundColor: colors.background }} />
+      </View>
+    </Modal>
+  );
+}
+
+function TopUpView({ colors, insets, profile, onBack, onSuccess }: any) {
   const [selectedPack, setSelectedPack] = useState<number | null>(2);
   const [customAmt, setCustomAmt] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
   async function checkout() {
     const acoinAmt = selectedPack !== null ? PACKAGES[selectedPack].amount : (parseInt(customAmt || "0") || 0);
@@ -325,7 +395,7 @@ function TopUpView({ colors, insets, profile, onBack }: any) {
       });
       const data = await res.json();
       if (data.redirect_url) {
-        await Linking.openURL(data.redirect_url);
+        setCheckoutUrl(data.redirect_url);
       } else {
         showAlert("Error", data.error || "Could not initiate payment.");
       }
@@ -374,6 +444,19 @@ function TopUpView({ colors, insets, profile, onBack }: any) {
           {loading ? <ActivityIndicator color="#fff" /> : <><Ionicons name="card" size={18} color="#fff" /><Text style={s.primaryBtnText}>Pay with Pesapal</Text></>}
         </TouchableOpacity>
       </ScrollView>
+      {!!checkoutUrl && (
+        <PaymentWebViewModal
+          url={checkoutUrl}
+          colors={colors}
+          insets={insets}
+          onClose={() => setCheckoutUrl(null)}
+          onComplete={() => {
+            setCheckoutUrl(null);
+            onSuccess?.();
+            showAlert("Payment Submitted", "Your payment is being processed. Your ACoin balance will update shortly.");
+          }}
+        />
+      )}
     </View>
   );
 }
