@@ -20,6 +20,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { supabase } from "@/lib/supabase";
 import { GlassHeader } from "@/components/ui/GlassHeader";
+import { ListRowSkeleton } from "@/components/ui/Skeleton";
 import { RightRail } from "@/components/desktop/RightRail";
 import { showAlert } from "@/lib/alert";
 import { isOnline } from "@/lib/offlineStore";
@@ -357,8 +358,8 @@ export default function CommunitiesScreen() {
           </View>
 
           {loading ? (
-            <View style={ss.center}>
-              <ActivityIndicator color={activeTab === "groups" ? BRAND : PURPLE} />
+            <View style={{ padding: 8, gap: 4 }}>
+              {[1,2,3,4,5,6].map(i => <ListRowSkeleton key={i} />)}
             </View>
           ) : listData.length === 0 ? (
             <View style={ss.empty}>

@@ -17,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { ContactRowSkeleton, ListRowSkeleton } from "@/components/ui/Skeleton";
 
 type Screen = "home" | "edit-profile" | "shop" | "products" | "orders" | "audience";
 
@@ -215,8 +216,8 @@ export default function AfuBusinessApp() {
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         {renderHeader(`Audience (${followerCount})`)}
         {listLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={accent} size="large" />
+          <View style={{ padding: 8 }}>
+            {[1,2,3,4,5,6].map(i => <ContactRowSkeleton key={i} />)}
           </View>
         ) : followers.length === 0 ? (
           <View style={styles.center}>
@@ -261,8 +262,8 @@ export default function AfuBusinessApp() {
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         {renderHeader("Products")}
         {listLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={accent} size="large" />
+          <View style={{ padding: 8 }}>
+            {[1,2,3,4].map(i => <ListRowSkeleton key={i} />)}
           </View>
         ) : products.length === 0 ? (
           <View style={styles.center}>
@@ -308,8 +309,8 @@ export default function AfuBusinessApp() {
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         {renderHeader("Orders")}
         {listLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={accent} size="large" />
+          <View style={{ padding: 8 }}>
+            {[1,2,3,4].map(i => <ListRowSkeleton key={i} />)}
           </View>
         ) : orders.length === 0 ? (
           <View style={styles.center}>

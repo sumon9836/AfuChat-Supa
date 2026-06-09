@@ -23,6 +23,7 @@ import { supabase } from "@/lib/supabase";
 import { formatShopAcoin, addToCart, getOrCreateCart } from "@/lib/shop";
 import { Avatar } from "@/components/ui/Avatar";
 import { showAlert } from "@/lib/alert";
+import { MarketplaceCardSkeleton } from "@/components/ui/Skeleton";
 
 const CATEGORIES = [
   "All", "Electronics", "Fashion", "Food & Drink", "Beauty",
@@ -340,9 +341,8 @@ export default function AfuMarketApp() {
         )}
         ListEmptyComponent={
           loading ? (
-            <View style={s.center}>
-              <ActivityIndicator color={accent} size="large" />
-              <Text style={[s.emptyText, { color: colors.textMuted }]}>Loading products…</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", padding: 4 }}>
+              {[1,2,3,4,5,6].map(i => <MarketplaceCardSkeleton key={i} />)}
             </View>
           ) : (
             <View style={s.center}>
@@ -356,8 +356,8 @@ export default function AfuMarketApp() {
         }
         ListFooterComponent={
           loadingMore ? (
-            <View style={s.footerLoader}>
-              <ActivityIndicator color={accent} size="small" />
+            <View style={{ flexDirection: "row", flexWrap: "wrap", padding: 4 }}>
+              {[1,2].map(i => <MarketplaceCardSkeleton key={i} />)}
             </View>
           ) : null
         }

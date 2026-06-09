@@ -15,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { showAlert } from "@/lib/alert";
 import Colors from "@/constants/colors";
+import { ListRowSkeleton } from "@/components/ui/Skeleton";
 
 type Collection = {
   id: string;
@@ -79,7 +80,9 @@ export default function AfuCollectionsApp() {
         </TouchableOpacity>
       </View>
       {loading ? (
-        <ActivityIndicator color={Colors.brand} style={{ marginTop: 40 }} />
+        <View style={{ padding: 8, gap: 4 }}>
+          {[1,2,3,4,5,6].map(i => <ListRowSkeleton key={i} />)}
+        </View>
       ) : collections.length === 0 ? (
         <View style={s.empty}>
           <Ionicons name="albums-outline" size={56} color={colors.textMuted} />

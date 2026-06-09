@@ -48,7 +48,7 @@ import VideoTrimmerModal from "@/components/chat/VideoTrimmerModal";
 import * as Speech from "expo-speech";
 import * as Clipboard from "expo-clipboard";
 import AudioPlayer from "@/components/AudioPlayer";
-import { ChatLoadingSkeleton } from "@/components/ui/Skeleton";
+import { ChatLoadingSkeleton, ChatBubbleSkeleton } from "@/components/ui/Skeleton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase, supabaseUrl as SUPA_URL, supabaseAnonKey as SUPA_KEY } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -5294,7 +5294,11 @@ STRICT RULES:
               }
               ListFooterComponent={
                 loadingMore
-                  ? <View style={{ paddingVertical: 12, alignItems: "center" }}><ActivityIndicator size="small" color={colors.accent} /></View>
+                  ? <View style={{ paddingTop: 8, gap: 2 }}>
+                      <ChatBubbleSkeleton align="left" width={180} />
+                      <ChatBubbleSkeleton align="right" width={140} />
+                      <ChatBubbleSkeleton align="left" width={200} />
+                    </View>
                   : null
               }
             />

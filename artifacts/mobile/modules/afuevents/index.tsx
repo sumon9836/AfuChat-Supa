@@ -15,6 +15,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/lib/supabase";
 import { showAlert } from "@/lib/alert";
 import Colors from "@/constants/colors";
+import { EventCardSkeleton } from "@/components/ui/Skeleton";
 
 type Event = {
   id: string;
@@ -122,7 +123,9 @@ export default function AfuEventsApp() {
         ))}
       </View>
       {loading ? (
-        <ActivityIndicator color={Colors.brand} style={{ marginTop: 40 }} />
+        <View style={{ padding: 12, gap: 8 }}>
+          {[1,2,3,4,5].map(i => <EventCardSkeleton key={i} />)}
+        </View>
       ) : events.length === 0 ? (
         <View style={s.empty}>
           <Ionicons name="calendar-outline" size={56} color={colors.textMuted} />

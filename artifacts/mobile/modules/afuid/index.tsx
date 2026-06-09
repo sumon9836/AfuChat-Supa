@@ -22,6 +22,7 @@ import Colors from "@/constants/colors";
 import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/lib/supabase";
 import AfuLogo from "@/components/ui/AfuLogo";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 let ViewShot: any = ({ children, style, ...rest }: any) => (
   <View style={style} {...rest}>{children}</View>
@@ -241,8 +242,8 @@ export default function AfuIDApp() {
 
       {/* FLIP CARD */}
       {loading ? (
-        <View style={[r.loadBox, { width: CARD_W, height: CARD_H }]}>
-          <ActivityIndicator color={BRAND} />
+        <View style={{ alignItems: "center", justifyContent: "center" }}>
+          <Skeleton width={CARD_W} height={CARD_H} borderRadius={20} />
         </View>
       ) : (
         <>

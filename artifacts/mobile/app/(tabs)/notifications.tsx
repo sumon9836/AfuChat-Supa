@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { safeRouter } from "@/lib/navUtils";
+import { NotificationSkeleton } from "@/components/ui/Skeleton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -431,8 +432,8 @@ export default function NotificationsScreen() {
 
       {/* ── Body ── */}
       {loading ? (
-        <View style={st.center}>
-          <ActivityIndicator size="large" color={accent} />
+        <View style={{ padding: 12, gap: 8 }}>
+          {[1,2,3,4,5,6,7,8].map(i => <NotificationSkeleton key={i} />)}
         </View>
       ) : fetchError ? (
         <View style={st.center}>

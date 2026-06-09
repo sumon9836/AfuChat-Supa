@@ -15,6 +15,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import Colors from "@/constants/colors";
+import { PostSkeleton } from "@/components/ui/Skeleton";
 
 type SavedPost = {
   id: string;
@@ -103,8 +104,10 @@ export default function AfuSavedApp() {
   }
 
   if (loading) return (
-    <View style={[s.root, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
-      <ActivityIndicator color={Colors.brand} />
+    <View style={[s.root, { backgroundColor: colors.background }]}>
+      <View style={{ padding: 12, gap: 8 }}>
+        {[1,2,3,4,5,6].map(i => <PostSkeleton key={i} />)}
+      </View>
     </View>
   );
 

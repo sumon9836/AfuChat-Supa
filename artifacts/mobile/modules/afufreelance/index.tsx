@@ -24,6 +24,7 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { transferAcoin } from "@/lib/monetize";
 import { showAlert } from "@/lib/alert";
 import { useSuperApp } from "@/lib/superapp/SuperAppContext";
+import { FreelanceCardSkeleton } from "@/components/ui/Skeleton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Seller = { display_name: string | null; handle: string | null; avatar_url: string | null; is_verified: boolean };
@@ -439,9 +440,8 @@ export default function AfuFreelanceApp() {
       </ScrollView>
 
       {loading ? (
-        <View style={s.center}>
-          <ActivityIndicator color={accent} size="large" />
-          <Text style={[s.heroStatSub, { color: colors.textMuted, marginTop: 10, fontSize: 14 }]}>Loading services…</Text>
+        <View style={{ padding: 14, gap: 10 }}>
+          {[1,2,3,4].map(i => <FreelanceCardSkeleton key={i} />)}
         </View>
       ) : (
         <FlatList
