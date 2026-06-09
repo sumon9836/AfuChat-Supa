@@ -37,6 +37,70 @@ function openTrustpilot() {
   }
 }
 
+// ── Inline card (for Me tab) ──────────────────────────────────────────────────
+export function TrustpilotReviewCard() {
+  const { colors, isDark } = useTheme();
+  const { profile } = useAuth();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!profile?.created_at) return;
+    if (accountAgeInDays(profile.created_at) < DAYS_REQUIRED) return;
+    if (isDismissed()) return;
+    setVisible(true);
+  }, [profile?.created_at]);
+
+  function dismiss(permanent = false) {
+    const until = permanent
+      ? Date.now() + 365 * 24 * 60 * 60 * 1000
+      : Date.now() + SNOOZE_DAYS * 24 * 60 * 60 * 1000;
+    storage.setNumber(STORAGE_KEY, until);
+    setVisible(false);
+  }
+
+  function handleReview() {
+    storage.setNumber(STORAGE_KEY, Date.now() + 365 * 24 * 60 * 60 * 1000);
+    openTrustpilot();
+    setVisible(false);
+  }
+
+  if (!visible) return null;
+
+  return (
+    <View style={[card.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={card.top}>
+        <Text style={card.stars}>⭐⭐⭐⭐⭐</Text>
+        <Pressable onPress={() => dismiss()} hitSlop={8}>
+          <Text style={[card.x, { color: colors.textMuted }]}>✕</Text>
+        </Pressable>
+      </View>
+      <Text style={[card.title, { color: colors.text }]}>Enjoying AfuChat?</Text>
+      <Text style={[card.body, { color: colors.textMuted }]}>
+        Leave us a quick review — it helps others discover AfuChat and keeps the team motivated!
+      </Text>
+      <Pressable style={card.btn} onPress={handleReview}>
+        <Text style={card.btnText}>⭐ Rate on Trustpilot</Text>
+      </Pressable>
+      <Pressable onPress={() => dismiss(true)}>
+        <Text style={[card.skip, { color: colors.textMuted }]}>Don't ask again</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const card = StyleSheet.create({
+  container: { marginHorizontal: 16, marginTop: 12, borderRadius: 16, borderWidth: 0.5, padding: 16 },
+  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
+  stars: { fontSize: 18, letterSpacing: 2 },
+  x: { fontSize: 16, fontWeight: "600", paddingHorizontal: 4 },
+  title: { fontSize: 15, fontWeight: "700", marginBottom: 5 },
+  body: { fontSize: 13, lineHeight: 19, marginBottom: 14 },
+  btn: { backgroundColor: "#00B67A", borderRadius: 12, paddingVertical: 11, paddingHorizontal: 20, alignItems: "center", marginBottom: 10 },
+  btnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  skip: { textAlign: "center", fontSize: 12 },
+});
+
+// ── Modal popup (legacy, kept for compatibility) ──────────────────────────────
 export function TrustpilotReviewPrompt() {
   const { profile } = useAuth();
   const { colors, isDark } = useTheme();

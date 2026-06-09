@@ -27,6 +27,7 @@ import Colors from "@/constants/colors";
 import OfflineBanner from "@/components/ui/OfflineBanner";
 import { PrestigeBadge } from "@/components/ui/PrestigeBadge";
 import { showAlert } from "@/lib/alert";
+import { TrustpilotReviewCard } from "@/components/TrustpilotReviewPrompt";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -519,6 +520,7 @@ export default function MeScreen() {
             <MenuItem icon="trophy-outline" iconColor={Colors.gold} label="Prestige Status" badge="NEW" badgeColor={Colors.gold} onPress={() => router.push("/prestige")} showSeparator colors={colors} />
             <MenuItem icon="people-outline" iconColor={colors.icon} label="Find People" onPress={() => router.push("/user-discovery")} colors={colors} />
           </MenuCard>
+          <TrustpilotReviewCard />
         </View>
 
         {/* ── Creator (admin only) ───────────────────────────────────────── */}

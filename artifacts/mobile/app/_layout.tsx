@@ -46,7 +46,6 @@ import { SplashScreenView } from "@/components/ui/SplashScreenView";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
-import { TrustpilotReviewPrompt } from "@/components/TrustpilotReviewPrompt";
 import UpdatePrompt from "@/components/UpdatePrompt";
 import { initActivityTracker } from "@/lib/activityTracker";
 import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
@@ -237,7 +236,6 @@ export default function RootLayout() {
                   <CrashReporterUserSync />
                   <PageWatcher />
                   <PushNotificationManager />
-                  <TrustpilotReviewPrompt />
                   <UpdatePrompt />
                   <LanguageProvider>
                     <AdvancedFeaturesProvider>

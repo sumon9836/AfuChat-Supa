@@ -20,9 +20,12 @@ import {
   StyleSheet,
   Text,
   View,
+  useColorScheme,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const LOGO = require("../../assets/images/logo_white.png");
+const LOGO_WHITE = require("../../assets/images/logo_white.png");
+const LOGO_BLACK = require("../../assets/images/logo_black.png");
 const { width } = Dimensions.get("window");
 const LOGO_SIZE = Math.min(width * 0.28, 120);
 
@@ -38,6 +41,20 @@ export function SplashScreenView({ ready, onDone }: Props) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
+
+  // Detect theme: check stored preference, fall back to system color scheme
+  const systemScheme = useColorScheme();
+  const [isDark, setIsDark] = React.useState(systemScheme === "dark");
+
+  React.useEffect(() => {
+    AsyncStorage.getItem("@afuchat_theme")
+      .then((val) => {
+        if (val === "dark") setIsDark(true);
+        else if (val === "light") setIsDark(false);
+        else setIsDark(systemScheme === "dark");
+      })
+      .catch(() => setIsDark(systemScheme === "dark"));
+  }, [systemScheme]);
 
   useEffect(() => {
     if (!ready || doneFired.current) return;
@@ -81,8 +98,13 @@ export function SplashScreenView({ ready, onDone }: Props) {
     };
   }, [ready, opacity, scale]);
 
+  const bg = isDark ? "#000000" : "#FFFFFF";
+  const wordmarkColor = isDark ? "#FFFFFF" : "#0A0A0A";
+  const taglineColor = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.38)";
+  const LOGO = isDark ? LOGO_WHITE : LOGO_BLACK;
+
   return (
-    <Animated.View style={[styles.container, { opacity, pointerEvents: "none" } as any]}>
+    <Animated.View style={[styles.container, { opacity, backgroundColor: bg, pointerEvents: "none" } as any]}>
       <Animated.View style={[styles.logoWrap, { transform: [{ scale }] }]}>
         <Image
           source={LOGO}
@@ -92,13 +114,13 @@ export function SplashScreenView({ ready, onDone }: Props) {
         />
       </Animated.View>
       <View style={styles.wordmarkRow}>
-        <Text style={styles.wordmark}>
+        <Text style={[styles.wordmark, { color: wordmarkColor }]}>
           Afu<Text style={styles.wordmarkAccent}>Chat</Text>
         </Text>
       </View>
       {Platform.OS !== "web" && (
         <View style={styles.taglineWrap}>
-          <Text style={styles.tagline}>Connect · Discover · Create</Text>
+          <Text style={[styles.tagline, { color: taglineColor }]}>Connect · Discover · Create</Text>
         </View>
       )}
     </Animated.View>
@@ -110,7 +132,6 @@ export default SplashScreenView;
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 9999,
@@ -131,7 +152,6 @@ const styles = StyleSheet.create({
   wordmark: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#FFFFFF",
     letterSpacing: -0.5,
     fontFamily: Platform.select({ ios: "System", android: "sans-serif-medium", default: "System" }),
   },
@@ -143,7 +163,6 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.45)",
     letterSpacing: 1.2,
     fontFamily: Platform.select({ ios: "System", android: "sans-serif", default: "System" }),
   },

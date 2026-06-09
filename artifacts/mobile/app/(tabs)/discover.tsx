@@ -59,12 +59,9 @@ import { DesktopFeedLayout, FEED_COLUMN_MAX_WIDTH } from "@/components/desktop/D
 import { encodeId } from "@/lib/shortId";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import SignInPromptModal from "@/components/ui/SignInPromptModal";
-import { TrendingSoundsSection } from "@/components/TrendingSoundsSection";
-import { SuggestedUsers } from "@/components/ui/SuggestedUsers";
 import { PostShareCaptureModal, type ShareablePost } from "@/components/ui/PostShareCard";
 import { VideoCommentsSheet } from "@/components/ui/VideoCommentsSheet";
 import { UserRecsCard } from "@/components/discover/UserRecsCard";
-import { PremiumUpsellCard } from "@/components/discover/PremiumUpsellCard";
 import { DismissSheet, type DismissReason } from "@/components/discover/DismissSheet";
 
 type PostItem = {
@@ -714,14 +711,6 @@ export default function DiscoverScreen() {
       entries.push({ _kind: "post", item: showThreadLine ? { ...curr, showThreadLine: true } : curr });
       if ((i + 1) % 8 === 0) {
         entries.push({ _kind: "user_recs", id: `recs_${Math.floor(i / 8)}`, seed: recSeed++ });
-      }
-      if ((i + 1) % 15 === 0) {
-        const variant = PREMIUM_VARIANTS[premiumIdx % PREMIUM_VARIANTS.length];
-        const upsellId = `upsell_${premiumIdx}`;
-        if (!dismissedUpsellVariants.has(upsellId)) {
-          entries.push({ _kind: "premium", id: upsellId, variant });
-        }
-        premiumIdx++;
       }
     }
     return entries;
@@ -1852,7 +1841,7 @@ export default function DiscoverScreen() {
             {feedTab === "for_you" ? (
               loading ? (
                 <View style={{ padding: 8, paddingTop: headerHeight + 8, gap: 8 }}>
-                  {[1,2,3].map(i => <PostSkeleton key={i} />)}
+                  {[1,2,3,4,5,6,7,8].map(i => <PostSkeleton key={i} />)}
                 </View>
               ) : (
                 <FlatList
@@ -1861,7 +1850,7 @@ export default function DiscoverScreen() {
                   keyExtractor={(entry) => entry._kind === "post" ? entry.item.id : entry.id}
                   renderItem={({ item: entry }) => {
                     if (entry._kind === "user_recs") return <UserRecsCard seed={entry.seed} onRequireAuth={onRequireAuth} />;
-                    if (entry._kind === "premium") return <PremiumUpsellCard variant={entry.variant} onDismiss={() => setDismissedUpsellVariants(prev => new Set([...prev, entry.id]))} />;
+                    if (entry._kind === "premium") return null;
                     return (
                       <PostCard item={entry.item} onToggleLike={toggleLike} onToggleBookmark={toggleBookmark} onToggleFollow={toggleFollow} onImagePress={imgViewer.openViewer} onRequireAuth={onRequireAuth} colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined} onOpenComments={onOpenComments} onDismiss={onDismissPost} onMuteAuthor={onMuteAuthor} />
                     );
@@ -1871,23 +1860,20 @@ export default function DiscoverScreen() {
                   onScroll={onFeedScroll}
                   scrollEventThrottle={16}
                   onEndReached={loadMore}
-                  onEndReachedThreshold={0.3}
+                  onEndReachedThreshold={0.5}
                   onViewableItemsChanged={onViewableItemsChanged}
                   viewabilityConfig={viewabilityConfig}
-                  initialNumToRender={5}
-                  maxToRenderPerBatch={3}
-                  windowSize={5}
-                  updateCellsBatchingPeriod={100}
+                  initialNumToRender={15}
+                  maxToRenderPerBatch={10}
+                  windowSize={8}
+                  updateCellsBatchingPeriod={50}
                   removeClippedSubviews={Platform.OS !== "web"}
                   refreshControl={
                     <RefreshControl refreshing={refreshing} progressViewOffset={headerHeight} onRefresh={() => { revealHeader(); setRefreshing(true); setHasMore(true); setNewPostAuthors([]); newPostAuthorIdsRef.current.clear(); loadPosts(feedTab); }} tintColor={colors.accent} />
                   }
-                  ListHeaderComponent={
-                    <View><TrendingSoundsSection />{user && <SuggestedUsers />}</View>
-                  }
                   ListFooterComponent={
                     loadingMore ? (
-                      <View style={{ padding: 8, gap: 8 }}>{[1,2,3].map(i => <PostSkeleton key={i} />)}</View>
+                      <View style={{ padding: 8, gap: 8 }}>{[1,2,3,4,5].map(i => <PostSkeleton key={i} />)}</View>
                     ) : !hasMore && filteredPosts.length > 0 ? (
                       <View style={[styles.endOfFeed, { borderTopColor: colors.border }]}>
                         <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
@@ -1925,7 +1911,7 @@ export default function DiscoverScreen() {
                 </View>
               ) : loading ? (
                 <View style={{ padding: 8, paddingTop: headerHeight + 8, gap: 8 }}>
-                  {[1,2,3].map(i => <PostSkeleton key={i} />)}
+                  {[1,2,3,4,5,6,7,8].map(i => <PostSkeleton key={i} />)}
                 </View>
               ) : (
                 <FlatList
@@ -1934,7 +1920,7 @@ export default function DiscoverScreen() {
                   keyExtractor={(entry) => entry._kind === "post" ? entry.item.id : entry.id}
                   renderItem={({ item: entry }) => {
                     if (entry._kind === "user_recs") return <UserRecsCard seed={entry.seed} onRequireAuth={onRequireAuth} />;
-                    if (entry._kind === "premium") return <PremiumUpsellCard variant={entry.variant} onDismiss={() => setDismissedUpsellVariants(prev => new Set([...prev, entry.id]))} />;
+                    if (entry._kind === "premium") return null;
                     return (
                       <PostCard item={entry.item} onToggleLike={toggleLike} onToggleBookmark={toggleBookmark} onToggleFollow={toggleFollow} onImagePress={imgViewer.openViewer} onRequireAuth={onRequireAuth} colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined} onOpenComments={onOpenComments} onDismiss={onDismissPost} onMuteAuthor={onMuteAuthor} />
                     );
@@ -1944,20 +1930,20 @@ export default function DiscoverScreen() {
                   onScroll={onFeedScroll}
                   scrollEventThrottle={16}
                   onEndReached={loadMore}
-                  onEndReachedThreshold={0.3}
+                  onEndReachedThreshold={0.5}
                   onViewableItemsChanged={onViewableItemsChanged}
                   viewabilityConfig={viewabilityConfig}
-                  initialNumToRender={5}
-                  maxToRenderPerBatch={3}
-                  windowSize={5}
-                  updateCellsBatchingPeriod={100}
+                  initialNumToRender={15}
+                  maxToRenderPerBatch={10}
+                  windowSize={8}
+                  updateCellsBatchingPeriod={50}
                   removeClippedSubviews={Platform.OS !== "web"}
                   refreshControl={
                     <RefreshControl refreshing={refreshing} progressViewOffset={headerHeight} onRefresh={() => { revealHeader(); setRefreshing(true); setHasMore(true); setNewPostAuthors([]); newPostAuthorIdsRef.current.clear(); loadPosts(feedTab); }} tintColor={colors.accent} />
                   }
                   ListFooterComponent={
                     loadingMore ? (
-                      <View style={{ padding: 8, gap: 8 }}>{[1,2,3].map(i => <PostSkeleton key={i} />)}</View>
+                      <View style={{ padding: 8, gap: 8 }}>{[1,2,3,4,5].map(i => <PostSkeleton key={i} />)}</View>
                     ) : !hasMore && filteredPosts.length > 0 ? (
                       <View style={[styles.endOfFeed, { borderTopColor: colors.border }]}>
                         <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
@@ -1970,7 +1956,7 @@ export default function DiscoverScreen() {
               )
             ) : (
               <View style={{ padding: 8, paddingTop: headerHeight + 8, gap: 8 }}>
-                {[1, 2, 3].map(i => <PostSkeleton key={i} />)}
+                {[1,2,3,4,5,6,7,8].map(i => <PostSkeleton key={i} />)}
               </View>
             )}
           </View>
@@ -1995,7 +1981,7 @@ export default function DiscoverScreen() {
             </TouchableOpacity>
           </View>
         ) : loading ? (
-          <View style={{ padding: 8, paddingTop: headerHeight + 8, gap: 8 }}>{[1,2,3].map(i => <PostSkeleton key={i} />)}</View>
+          <View style={{ padding: 8, paddingTop: headerHeight + 8, gap: 8 }}>{[1,2,3,4,5,6,7,8].map(i => <PostSkeleton key={i} />)}</View>
         ) : (
           <FlatList
             ref={flatListRef}
@@ -2003,7 +1989,7 @@ export default function DiscoverScreen() {
             keyExtractor={(entry) => entry._kind === "post" ? entry.item.id : entry.id}
             renderItem={({ item: entry }) => {
               if (entry._kind === "user_recs") return <UserRecsCard seed={entry.seed} onRequireAuth={onRequireAuth} />;
-              if (entry._kind === "premium") return <PremiumUpsellCard variant={entry.variant} onDismiss={() => setDismissedUpsellVariants(prev => new Set([...prev, entry.id]))} />;
+              if (entry._kind === "premium") return null;
               return (
                 <PostCard item={entry.item} onToggleLike={toggleLike} onToggleBookmark={toggleBookmark} onToggleFollow={toggleFollow} onImagePress={imgViewer.openViewer} onRequireAuth={onRequireAuth} colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined} onOpenComments={onOpenComments} onDismiss={onDismissPost} onMuteAuthor={onMuteAuthor} />
               );
@@ -2013,23 +1999,20 @@ export default function DiscoverScreen() {
             onScroll={onFeedScroll}
             scrollEventThrottle={16}
             onEndReached={loadMore}
-            onEndReachedThreshold={0.3}
+            onEndReachedThreshold={0.5}
             onViewableItemsChanged={onViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}
-            initialNumToRender={5}
-            maxToRenderPerBatch={3}
-            windowSize={5}
-            updateCellsBatchingPeriod={100}
+            initialNumToRender={15}
+            maxToRenderPerBatch={10}
+            windowSize={8}
+            updateCellsBatchingPeriod={50}
             removeClippedSubviews={Platform.OS !== "web"}
             refreshControl={
               <RefreshControl refreshing={refreshing} progressViewOffset={headerHeight} onRefresh={() => { revealHeader(); setRefreshing(true); setHasMore(true); setNewPostAuthors([]); newPostAuthorIdsRef.current.clear(); loadPosts(feedTab); }} tintColor={colors.accent} />
             }
-            ListHeaderComponent={feedTab === "for_you" ? (
-              <View><TrendingSoundsSection />{user && <SuggestedUsers />}</View>
-            ) : null}
             ListFooterComponent={
               loadingMore ? (
-                <View style={{ padding: 8, gap: 8 }}>{[1,2,3].map(i => <PostSkeleton key={i} />)}</View>
+                <View style={{ padding: 8, gap: 8 }}>{[1,2,3,4,5].map(i => <PostSkeleton key={i} />)}</View>
               ) : !hasMore && filteredPosts.length > 0 ? (
                 <View style={[styles.endOfFeed, { borderTopColor: colors.border }]}>
                   <View style={[styles.endOfFeedDot, { backgroundColor: colors.border }]} />
