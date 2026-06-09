@@ -14,11 +14,11 @@ let pool: pg.Pool | null = null;
 
 export function getDb(): pg.Pool {
   if (!pool) {
-    const connectionString = process.env.SUPABASE_DB_URL;
+    const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
     if (!connectionString) {
       throw new Error(
-        "SUPABASE_DB_URL environment variable is required. " +
-        "Find it in your Supabase dashboard under Settings > Database > Connection string (Transaction mode, port 6543)."
+        "DATABASE_URL environment variable is required. " +
+        "Set it in the Replit Secrets panel (Settings > Secrets)."
       );
     }
     pool = new Pool({
