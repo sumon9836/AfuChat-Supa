@@ -29,7 +29,12 @@ export function GlassMenuSection({ title, children, style }: GlassMenuSectionPro
       <View
         style={[
           styles.sectionCard,
-          { backgroundColor: colors.surface },
+          {
+            backgroundColor: colors.background,
+            borderTopWidth: 0.5,
+            borderBottomWidth: 0.5,
+            borderColor: colors.separator,
+          },
         ]}
       >
         {children}

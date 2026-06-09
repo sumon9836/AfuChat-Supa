@@ -144,7 +144,7 @@ export const ESCROW_STATUS_LABELS: Record<EscrowStatus, { label: string; color: 
   refunded: { label: "Refunded",   color: "#8E8E93", icon: "return-down-back-outline", desc: "Funds have been returned to you" },
 };
 
-export const ACOIN_TO_UGX = 100;
+export const ACOIN_TO_USD = 0.01;
 export const PLATFORM_FEE_PCT = 5;
 
 export function formatShopAcoin(n: number): string {
@@ -153,12 +153,14 @@ export function formatShopAcoin(n: number): string {
   return `${n} 🪙`;
 }
 
-export function formatShopUGX(acoin: number): string {
-  const ugx = acoin * ACOIN_TO_UGX;
-  if (ugx >= 1000000) return `UGX ${(ugx / 1000000).toFixed(1)}M`;
-  if (ugx >= 1000) return `UGX ${(ugx / 1000).toFixed(0)}K`;
-  return `UGX ${ugx.toLocaleString()}`;
+export function formatShopUSD(acoin: number): string {
+  const usd = acoin * ACOIN_TO_USD;
+  if (usd >= 1000) return `$${(usd / 1000).toFixed(1)}K`;
+  if (usd >= 1) return `$${usd.toFixed(2)}`;
+  return `$${usd.toFixed(3)}`;
 }
+
+export const formatShopUGX = formatShopUSD;
 
 export async function getOrCreateCart(userId: string): Promise<CartItem[]> {
   const { data } = await supabase

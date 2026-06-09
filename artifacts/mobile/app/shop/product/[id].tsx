@@ -208,7 +208,7 @@ export default function ProductDetailScreen() {
           {/* Price + name */}
           <View style={st.priceRow}>
             <Text style={[st.priceMain, { color: colors.accent }]}>{formatShopAcoin(product.price_acoin)}</Text>
-            <Text style={[st.priceUgx, { color: colors.textMuted }]}>≈ UGX {(product.price_acoin * 100).toLocaleString()}</Text>
+            <Text style={[st.priceUgx, { color: colors.textMuted }]}>≈ ${(product.price_acoin * 0.01).toFixed(2)} USD</Text>
           </View>
           <Text style={[st.productTitle, { color: colors.text }]}>{product.name}</Text>
 

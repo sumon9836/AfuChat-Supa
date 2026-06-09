@@ -24,7 +24,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { ListRowSkeleton } from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
 import { uploadToStorage } from "@/lib/mediaUpload";
-import { Shop, ShopProduct, ShopOrder, SHOP_CATEGORIES, PRODUCT_CATEGORIES, ORDER_STATUS_LABELS, ESCROW_STATUS_LABELS, formatShopAcoin, formatShopUGX, PLATFORM_FEE_PCT } from "@/lib/shop";
+import { Shop, ShopProduct, ShopOrder, SHOP_CATEGORIES, PRODUCT_CATEGORIES, ORDER_STATUS_LABELS, ESCROW_STATUS_LABELS, formatShopAcoin, formatShopUSD, PLATFORM_FEE_PCT } from "@/lib/shop";
 import Colors from "@/constants/colors";
 import { showAlert } from "@/lib/alert";
 import { notifyOrderShipped } from "@/lib/notifyUser";
@@ -735,7 +735,7 @@ export default function ShopManage() {
                   <Ionicons name="add-circle-outline" size={28} color={colors.accent} />
                 </TouchableOpacity>
               </View>
-              <Text style={[styles.priceHint, { color: colors.textMuted }]}>= {formatShopUGX(editingProduct?.price_acoin || 0)}</Text>
+              <Text style={[styles.priceHint, { color: colors.textMuted }]}>= {formatShopUSD(editingProduct?.price_acoin || 0)}</Text>
             </View>
 
             <Text style={[styles.formLabel, { color: colors.textMuted }]}>Category</Text>

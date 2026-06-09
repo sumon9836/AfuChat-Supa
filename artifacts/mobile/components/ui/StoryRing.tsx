@@ -99,9 +99,7 @@ export function StoryRing({ size, storyCount, seenCount, children }: Props) {
         strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
         strokeDashoffset={-offset}
         strokeLinecap="round"
-        rotation={-90}
-        originX={center}
-        originY={center}
+        transform={`rotate(-90, ${center}, ${center})`}
       />
     );
   }

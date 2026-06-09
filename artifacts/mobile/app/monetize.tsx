@@ -76,7 +76,8 @@ import * as Haptics from "@/lib/haptics";
 
 const { width: SW } = Dimensions.get("window");
 const GOLD = "#D4A853";
-const ACOIN_TO_UGX = 100;
+const ACOIN_TO_USD = 0.01;
+const UGX_PER_ACOIN = 100;
 
 type StudioTab = "overview" | "analytics" | "monetize" | "content" | "payouts";
 type Period    = "7D" | "30D" | "90D";
@@ -105,10 +106,10 @@ function getCreatorLevel(totalEarned: number) {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmtUGX(n: number) {
-  if (n >= 1_000_000) return `UGX ${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `UGX ${(n / 1_000).toFixed(1)}K`;
-  return `UGX ${n}`;
+function fmtUSD(n: number) {
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1) return `$${n.toFixed(2)}`;
+  return `$${n.toFixed(3)}`;
 }
 
 function getDays(n: number): { day: string; label: string; shortLabel: string; val: number }[] {
@@ -394,7 +395,7 @@ export default function CreatorStudioScreen() {
     let total = Object.values(byFeature).reduce((a, b) => a + b, 0);
     let views = 0, likes = 0;
     for (const row of (creatorData ?? [])) {
-      const ac = Math.floor((row.amount_ugx ?? 0) / ACOIN_TO_UGX);
+      const ac = Math.floor((row.amount_ugx ?? 0) / UGX_PER_ACOIN);
       if (ac > 0) {
         byFeature["post_engagement"] = (byFeature["post_engagement"] ?? 0) + ac;
         total += ac;
@@ -415,7 +416,7 @@ export default function CreatorStudioScreen() {
     // Previous period totals
     let prevTotal = (prevTxData ?? []).filter((t) => t.transaction_type?.startsWith("monetize_")).reduce((s, t) => s + t.amount, 0);
     let prevV = 0;
-    for (const row of (prevCreatorData ?? [])) { prevTotal += Math.floor((row.amount_ugx ?? 0) / ACOIN_TO_UGX); prevV += row.views_count ?? 0; }
+    for (const row of (prevCreatorData ?? [])) { prevTotal += Math.floor((row.amount_ugx ?? 0) / UGX_PER_ACOIN); prevV += row.views_count ?? 0; }
 
     // Streak: count consecutive days with any earning from today backwards
     let streakCount = 0;
@@ -902,7 +903,7 @@ export default function CreatorStudioScreen() {
   // ── Payouts ───────────────────────────────────────────────────────────────
 
   function renderPayouts() {
-    const ugxValue = acoinBalance * ACOIN_TO_UGX;
+    const usdValue = acoinBalance * ACOIN_TO_USD;
     return (
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -913,7 +914,7 @@ export default function CreatorStudioScreen() {
         <LinearGradient colors={["#0a2a1a", "#0d3b23", "#0a2a1a"]} style={cs.payoutHero}>
           <Text style={cs.payHeroLabel}>ACoin Balance</Text>
           <Text style={[cs.payHeroValue, { color: "#4CD964" }]}>{formatAcoin(acoinBalance)} 🪙</Text>
-          <Text style={[cs.payHeroSub, { color: "rgba(255,255,255,0.5)" }]}>≈ {fmtUGX(ugxValue)}</Text>
+          <Text style={[cs.payHeroSub, { color: "rgba(255,255,255,0.5)" }]}>≈ {fmtUSD(usdValue)} USD</Text>
           <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
             <TouchableOpacity
               style={[cs.payBtn, { backgroundColor: "#4CD964" }]}
@@ -938,10 +939,10 @@ export default function CreatorStudioScreen() {
         <View style={[cs.card, { backgroundColor: colors.surface, borderColor: colors.border, padding: 16 }]}>
           <Text style={[cs.sectionTitle, { color: colors.text, marginTop: 0, marginBottom: 12 }]}>Conversion Rates</Text>
           {[
-            { acoin: 100,    ugx: 10_000  },
-            { acoin: 500,    ugx: 50_000  },
-            { acoin: 1_000,  ugx: 100_000 },
-            { acoin: 10_000, ugx: 1_000_000 },
+            { acoin: 100,    usd: 1.00   },
+            { acoin: 500,    usd: 5.00   },
+            { acoin: 1_000,  usd: 10.00  },
+            { acoin: 10_000, usd: 100.00 },
           ].map((r) => (
             <View key={r.acoin} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <View style={[cs.rateLeft, { backgroundColor: GOLD + "14" }]}>
@@ -949,7 +950,7 @@ export default function CreatorStudioScreen() {
               </View>
               <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
               <View style={[cs.rateRight, { backgroundColor: "#4CD96414" }]}>
-                <Text style={[cs.rateText, { color: "#4CD964" }]}>{fmtUGX(r.ugx)}</Text>
+                <Text style={[cs.rateText, { color: "#4CD964" }]}>{fmtUSD(r.usd)}</Text>
               </View>
             </View>
           ))}
