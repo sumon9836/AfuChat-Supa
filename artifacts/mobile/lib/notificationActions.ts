@@ -139,29 +139,6 @@ export async function handleNotificationAction(
         break;
       }
 
-      // ── AfuMusic playback controls ─────────────────────────────────
-      case "music_prev": {
-        try {
-          const { afuMusicPlayer } = require("@/lib/afuMusicPlayer");
-          await afuMusicPlayer.playPrev();
-        } catch {}
-        break;
-      }
-      case "music_toggle": {
-        try {
-          const { afuMusicPlayer } = require("@/lib/afuMusicPlayer");
-          await afuMusicPlayer.playPause();
-        } catch {}
-        break;
-      }
-      case "music_next": {
-        try {
-          const { afuMusicPlayer } = require("@/lib/afuMusicPlayer");
-          await afuMusicPlayer.playNext();
-        } catch {}
-        break;
-      }
-
       // All other identifiers (DEFAULT, "view_*") are
       // navigation-based and handled by routeNotificationResponse in pushNotifications.ts.
       default:

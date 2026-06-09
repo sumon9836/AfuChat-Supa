@@ -20,8 +20,6 @@ config.resolver = {
     /node_modules[\\/]\.pnpm[\\/]sucrase[^/]*[\\/]node_modules[\\/]sucrase[\\/]dist[\\/]esm.*/,
     // react-native-mmkv cpp/ios/src dirs missing in pnpm virtual store
     /node_modules[\\/]\.pnpm[\\/]react-native-mmkv[^/]*[\\/]node_modules[\\/]react-native-mmkv[\\/](cpp|ios|src).*/,
-    // react-native-track-player android dirs missing in pnpm virtual store
-    /node_modules[\\/]\.pnpm[\\/]react-native-track-player[^/]*[\\/]node_modules[\\/]react-native-track-player[\\/]android[\\/]src.*/,
     // recharts umd dir missing in pnpm virtual store
     /node_modules[\\/]\.pnpm[\\/]recharts[^/]*[\\/]node_modules[\\/]recharts[\\/]umd.*/,
   ],
@@ -48,12 +46,6 @@ config.resolver = {
       if (moduleName === "react-native-worklets") {
         return {
           filePath: path.resolve(__dirname, "lib/worklets-web-shim.js"),
-          type: "sourceFile",
-        };
-      }
-      if (moduleName === "react-native-track-player") {
-        return {
-          filePath: path.resolve(__dirname, "lib/track-player-web-shim.js"),
           type: "sourceFile",
         };
       }

@@ -42,16 +42,6 @@ export const SUPER_APP_REGISTRY: ModuleManifest[] = [
     comingSoon: true,
   },
   {
-    id: "afumusic",
-    name: "AfuMusic",
-    description: "Play music from your device library — offline, always.",
-    version: "2.0.0",
-    icon: "musical-notes",
-    gradient: ["#5856D6", "#7B79E8"] as const,
-    keepAlive: true,
-    nativeOnly: true,
-  },
-  {
     id: "afubusiness",
     name: "AfuBusiness",
     description: "Tools and analytics for your business.",

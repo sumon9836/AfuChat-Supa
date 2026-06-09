@@ -16,7 +16,7 @@ initCrashReporter();
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Linking, NativeModules, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack, usePathname } from "expo-router";
 import { setCurrentPage, resolvePageInfo } from "@/lib/pageTracker";
 import { StatusBar } from "expo-status-bar";
@@ -67,23 +67,6 @@ import { AnimationGuardInit } from "@/components/AnimationGuardInit";
 // auto-hides the splash when the first JS frame renders, which is before auth
 // resolves — causing a flash of onboarding / welcome screens for signed-in users.
 SplashScreen.preventAutoHideAsync().catch(() => {});
-
-// ─── Background music service ─────────────────────────────────────────────────
-// Must happen at module-evaluation time (before any component renders) so the
-// foreground service survives app-kill and Bluetooth/notification controls
-// continue to work when the user is not actively using the app.
-// Guard: check NativeModules.TrackPlayerModule BEFORE requiring the package.
-// require("react-native-track-player") throws a native exception (not catchable
-// by JS try/catch) when the native module is absent — e.g. in Expo Go.
-// Checking NativeModules first is always safe and never crashes.
-if (Platform.OS !== "web" && NativeModules.TrackPlayerModule) {
-  try {
-    const rntp = require("react-native-track-player");
-    const TrackPlayer = rntp.default ?? rntp;
-    const { PlaybackService } = require("@/lib/musicService");
-    TrackPlayer.registerPlaybackService(() => PlaybackService);
-  } catch {}
-}
 
 // Lock out system-level font scaling so the app always renders at its
 // intended sizes regardless of the device's accessibility font-size setting.

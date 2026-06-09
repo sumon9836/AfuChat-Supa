@@ -80,17 +80,6 @@ const CATEGORIES: Category[] = [
         featuredSub: "Shop from verified stores and sellers.",
       },
       {
-        id: "afumusic",
-        nativeOnly: true,
-        label: "AfuMusic",
-        icon: "musical-notes",
-        gradient: ["#5856D6", "#7B79E8"],
-        route: "/music",
-        badge: "BETA",
-        miniApp: true,
-        featuredSub: "Stream music and podcasts inside AfuChat.",
-      },
-      {
         id: "afubusiness",
         label: "AfuBusiness",
         icon: "briefcase",
