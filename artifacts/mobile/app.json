@@ -82,7 +82,7 @@
           ]
         }
       ],
-      "versionCode": 224
+      "versionCode": 225
     },
     "plugins": [
       [
@@ -146,10 +146,12 @@
             "kotlinVersion": "2.1.21",
             "enableProguardInReleaseBuilds": false,
             "enableShrinkResources": false,
-            "enableMinifyInReleaseBuilds": false
+            "enableMinifyInReleaseBuilds": false,
+            "newArchEnabled": false
           },
           "ios": {
-            "deploymentTarget": "15.1"
+            "deploymentTarget": "15.1",
+            "newArchEnabled": false
           }
         }
       ],
@@ -188,7 +190,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.afuchat.app",
-      "buildNumber": "2.2.4",
+      "buildNumber": "2.2.5",
       "infoPlist": {
         "NSCameraUsageDescription": "AfuChat uses the camera to take photos and videos for stories and messages.",
         "NSMicrophoneUsageDescription": "AfuChat uses the microphone to record voice messages and video with audio.",
