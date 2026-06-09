@@ -65,6 +65,7 @@ import {
   extractHashtags,
   type FeedSignals,
 } from "@/lib/feedAlgorithm";
+import { useAnimationGuard } from "@/hooks/useAnimationGuard";
 
 // ── Lazy-load Reanimated ──────────────────────────────────────────────────────
 const _raVF = (() => {
@@ -231,6 +232,9 @@ const VideoItem = React.memo(
     const dtOpacity   = useSharedValue(0);
     const dtScale     = useSharedValue(0.3);
     const progressFill = useSharedValue(0);
+
+    // OOM guard: cancel these Reanimated shared values when the app backgrounds.
+    useAnimationGuard(heartScale, dtOpacity, dtScale, progressFill);
 
     const bufferingRef      = useRef(false);
     const bufferingTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);

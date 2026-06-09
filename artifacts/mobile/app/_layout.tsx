@@ -51,6 +51,7 @@ import UpdatePrompt from "@/components/UpdatePrompt";
 import { initActivityTracker } from "@/lib/activityTracker";
 import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
 import { DesktopShell } from "@/components/desktop/DesktopShell";
+import { AnimationGuardInit } from "@/components/AnimationGuardInit";
 
 // NOTE: react-native-mmkv has been downgraded to v3 (stable JSI bridge) and
 // react-native-nitro-modules has been removed.  v4/Nitro caused an unrecoverable
@@ -243,6 +244,8 @@ export default function RootLayout() {
           <ThemedRoot>
             <AppAccentProvider>
               <ThemedStatusBar />
+              {/* OOM guard: cancels all animations on app-background / memory-pressure */}
+              <AnimationGuardInit />
               <DataModeProvider>
                 <AuthProvider>
                   {/* Gate signals onReady when fonts + auth are both resolved */}

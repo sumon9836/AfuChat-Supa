@@ -1,5 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
+import {
+  useAnimationGuard,
+  useAnimationGuardComposite,
+} from "@/hooks/useAnimationGuard";
 
 /**
  * VoiceWaveform — scrolling-history amplitude bars during voice recording.
@@ -9,6 +13,11 @@ import { Animated, StyleSheet, View } from "react-native";
  *            to its target height so the waveform scrolls left on every sample.
  *  • Idle  — `amplitudes` is empty / not provided; 20 bars loop with random
  *            timing offsets as a "waiting" animation (same look as before).
+ *
+ * OOM guard: all 20 Animated.Value bars are registered with AnimationGuard on
+ * mount.  Idle-mode Animated.loop instances are registered as CompositeAnimations
+ * via useAnimationGuardComposite() so the guard can call .stop() on every loop
+ * when the app backgrounds, preventing NativeAnimatedNodesManager heap pile-up.
  */
 
 const N_BARS = 20;
@@ -54,6 +63,15 @@ export function VoiceWaveform({ active, color = "#FFFFFF", amplitudes }: Props) 
   const loopAnims  = useRef<Animated.CompositeAnimation[]>([]);
 
   const hasLive = !!amplitudes && amplitudes.length > 0;
+
+  // ── OOM guard registration ─────────────────────────────────────────────────
+  // Register all 20 Animated.Value bars; they're stable for the component's
+  // lifetime so a single useAnimationGuard() call covers them all.
+  useAnimationGuard(...bars);
+
+  // Register each Animated.loop instance as it's created so the guard can
+  // call .stop() on them when the app backgrounds.
+  const registerComposite = useAnimationGuardComposite();
 
   // ── Live mode: spring every bar toward its real amplitude ──────────────────
   useEffect(() => {
@@ -109,6 +127,8 @@ export function VoiceWaveform({ active, color = "#FFFFFF", amplitudes }: Props) 
           ])
         );
         loopAnims.current[i] = loop;
+        // Register with the OOM guard so it can stop this loop on backgrounding
+        registerComposite(loop);
         loop.start();
       };
 
