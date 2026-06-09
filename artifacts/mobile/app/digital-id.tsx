@@ -574,7 +574,7 @@ function CardBack({ cardWidth: cw, cardHeight: ch, theme, profile, memberNumber,
 /* ─── STYLES ─── */
 const s = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, paddingBottom: 10, borderBottomWidth: 0.5 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, paddingBottom: 10,  },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "700", letterSpacing: 0.3 },
   scroll: { alignItems: "center", paddingTop: 24, gap: 16 },

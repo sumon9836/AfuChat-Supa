@@ -259,7 +259,7 @@ function ContentRow({
 }
 
 const cr = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 0.5 },
+  row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 14 },
   rankWrap: { width: 26, height: 26, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   rank: { fontSize: 12, fontFamily: "Inter_700Bold" },
   thumb: { width: 52, height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center", overflow: "hidden" },
@@ -596,7 +596,7 @@ const hdr = StyleSheet.create({
   wrap: {
     flexDirection: "row", alignItems: "center", gap: 8,
     paddingHorizontal: 14, paddingBottom: 12,
-    borderBottomWidth: 0.5,
+    
   },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 18, fontFamily: "Inter_700Bold" },

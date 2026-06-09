@@ -1156,7 +1156,7 @@ const cs = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 10,
-    borderBottomWidth: 0.5,
+    
     gap: 8,
   },
   headerBack:  { padding: 6 },
@@ -1165,7 +1165,7 @@ const cs = StyleSheet.create({
   walletPill:  { marginLeft: "auto", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: GOLD + "18" },
   walletText:  { fontSize: 13, fontFamily: "Inter_700Bold" },
 
-  tabBarWrap: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 0.5 },
+  tabBarWrap: { paddingHorizontal: 16, paddingVertical: 8 },
   tabBar:     { flexDirection: "row", borderRadius: 14, padding: 3, position: "relative", overflow: "hidden" },
   tabPill:    { position: "absolute", top: 3, bottom: 3, borderRadius: 11, zIndex: 0 },
   tab:        { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 7, zIndex: 1 },
@@ -1195,7 +1195,7 @@ const cs = StyleSheet.create({
   streakWrap:   { alignItems: "center", gap: 2 },
   streakNum:    { fontSize: 22, fontFamily: "Inter_700Bold" },
   streakLabel:  { fontSize: 10, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)" },
-  levelStats:   { flexDirection: "row", borderTopWidth: 0.5, borderTopColor: "rgba(255,255,255,0.1)", paddingTop: 14 },
+  levelStats:   { flexDirection: "row", borderTopColor: "rgba(255,255,255,0.1)", paddingTop: 14 },
   levelStat:    { flex: 1, alignItems: "center" },
   levelStatDiv: { width: 0.5, backgroundColor: "rgba(255,255,255,0.12)", marginVertical: 2 },
   levelStatVal: { fontSize: 14, fontFamily: "Inter_700Bold", marginBottom: 2 },

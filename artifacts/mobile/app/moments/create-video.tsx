@@ -1776,7 +1776,7 @@ const es = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
   },
   tabBar: {
-    flexDirection: "row", borderBottomWidth: 0.5,
+    flexDirection: "row", 
   },
   tab: {
     flex: 1, flexDirection: "column", alignItems: "center",

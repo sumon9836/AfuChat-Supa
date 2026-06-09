@@ -229,7 +229,7 @@ const detailStyles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   chipText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  actions: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 20, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: "rgba(0,0,0,0.1)" },
+  actions: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 20, paddingTop: 12, borderTopColor: "rgba(0,0,0,0.1)" },
   actionBtn: { alignItems: "center", justifyContent: "center", elevation: 4 },
   nopeBtn: { width: 62, height: 62, borderRadius: 31, backgroundColor: "#fff", borderWidth: 2, borderColor: "#FF3B30" },
   superBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#fff", borderWidth: 2, borderColor: "#007AFF" },
@@ -455,7 +455,7 @@ const matchStyles = StyleSheet.create({
   actions: { width: "100%" },
   sendMsgBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: BRAND, borderRadius: 999, paddingVertical: 14 },
   sendMsgText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
-  dismiss: { paddingVertical: 14, alignItems: "center", borderTopWidth: 0.5 },
+  dismiss: { paddingVertical: 14, alignItems: "center" },
   dismissText: { fontSize: 14, fontFamily: "Inter_400Regular" },
 });
 
@@ -946,7 +946,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
   acoinBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#1C1C1E", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
   acoinBadgeText: { color: "#FFD60A", fontSize: 13, fontFamily: "Inter_700Bold" },
-  tabBar: { flexDirection: "row", borderBottomWidth: 0.5, marginBottom: 4 },
+  tabBar: { flexDirection: "row", marginBottom: 4 },
   tabItem: { flex: 1, alignItems: "center", paddingVertical: 12 },
   tabLabel: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   tabIndicator: { position: "absolute", bottom: 0, height: 2, width: "55%", backgroundColor: BRAND, borderRadius: 1 },

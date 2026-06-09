@@ -1089,7 +1089,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 10,
-    borderBottomWidth: 0.5,
+    
   },
   toLabel: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
   toPill: {
@@ -1136,8 +1136,8 @@ const styles = StyleSheet.create({
   quickActions: {
     marginTop: 10,
     marginBottom: 4,
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
+    
+    
   },
   quickActionRow: {
     flexDirection: "row",
@@ -1227,7 +1227,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     gap: 12,
-    borderTopWidth: 0.5,
+    
   },
   selectedInfo: { flex: 1 },
   selectedCount: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
@@ -1287,8 +1287,8 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingHorizontal: 16,
     paddingVertical: 13,
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
+    
+    
     marginTop: 8,
   },
   phoneCenter: {

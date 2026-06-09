@@ -404,7 +404,6 @@ const pub = StyleSheet.create({
     paddingHorizontal: T.pageH,
     paddingBottom: 12,
     paddingTop: 8,
-    borderBottomWidth: 0.5,
   },
   headerBack: {
     width: 40,
@@ -425,7 +424,6 @@ const pub = StyleSheet.create({
     paddingHorizontal: T.pageH,
     paddingTop: 28,
     paddingBottom: 24,
-    borderBottomWidth: 0.5,
     gap: 4,
   },
   nameRow: {
@@ -455,7 +453,6 @@ const pub = StyleSheet.create({
     flexDirection: "row",
     paddingVertical: 20,
     paddingHorizontal: T.pageH,
-    borderBottomWidth: 0.5,
   },
   statCell: { flex: 1, alignItems: "center", gap: 2 },
   statNum: { fontSize: 20, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
@@ -468,7 +465,6 @@ const pub = StyleSheet.create({
     gap: 10,
     paddingHorizontal: T.pageH,
     paddingVertical: 16,
-    borderBottomWidth: 0.5,
   },
   btnPrimary: {
     flex: 1,
@@ -502,7 +498,7 @@ const pub = StyleSheet.create({
     gap: 12,
     paddingHorizontal: T.pageH,
     paddingVertical: 16,
-    borderBottomWidth: 0.5,
+    
   },
   joinTitle: { ...T.bodyMed, marginBottom: 1 },
   joinSub: { ...T.caption, lineHeight: 17 },
@@ -515,7 +511,7 @@ const pub = StyleSheet.create({
 
   // Bottom sticky bar
   bottomBar: {
-    borderTopWidth: 0.5,
+    
     paddingHorizontal: T.pageH,
     paddingTop: 14,
   },

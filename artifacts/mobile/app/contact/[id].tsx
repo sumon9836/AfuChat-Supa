@@ -1360,7 +1360,7 @@ function PostsTab({ posts, loading, profile, colors, isDesktop }: { posts: UserP
             style={[
               st.postCard,
               { borderBottomColor: colors.border },
-              idx === 0 && { borderTopWidth: 0.5, borderTopColor: colors.border },
+              idx === 0 && { borderTopColor: colors.border },
             ]}
             onPress={() => {
               if (isArticle) router.push({ pathname: "/article/[id]", params: { id: p.id } });
@@ -1414,7 +1414,7 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 6,
     paddingBottom: 8,
-    borderBottomWidth: 0.5,
+    
   },
   navBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   navTitle: { flex: 1, textAlign: "center", fontSize: 14, fontFamily: "Inter_700Bold", letterSpacing: -0.2 },
@@ -1471,8 +1471,8 @@ const st = StyleSheet.create({
 
   tabBar: {
     flexDirection: "row",
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
+    
+    
     marginTop: 8,
   },
   tabBtn: {
@@ -1491,7 +1491,7 @@ const st = StyleSheet.create({
   viewBadgeText: { color: "rgba(255,255,255,0.85)", fontSize: 9, fontFamily: "Inter_600SemiBold" },
   multiImgBadge: { position: "absolute", top: 5, right: 5, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 5, padding: 3 },
 
-  postCard: { borderBottomWidth: 0.5, paddingVertical: 14, paddingHorizontal: 16 },
+  postCard: { paddingVertical: 14, paddingHorizontal: 16 },
   postInner: { flexDirection: "row", gap: 10 },
   postBody: { flex: 1, gap: 4 },
   postHeader: { flexDirection: "row", alignItems: "center", gap: 3 },
@@ -1547,7 +1547,7 @@ const st = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 18,
     paddingBottom: 14,
-    borderBottomWidth: 0.5,
+    
     marginBottom: 6,
   },
   optionsPillName: { fontSize: 14, fontFamily: "Inter_700Bold" },
@@ -1559,7 +1559,7 @@ const st = StyleSheet.create({
     gap: 14,
     paddingHorizontal: 18,
     paddingVertical: 13,
-    borderBottomWidth: 0.5,
+    
   },
   optionIconWrap: {
     width: 36,

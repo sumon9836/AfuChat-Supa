@@ -276,7 +276,7 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: 0.5,
+    
   },
   navBack: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
   navTitle: { fontSize: 16, fontWeight: "700" },
@@ -318,7 +318,7 @@ const st = StyleSheet.create({
   featureDesc: { fontSize: 11, lineHeight: 16 },
 
   faqCard: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden" },
-  faqItem: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5 },
+  faqItem: { paddingHorizontal: 16, paddingVertical: 14,  },
   faqRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   faqQ: { flex: 1, fontSize: 14, fontWeight: "600", lineHeight: 20 },
   faqA: { fontSize: 13, lineHeight: 21, marginTop: 10 },

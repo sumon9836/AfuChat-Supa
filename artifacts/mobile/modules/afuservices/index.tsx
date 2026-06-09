@@ -291,7 +291,7 @@ const s = StyleSheet.create({
   serviceIcon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   serviceLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   serviceDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
-  payHeader: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5 },
+  payHeader: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   backBtn: { padding: 4 },
   payHeaderIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   payHeaderTitle: { fontSize: 16, fontFamily: "Inter_700Bold" },

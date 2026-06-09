@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
 
   /* Header */
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5 },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14},
   backBtn: { marginRight: 4 },
   headerTitle: { flex: 1, fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" },
 

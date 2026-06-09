@@ -644,9 +644,9 @@ export default function ArticleDetailScreen() {
         />
 
         {user ? (
-          <View style={{ borderTopWidth: 0.5, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+          <View style={{ borderTopColor: colors.border, backgroundColor: colors.surface }}>
             {replyingTo && (
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, borderBottomColor: colors.border }}>
                 <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.textMuted }}>
                   Replying to <Text style={{ color: colors.accent, fontFamily: "Inter_600SemiBold" }}>@{replyingTo.author.handle}</Text>
                 </Text>
@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
   readTimeText: { fontSize: 12, fontFamily: "Inter_400Regular" },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", lineHeight: 34, marginBottom: 12, letterSpacing: -0.3 },
   subtitle: { fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 24, marginBottom: 20, fontStyle: "italic" },
-  authorSection: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, borderTopWidth: 0.5, borderBottomWidth: 0.5, marginBottom: 24 },
+  authorSection: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, marginBottom: 24 },
   authorRow: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   authorName: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   authorHandle: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
@@ -743,6 +743,6 @@ const styles = StyleSheet.create({
   replyBar: { flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 16, paddingTop: 10 },
   replyInput: { flex: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, fontFamily: "Inter_400Regular", maxHeight: 100 },
   sendBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  signInBar: { alignItems: "center", paddingTop: 14, borderTopWidth: 0.5 },
+  signInBar: { alignItems: "center", paddingTop: 14 },
   signInText: { fontSize: 14, fontFamily: "Inter_500Medium" },
 });

@@ -239,7 +239,7 @@ const s = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    
   },
   headerIconWrap: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 17, fontWeight: "700" },
@@ -252,7 +252,7 @@ const s = StyleSheet.create({
 
   tabRow: {
     flexDirection: "row",
-    borderBottomWidth: 0.5,
+    
   },
   tab: { flex: 1, alignItems: "center", paddingVertical: 10 },
   tabActive: { borderBottomWidth: 2 },
@@ -272,7 +272,7 @@ const s = StyleSheet.create({
 
   actionBar: {
     flexDirection: "row", gap: 8, padding: 12,
-    borderTopWidth: 0.5,
+    
   },
   actionBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",

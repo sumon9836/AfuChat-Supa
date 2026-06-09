@@ -425,7 +425,7 @@ function PostUploadBanner({ colors: _colors }: { colors?: any }) {
 }
 
 const uploadBannerStyles = StyleSheet.create({
-  wrap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, borderBottomWidth: 0.5 },
+  wrap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
   iconCircle: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
   label: { fontSize: 13, fontWeight: "600" },

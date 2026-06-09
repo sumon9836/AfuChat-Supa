@@ -626,7 +626,7 @@ const st = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: 0.5,
+    
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
@@ -635,7 +635,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
   },
   tabBar: {
-    flexDirection: "row", borderBottomWidth: 0.5,
+    flexDirection: "row", 
   },
   tab: { flex: 1, alignItems: "center", paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: "transparent" },
   escrowCard: {

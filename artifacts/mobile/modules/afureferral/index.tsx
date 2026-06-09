@@ -334,6 +334,7 @@ export default function AfuReferralApp() {
   const totalReferrals = referrals.length;
   const rewardedCount  = referrals.filter(r => r.reward_given).length;
   const nexaEarned     = rewardedCount * NEXA_PER_INVITE;
+  const acoinEarned    = rewardedCount * 50; // 50 ACoin per rewarded referral
   const doneSteps      = REWARD_STEPS.filter(s => totalReferrals >= s.invites);
   const totalBonusNexa = doneSteps.reduce((acc, s) => acc + s.bonusNexa, 0);
   const totalNexaAll   = nexaEarned + totalBonusNexa;
@@ -407,7 +408,7 @@ export default function AfuReferralApp() {
         <View style={s.heroStats}>
           {[
             { label: "Invited",     value: totalReferrals,            icon: "person-add"      as const, color: accent },
-            { label: "Nexa Earned", value: totalNexaAll,              icon: "flash"           as const, color: "#FFD60A" },
+            { label: "ACoin",       value: acoinEarned,               icon: "logo-bitcoin"    as const, color: "#FFD60A" },
             { label: "Rank",        value: currentStep?.role || "—",  icon: "ribbon"          as const, color: "#BF5AF2" },
           ].map(stat => (
             <View key={stat.label} style={s.heroStat}>
@@ -606,7 +607,7 @@ const invS = StyleSheet.create({
   searchRow: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10 },
   searchInput: { flex: 1, fontSize: 14 },
   countLabel: { fontSize: 11, fontFamily: "Inter_500Medium", marginBottom: 8 },
-  contactRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, gap: 10, borderTopWidth: 0.5 },
+  contactRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, gap: 10 },
   avatar: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   contactName: { fontSize: 14, fontFamily: "Inter_500Medium" },

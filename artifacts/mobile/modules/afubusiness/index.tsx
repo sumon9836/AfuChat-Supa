@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    
     gap: 10,
   },
   backBtn: { padding: 4, width: 34 },

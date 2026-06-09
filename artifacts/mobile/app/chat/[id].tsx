@@ -5338,7 +5338,7 @@ STRICT RULES:
             horizontal
             showsHorizontalScrollIndicator={false}
             keyboardShouldPersistTaps="always"
-            style={{ maxHeight: 52, borderTopWidth: 0.5, borderTopColor: colors.border, backgroundColor: colors.surface }}
+            style={{ maxHeight: 52, borderTopColor: colors.border, backgroundColor: colors.surface }}
             contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 7, gap: 8, flexDirection: "row" }}
           >
             {mentionSuggestions.map((s) => (
@@ -6385,7 +6385,7 @@ STRICT RULES:
 
       <BottomSheet visible={showAfuAiMenu} onClose={() => setShowAfuAiMenu(false)}>
         <View style={{ paddingHorizontal: 16, paddingBottom: 8, paddingTop: 4 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 12, borderBottomColor: colors.border }}>
             <Ionicons name="sparkles" size={18} color="#1f95ff" />
             <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.text }}>AfuAI Options</Text>
           </View>
@@ -6433,7 +6433,7 @@ STRICT RULES:
           ].map((opt) => (
             <TouchableOpacity
               key={opt.label}
-              style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 13, borderTopWidth: 0.5, borderTopColor: colors.border }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 13, borderTopColor: colors.border }}
               onPress={() => reminderMsg && scheduleReminder(reminderMsg, opt.seconds)}
               activeOpacity={0.7}
             >
@@ -6446,7 +6446,7 @@ STRICT RULES:
       </BottomSheet>
 
       <BottomSheet visible={showLangPicker} onClose={() => { setShowLangPicker(false); setTranslateMsg(null); setAiResult(null); setAiResultType(null); }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 10, borderBottomColor: colors.border }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TouchableOpacity onPress={() => { setShowLangPicker(false); setTranslateMsg(null); setAiResult(null); setAiResultType(null); }} hitSlop={12}>
               <Ionicons name="chevron-back" size={22} color={colors.text} />
@@ -6476,7 +6476,7 @@ STRICT RULES:
               key={code}
               style={{
                 flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12,
-                borderBottomWidth: 0.5, borderBottomColor: colors.border + "40",
+                borderBottomColor: colors.border + "40",
               }}
               onPress={() => handleTranslateToLang(code)}
               disabled={translatingLang}
@@ -6854,7 +6854,7 @@ STRICT RULES:
                   ] as { label: string; hours: number | null }[]).map((opt) => (
                     <TouchableOpacity
                       key={opt.label}
-                      style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: colors.border }}
+                      style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 12, borderBottomColor: colors.border }}
                       onPress={() => handleMuteChat(opt.hours)}
                     >
                       <Ionicons name="notifications-off-outline" size={16} color={colors.textMuted} style={{ marginRight: 12 }} />
@@ -6900,7 +6900,7 @@ STRICT RULES:
                           return (
                             <TouchableOpacity
                               key={opt.seconds}
-                              style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 11, borderBottomWidth: 0.5, borderBottomColor: colors.border }}
+                              style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 11, borderBottomColor: colors.border }}
                               onPress={() => handleDisappearingTimerSelect(opt.seconds)}
                             >
                               <Ionicons
@@ -7048,7 +7048,7 @@ STRICT RULES:
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => { setEditHistoryMsg(null); setEditHistoryItems([]); }} />
           <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: insets.bottom + 16, maxHeight: "80%" }}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomColor: colors.border }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Ionicons name="time-outline" size={20} color={colors.accent} />
                 <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: colors.text }}>Edit History</Text>
@@ -7126,7 +7126,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 6,
     paddingBottom: 10,
-    borderBottomWidth: 0.5,
+    
     gap: 2,
   },
   backBtn: { padding: 6 },
@@ -7148,7 +7148,7 @@ const st = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
     paddingBottom: 14,
-    borderBottomWidth: 0.5,
+    
     marginBottom: 4,
   },
   optionsName: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
@@ -7167,7 +7167,7 @@ const st = StyleSheet.create({
     gap: 14,
     paddingHorizontal: 20,
     paddingVertical: 13,
-    borderBottomWidth: 0.5,
+    
   },
   optionsIcon: {
     width: 32,
@@ -7370,12 +7370,12 @@ const st = StyleSheet.create({
   storyReplyOverlay: { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 5 },
   storyReplyLabel: { fontSize: 11, fontFamily: "Inter_500Medium", color: "rgba(255,255,255,0.9)", flex: 1 },
 
-  replyBanner: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 0.5, gap: 8 },
+  replyBanner: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
   replyBarAccent: { width: 3, height: 32, borderRadius: 2 },
   replyBannerName: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   replyBannerText: { fontSize: 13, fontFamily: "Inter_400Regular" },
 
-  attachPreviewBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 0.5, gap: 10 },
+  attachPreviewBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, gap: 10 },
   attachPreviewImg: { width: 68, height: 68, borderRadius: 10 },
   attachPreviewFile: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   attachPreviewName: { fontSize: 13, fontFamily: "Inter_500Medium", maxWidth: 160 },
@@ -7400,7 +7400,7 @@ const st = StyleSheet.create({
   strangerBanner: {
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderBottomWidth: 0.5,
+    
   },
   strangerIconWrap: {
     width: 36,
@@ -7586,10 +7586,10 @@ const st = StyleSheet.create({
 
   forwardOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
   forwardSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: "hidden" },
-  forwardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 0.5 },
+  forwardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16 },
   forwardTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   forwardPreview: { flexDirection: "row", gap: 8, padding: 12, marginHorizontal: 16, marginVertical: 10, borderRadius: 10 },
   forwardPreviewText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
-  forwardChatRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5 },
+  forwardChatRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
   forwardChatName: { flex: 1, fontSize: 15, fontFamily: "Inter_500Medium" },
 });

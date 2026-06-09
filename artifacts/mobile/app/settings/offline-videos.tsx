@@ -302,9 +302,7 @@ export default function OfflineVideosScreen() {
           ListHeaderComponent={StatsHeader}
           renderSectionHeader={renderSectionHeader}
           renderItem={renderItem}
-          ItemSeparatorComponent={() => (
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-          )}
+          ItemSeparatorComponent={() => null}
           SectionSeparatorComponent={() => <View style={{ height: 16 }} />}
         />
       )}
@@ -373,7 +371,7 @@ const styles = StyleSheet.create({
   },
   rowFirst: { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
   rowLast: { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
-  separator: { height: 0.5, marginLeft: 14 + 72 + 12 },
+  separator: { height: 0 },
 
   thumb: {
     width: 72,

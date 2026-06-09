@@ -636,9 +636,9 @@ function PrefRow({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5 },
+  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
   headerTitle: { flex: 1, fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" },
-  tabBar: { flexDirection: "row", borderBottomWidth: 0.5 },
+  tabBar: { flexDirection: "row" },
   tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 13, borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   tabBadge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },

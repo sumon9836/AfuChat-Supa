@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 10,
-    borderBottomWidth: 0.5,
+    
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 9 },
   appIcon: {

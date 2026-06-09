@@ -516,7 +516,7 @@ export default function PremiumScreen() {
                 key={si}
                 style={[
                   s.featSec,
-                  si > 0 && { borderTopWidth: 0.5, borderTopColor: isDark ? "#222" : "#E8E8E8" },
+                  si > 0 && {  borderTopColor: isDark ? "#222" : "#E8E8E8" },
                 ]}
               >
                 <View style={s.featSecHead}>
@@ -633,7 +633,7 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 8,
     paddingBottom: 10,
-    borderBottomWidth: 0.5,
+    
     zIndex: 10,
   },
   navTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold", letterSpacing: -0.3 },
@@ -646,7 +646,7 @@ const s = StyleSheet.create({
     paddingVertical: 28,
     paddingHorizontal: 24,
     gap: 4,
-    borderBottomWidth: 0.5,
+    
   },
   tierPill: {
     flexDirection: "row",
@@ -679,7 +679,7 @@ const s = StyleSheet.create({
 
   tabs: {
     flexDirection: "row",
-    borderBottomWidth: 0.5,
+    
   },
   tab: {
     flex: 1,
@@ -750,7 +750,7 @@ const s = StyleSheet.create({
   walletTxt: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
 
   cta: {
-    borderTopWidth: 0.5,
+    
     paddingHorizontal: 16,
     paddingTop: 12,
     gap: 10,

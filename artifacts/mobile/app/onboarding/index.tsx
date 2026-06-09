@@ -501,7 +501,7 @@ export default function OnboardingScreen() {
           sendPushNotification({
             userId: rpcResult.referrer_id,
             title: "🎉 Someone joined using your referral!",
-            body: `You just earned +2,000 Nexa. Keep sharing your link to earn more!`,
+            body: `You earned +50 ACoin and +2,000 Nexa! Keep sharing to earn more.`,
             data: { type: "referral", screen: "referral" },
           }).catch(() => {});
 
@@ -1212,14 +1212,14 @@ const st = StyleSheet.create({
 
   // Modals
   modalContainer: { flex: 1 },
-  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 0.5 },
+  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 16 },
   modalTitle:  { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   searchBox:   { flexDirection: "row", alignItems: "center", margin: 16, borderRadius: 12, paddingHorizontal: 12, height: 44, gap: 8 },
   searchInput: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", height: 44 },
-  countryItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5, gap: 12 },
+  countryItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   countryItemFlag: { fontSize: 24 },
   countryItemName: { fontSize: 16, fontFamily: "Inter_400Regular", flex: 1 },
   countryItemDial: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  pickerItem:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5 },
+  pickerItem:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 },
   pickerItemText: { fontSize: 16, fontFamily: "Inter_400Regular" },
 });

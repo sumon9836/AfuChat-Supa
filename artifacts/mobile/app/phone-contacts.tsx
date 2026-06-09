@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    
   },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold", fontWeight: "700" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 40 },

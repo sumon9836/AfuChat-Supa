@@ -140,7 +140,6 @@ function WebShortsPlayer({
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      {/* @ts-ignore */}
       <video
         ref={ref}
         src={src}

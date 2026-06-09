@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     paddingVertical: 13,
-    borderBottomWidth: 0.5,
+    
   },
   iconBox: {
     width: 38,

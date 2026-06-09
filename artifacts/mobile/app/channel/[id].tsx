@@ -611,7 +611,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 4,
     paddingBottom: 10,
-    borderBottomWidth: 0.5,
+    
     gap: 4,
   },
   topBarBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
@@ -700,7 +700,7 @@ const st = StyleSheet.create({
 
   // Composer
   composer: {
-    borderTopWidth: 0.5,
+    
     paddingTop: 8,
     paddingHorizontal: 10,
     gap: 6,
@@ -755,7 +755,7 @@ const st = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingTop: 12,
-    borderTopWidth: 0.5,
+    
     flexWrap: "wrap",
   },
   readOnlyText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },

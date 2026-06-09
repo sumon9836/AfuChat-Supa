@@ -337,7 +337,7 @@ const s = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: 14, paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    
   },
   headerSide: { width: 44, alignItems: "flex-start", justifyContent: "center" },
   headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontFamily: "Inter_600SemiBold" },
@@ -346,7 +346,7 @@ const s = StyleSheet.create({
 
   tabBar: {
     flexDirection: "row",
-    borderBottomWidth: 0.5,
+    
   },
   tabItem: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",

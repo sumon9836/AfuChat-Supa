@@ -136,7 +136,7 @@ export default function AfuSavedApp() {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
-  headerBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5 },
+  headerBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 },
   headerTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   headerCount: { fontSize: 13, fontFamily: "Inter_400Regular" },
   card: { borderRadius: 16, borderWidth: 0.5, padding: 14, gap: 10 },

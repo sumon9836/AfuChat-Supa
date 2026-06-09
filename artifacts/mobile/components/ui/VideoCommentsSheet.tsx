@@ -479,7 +479,7 @@ function VoicePreviewBar({
 }
 
 const pvStyles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 0.5, borderTopColor: "rgba(255,255,255,0.08)" },
+  row: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderTopColor: "rgba(255,255,255,0.08)" },
   label: { flexDirection: "row", alignItems: "center", gap: 4 },
   discard: { paddingLeft: 4 },
 });
@@ -1075,18 +1075,18 @@ const cStyles = StyleSheet.create({
   emptyBox: { padding: 32, alignItems: "center", gap: 8 },
   emptyText: { color: "rgba(255,255,255,0.5)", fontSize: 15, fontFamily: "Inter_600SemiBold" },
   emptySub: { color: "rgba(255,255,255,0.3)", fontSize: 13, fontFamily: "Inter_400Regular" },
-  replyingTo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 0.5 },
+  replyingTo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8 },
   replyingToText: { color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "Inter_400Regular" },
-  emojiBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderTopWidth: 0.5, gap: 2 },
+  emojiBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, gap: 2 },
   emojiBtn: { flex: 1, alignItems: "center", paddingVertical: 6 },
   emojiText: { fontSize: 20 },
-  inputRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 0.5, gap: 8 },
+  inputRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   input: { flex: 1, color: "#fff", fontFamily: "Inter_400Regular", fontSize: 14, maxHeight: 100, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.08)" },
   sendBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   charCounter: { position: "absolute", right: 14, bottom: 10, fontSize: 10, fontFamily: "Inter_500Medium" },
   attachRow: { flexDirection: "row", alignItems: "center", gap: 2 },
   attachBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  imagePreviewBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 0.5 },
+  imagePreviewBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 8 },
   imageThumbWrap: { position: "relative" },
   imageThumb: { width: 52, height: 52, borderRadius: 8 },
   imageRemoveBtn: { position: "absolute", top: -6, right: -6 },

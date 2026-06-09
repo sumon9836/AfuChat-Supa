@@ -2159,7 +2159,6 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     paddingHorizontal: 24,
     marginTop: 8,
-    borderTopWidth: 0.5,
   },
   endOfFeedDot: {
     width: 4,

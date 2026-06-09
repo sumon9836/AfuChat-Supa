@@ -752,7 +752,7 @@ const sh = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
-    borderBottomWidth: 0.5,
+    
   },
   rowName:   { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   rowHandle: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },

@@ -64,7 +64,6 @@ export function GlassHeader({
         {
           paddingTop: insets.top,
           backgroundColor: colors.background,
-          borderBottomColor: colors.border,
         },
         style,
       ]}
@@ -128,7 +127,6 @@ export function GlassHeader({
 
 const styles = StyleSheet.create({
   container: {
-    borderBottomWidth: 0.5,
     zIndex: 10,
   },
   inner: {

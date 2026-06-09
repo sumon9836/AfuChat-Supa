@@ -586,7 +586,7 @@ export default function NotificationSettingsScreen() {
         <GlassCard style={{ marginHorizontal: 16, borderRadius: 20, overflow: "hidden" }} variant="medium">
 
           {/* Master toggle */}
-          <View style={[st.row, { borderBottomColor: colors.border, borderBottomWidth: 0.5 }]}>
+          <View style={st.row}>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={[st.rowLabel, { color: colors.text }]}>Enable Quiet Hours</Text>
               <Text style={[st.rowSub, { color: colors.textMuted }]}>
@@ -732,7 +732,6 @@ const st = StyleSheet.create({
   row: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 0.5,
   },
   rowLabel: { fontSize: 15, fontFamily: "Inter_500Medium" },
   rowSub:   { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },

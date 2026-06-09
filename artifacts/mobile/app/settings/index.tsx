@@ -147,11 +147,10 @@ export default function SettingsScreen() {
                     )}
                   </View>
                 </Pressable>
-                {!isLast && <View style={[styles.separator, { backgroundColor: colors.border, marginLeft: 74 }]} />}
               </View>
             );
           })}
-          <View style={[styles.separator, { backgroundColor: colors.border, marginLeft: 0 }]} />
+          
           <TouchableOpacity
             style={styles.manageRow}
             onPress={() => router.push("/linked-accounts")}
@@ -324,7 +323,7 @@ const styles = StyleSheet.create({
   switchBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 16 },
   switchBtnText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
 
-  separator: { height: 0.5 },
+  separator: { height: 0 },
   manageRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 12 },
   manageText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
 });

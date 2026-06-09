@@ -207,7 +207,7 @@ export default function MyPostsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
+  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingTop: 80 },
   card: { marginHorizontal: 8, borderRadius: 16, overflow: "hidden", paddingTop: 14 },
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   cardContent: { fontSize: 15, fontFamily: "Inter_400Regular", paddingHorizontal: 14, marginBottom: 10, lineHeight: 22 },
   images: { flexDirection: "row", gap: 4, paddingHorizontal: 14, marginBottom: 4 },
   img: { flex: 1, height: 120, borderRadius: 8 },
-  statsRow: { flexDirection: "row", paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 0.5, marginTop: 8, gap: 20 },
+  statsRow: { flexDirection: "row", paddingHorizontal: 14, paddingVertical: 10, marginTop: 8, gap: 20 },
   stat: { flexDirection: "row", alignItems: "center", gap: 4 },
   statText: { fontSize: 13, fontFamily: "Inter_500Medium" },
   emptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },

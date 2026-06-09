@@ -99,7 +99,7 @@ function FieldRow({ label, children, noBorder, colors }: {
   label: string; children: React.ReactNode; noBorder?: boolean; colors: any;
 }) {
   return (
-    <View style={[styles.fieldRow, !noBorder && { borderBottomWidth: 0.5, borderBottomColor: colors.border }]}>
+    <View style={[styles.fieldRow, !noBorder && { borderBottomColor: colors.border }]}>
       <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</Text>
       <View style={{ flex: 1 }}>{children}</View>
     </View>
@@ -732,7 +732,7 @@ const styles = StyleSheet.create({
 
   // Native nav header
   navBar: {
-    borderBottomWidth: 0.5,
+    
   },
   navBarInner: {
     flexDirection: "row",
@@ -843,12 +843,12 @@ const styles = StyleSheet.create({
 
   // Country modal
   modalRoot: { flex: 1 },
-  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 0.5 },
+  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16 },
   modalTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
   modalSearch: { flexDirection: "row", alignItems: "center", gap: 10, margin: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
   modalSearchInput: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
-  countryRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5, gap: 12 },
+  countryRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   countryFlag: { fontSize: 24 },
   countryName: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
-  clearCountryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 16, borderTopWidth: 0.5 },
+  clearCountryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
 });

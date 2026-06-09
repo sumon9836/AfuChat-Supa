@@ -320,7 +320,7 @@ export default function ShopManage() {
                 />
               </View>
               {shop?.pin_to_profile && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, paddingTop: 10, borderTopWidth: 0.5, borderTopColor: colors.border }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, paddingTop: 10, borderTopColor: colors.border }}>
                   <Ionicons name="checkmark-circle" size={14} color="#34C759" />
                   <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "#34C759" }}>
                     Your store is pinned and visible on your public profile.
@@ -788,10 +788,10 @@ export default function ShopManage() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 4, paddingVertical: 10, borderBottomWidth: 0.5 },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 4, paddingVertical: 10 },
   headerSide: { width: 52, alignItems: "center", justifyContent: "center" },
   headerTitle: { flex: 1, fontSize: 17, fontFamily: "Inter_700Bold", textAlign: "center", letterSpacing: -0.2 },
-  tabBar: { flexDirection: "row", borderBottomWidth: 0.5 },
+  tabBar: { flexDirection: "row" },
   tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   setupCard: { margin: 16, borderRadius: 20, padding: 32, alignItems: "center", gap: 12 },

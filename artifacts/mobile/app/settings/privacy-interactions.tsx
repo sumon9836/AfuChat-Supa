@@ -128,7 +128,7 @@ export default function PrivacyInteractionsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
+  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   sectionTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 8 },
   groupCard: { borderRadius: 14, overflow: "hidden" },
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   groupIcon: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   groupLabel: { fontSize: 15, fontFamily: "Inter_500Medium", marginBottom: 2 },
   groupDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 16 },
-  optRow: { flexDirection: "row", borderTopWidth: 0.5, paddingVertical: 10, paddingHorizontal: 14 },
+  optRow: { flexDirection: "row", paddingVertical: 10, paddingHorizontal: 14 },
   optItem: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   radioDot: { width: 10, height: 10, borderRadius: 5 },

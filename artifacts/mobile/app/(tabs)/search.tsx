@@ -1894,7 +1894,6 @@ const ss = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingBottom: 6,
-    borderBottomWidth: 0.5,
     zIndex: 20,
     overflow: "visible" as any,
     ...Platform.select({
@@ -1943,7 +1942,6 @@ const ss = StyleSheet.create({
 
   tabBar: {
     paddingVertical: 8,
-    borderBottomWidth: 0.5,
   },
   tabBtn: {
     flexDirection: "row",
@@ -1960,7 +1958,6 @@ const ss = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: 0.5,
   },
 
   aiCard: {
@@ -1975,8 +1972,6 @@ const ss = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#00000008",
   },
   rowTitle: {
     fontSize: 14,

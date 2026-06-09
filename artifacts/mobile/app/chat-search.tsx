@@ -1000,7 +1000,7 @@ const ss = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", gap: 10,
     paddingHorizontal: 14, paddingBottom: 12,
-    borderBottomWidth: 0.5,
+    
   },
   backBtn: {
     width: 36, height: 36, alignItems: "center", justifyContent: "center",
@@ -1023,7 +1023,7 @@ const ss = StyleSheet.create({
   },
   aiToggleOffText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
 
-  aiPanelWrap: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5 },
+  aiPanelWrap: { paddingHorizontal: 14, paddingVertical: 10 },
   aiPanel: {
     borderRadius: 14, padding: 14, borderWidth: 1,
   },
@@ -1031,7 +1031,7 @@ const ss = StyleSheet.create({
     width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center",
   },
 
-  tabBar: { borderBottomWidth: 0.5 },
+  tabBar: {  },
   tabContent: { paddingHorizontal: 10, gap: 0 },
   tabBtn: { paddingHorizontal: 4 },
   tabInner: {
@@ -1048,7 +1048,7 @@ const ss = StyleSheet.create({
   row: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingHorizontal: 16, paddingVertical: 13,
-    borderBottomWidth: 0.5,
+    
   },
   avatarWrap: { position: "relative" },
   typeChip: {

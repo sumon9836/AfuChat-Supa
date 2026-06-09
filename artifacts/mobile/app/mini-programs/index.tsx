@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: 0.5,
+    
   },
   headerTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   scroll: { paddingHorizontal: 16, gap: 10, paddingTop: 12 },

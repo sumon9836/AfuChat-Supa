@@ -376,17 +376,17 @@ export default function CompanyIndexScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { borderBottomWidth: 0.5, paddingBottom: 0 },
+  header: { paddingBottom: 0 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold", flex: 1, textAlign: "center" },
   createBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   createBtnText: { color: "#fff", fontSize: 13, fontFamily: "Inter_600SemiBold" },
   searchBar: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 14, marginBottom: 10, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9 },
   searchInput: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", padding: 0 },
-  tabs: { flexDirection: "row", borderTopWidth: 0.5 },
+  tabs: { flexDirection: "row" },
   tab: { flex: 1, alignItems: "center", paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: "transparent" },
   tabText: { fontSize: 14 },
-  categoryScroll: { borderBottomWidth: 0.5 },
+  categoryScroll: {  },
   categoryChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
   categoryChipText: { fontSize: 12, fontFamily: "Inter_500Medium" },
 

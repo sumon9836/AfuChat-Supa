@@ -684,7 +684,7 @@ const s = StyleSheet.create({
   permBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
 
   histModal: { flex: 1 },
-  histHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: 0.5 },
+  histHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 14 },
   histTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   histEmpty: { paddingTop: 80, alignItems: "center" },
   histEmptyText: { marginTop: 12, fontSize: 14, fontFamily: "Inter_400Regular" },

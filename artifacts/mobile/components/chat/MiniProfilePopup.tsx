@@ -405,8 +405,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-evenly",
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
+    
+    
     paddingVertical: 14,
     marginHorizontal: 0,
   },

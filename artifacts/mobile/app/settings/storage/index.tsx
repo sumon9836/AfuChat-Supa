@@ -562,7 +562,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 8,
     paddingBottom: 12,
-    borderBottomWidth: 0.5,
   },
   backBtn: { width: 44, alignItems: "center" },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },

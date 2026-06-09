@@ -293,7 +293,7 @@ const st = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingHorizontal: 16, paddingBottom: 14,
-    borderBottomWidth: 0.5,
+    
   },
   backBtn: { padding: 4 },
   shopBtn: { marginLeft: "auto", padding: 4 },

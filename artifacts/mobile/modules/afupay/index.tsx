@@ -381,7 +381,7 @@ function PaymentWebViewModal({ url, colors, insets, onClose, onComplete }: {
         <View style={{
           flexDirection: "row", alignItems: "center", justifyContent: "space-between",
           paddingHorizontal: 16, paddingTop: insets.top + 8, paddingBottom: 12,
-          borderBottomWidth: 0.5, borderBottomColor: colors.border, backgroundColor: colors.background,
+          borderBottomColor: colors.border, backgroundColor: colors.background,
         }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Ionicons name="lock-closed" size={13} color="#34C759" />
@@ -899,7 +899,7 @@ const s = StyleSheet.create({
   emptyText: { fontSize: 14, fontFamily: "Inter_400Regular" },
   emptyBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, marginTop: 4 },
   emptyBtnText: { color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 14 },
-  subHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8, paddingVertical: 12, borderBottomWidth: 0.5 },
+  subHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8, paddingVertical: 12 },
   subHeaderTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
   backBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   filterRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 10 },

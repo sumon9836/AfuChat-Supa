@@ -598,7 +598,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 10,
-    borderBottomWidth: 0.5,
+    
   },
   topTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
   topSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
@@ -724,7 +724,7 @@ const s = StyleSheet.create({
     position: "absolute", bottom: 0, left: 0, right: 0,
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 20, paddingTop: 14,
-    borderTopWidth: 0.5,
+    
   },
   ctaPrice: { fontSize: 18, fontFamily: "Inter_700Bold" },
   ctaStock: { fontSize: 12, fontFamily: "Inter_500Medium", marginTop: 2 },

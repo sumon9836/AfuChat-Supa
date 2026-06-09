@@ -647,8 +647,8 @@ const c = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
+    
+    
     backgroundColor: "rgba(255,255,255,0.03)",
     gap: 10,
   },
@@ -657,7 +657,7 @@ const c = StyleSheet.create({
     fontSize: 13,
     fontStyle: "italic",
     color: "#ffffffbb",
-    borderBottomWidth: 0.5,
+    
     paddingBottom: 3,
     fontFamily: "serif",
     letterSpacing: 0.3,
@@ -672,9 +672,9 @@ const c = StyleSheet.create({
     gap: 2,
   },
   sigStampTxt: { fontSize: 5.5, fontWeight: "800", letterSpacing: 1 },
-  mrzZone: { backgroundColor: "#000000aa", borderTopWidth: 0.5, paddingHorizontal: 10, paddingTop: 3, paddingBottom: 2 },
+  mrzZone: { backgroundColor: "#000000aa", paddingHorizontal: 10, paddingTop: 3, paddingBottom: 2 },
   mrz: { fontSize: 6, color: "#ffffff55", letterSpacing: 1.8, lineHeight: 9, fontFamily: "monospace" },
-  signaturePanel: { borderBottomWidth: 0.5, overflow: "hidden" },
+  signaturePanel: { overflow: "hidden" },
   signatureStripes: { flexDirection: "row", height: 18 },
   panelTxt: { fontSize: 6.5, fontWeight: "800", letterSpacing: 0.8 },
   secChip: { flexDirection: "row", alignItems: "center", gap: 3, borderWidth: 0.5, borderRadius: 3, paddingHorizontal: 4, paddingVertical: 2 },

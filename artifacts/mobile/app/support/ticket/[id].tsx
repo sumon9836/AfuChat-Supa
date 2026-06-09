@@ -461,7 +461,7 @@ const st = StyleSheet.create({
   infoStrip: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: 14, paddingVertical: 9,
-    borderBottomWidth: 0.5,
+    
   },
   infoChip: { flexDirection: "row", alignItems: "center", gap: 4, flex: 1 },
   infoChipText: { fontSize: 11, fontFamily: "Inter_500Medium", textTransform: "capitalize" },
@@ -529,7 +529,7 @@ const st = StyleSheet.create({
 
   inputBar: {
     flexDirection: "row", alignItems: "flex-end", gap: 8,
-    padding: 12, paddingTop: 10, borderTopWidth: 0.5,
+    padding: 12, paddingTop: 10, 
   },
   replyInput: {
     flex: 1, borderRadius: 22,
@@ -541,7 +541,7 @@ const st = StyleSheet.create({
 
   closedBar: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    padding: 14, borderTopWidth: 0.5,
+    padding: 14, 
   },
   closedIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   closedText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },

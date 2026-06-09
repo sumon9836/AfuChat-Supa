@@ -549,7 +549,7 @@ function Field({ label, required, hint, children, colors }: {
 
 const st = StyleSheet.create({
   root: { flex: 1 },
-  navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
+  navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12 },
   navTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   bigTitle: { fontSize: 22, fontFamily: "Inter_700Bold", textAlign: "center" },
   bigSub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 21 },
@@ -589,7 +589,7 @@ const st = StyleSheet.create({
   pickerSheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 12, paddingBottom: 40, maxHeight: "80%" },
   pickerSheetHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 14 },
   pickerSheetTitle: { fontSize: 16, fontFamily: "Inter_700Bold", paddingHorizontal: 20, marginBottom: 8 },
-  pickerOption: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
+  pickerOption: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 14 },
   pickerOptionIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   pickerOptionText: { fontSize: 14, flex: 1 },
 });

@@ -511,7 +511,6 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 12,
-    borderBottomWidth: 0.5,
   },
   title: {
     fontSize: 28,
@@ -533,7 +532,6 @@ const st = StyleSheet.create({
   },
   pillBar: {
     flexGrow: 0,
-    borderBottomWidth: 0.5,
   },
   pillBarContent: {
     paddingHorizontal: 14,
@@ -612,7 +610,6 @@ const st = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: 0.5,
   },
   unreadBadge: {
     minWidth: 22,

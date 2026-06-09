@@ -106,7 +106,7 @@ export default function AlertModal() {
           <View
             style={[
               useVertical ? styles.btnGroupVertical : styles.btnGroupHorizontal,
-              { borderTopColor: divider, borderTopWidth: 0.5 },
+              { borderTopColor: divider },
             ]}
           >
             {buttons.map((btn, i) => {
@@ -130,7 +130,7 @@ export default function AlertModal() {
                       },
                     useVertical &&
                       i < buttons.length - 1 && {
-                        borderBottomWidth: 0.5,
+                        
                         borderBottomColor: divider,
                       },
                   ]}

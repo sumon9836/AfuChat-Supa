@@ -450,7 +450,7 @@ const af = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 6,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    
     gap: 4,
   },
   headerBack: { padding: 6 },
@@ -458,7 +458,7 @@ const af = StyleSheet.create({
   headerRight: { width: 40, alignItems: "center" },
   saveDot: { width: 7, height: 7, borderRadius: 3.5 },
 
-  tabBarWrap: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 0.5 },
+  tabBarWrap: { paddingHorizontal: 16, paddingVertical: 10,  },
   tabBar: {
     flexDirection: "row",
     borderRadius: 14,

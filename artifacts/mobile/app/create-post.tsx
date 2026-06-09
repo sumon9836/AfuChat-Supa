@@ -215,7 +215,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: 0.5,
+    
   },
   headerBtn: { width: 36, alignItems: "flex-start" },
   headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "600" },
@@ -284,7 +284,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 10,
-    borderTopWidth: 0.5,
+    
     gap: 8,
   },
   toolbarBtn: { flexDirection: "row", alignItems: "center", gap: 6, padding: 4 },

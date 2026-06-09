@@ -151,7 +151,7 @@ export default function TransferScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
+  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   content: { padding: 16, gap: 12 },
   iconWrap: { alignItems: "center", paddingVertical: 8 },

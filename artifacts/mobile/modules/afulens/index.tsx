@@ -187,9 +187,7 @@ function WebCameraView({ onCapture }: { onCapture: (base64: string, mime: string
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      {/* @ts-ignore */}
       <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-      {/* @ts-ignore */}
       <canvas ref={canvasRef} style={{ display: "none" }} />
       {!ready && (
         <View style={[StyleSheet.absoluteFill, s.camLoading]}>

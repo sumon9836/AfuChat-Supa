@@ -789,7 +789,7 @@ const st = StyleSheet.create({
   },
   headBadgeText: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" },
 
-  tabBar: { flexDirection: "row", borderBottomWidth: 0.5 },
+  tabBar: { flexDirection: "row" },
   tabItem: { flex: 1, paddingVertical: 10, alignItems: "center", gap: 3 },
   tabLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
 
@@ -851,7 +851,7 @@ const st = StyleSheet.create({
   faqA: {
     fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20,
     paddingHorizontal: 14, paddingBottom: 14,
-    borderTopWidth: 0.5,
+    
     paddingTop: 12, color: "#666",
   },
 
@@ -942,7 +942,7 @@ const st = StyleSheet.create({
 
   submitBar: {
     padding: 14, paddingTop: 12,
-    borderTopWidth: 0.5,
+    
   },
 
   successCard: {

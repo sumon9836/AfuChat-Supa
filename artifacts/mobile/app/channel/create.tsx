@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     gap: 16,
-    borderBottomWidth: 0.5,
+    
   },
   avatarBtn: {
     width: 64,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    borderBottomWidth: 0.5,
+    
   },
   descInput: {
     fontSize: 16,
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderBottomWidth: 0.5,
+    
   },
   visibilityLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
   visibilityTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },

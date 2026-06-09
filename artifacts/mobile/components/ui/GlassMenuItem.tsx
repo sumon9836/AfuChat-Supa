@@ -29,12 +29,7 @@ export function GlassMenuSection({ title, children, style }: GlassMenuSectionPro
       <View
         style={[
           styles.sectionCard,
-          {
-            backgroundColor: colors.background,
-            borderTopWidth: 0.5,
-            borderBottomWidth: 0.5,
-            borderColor: colors.separator,
-          },
+          { backgroundColor: colors.backgroundSecondary },
         ]}
       >
         {children}
@@ -44,18 +39,9 @@ export function GlassMenuSection({ title, children, style }: GlassMenuSectionPro
 }
 
 // ─── GlassMenuSeparator ───────────────────────────────────────────────────────
+// Invisible spacer — kept for backward compat but renders nothing in flat UI
 export function GlassMenuSeparator({ indent = 54 }: { indent?: number }) {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={{
-        height: 0.5,
-        backgroundColor: colors.separator,
-        marginLeft: indent,
-        pointerEvents: "none",
-      }}
-    />
-  );
+  return null;
 }
 
 // ─── GlassMenuItem ────────────────────────────────────────────────────────────

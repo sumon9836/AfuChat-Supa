@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#C7C7CC", alignSelf: "center", marginBottom: 20 },
   reportTitle: { fontSize: 18, fontFamily: "Inter_700Bold", marginBottom: 4 },
   reportSub: { fontSize: 14, fontFamily: "Inter_400Regular", marginBottom: 16 },
-  reportOption: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, borderBottomWidth: 0.5 },
+  reportOption: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14 },
   reportOptionText: { fontSize: 15, fontFamily: "Inter_400Regular" },
   reportCancel: { paddingTop: 16, alignItems: "center" },
   reportCancelText: { fontSize: 15, fontFamily: "Inter_400Regular" },

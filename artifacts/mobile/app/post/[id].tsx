@@ -212,7 +212,7 @@ function RecordingBar({ elapsed, onStop, accent, colors }: { elapsed: number; on
 // ─── VoicePreviewBar ──────────────────────────────────────────────────────────
 function VoicePreviewBar({ uri, durationSecs, onDiscard, accent, colors }: { uri: string; durationSecs: number; onDiscard: () => void; accent: string; colors: any }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderTopWidth: 0.5, borderTopColor: colors.border }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderTopColor: colors.border }}>
       <Ionicons name="mic" size={13} color={accent} />
       <Text style={{ color: accent, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>Voice note</Text>
       <View style={{ flex: 1 }}>
@@ -1459,7 +1459,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: 0.5,
+    
   },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
 
@@ -1507,8 +1507,8 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 10,
     marginBottom: 12,
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
+    
+    
     marginHorizontal: -12,
     paddingHorizontal: 12,
   },
@@ -1536,8 +1536,8 @@ const styles = StyleSheet.create({
   /* Engagement bar */
   engagementBar: {
     flexDirection: "row",
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
+    
+    
     marginVertical: 8,
     paddingVertical: 1,
   },
@@ -1627,7 +1627,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderTopWidth: 0.5,
+    
   },
   replyingText: { fontSize: 12, fontFamily: "Inter_400Regular" },
   emojiBar: {
@@ -1635,7 +1635,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderTopWidth: 0.5,
+    
     gap: 0,
   },
   emojiBtn: { flex: 1, alignItems: "center", paddingVertical: 5 },
@@ -1646,7 +1646,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderTopWidth: 0.5,
+    
   },
   mediaThumb: { width: 48, height: 48, borderRadius: 8 },
   mediaRemoveBtn: { position: "absolute", top: -6, right: -6 },
@@ -1656,7 +1656,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     gap: 7,
-    borderTopWidth: 0.5,
+    
   },
   composerInput: {
     flex: 1,
@@ -1687,7 +1687,7 @@ const styles = StyleSheet.create({
   signInBar: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    borderTopWidth: 0.5,
+    
   },
   signInBtn: {
     flexDirection: "row",

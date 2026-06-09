@@ -802,7 +802,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderBottomWidth: 0.5,
+    
   },
   headerIcon: {
     width: 34, height: 34, borderRadius: 17,
@@ -868,7 +868,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: "row", alignItems: "flex-end",
     gap: 10, paddingHorizontal: 12, paddingTop: 10,
-    borderTopWidth: 0.5,
+    
   },
   input: {
     flex: 1, borderRadius: 22,

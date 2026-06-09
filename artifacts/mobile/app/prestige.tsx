@@ -532,7 +532,7 @@ const s = StyleSheet.create({
   roadmapActiveDot: { position: "absolute", bottom: -5, width: 6, height: 6, borderRadius: 3 },
 
   // Tabs
-  tabBar: { flexDirection: "row", borderTopWidth: 0.5, borderBottomWidth: 0.5, marginHorizontal: 14, borderRadius: 14, borderWidth: 0.5, overflow: "hidden", marginBottom: 14 },
+  tabBar: { flexDirection: "row",   marginHorizontal: 14, borderRadius: 14, borderWidth: 0.5, overflow: "hidden", marginBottom: 14 },
   tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 11 },
   tabLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
 

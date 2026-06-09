@@ -444,7 +444,7 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 14,
-    borderBottomWidth: 0.5,
+    
   },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
   introBanner: {

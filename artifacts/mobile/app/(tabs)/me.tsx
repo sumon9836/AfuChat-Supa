@@ -625,37 +625,37 @@ export default function MeScreen() {
 const s = StyleSheet.create({
   content: { gap: 0, paddingHorizontal: 0 },
 
-  // Hero — flat full-width, bottom separator only
-  heroCard: { borderBottomWidth: 0.5, overflow: "hidden" },
+  // Hero — flat full-width
+  heroCard: { overflow: "hidden" },
   heroTop: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14, gap: 14 },
   heroName: { fontSize: 19, fontFamily: "Inter_700Bold", flexShrink: 1 },
   heroHandle: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  heroBio: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19, paddingHorizontal: 20, paddingBottom: 14, borderTopWidth: 0.5, paddingTop: 12 },
+  heroBio: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19, paddingHorizontal: 20, paddingBottom: 14, paddingTop: 12 },
   premiumDot: { position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: "#FFD60A", alignItems: "center", justifyContent: "center" },
   businessChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, alignSelf: "flex-start", marginTop: 3 },
   businessChipText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
   // ACoin bar
-  acoinBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 0.5 },
+  acoinBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingVertical: 12 },
   acoinIconWrap: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   acoinEmoji: { fontSize: 18 },
   acoinBalance: { fontSize: 15, fontFamily: "Inter_700Bold" },
   acoinSub: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
 
-  // Stats — flat, bottom separator only
-  statsRow: { flexDirection: "row", borderBottomWidth: 0.5, paddingVertical: 16, paddingHorizontal: 8 },
+  // Stats — flat
+  statsRow: { flexDirection: "row", paddingVertical: 16, paddingHorizontal: 8 },
   statCell: { flex: 1, alignItems: "center", gap: 3 },
   statValue: { fontSize: 22, fontFamily: "Inter_700Bold" },
   statLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
   statDivider: { width: 0.5, marginVertical: 4 },
 
-  // Quick actions — flat, bottom separator only
-  quickRow: { flexDirection: "row", borderBottomWidth: 0.5, paddingVertical: 16, paddingHorizontal: 4 },
+  // Quick actions — flat
+  quickRow: { flexDirection: "row", paddingVertical: 16, paddingHorizontal: 4 },
   quickBtn: { flex: 1, alignItems: "center", gap: 7 },
   quickIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   quickLabel: { fontSize: 10, fontFamily: "Inter_500Medium", textAlign: "center" },
 
   // Premium banner — flat with subtle bg
-  premiumBanner: { padding: 20, flexDirection: "row", alignItems: "center", gap: 14, borderBottomWidth: 0.5 },
+  premiumBanner: { padding: 20, flexDirection: "row", alignItems: "center", gap: 14 },
   premiumIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   premiumTitle: { color: "#FFD60A", fontSize: 15, fontFamily: "Inter_700Bold" },
   premiumSub: { color: "rgba(255,255,255,0.45)", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },

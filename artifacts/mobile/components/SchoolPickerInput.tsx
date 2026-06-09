@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 0.5,
+    
   },
   modalTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   searchRow: {

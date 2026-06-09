@@ -405,7 +405,7 @@ const s = StyleSheet.create({
   tabRow: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: 16, paddingBottom: 10, gap: 8,
-    borderBottomWidth: 0.5,
+    
   },
   tabBtn: {
     flexDirection: "row", alignItems: "center", gap: 6,
@@ -442,7 +442,7 @@ const s = StyleSheet.create({
   },
   textSection: {
     paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4,
-    borderTopWidth: 0.5, marginTop: 4,
+    marginTop: 4,
   },
   textSectionHeader: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -475,7 +475,7 @@ const s = StyleSheet.create({
   actions: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4,
-    borderTopWidth: 0.5, gap: 10,
+    gap: 10,
   },
   applyBtn: {
     flex: 1, height: 48, borderRadius: 24,

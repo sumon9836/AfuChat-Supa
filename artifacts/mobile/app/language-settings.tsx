@@ -84,7 +84,7 @@ export default function LanguageSettingsScreen() {
             return (
               <TouchableOpacity
                 key={lang.code}
-                style={[styles.row, !isLast && { borderBottomColor: colors.separator, borderBottomWidth: 0.5 }]}
+                style={[styles.row, !isLast && { borderBottomColor: colors.separator,  }]}
                 onPress={() => pick(lang.code)}
                 activeOpacity={0.7}
               >
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: 0.5,
+    
   },
   backBtn: { width: 36 },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 13,
-    borderBottomWidth: 0.5,
+    
     gap: 12,
   },
   flagBox: {

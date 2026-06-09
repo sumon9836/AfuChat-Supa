@@ -681,7 +681,7 @@ export default function ManageCompanyPageScreen() {
                     />
                   </View>
                 </View>
-                <View style={[verSt.infoRow, { borderTopWidth: 0.5, borderTopColor: colors.border, paddingTop: 10 }]}>
+                <View style={[verSt.infoRow, { borderTopColor: colors.border, paddingTop: 10 }]}>
                   <Ionicons name="mail-outline" size={14} color={colors.textMuted} />
                   <View style={{ flex: 1 }}>
                     <Text style={[verSt.infoLabel, { color: colors.textMuted }]}>Contact Email</Text>
@@ -697,7 +697,7 @@ export default function ManageCompanyPageScreen() {
                     />
                   </View>
                 </View>
-                <View style={[verSt.infoRow, { borderTopWidth: 0.5, borderTopColor: colors.border, paddingTop: 10 }]}>
+                <View style={[verSt.infoRow, { borderTopColor: colors.border, paddingTop: 10 }]}>
                   <Ionicons name="location-outline" size={14} color={colors.textMuted} />
                   <View style={{ flex: 1 }}>
                     <Text style={[verSt.infoLabel, { color: colors.textMuted }]}>Physical Address</Text>
@@ -832,13 +832,13 @@ const verSt = StyleSheet.create({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5 },
+  navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12 },
   navTitle: { fontSize: 17, fontFamily: "Inter_700Bold", flex: 1, textAlign: "center" },
 
   imageSection: { borderRadius: 14, borderWidth: 0.5, overflow: "hidden" },
   coverPickerWrap: { position: "relative" },
   coverPreview: { width: "100%", height: 120 },
-  coverPlaceholder: { height: 120, alignItems: "center", justifyContent: "center", gap: 6, borderBottomWidth: 0.5 },
+  coverPlaceholder: { height: 120, alignItems: "center", justifyContent: "center", gap: 6 },
   placeholderLabel: { fontSize: 13, fontFamily: "Inter_400Regular" },
   coverEditBadge: { position: "absolute", bottom: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" },
   logoPickerRow: { flexDirection: "row", alignItems: "center", gap: 14, padding: 14 },

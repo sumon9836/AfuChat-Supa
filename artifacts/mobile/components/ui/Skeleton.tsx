@@ -132,7 +132,7 @@ export function ProfileSkeleton() {
         <Skeleton width={28} height={12} borderRadius={4} />
       </View>
       {/* Tab bar: 3 equal tabs */}
-      <View style={{ flexDirection: "row", height: 46, borderTopWidth: 0.5, borderTopColor: colors.border }}>
+      <View style={{ flexDirection: "row", height: 46, borderTopColor: colors.border }}>
         {[0, 1, 2].map((i) => (
           <View key={i} style={{ flex: 1, justifyContent: "center", alignItems: "center", borderTopWidth: i === 0 ? 2 : 0, borderTopColor: colors.accent }}>
             <Skeleton width={22} height={22} borderRadius={4} />
@@ -511,7 +511,7 @@ const sk = StyleSheet.create({
     alignItems: "center",
     padding: 14,
     gap: 12,
-    borderBottomWidth: 0.5,
+    
   },
   rowContent: {
     flex: 1,

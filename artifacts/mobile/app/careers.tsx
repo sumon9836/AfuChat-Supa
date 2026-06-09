@@ -225,7 +225,7 @@ export default function CareersScreen() {
 
 const st = StyleSheet.create({
   root:       { flex: 1 },
-  header:     { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 0.5 },
+  header:     { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 14 },
   backBtn:    { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitle:{ flex: 1, textAlign: "center", fontSize: 16, fontFamily: "Inter_700Bold" },
 
