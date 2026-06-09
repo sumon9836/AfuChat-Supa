@@ -23,6 +23,7 @@ R2_DEV_PUBLIC_URL = "https://pub-2e81c468eb99436690ca6da9f89191ce.r2.dev"
 R2_S3_ENDPOINT = "https://42e79186125e8ff83e51f15816e074de.r2.cloudflarestorage.com"
 PESAPAL_ENV = "production"
 EXPO_TOKEN = "n4MsqEkQNvqFGcFD47_R58LlPrjDKT_jMjLt66Ji"
+SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJobnNqcXF0ZHpsa3ZxYXpmY2JnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTY3MDg2OSwiZXhwIjoyMDc3MjQ2ODY5fQ.2EkaV3a2lgTxVVJUtNpIygnaRg6z45qR4OjM4M16qMs"
 
 [workflows]
 runButton = "Project"
