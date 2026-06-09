@@ -317,6 +317,163 @@ function InviteContactsSection({ referralLink, accent, colors }: { referralLink:
   );
 }
 
+// ── Leaderboard types ─────────────────────────────────────────────────────────
+type LeaderEntry = {
+  referrer_id: string;
+  handle: string;
+  display_name: string;
+  avatar_url: string | null;
+  total_referrals: number;
+  total_acoin_earned: number;
+  total_platinum_days_given: number;
+  last_referral_at: string;
+};
+
+function rankBadge(rank: number): { icon: string; color: string } | null {
+  if (rank === 1) return { icon: "🥇", color: "#FFD60A" };
+  if (rank === 2) return { icon: "🥈", color: "#C0C0C0" };
+  if (rank === 3) return { icon: "🥉", color: "#CD7F32" };
+  return null;
+}
+
+function tierLabel(referrals: number): { label: string; color: string } | null {
+  if (referrals >= 100) return { label: "Icon",       color: "#FFD60A" };
+  if (referrals >= 50)  return { label: "Legend",     color: "#BF5AF2" };
+  if (referrals >= 25)  return { label: "Influencer", color: "#FF375F" };
+  if (referrals >= 10)  return { label: "Platinum",   color: "#007AFF" };
+  return null;
+}
+
+// ── Leaderboard tab ───────────────────────────────────────────────────────────
+function LeaderboardTab({ accent, currentUserId }: { accent: string; currentUserId?: string }) {
+  const { colors } = useTheme();
+  const [entries,  setEntries]  = useState<LeaderEntry[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [myRank,   setMyRank]   = useState<number | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const { data } = await supabase
+          .from("referral_stats")
+          .select("referrer_id, handle, display_name, avatar_url, total_referrals, total_acoin_earned, total_platinum_days_given, last_referral_at")
+          .order("total_referrals", { ascending: false })
+          .limit(50);
+
+        if (data) {
+          setEntries(data as LeaderEntry[]);
+          const idx = data.findIndex((e: any) => e.referrer_id === currentUserId);
+          setMyRank(idx >= 0 ? idx + 1 : null);
+        }
+      } catch {}
+      setLoading(false);
+    })();
+  }, [currentUserId]);
+
+  if (loading) {
+    return (
+      <View style={{ paddingTop: 32, gap: 12, paddingHorizontal: 16 }}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 12, opacity: 1 - i * 0.08 }}>
+            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: colors.surface }} />
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface }} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <View style={{ height: 13, width: "55%", borderRadius: 6, backgroundColor: colors.surface }} />
+              <View style={{ height: 10, width: "35%", borderRadius: 5, backgroundColor: colors.surface }} />
+            </View>
+            <View style={{ height: 12, width: 60, borderRadius: 5, backgroundColor: colors.surface }} />
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  if (!entries.length) {
+    return (
+      <View style={{ alignItems: "center", paddingVertical: 60, gap: 12 }}>
+        <Ionicons name="trophy-outline" size={48} color={colors.textMuted} />
+        <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text }}>No entries yet</Text>
+        <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: "center", paddingHorizontal: 32 }}>
+          Be the first to invite friends and claim the top spot!
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+      {myRank && myRank > 3 && (
+        <View style={[lb.myRankBanner, { backgroundColor: accent + "15", borderColor: accent + "40" }]}>
+          <Ionicons name="person-circle-outline" size={18} color={accent} />
+          <Text style={[lb.myRankText, { color: accent }]}>Your rank: #{myRank}</Text>
+        </View>
+      )}
+
+      <View style={[lb.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {entries.map((entry, i) => {
+          const rank   = i + 1;
+          const badge  = rankBadge(rank);
+          const tier   = tierLabel(entry.total_referrals);
+          const isMe   = entry.referrer_id === currentUserId;
+
+          return (
+            <View key={entry.referrer_id}>
+              {i > 0 && <View style={[lb.divider, { backgroundColor: colors.border }]} />}
+              <View style={[lb.row, isMe && { backgroundColor: accent + "0A" }]}>
+
+                {/* Rank */}
+                <View style={lb.rankCol}>
+                  {badge
+                    ? <Text style={lb.medalEmoji}>{badge.icon}</Text>
+                    : <Text style={[lb.rankNum, { color: rank <= 10 ? colors.text : colors.textMuted }]}>#{rank}</Text>
+                  }
+                </View>
+
+                {/* Avatar */}
+                <AvatarInitial name={entry.display_name} uri={entry.avatar_url} size={40} />
+
+                {/* Name + handle */}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                    <Text style={[lb.name, { color: colors.text }]} numberOfLines={1}>{entry.display_name}</Text>
+                    {isMe && (
+                      <View style={[lb.youBadge, { backgroundColor: accent + "22" }]}>
+                        <Text style={[lb.youBadgeText, { color: accent }]}>You</Text>
+                      </View>
+                    )}
+                    {tier && (
+                      <View style={[lb.tierBadge, { backgroundColor: tier.color + "18" }]}>
+                        <Text style={[lb.tierText, { color: tier.color }]}>{tier.label}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[lb.handle, { color: colors.textMuted }]} numberOfLines={1}>
+                    @{entry.handle} · {entry.total_referrals} invite{entry.total_referrals !== 1 ? "s" : ""}
+                  </Text>
+                </View>
+
+                {/* ACoin earned */}
+                <View style={lb.acoinCol}>
+                  <Ionicons name="flash" size={12} color="#FFD60A" />
+                  <Text style={[lb.acoinVal, { color: colors.text }]}>
+                    {Number(entry.total_acoin_earned || 0).toLocaleString()}
+                  </Text>
+                  <Text style={[lb.acoinLabel, { color: colors.textMuted }]}>ACoin</Text>
+                </View>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      <Text style={[lb.footer, { color: colors.textMuted }]}>
+        Top 50 inviters · updates in real time
+      </Text>
+    </View>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function AfuReferralApp() {
   const { colors, accent } = useTheme();
@@ -327,17 +484,15 @@ export default function AfuReferralApp() {
   const [copied,        setCopied]        = useState(false);
   const [showQRModal,   setShowQRModal]   = useState(false);
   const [activeShare,   setActiveShare]   = useState<"link" | "code">("link");
+  const [activeView,    setActiveView]    = useState<"me" | "leaderboard">("me");
 
   const referralLink = `https://afuchat.com/${profile?.handle || ""}`;
   const referralCode = (profile?.handle || "").toUpperCase();
 
   const totalReferrals = referrals.length;
   const rewardedCount  = referrals.filter(r => r.reward_given).length;
-  const nexaEarned     = rewardedCount * NEXA_PER_INVITE;
-  const acoinEarned    = rewardedCount * 50; // 50 ACoin per rewarded referral
+  const acoinEarned    = rewardedCount * 50;
   const doneSteps      = REWARD_STEPS.filter(s => totalReferrals >= s.invites);
-  const totalBonusNexa = doneSteps.reduce((acc, s) => acc + s.bonusNexa, 0);
-  const totalNexaAll   = nexaEarned + totalBonusNexa;
   const currentStep    = doneSteps[doneSteps.length - 1] ?? null;
   const nextStep       = getNextStep(totalReferrals);
 
@@ -432,6 +587,35 @@ export default function AfuReferralApp() {
         )}
       </LinearGradient>
 
+      {/* ── View switcher: My Referrals | Leaderboard ────────────────────── */}
+      <View style={[s.viewSwitcher, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {(["me", "leaderboard"] as const).map(view => (
+          <TouchableOpacity
+            key={view}
+            onPress={() => setActiveView(view)}
+            activeOpacity={0.75}
+            style={[s.viewTab, activeView === view && { backgroundColor: accent }]}
+          >
+            <Ionicons
+              name={view === "me" ? "person-outline" : "trophy-outline"}
+              size={15}
+              color={activeView === view ? "#fff" : colors.textMuted}
+            />
+            <Text style={[s.viewTabText, { color: activeView === view ? "#fff" : colors.textMuted }]}>
+              {view === "me" ? "My Referrals" : "Leaderboard"}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* ── Leaderboard view ─────────────────────────────────────────────── */}
+      {activeView === "leaderboard" && (
+        <LeaderboardTab accent={accent} currentUserId={user?.id} />
+      )}
+
+      {/* ── My Referrals view ────────────────────────────────────────────── */}
+      {activeView === "me" && (<>
+
       {/* ── Share tabs ───────────────────────────────────────────────────── */}
       <View style={s.section}>
         <View style={[s.shareTabs, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -523,6 +707,8 @@ export default function AfuReferralApp() {
           <Text style={[s.emptySub, { color: colors.textMuted }]}>Share your link above to start earning Nexa</Text>
         </View>
       )}
+
+      </>)}
     </ScrollView>
   );
 }
@@ -537,6 +723,9 @@ const s = StyleSheet.create({
   heroStatLabel: { color: "rgba(255,255,255,0.55)", fontSize: 11, fontFamily: "Inter_400Regular" },
   progressWrap: { marginTop: 4 },
   progressLabel: { color: "rgba(255,255,255,0.65)", fontSize: 12, fontFamily: "Inter_400Regular" },
+  viewSwitcher: { flexDirection: "row", marginHorizontal: 16, borderRadius: 14, borderWidth: 0.5, padding: 4, gap: 4 },
+  viewTab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: 10 },
+  viewTabText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   section: { paddingHorizontal: 16, marginTop: 20 },
   sectionTitle: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, marginBottom: 10 },
   shareTabs: { flexDirection: "row", borderRadius: 12, borderWidth: 0.5, padding: 4, marginBottom: 10 },
@@ -559,6 +748,27 @@ const s = StyleSheet.create({
   emptyState: { alignItems: "center", gap: 10, paddingVertical: 48, paddingHorizontal: 32 },
   emptyTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
   emptySub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 21 },
+});
+
+const lb = StyleSheet.create({
+  myRankBanner: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12 },
+  myRankText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  card: { borderRadius: 16, borderWidth: 0.5, overflow: "hidden", marginBottom: 8 },
+  divider: { height: 0.5 },
+  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 11, gap: 10 },
+  rankCol: { width: 32, alignItems: "center" },
+  medalEmoji: { fontSize: 22 },
+  rankNum: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  name: { fontSize: 14, fontFamily: "Inter_600SemiBold", flexShrink: 1 },
+  handle: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
+  youBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
+  youBadgeText: { fontSize: 10, fontFamily: "Inter_700Bold" },
+  tierBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 },
+  tierText: { fontSize: 10, fontFamily: "Inter_700Bold" },
+  acoinCol: { alignItems: "center", minWidth: 54 },
+  acoinVal: { fontSize: 13, fontFamily: "Inter_700Bold", marginTop: 1 },
+  acoinLabel: { fontSize: 9, fontFamily: "Inter_500Medium", marginTop: 1 },
+  footer: { textAlign: "center", fontSize: 11, fontFamily: "Inter_400Regular", paddingVertical: 16 },
 });
 
 const stepStyles = StyleSheet.create({

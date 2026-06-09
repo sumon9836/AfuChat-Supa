@@ -503,8 +503,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Bootstrap ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
+    // Safety-net: if getSession() ever hangs indefinitely on native (no reject,
+    // just silence), release the splash after 6 s so the user is never locked out.
+    let safetyFired = false;
+    const safetyTimer = setTimeout(() => {
+      safetyFired = true;
+      setLoading(false);
+    }, 6000);
+
     supabase.auth.getSession()
       .then(async ({ data: { session } }) => {
+        clearTimeout(safetyTimer);
         if (session?.user) {
           setSession(session);
           setUser(session.user);
@@ -571,8 +580,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {
-        // getSession failure — don't block the app; show unauthenticated state
-        setLoading(false);
+        clearTimeout(safetyTimer);
+        if (!safetyFired) setLoading(false);
       });
 
     refreshLinkedAccounts().catch(() => {});
@@ -738,7 +747,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  const isPremium = !!subscription && subscription.is_active && new Date(subscription.expires_at) > new Date();
+  // POLICY: every logged-in user gets full access — never gate on subscription.
+  // isPremium is true whenever the user has an active session or cached profile.
+  const isPremium = !!(user || profile);
 
   const contextValue = useMemo(
     () => ({
