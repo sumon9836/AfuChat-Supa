@@ -9,6 +9,12 @@ const config = getDefaultConfig(__dirname);
 // directories during a hot-reload cycle.
 config.resolver = {
   ...(config.resolver || {}),
+  // Allow Metro to treat .wasm files as static assets rather than JS modules.
+  // expo-sqlite's web worker references wa-sqlite.wasm which is not shipped in
+  // the npm package; without this, web bundling fails with "Unable to resolve
+  // module ./wa-sqlite/wa-sqlite.wasm". The expo-sqlite resolveRequest shim
+  // below means the wasm is never actually loaded at runtime on web.
+  assetExts: [...(config.resolver?.assetExts ?? []), "wasm"],
   blockList: [
     /artifacts[\\/]mockup-sandbox[\\/].*/,
     /node_modules[\\/]\.pnpm[\\/].*_tmp_\d+/,
@@ -52,6 +58,16 @@ config.resolver = {
       if (moduleName === "react-native-pager-view") {
         return {
           filePath: path.resolve(__dirname, "lib/pager-view-web-shim.js"),
+          type: "sourceFile",
+        };
+      }
+      // expo-sqlite's web entry imports a wa-sqlite.wasm binary that is not
+      // shipped in the npm package, crashing Metro with "Unable to resolve
+      // module ./wa-sqlite/wa-sqlite.wasm". Redirect to a no-op shim on web —
+      // lib/storage/db.ts already returns a stub at runtime for web anyway.
+      if (moduleName === "expo-sqlite") {
+        return {
+          filePath: path.resolve(__dirname, "lib/expo-sqlite-web-shim.js"),
           type: "sourceFile",
         };
       }
