@@ -20,12 +20,12 @@ let watcherStarted = false;
 export function startRealtimeWatcher() {
   if (watcherStarted) return;
 
-  const hasDb = !!(process.env.DATABASE_URL || process.env.SUPABASE_DB_URL);
+  const hasDb = !!process.env.SUPABASE_DB_URL;
   const hasResend = !!process.env.RESEND_API_KEY;
   const hasAi = !!(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY);
 
   if (!hasDb) {
-    logger.info("[watcher] DATABASE_URL not configured — watcher not started");
+    logger.info("[watcher] SUPABASE_DB_URL not configured — watcher not started");
     return;
   }
 

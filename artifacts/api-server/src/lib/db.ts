@@ -14,10 +14,10 @@ let pool: pg.Pool | null = null;
 
 export function getDb(): pg.Pool {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+    const connectionString = process.env.SUPABASE_DB_URL;
     if (!connectionString) {
       throw new Error(
-        "DATABASE_URL environment variable is required. " +
+        "SUPABASE_DB_URL environment variable is required. " +
         "Set it in the Replit Secrets panel (Settings > Secrets)."
       );
     }

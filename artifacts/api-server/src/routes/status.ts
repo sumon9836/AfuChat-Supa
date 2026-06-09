@@ -40,13 +40,13 @@ function checkStorage(): ServiceCheck {
 }
 
 function checkVideoProcessing(): ServiceCheck {
-  const hasDb = !!process.env["DATABASE_URL"];
+  const hasDb = !!process.env["SUPABASE_DB_URL"];
   const workerDisabled = process.env["VIDEO_WORKER_ENABLED"] === "false";
   if (!hasDb || workerDisabled) {
     return {
       name: "Video Processing",
       status: "degraded",
-      message: hasDb ? "Video worker disabled" : "Database not configured",
+      message: hasDb ? "Video worker disabled" : "SUPABASE_DB_URL not configured",
     };
   }
   return { name: "Video Processing", status: "operational" };
