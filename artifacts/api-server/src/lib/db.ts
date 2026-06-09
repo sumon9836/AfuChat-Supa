@@ -1,7 +1,8 @@
 /**
  * Direct PostgreSQL client for the API server.
- * Uses the Replit-provisioned Neon Postgres database.
- * Replaces Supabase Admin client for server-side DB operations.
+ * Connects to Supabase's PostgreSQL database via SUPABASE_DB_URL.
+ * Used by server-side services (videoEncoder, storiesCleanup, realtimeWatcher, etc.)
+ * that need direct SQL access beyond what the Supabase JS client provides.
  */
 
 import pg from "pg";
@@ -13,16 +14,19 @@ let pool: pg.Pool | null = null;
 
 export function getDb(): pg.Pool {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
+    const connectionString = process.env.SUPABASE_DB_URL;
     if (!connectionString) {
-      throw new Error("DATABASE_URL environment variable is required");
+      throw new Error(
+        "SUPABASE_DB_URL environment variable is required. " +
+        "Find it in your Supabase dashboard under Settings > Database > Connection string (Transaction mode, port 6543)."
+      );
     }
     pool = new Pool({
       connectionString,
       ssl: connectionString.includes("sslmode=disable")
         ? false
         : { rejectUnauthorized: false },
-      max: 20,
+      max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
     });
