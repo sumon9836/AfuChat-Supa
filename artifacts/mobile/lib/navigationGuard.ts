@@ -39,15 +39,21 @@ const _origBack    = router.back.bind(router);
 
 (router as any).push = (...args: Parameters<typeof router.push>) => {
   if (!acquire()) return;
-  _origPush(...args);
+  try { _origPush(...args); } catch (e: any) {
+    if (!String(e?.message).includes("mounting")) throw e;
+  }
 };
 
 (router as any).replace = (...args: Parameters<typeof router.replace>) => {
   if (!acquire()) return;
-  _origReplace(...args);
+  try { _origReplace(...args); } catch (e: any) {
+    if (!String(e?.message).includes("mounting")) throw e;
+  }
 };
 
 (router as any).back = () => {
   if (!acquire()) return;
-  _origBack();
+  try { _origBack(); } catch (e: any) {
+    if (!String(e?.message).includes("mounting")) throw e;
+  }
 };

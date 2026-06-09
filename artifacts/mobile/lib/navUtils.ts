@@ -63,10 +63,10 @@ export function releaseNavLock(): void {
  *   safeRouter.push("/profile");
  */
 export const safeRouter = {
-  push    (href: any, cooldown = NAV_COOLDOWN_MS): void { if (acquireNavLock(cooldown)) router.push(href); },
-  replace (href: any, cooldown = NAV_COOLDOWN_MS): void { if (acquireNavLock(cooldown)) router.replace(href); },
-  navigate(href: any, cooldown = NAV_COOLDOWN_MS): void { if (acquireNavLock(cooldown)) router.navigate(href); },
-  back    (cooldown = NAV_COOLDOWN_MS):             void { if (acquireNavLock(cooldown)) { if (router.canGoBack()) router.back(); } },
+  push    (href: any, cooldown = NAV_COOLDOWN_MS): void { if (acquireNavLock(cooldown)) { try { router.push(href); } catch (e: any) { if (!String(e?.message).includes("mounting")) throw e; } } },
+  replace (href: any, cooldown = NAV_COOLDOWN_MS): void { if (acquireNavLock(cooldown)) { try { router.replace(href); } catch (e: any) { if (!String(e?.message).includes("mounting")) throw e; } } },
+  navigate(href: any, cooldown = NAV_COOLDOWN_MS): void { if (acquireNavLock(cooldown)) { try { router.navigate(href); } catch (e: any) { if (!String(e?.message).includes("mounting")) throw e; } } },
+  back    (cooldown = NAV_COOLDOWN_MS):             void { if (acquireNavLock(cooldown)) { try { if (router.canGoBack()) router.back(); } catch {} } },
 };
 
 // ── React hooks ───────────────────────────────────────────────────────────────

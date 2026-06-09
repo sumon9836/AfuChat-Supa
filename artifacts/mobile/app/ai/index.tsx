@@ -72,7 +72,8 @@ export default function AiRedirect() {
         AsyncStorage.setItem(AI_CHAT_CACHE_KEY, chatId).catch(() => {});
         goToAiChat(chatId, opts);
       } else {
-        router.back();
+        if (router.canGoBack()) router.back();
+        else router.replace("/(tabs)/chats" as any);
       }
     }
 
