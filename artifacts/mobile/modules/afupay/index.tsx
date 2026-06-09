@@ -55,19 +55,65 @@ type PayRequest = {
 };
 
 const PACKAGES = [
-  { amount: 100, priceUsd: 1.0, label: "Starter", icon: "flash-outline" as const },
-  { amount: 500, priceUsd: 5.0, label: "Basic", icon: "flash" as const },
-  { amount: 2000, priceUsd: 20.0, label: "Popular", icon: "diamond" as const, popular: true },
-  { amount: 5000, priceUsd: 50.0, label: "Value", icon: "diamond-outline" as const },
-  { amount: 20000, priceUsd: 200.0, label: "Pro", icon: "star" as const },
+  { amount: 100,   priceUsd: 1.0,   label: "Starter", icon: "flash-outline"  as const },
+  { amount: 500,   priceUsd: 5.0,   label: "Basic",   icon: "flash"          as const },
+  { amount: 2000,  priceUsd: 20.0,  label: "Popular", icon: "diamond"        as const, popular: true },
+  { amount: 5000,  priceUsd: 50.0,  label: "Value",   icon: "diamond-outline" as const },
+  { amount: 20000, priceUsd: 200.0, label: "Pro",     icon: "star"           as const },
 ];
+
+// ── FX helpers (same table as premium.tsx) ────────────────────────────────────
+type FxEntry = { code: string; symbol: string; rate: number };
+const FX: Record<string, FxEntry> = {
+  UG: { code: "UGX", symbol: "USh", rate: 3700 },
+  KE: { code: "KES", symbol: "KSh", rate: 130 },
+  TZ: { code: "TZS", symbol: "TSh", rate: 2600 },
+  NG: { code: "NGN", symbol: "₦",   rate: 1550 },
+  GH: { code: "GHS", symbol: "GH₵", rate: 15.5 },
+  ZA: { code: "ZAR", symbol: "R",   rate: 18.5 },
+  GB: { code: "GBP", symbol: "£",   rate: 0.79 },
+  DE: { code: "EUR", symbol: "€",   rate: 0.92 },
+  FR: { code: "EUR", symbol: "€",   rate: 0.92 },
+  IT: { code: "EUR", symbol: "€",   rate: 0.92 },
+  ES: { code: "EUR", symbol: "€",   rate: 0.92 },
+  NL: { code: "EUR", symbol: "€",   rate: 0.92 },
+  IN: { code: "INR", symbol: "₹",   rate: 83 },
+  BR: { code: "BRL", symbol: "R$",  rate: 5.0 },
+  CA: { code: "CAD", symbol: "CA$", rate: 1.36 },
+  AU: { code: "AUD", symbol: "A$",  rate: 1.52 },
+  JP: { code: "JPY", symbol: "¥",   rate: 154 },
+  CN: { code: "CNY", symbol: "¥",   rate: 7.2 },
+  RW: { code: "RWF", symbol: "Fr",  rate: 1330 },
+  ET: { code: "ETB", symbol: "Br",  rate: 56 },
+  SN: { code: "XOF", symbol: "Fr",  rate: 600 },
+  ZM: { code: "ZMW", symbol: "K",   rate: 27 },
+  MX: { code: "MXN", symbol: "MX$", rate: 17 },
+  PK: { code: "PKR", symbol: "₨",   rate: 278 },
+  EG: { code: "EGP", symbol: "£",   rate: 48 },
+};
+function localLine(usd: number, country?: string | null): string | null {
+  if (!country) return null;
+  const fx = FX[country.toUpperCase()];
+  if (!fx) return null;
+  const local = usd * fx.rate;
+  let s: string;
+  if (local >= 1_000_000) s = `${(local / 1_000_000).toFixed(1)}M`;
+  else if (local >= 10_000) s = `${Math.round(local / 1000)}K`;
+  else if (local >= 1_000) s = local.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  else s = local.toLocaleString(undefined, { maximumFractionDigits: fx.rate < 5 ? 2 : 0 });
+  return `≈ ${fx.symbol} ${s}`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function getEdgeFnBase() {
   return (process.env.EXPO_PUBLIC_SUPABASE_URL || "").trim().replace(/\/+$/, "") + "/functions/v1";
 }
-async function getToken() {
+async function getToken(): Promise<string> {
+  // Always refresh to avoid sending an expired token to Edge Functions
+  const { data: refreshed } = await supabase.auth.refreshSession();
+  if (refreshed.session?.access_token) return refreshed.session.access_token;
   const { data } = await supabase.auth.getSession();
-  return data?.session?.access_token || "";
+  return data?.session?.access_token ?? "";
 }
 function fmtAmt(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -408,41 +454,119 @@ function TopUpView({ colors, insets, profile, onBack, onSuccess }: any) {
   const acoinAmt = selectedPack !== null ? PACKAGES[selectedPack].amount : (parseInt(customAmt || "0") || 0);
   const price = (acoinAmt * 0.01).toFixed(2);
 
+  const country = profile?.country ?? null;
+
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
       <SubHeader title="Buy ACoin" onBack={onBack} colors={colors} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+
+        {/* ── Balance pill ── */}
         <View style={[s.balancePill2, { backgroundColor: "#0A2E1F", borderColor: Colors.brand + "40", marginBottom: 20 }]}>
           <Ionicons name="diamond" size={14} color={Colors.brand} />
-          <Text style={[s.balancePill2Text, { color: Colors.brand }]}>Current balance: {fmtAmt(profile?.acoin || 0)} ACoin</Text>
+          <Text style={[s.balancePill2Text, { color: Colors.brand }]}>Balance: {fmtAmt(profile?.acoin || 0)} ACoin</Text>
         </View>
-        <Text style={[s.sectionTitle, { color: colors.textSecondary, marginBottom: 12 }]}>CHOOSE A PACKAGE</Text>
-        <View style={s.packGrid}>
-          {PACKAGES.map((pkg, i) => (
-            <TouchableOpacity key={i} style={[s.packCard, { backgroundColor: colors.surface, borderColor: selectedPack === i ? Colors.brand : colors.border }]} onPress={() => { setSelectedPack(i); setCustomAmt(""); Haptics.selectionAsync(); }} activeOpacity={0.8}>
-              {pkg.popular && <View style={s.popularBadge}><Text style={s.popularText}>POPULAR</Text></View>}
-              <Ionicons name={pkg.icon} size={22} color={Colors.brand} />
-              <Text style={[s.packLabel, { color: colors.text }]}>{pkg.label}</Text>
-              <Text style={[s.packAmount, { color: Colors.brand }]}>{fmtAmt(pkg.amount)} AC</Text>
-              <Text style={[s.packPrice, { color: colors.textMuted }]}>${pkg.priceUsd.toFixed(2)}</Text>
-            </TouchableOpacity>
-          ))}
+
+        {/* ── Package list ── */}
+        <Text style={[s.sectionTitle, { color: colors.textSecondary, marginBottom: 10 }]}>CHOOSE A PACKAGE</Text>
+        <View style={{ gap: 8 }}>
+          {PACKAGES.map((pkg, i) => {
+            const isSelected = selectedPack === i;
+            const lc = localLine(pkg.priceUsd, country);
+            return (
+              <TouchableOpacity
+                key={i}
+                activeOpacity={0.82}
+                onPress={() => { setSelectedPack(i); setCustomAmt(""); Haptics.selectionAsync(); }}
+                style={[s.packRow, {
+                  backgroundColor: isSelected ? Colors.brand + "12" : colors.surface,
+                  borderColor: isSelected ? Colors.brand : colors.border,
+                }]}
+              >
+                {/* Icon + label */}
+                <View style={[s.packIconWrap, { backgroundColor: isSelected ? Colors.brand + "20" : colors.inputBg }]}>
+                  <Ionicons name={pkg.icon} size={20} color={Colors.brand} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={[s.packRowLabel, { color: colors.text }]}>{pkg.label}</Text>
+                    {pkg.popular && (
+                      <View style={[s.popularChip, { backgroundColor: Colors.brand }]}>
+                        <Text style={s.popularChipText}>POPULAR</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[s.packRowAmt, { color: Colors.brand }]}>{fmtAmt(pkg.amount)} ACoin</Text>
+                </View>
+                {/* Price column */}
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={[s.packRowUsd, { color: isSelected ? Colors.brand : colors.text }]}>${pkg.priceUsd % 1 === 0 ? pkg.priceUsd.toFixed(0) : pkg.priceUsd.toFixed(2)}</Text>
+                  {!!lc && <Text style={[s.packRowLocal, { color: colors.textMuted }]}>{lc}</Text>}
+                </View>
+                {/* Check */}
+                <View style={{ width: 24, alignItems: "center", marginLeft: 10 }}>
+                  {isSelected
+                    ? <Ionicons name="checkmark-circle" size={22} color={Colors.brand} />
+                    : <View style={[s.packCircle, { borderColor: colors.border }]} />
+                  }
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-        <Text style={[s.sectionTitle, { color: colors.textSecondary, marginTop: 20, marginBottom: 8 }]}>OR CUSTOM AMOUNT</Text>
-        <View style={[s.inputRow, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+
+        {/* ── Custom amount ── */}
+        <Text style={[s.sectionTitle, { color: colors.textSecondary, marginTop: 20, marginBottom: 8 }]}>OR ENTER CUSTOM AMOUNT</Text>
+        <View style={[s.inputRow, { backgroundColor: colors.inputBg, borderColor: selectedPack === null && acoinAmt >= 50 ? Colors.brand : colors.border, borderWidth: selectedPack === null && acoinAmt >= 50 ? 1.5 : 1 }]}>
           <Ionicons name="diamond" size={16} color={Colors.brand} style={{ marginRight: 8 }} />
-          <TextInput style={[s.input, { color: colors.text, flex: 1 }]} placeholder="e.g. 300" placeholderTextColor={colors.textMuted} value={customAmt} onChangeText={t => { setCustomAmt(t); setSelectedPack(null); }} keyboardType="number-pad" />
-          <Text style={{ color: colors.textMuted, fontFamily: "Inter_500Medium" }}>ACoin</Text>
+          <TextInput
+            style={[s.input, { color: colors.text, flex: 1 }]}
+            placeholder="e.g. 300"
+            placeholderTextColor={colors.textMuted}
+            value={customAmt}
+            onChangeText={t => { setCustomAmt(t); setSelectedPack(null); }}
+            keyboardType="number-pad"
+          />
+          <Text style={{ color: colors.textMuted, fontFamily: "Inter_500Medium", fontSize: 13 }}>ACoin</Text>
         </View>
-        {acoinAmt >= 50 && (
-          <View style={[s.previewBox, { backgroundColor: Colors.brand + "10", borderColor: Colors.brand + "30", marginTop: 12 }]}>
-            <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold" }}>{fmtAmt(acoinAmt)} ACoin for ${price}</Text>
-            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 2 }}>Mobile money, card, bank · Powered by Pesapal</Text>
+
+        {/* ── Preview for custom amount ── */}
+        {selectedPack === null && acoinAmt >= 50 && (
+          <View style={[s.previewBox, { backgroundColor: Colors.brand + "10", borderColor: Colors.brand + "30", marginTop: 10 }]}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 15 }}>{fmtAmt(acoinAmt)} ACoin</Text>
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 16 }}>${price}</Text>
+                {!!localLine(parseFloat(price), country) && (
+                  <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "Inter_400Regular" }}>{localLine(parseFloat(price), country)}</Text>
+                )}
+              </View>
+            </View>
+            <Text style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 6, fontFamily: "Inter_400Regular" }}>Mobile money · Card · Bank · Powered by Pesapal</Text>
           </View>
         )}
-        <TouchableOpacity style={[s.primaryBtn, { backgroundColor: Colors.brand, opacity: (loading || acoinAmt < 50) ? 0.6 : 1, marginTop: 20 }]} onPress={checkout} disabled={loading || acoinAmt < 50} activeOpacity={0.85}>
-          {loading ? <ActivityIndicator color="#fff" /> : <><Ionicons name="card" size={18} color="#fff" /><Text style={s.primaryBtnText}>Pay with Pesapal</Text></>}
+
+        {/* ── CTA ── */}
+        <TouchableOpacity
+          style={[s.primaryBtn, { backgroundColor: Colors.brand, opacity: (loading || acoinAmt < 50) ? 0.5 : 1, marginTop: 20 }]}
+          onPress={checkout}
+          disabled={loading || acoinAmt < 50}
+          activeOpacity={0.85}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <>
+                <Ionicons name="lock-closed" size={16} color="#fff" />
+                <Text style={s.primaryBtnText}>
+                  Pay {acoinAmt >= 50 ? `$${price} · ${fmtAmt(acoinAmt)} AC` : "— select a package"}
+                </Text>
+              </>
+          }
         </TouchableOpacity>
+        <Text style={{ textAlign: "center", color: colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 8 }}>
+          1 AC = $0.01 · Secure checkout via Pesapal
+        </Text>
+
       </ScrollView>
       {!!checkoutUrl && (
         <PaymentWebViewModal
@@ -786,13 +910,15 @@ const s = StyleSheet.create({
   fieldLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, marginBottom: 8 },
   inputRow: { flexDirection: "row", alignItems: "center", borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12 },
   input: { fontSize: 15, fontFamily: "Inter_400Regular" },
-  packGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  packCard: { width: (W - 42) / 2, borderRadius: 14, borderWidth: 1.5, padding: 14, alignItems: "flex-start", gap: 4, position: "relative" },
-  popularBadge: { position: "absolute", top: 8, right: 8, backgroundColor: Colors.brand, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
-  popularText: { color: "#fff", fontSize: 9, fontFamily: "Inter_700Bold" },
-  packLabel: { fontSize: 13, fontFamily: "Inter_600SemiBold", marginTop: 4 },
-  packAmount: { fontSize: 18, fontFamily: "Inter_700Bold" },
-  packPrice: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  packRow: { flexDirection: "row", alignItems: "center", borderRadius: 14, borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 13 },
+  packIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  packRowLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  packRowAmt: { fontSize: 12, fontFamily: "Inter_500Medium", marginTop: 2 },
+  packRowUsd: { fontSize: 16, fontFamily: "Inter_700Bold" },
+  packRowLocal: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
+  packCircle: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5 },
+  popularChip: { borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 },
+  popularChipText: { color: "#fff", fontSize: 9, fontFamily: "Inter_700Bold" },
   previewBox: { borderRadius: 12, borderWidth: 1, padding: 14 },
   previewRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   primaryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, paddingVertical: 15 },
