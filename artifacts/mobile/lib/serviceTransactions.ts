@@ -81,7 +81,7 @@ export async function processServiceTransaction(
     .single();
 
   if (txError) {
-    await supabase.rpc("credit_acoin", { p_user_id: userId, p_amount: fee.total }).catch(() => {});
+    await supabase.rpc("credit_acoin", { p_user_id: userId, p_amount: fee.total }).then(null, () => {});
     return { success: false, error: "Failed to record transaction" };
   }
 

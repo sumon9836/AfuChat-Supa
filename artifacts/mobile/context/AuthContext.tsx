@@ -680,7 +680,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return;
     const updateLastSeen = () => {
-      if (isOnline()) supabase.rpc("update_last_seen").catch(() => {});
+      if (isOnline()) supabase.rpc("update_last_seen").then(null, () => {});
     };
     updateLastSeen();
     const sub = AppState.addEventListener("change", (state) => {

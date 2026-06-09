@@ -36,10 +36,7 @@ import {
   uploadFileToBucket,
   safeRemoveDir,
 } from "../lib/videoStorage";
-import {
-  getSupabaseAdmin,
-  isSupabaseAdminConfigured,
-} from "../lib/supabaseAdmin";
+import { query } from "../lib/db";
 
 const WORKER_ID = `${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`;
 const TMP_ROOT = process.env.VIDEO_TMP_DIR || "/tmp/afuchat-videos";
@@ -84,36 +81,31 @@ interface ClaimedJob {
 }
 
 async function claimNext(): Promise<ClaimedJob | null> {
-  const admin = getSupabaseAdmin();
-  if (!admin) throw new Error("Supabase admin not configured");
-  const { data, error } = await admin.rpc("claim_video_job", {
-    p_worker_id: WORKER_ID,
-    p_codecs: ["h264", "av1"],
-  });
-  if (error) {
+  try {
+    const rows = await query<ClaimedJob>(
+      `SELECT * FROM claim_video_job($1, $2::text[])`,
+      [WORKER_ID, ["h264", "av1"]],
+    );
+    return rows[0] ?? null;
+  } catch (error) {
     logger.error({ err: error }, "claim_video_job failed");
     return null;
   }
-  const row = Array.isArray(data) ? data[0] : data;
-  return (row as ClaimedJob | undefined) ?? null;
 }
 
 async function loadAsset(assetId: string) {
-  const admin = getSupabaseAdmin();
-  if (!admin) throw new Error("Supabase admin not configured");
-  const { data, error } = await admin
-    .from("video_assets")
-    .select("id, owner_id, source_path, height, poster_path")
-    .eq("id", assetId)
-    .single();
-  if (error || !data) throw new Error(`asset ${assetId} not found`);
-  return data as {
+  const rows = await query<{
     id: string;
     owner_id: string;
     source_path: string;
     height: number | null;
     poster_path: string | null;
-  };
+  }>(
+    `SELECT id, owner_id, source_path, height, poster_path FROM public.video_assets WHERE id = $1 LIMIT 1`,
+    [assetId],
+  );
+  if (!rows.length) throw new Error(`asset ${assetId} not found`);
+  return rows[0];
 }
 
 function renditionStoragePath(
@@ -139,70 +131,43 @@ async function markRenditionReady(
     height: number;
   },
 ): Promise<void> {
-  const admin = getSupabaseAdmin();
-  if (!admin) throw new Error("Supabase admin not configured");
-  await admin
-    .from("video_renditions")
-    .update({
-      status: "ready",
-      storage_path: fields.storage_path,
-      size_bytes: fields.size_bytes,
-      bitrate_kbps: fields.bitrate_kbps,
-      width: fields.width,
-      height: fields.height,
-    })
-    .eq("id", renditionId);
+  await query(
+    `UPDATE public.video_renditions
+     SET status='ready', storage_path=$1, size_bytes=$2, bitrate_kbps=$3, width=$4, height=$5
+     WHERE id=$6`,
+    [fields.storage_path, fields.size_bytes, fields.bitrate_kbps, fields.width, fields.height, renditionId],
+  );
 }
 
-async function markRenditionFailed(
-  renditionId: string,
-  errorMessage: string,
-): Promise<void> {
-  const admin = getSupabaseAdmin();
-  if (!admin) throw new Error("Supabase admin not configured");
-  await admin
-    .from("video_renditions")
-    .update({ status: "failed", error: errorMessage.slice(0, 1000) })
-    .eq("id", renditionId);
+async function markRenditionFailed(renditionId: string, errorMessage: string): Promise<void> {
+  await query(
+    `UPDATE public.video_renditions SET status='failed', error=$1 WHERE id=$2`,
+    [errorMessage.slice(0, 1000), renditionId],
+  );
 }
 
-async function finishJob(
-  job: ClaimedJob,
-  success: boolean,
-  errorMessage?: string,
-): Promise<void> {
-  const admin = getSupabaseAdmin();
-  if (!admin) throw new Error("Supabase admin not configured");
+async function finishJob(job: ClaimedJob, success: boolean, errorMessage?: string): Promise<void> {
   if (success) {
-    await admin
-      .from("video_jobs")
-      .update({ status: "done", finished_at: new Date().toISOString() })
-      .eq("id", job.id);
+    await query(
+      `UPDATE public.video_jobs SET status='done', finished_at=$1 WHERE id=$2`,
+      [new Date().toISOString(), job.id],
+    );
     return;
   }
   if (job.attempts >= job.max_attempts) {
-    await admin
-      .from("video_jobs")
-      .update({
-        status: "failed",
-        finished_at: new Date().toISOString(),
-        last_error: (errorMessage ?? "").slice(0, 1000),
-      })
-      .eq("id", job.id);
+    await query(
+      `UPDATE public.video_jobs SET status='failed', finished_at=$1, last_error=$2 WHERE id=$3`,
+      [new Date().toISOString(), (errorMessage ?? "").slice(0, 1000), job.id],
+    );
     await markRenditionFailed(job.rendition_id, errorMessage ?? "unknown error");
   } else {
     // Exponential backoff: 30s, 2min, 8min.
     const delayMs = Math.min(8 * 60_000, 30_000 * 4 ** (job.attempts - 1));
     const next = new Date(Date.now() + delayMs).toISOString();
-    await admin
-      .from("video_jobs")
-      .update({
-        status: "queued",
-        worker_id: null,
-        scheduled_at: next,
-        last_error: (errorMessage ?? "").slice(0, 1000),
-      })
-      .eq("id", job.id);
+    await query(
+      `UPDATE public.video_jobs SET status='queued', worker_id=NULL, scheduled_at=$1, last_error=$2 WHERE id=$3`,
+      [next, (errorMessage ?? "").slice(0, 1000), job.id],
+    );
   }
 }
 
@@ -216,20 +181,13 @@ async function uploadPosterIfMissing(
     await extractPoster(sourceFsPath, posterFs, 1);
     const path = posterStoragePath(asset.owner_id, asset.id);
     await uploadFileToBucket(posterFs, path, "image/jpeg");
-    const admin = getSupabaseAdmin();
-  if (!admin) throw new Error("Supabase admin not configured");
-    await admin
-      .from("video_assets")
-      .update({ poster_path: path })
-      .eq("id", asset.id);
+    await query(`UPDATE public.video_assets SET poster_path=$1 WHERE id=$2`, [path, asset.id]);
   } catch (e) {
     logger.warn({ err: e, asset: asset.id }, "poster extraction failed (non-fatal)");
   }
 }
 
 async function processJob(job: ClaimedJob): Promise<void> {
-  const admin = getSupabaseAdmin();
-  if (!admin) throw new Error("Supabase admin not configured");
   const asset = await loadAsset(job.asset_id);
   const workDir = join(TMP_ROOT, job.id);
   await mkdir(workDir, { recursive: true });
@@ -242,31 +200,22 @@ async function processJob(job: ClaimedJob): Promise<void> {
     // skip upscaling jobs (e.g. if user uploaded 480p but we planned 1080p).
     const probed = await probe(sourceFs);
     if (probed.height && (asset.height == null || asset.height === 0)) {
-      await admin
-        .from("video_assets")
-        .update({
-          width: probed.width,
-          height: probed.height,
-          duration_seconds: probed.durationSeconds,
-        })
-        .eq("id", asset.id);
+      await query(
+        `UPDATE public.video_assets SET width=$1, height=$2, duration_seconds=$3 WHERE id=$4`,
+        [probed.width, probed.height, probed.durationSeconds, asset.id],
+      );
     }
 
     if (probed.height && job.height > probed.height) {
-      logger.info(
-        { jobId: job.id, target: job.height, source: probed.height },
-        "skipping upscale rendition",
-      );
-      // Treat as failed so it doesn't block the asset rollup forever, but
-      // mark the rendition with a clear reason.
+      logger.info({ jobId: job.id, target: job.height, source: probed.height }, "skipping upscale rendition");
       await markRenditionFailed(
         job.rendition_id,
         `Source is ${probed.height}p, target ${job.height}p — upscale skipped`,
       );
-      await admin
-        .from("video_jobs")
-        .update({ status: "done", finished_at: new Date().toISOString() })
-        .eq("id", job.id);
+      await query(
+        `UPDATE public.video_jobs SET status='done', finished_at=$1 WHERE id=$2`,
+        [new Date().toISOString(), job.id],
+      );
       return;
     }
 
@@ -340,10 +289,6 @@ export async function startVideoEncoder(): Promise<void> {
   if (running) return;
   if (process.env.VIDEO_WORKER_ENABLED === "false") {
     logger.info("video encoder disabled via VIDEO_WORKER_ENABLED=false");
-    return;
-  }
-  if (!isSupabaseAdminConfigured()) {
-    logger.info("video encoder not started: service key not configured");
     return;
   }
   const caps = await checkFfmpegEncoders();

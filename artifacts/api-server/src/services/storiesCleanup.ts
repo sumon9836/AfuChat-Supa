@@ -1,46 +1,27 @@
-import { getSupabaseAdmin } from "../lib/supabaseAdmin";
 import { logger } from "../lib/logger";
+import { query } from "../lib/db";
 
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function cleanupExpiredStories(): Promise<void> {
-  const admin = getSupabaseAdmin();
-  if (!admin) return;
-
   try {
-    const now = new Date().toISOString();
+    const expired = await query<{ id: string }>(
+      `SELECT id FROM public.stories WHERE expires_at < now()`,
+    );
 
-    const { data: expiredStories, error: fetchErr } = await admin
-      .from("stories")
-      .select("id")
-      .lt("expires_at", now);
-
-    if (fetchErr) {
-      logger.error({ err: fetchErr }, "[stories-cleanup] Failed to fetch expired stories");
-      return;
-    }
-
-    if (!expiredStories || expiredStories.length === 0) {
+    if (!expired.length) {
       logger.debug("[stories-cleanup] No expired stories to delete");
       return;
     }
 
-    const ids = expiredStories.map((s: any) => s.id as string);
+    const ids = expired.map((s) => s.id);
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(",");
 
-    // Delete related rows first (handles tables without ON DELETE CASCADE)
-    await admin.from("story_replies").delete().in("story_id", ids);
-    await admin.from("story_views").delete().in("story_id", ids);
+    await query(`DELETE FROM public.story_replies WHERE story_id IN (${placeholders})`, ids);
+    await query(`DELETE FROM public.story_views WHERE story_id IN (${placeholders})`, ids);
+    await query(`DELETE FROM public.stories WHERE id IN (${placeholders})`, ids);
 
-    const { error: delErr } = await admin
-      .from("stories")
-      .delete()
-      .in("id", ids);
-
-    if (delErr) {
-      logger.error({ err: delErr }, "[stories-cleanup] Error deleting expired stories");
-    } else {
-      logger.info({ count: ids.length }, "[stories-cleanup] Deleted expired stories");
-    }
+    logger.info({ count: ids.length }, "[stories-cleanup] Deleted expired stories");
   } catch (err) {
     logger.error({ err }, "[stories-cleanup] Unexpected error during cleanup");
   }

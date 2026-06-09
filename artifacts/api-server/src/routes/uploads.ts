@@ -19,7 +19,9 @@
  */
 
 import { Router, raw, type Request, type Response } from "express";
-import { getSupabaseAdmin } from "../lib/supabaseAdmin";
+import { authedUser as verifyAuth } from "../lib/auth";
+import { query } from "../lib/db";
+import { getR2PublicBaseUrl as _getR2PublicBaseUrl } from "../lib/r2";
 import {
   isR2Configured,
   presignPutUrl,
@@ -80,23 +82,8 @@ const ALLOWED_BUCKETS = new Set([
 const MAX_PATH_LEN = 512;
 
 async function authedUserId(req: Request, res: Response): Promise<string | null> {
-  const admin = getSupabaseAdmin();
-  if (!admin) {
-    res.status(503).json({ error: "Server not configured" });
-    return null;
-  }
-  const auth = req.headers.authorization || "";
-  const jwt = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  if (!jwt) {
-    res.status(401).json({ error: "Missing authorization token" });
-    return null;
-  }
-  const { data, error } = await admin.auth.getUser(jwt);
-  if (error || !data.user) {
-    res.status(401).json({ error: "Invalid token" });
-    return null;
-  }
-  return data.user.id;
+  const user = await verifyAuth(req, res as any);
+  return user?.userId ?? null;
 }
 
 /** Public, unauthenticated endpoint so clients know R2 base URL + bucket. */
@@ -224,50 +211,26 @@ router.delete("/uploads/object", async (req, res): Promise<void> => {
 
     // Best-effort cleanup of DB rows that reference this file so the UI
     // doesn't show broken posts/avatars after a deletion.
-    const admin = getSupabaseAdmin();
-    if (admin) {
+    try {
       const baseUrl = getR2PublicBaseUrl();
       const publicUrl = baseUrl
         ? `${baseUrl}/${key.split("/").map(encodeURIComponent).join("/")}`
         : null;
-      try {
-        if (bucket === "avatars" && publicUrl) {
-          await admin
-            .from("profiles")
-            .update({ avatar_url: null })
-            .eq("id", userId)
-            .like("avatar_url", `${publicUrl}%`);
-        } else if (bucket === "banners" && publicUrl) {
-          await admin
-            .from("profiles")
-            .update({ banner_url: null })
-            .eq("id", userId)
-            .like("banner_url", `${publicUrl}%`);
-        } else if (bucket === "post-images" && publicUrl) {
-          await admin
-            .from("posts")
-            .delete()
-            .eq("author_id", userId)
-            .like("image_url", `${publicUrl}%`);
-        } else if (bucket === "videos" && publicUrl) {
-          await admin
-            .from("posts")
-            .delete()
-            .eq("author_id", userId)
-            .like("video_url", `${publicUrl}%`);
-        } else if (bucket === "stories" && publicUrl) {
-          await admin
-            .from("stories")
-            .delete()
-            .eq("user_id", userId)
-            .like("media_url", `${publicUrl}%`);
+      if (publicUrl) {
+        if (bucket === "avatars") {
+          await query(`UPDATE public.profiles SET avatar_url = NULL WHERE id = $1 AND avatar_url LIKE $2`, [userId, `${publicUrl}%`]);
+        } else if (bucket === "banners") {
+          await query(`UPDATE public.profiles SET banner_url = NULL WHERE id = $1 AND banner_url LIKE $2`, [userId, `${publicUrl}%`]);
+        } else if (bucket === "post-images") {
+          await query(`DELETE FROM public.posts WHERE author_id = $1 AND image_url LIKE $2`, [userId, `${publicUrl}%`]);
+        } else if (bucket === "videos") {
+          await query(`DELETE FROM public.posts WHERE author_id = $1 AND video_url LIKE $2`, [userId, `${publicUrl}%`]);
+        } else if (bucket === "stories") {
+          await query(`DELETE FROM public.stories WHERE user_id = $1 AND media_url LIKE $2`, [userId, `${publicUrl}%`]);
         }
-      } catch (cleanupErr: any) {
-        logger.warn(
-          { err: cleanupErr, key, bucket },
-          "DB cleanup after delete failed (non-fatal)",
-        );
       }
+    } catch (cleanupErr: any) {
+      logger.warn({ err: cleanupErr, key, bucket }, "DB cleanup after delete failed (non-fatal)");
     }
 
     res.json({ ok: true, key });

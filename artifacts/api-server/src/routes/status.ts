@@ -1,8 +1,6 @@
 import { Router, type Request, type Response } from "express";
-import { getSupabaseAdmin } from "../lib/supabaseAdmin";
-import { SUPABASE_URL } from "../lib/constants";
-
-const SUPABASE_ANON_KEY = process.env["SUPABASE_ANON_KEY"] || process.env["EXPO_PUBLIC_SUPABASE_ANON_KEY"] || "";
+import { checkDb } from "../lib/db";
+import { isR2Configured } from "../lib/r2";
 
 const router = Router();
 
@@ -21,99 +19,34 @@ interface StatusResponse {
   services: ServiceCheck[];
 }
 
-async function checkSupabase(): Promise<ServiceCheck> {
-  const start = Date.now();
-  try {
-    const admin = getSupabaseAdmin();
-    if (!admin) {
-      return {
-        name: "Database",
-        status: "degraded",
-        message: "Service role key not configured — read-only mode",
-      };
-    }
-    const { error } = await admin
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .limit(1);
-    if (error) {
-      return {
-        name: "Database",
-        status: "outage",
-        latency_ms: Date.now() - start,
-        message: error.message,
-      };
-    }
-    return { name: "Database", status: "operational", latency_ms: Date.now() - start };
-  } catch (e: any) {
-    return {
-      name: "Database",
-      status: "outage",
-      latency_ms: Date.now() - start,
-      message: e?.message || "Connection failed",
-    };
+async function checkDatabase(): Promise<ServiceCheck> {
+  const { ok, latency_ms } = await checkDb();
+  if (!ok) {
+    return { name: "Database", status: "outage", latency_ms, message: "Connection failed" };
   }
+  return { name: "Database", status: "operational", latency_ms };
 }
 
-async function checkAuth(): Promise<ServiceCheck> {
-  const start = Date.now();
-  try {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      return { name: "Authentication", status: "outage", message: "Supabase credentials not configured" };
-    }
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
-      headers: { apikey: SUPABASE_ANON_KEY },
-      signal: AbortSignal.timeout(5000),
-    });
-    return {
-      name: "Authentication",
-      status: res.ok ? "operational" : "degraded",
-      latency_ms: Date.now() - start,
-      message: res.ok ? undefined : `HTTP ${res.status}`,
-    };
-  } catch (e: any) {
-    return {
-      name: "Authentication",
-      status: "outage",
-      latency_ms: Date.now() - start,
-      message: e?.message || "Unreachable",
-    };
-  }
-}
-
-async function checkStorage(): Promise<ServiceCheck> {
+function checkStorage(): ServiceCheck {
   const r2Url = process.env["R2_PUBLIC_BASE_URL"] || process.env["R2_DEV_PUBLIC_URL"];
-  const configured =
-    !!process.env["CLOUDFLARE_ACCOUNT_ID"] &&
-    !!process.env["CLOUDFLARE_R2_ACCESS_KEY_ID"] &&
-    !!process.env["R2_BUCKET"];
+  const configured = isR2Configured();
   if (!configured) {
     return { name: "File Storage", status: "degraded", message: "R2 storage not configured — uploads unavailable" };
   }
   if (!r2Url) {
     return { name: "File Storage", status: "degraded", message: "Storage configured but public URL missing" };
   }
-  const start = Date.now();
-  try {
-    const res = await fetch(r2Url, { method: "HEAD", signal: AbortSignal.timeout(4000) });
-    return {
-      name: "File Storage",
-      status: res.status < 500 ? "operational" : "degraded",
-      latency_ms: Date.now() - start,
-    };
-  } catch {
-    return { name: "File Storage", status: "operational", latency_ms: Date.now() - start };
-  }
+  return { name: "File Storage", status: "operational" };
 }
 
 function checkVideoProcessing(): ServiceCheck {
-  const hasKey = !!process.env["SUPABASE_SERVICE_ROLE_KEY"];
+  const hasDb = !!process.env["DATABASE_URL"];
   const workerDisabled = process.env["VIDEO_WORKER_ENABLED"] === "false";
-  if (!hasKey || workerDisabled) {
+  if (!hasDb || workerDisabled) {
     return {
       name: "Video Processing",
       status: "degraded",
-      message: hasKey ? "Video worker disabled" : "Service role key not configured",
+      message: hasDb ? "Video worker disabled" : "Database not configured",
     };
   }
   return { name: "Video Processing", status: "operational" };
@@ -140,16 +73,11 @@ function overallStatus(services: ServiceCheck[]): ServiceStatus {
 }
 
 router.get("/status", async (_req: Request, res: Response) => {
-  const [db, auth, storage] = await Promise.all([
-    checkSupabase(),
-    checkAuth(),
-    checkStorage(),
-  ]);
+  const [db] = await Promise.all([checkDatabase()]);
 
   const services: ServiceCheck[] = [
     db,
-    auth,
-    storage,
+    checkStorage(),
     checkVideoProcessing(),
     checkPayments(),
     checkNotifications(),

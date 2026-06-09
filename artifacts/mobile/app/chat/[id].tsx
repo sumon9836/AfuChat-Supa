@@ -3897,11 +3897,11 @@ STRICT RULES:
         const { error: deductErr } = await supabase.from("profiles").update({ xp: (profile.xp || 0) - amt }).eq("id", user.id);
         if (deductErr) { showAlert("Error", "Could not deduct Nexa. Please try again."); setWalletSending(false); return; }
         await supabase.from("profiles").update({ xp: (recipient.xp || 0) + amt }).eq("id", recipient.id);
-        await supabase.from("xp_transfers").insert({ sender_id: user.id, receiver_id: recipient.id, amount: amt, message: noteText }).catch(() => {});
+        await supabase.from("xp_transfers").insert({ sender_id: user.id, receiver_id: recipient.id, amount: amt, message: noteText }).then(null, () => {});
       } else {
         const { error: deductErr } = await supabase.rpc("deduct_acoin", { p_user_id: user.id, p_amount: amt }).maybeSingle();
         if (deductErr) { showAlert("Error", "Could not deduct ACoin. Please check your balance and try again."); setWalletSending(false); return; }
-        await supabase.rpc("credit_acoin", { p_user_id: recipient.id, p_amount: amt }).catch(() => {});
+        await supabase.rpc("credit_acoin", { p_user_id: recipient.id, p_amount: amt }).then(null, () => {});
         await Promise.all([
           supabase.from("acoin_transactions").insert({ user_id: user.id, amount: -amt, transaction_type: "acoin_transfer_sent", metadata: { to_user_id: recipient.id, to_handle: recipient.handle, message: noteText } }),
           supabase.from("acoin_transactions").insert({ user_id: recipient.id, amount: amt, transaction_type: "acoin_transfer_received", metadata: { from_user_id: user.id, from_handle: profile.handle, message: noteText } }),
@@ -4155,7 +4155,7 @@ STRICT RULES:
     });
 
     if (txErr) {
-      await supabase.rpc("credit_acoin", { p_user_id: user.id, p_amount: price }).catch(() => {});
+      await supabase.rpc("credit_acoin", { p_user_id: user.id, p_amount: price }).then(null, () => {});
       showAlert("Error", "Could not send gift. Your ACoins have been refunded.");
       setGiftSending(false);
       return;

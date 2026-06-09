@@ -406,7 +406,7 @@ function SendView({ colors, insets, user, profile, onBack, onSuccess }: any) {
       if (deductErr) { showAlert("Error", "Could not deduct ACoin."); setSending(false); return; }
       const { error: creditErr } = await supabase.rpc("credit_acoin", { p_user_id: recipient.id, p_amount: amt });
       if (creditErr) {
-        await supabase.rpc("credit_acoin", { p_user_id: user.id, p_amount: amt }).catch(() => {});
+        await supabase.rpc("credit_acoin", { p_user_id: user.id, p_amount: amt }).then(null, () => {});
         showAlert("Error", "Could not credit recipient. Your balance has been restored."); setSending(false); return;
       }
       await Promise.all([

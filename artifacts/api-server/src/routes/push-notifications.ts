@@ -12,7 +12,8 @@
  */
 
 import { Router, type Request, type Response } from "express";
-import { getSupabaseAdmin } from "../lib/supabaseAdmin";
+import { authedUser as verifyAuth } from "../lib/auth";
+import { query, queryOne } from "../lib/db";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -104,7 +105,6 @@ type NotifPrefs = {
 };
 
 async function pushToUser(
-  admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
   userId: string,
   push: {
     title: string;
@@ -117,26 +117,22 @@ async function pushToUser(
     bypassQuietHours?: boolean;
   },
 ): Promise<void> {
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("expo_push_token")
-    .eq("id", userId)
-    .single();
+  const profile = await queryOne<{ expo_push_token: string | null }>(
+    `SELECT expo_push_token FROM public.profiles WHERE id = $1 LIMIT 1`,
+    [userId],
+  );
 
-  if (!(profile as any)?.expo_push_token) return;
+  if (!profile?.expo_push_token) return;
 
   let prefs: Partial<NotifPrefs> | null = null;
   try {
-    const { data } = await admin
-      .from("notification_preferences")
-      .select(
-        "push_enabled, push_messages, push_likes, push_follows, push_gifts, " +
-        "push_mentions, push_replies, quiet_hours_enabled, quiet_hours_start, " +
-        "quiet_hours_end, quiet_hours_timezone",
-      )
-      .eq("user_id", userId)
-      .single();
-    prefs = data as Partial<NotifPrefs> | null;
+    prefs = await queryOne<NotifPrefs>(
+      `SELECT push_enabled, push_messages, push_likes, push_follows, push_gifts,
+              push_mentions, push_replies, quiet_hours_enabled, quiet_hours_start,
+              quiet_hours_end, quiet_hours_timezone
+       FROM public.notification_preferences WHERE user_id = $1 LIMIT 1`,
+      [userId],
+    );
   } catch {
     // table may not exist yet — proceed with defaults
   }
@@ -178,7 +174,7 @@ async function pushToUser(
 
   const result = await sendExpoPush(payload);
   if (result === "stale") {
-    await admin.from("profiles").update({ expo_push_token: null }).eq("id", userId);
+    await query(`UPDATE public.profiles SET expo_push_token = NULL WHERE id = $1`, [userId]);
     logger.info({ userId }, "[push] cleared stale token");
   }
 }
@@ -201,7 +197,7 @@ function messagePreview(content: string | undefined, attachmentType: string | un
 
 // ── Table handlers ─────────────────────────────────────────────────────────
 
-async function handleMessage(admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>, record: Record<string, unknown>): Promise<void> {
+async function handleMessage(record: Record<string, unknown>): Promise<void> {
   const chatId = record["chat_id"] as string | undefined;
   const senderId = record["sender_id"] as string | undefined;
   const rawContent = record["encrypted_content"] as string | undefined;
@@ -211,31 +207,39 @@ async function handleMessage(admin: NonNullable<ReturnType<typeof getSupabaseAdm
 
   const body = messagePreview(rawContent, attachmentType);
 
-  const [chatRes, senderRes] = await Promise.all([
-    admin.from("chats").select("id, is_group, name, chat_members(user_id)").eq("id", chatId).single(),
-    admin.from("profiles").select("display_name, handle").eq("id", senderId).single(),
+  const [chats, senders] = await Promise.all([
+    query<{ id: string; is_group: boolean; name: string | null }>(
+      `SELECT id, is_group, name FROM public.chats WHERE id = $1 LIMIT 1`, [chatId],
+    ),
+    query<{ display_name: string | null; handle: string | null }>(
+      `SELECT display_name, handle FROM public.profiles WHERE id = $1 LIMIT 1`, [senderId],
+    ),
   ]);
 
-  if (!chatRes.data) return;
+  if (!chats.length) return;
 
-  const chat = chatRes.data as any;
-  const sender = senderRes.data as any;
+  const chat = chats[0];
+  const sender = senders[0];
   const senderName = (sender?.display_name || sender?.handle || "Someone") as string;
   const title = (chat.is_group && chat.name) ? `${senderName} in ${chat.name}` : senderName;
-  const members: { user_id: string }[] = chat.chat_members ?? [];
+
+  const members = await query<{ user_id: string }>(
+    `SELECT user_id FROM public.chat_members WHERE chat_id = $1`, [chatId],
+  );
   const allRecipients = members.filter((m) => m.user_id !== senderId);
 
   let mutedUserIds = new Set<string>();
   if (allRecipients.length > 0) {
     try {
-      const { data: muteRows } = await admin
-        .from("chat_mutes")
-        .select("user_id, muted_until")
-        .eq("chat_id", chatId)
-        .in("user_id", allRecipients.map((m) => m.user_id));
+      const userIdList = allRecipients.map((m) => m.user_id);
+      const placeholders = userIdList.map((_, i) => `$${i + 2}`).join(",");
+      const muteRows = await query<{ user_id: string; muted_until: string | null }>(
+        `SELECT user_id, muted_until FROM public.chat_mutes WHERE chat_id = $1 AND user_id IN (${placeholders})`,
+        [chatId, ...userIdList],
+      );
       const now = new Date().toISOString();
       mutedUserIds = new Set(
-        ((muteRows ?? []) as { user_id: string; muted_until: string | null }[])
+        muteRows
           .filter((m) => m.muted_until === null || m.muted_until > now)
           .map((m) => m.user_id),
       );
@@ -246,7 +250,7 @@ async function handleMessage(admin: NonNullable<ReturnType<typeof getSupabaseAdm
 
   await Promise.allSettled(
     recipients.map((m) =>
-      pushToUser(admin, m.user_id, {
+      pushToUser(m.user_id, {
         title,
         body,
         type: "message",
@@ -259,7 +263,7 @@ async function handleMessage(admin: NonNullable<ReturnType<typeof getSupabaseAdm
   );
 }
 
-async function handleCall(admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>, record: Record<string, unknown>): Promise<void> {
+async function handleCall(record: Record<string, unknown>): Promise<void> {
   const calleeId = record["callee_id"] as string | undefined;
   const callerId = record["caller_id"] as string | undefined;
   const callId = record["id"] as string | undefined;
@@ -267,10 +271,12 @@ async function handleCall(admin: NonNullable<ReturnType<typeof getSupabaseAdmin>
 
   if (!calleeId || !callerId || !callId) return;
 
-  const { data: caller } = await admin.from("profiles").select("display_name, handle").eq("id", callerId).single();
-  const callerName = ((caller as any)?.display_name || (caller as any)?.handle || "Someone") as string;
+  const callers = await query<{ display_name: string | null; handle: string | null }>(
+    `SELECT display_name, handle FROM public.profiles WHERE id = $1 LIMIT 1`, [callerId],
+  );
+  const callerName = (callers[0]?.display_name || callers[0]?.handle || "Someone") as string;
 
-  await pushToUser(admin, calleeId, {
+  await pushToUser(calleeId, {
     title: `Incoming ${callType === "video" ? "Video" : "Voice"} Call`,
     body: `${callerName} is calling you`,
     type: "call",
@@ -305,7 +311,7 @@ const NOTIF_TYPE_MAP: Record<string, (record: Record<string, unknown>, actorName
   incoming_call: (r, n) => ({ title: "Incoming Call", body: `${n} is calling you`, category: "afuchat_incoming_call", pushType: "call", url: r["entity_id"] ? `/call/${r["entity_id"]}` : undefined }),
 };
 
-async function handleNotification(admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>, record: Record<string, unknown>): Promise<void> {
+async function handleNotification(record: Record<string, unknown>): Promise<void> {
   const userId = record["user_id"] as string | undefined;
   const actorId = record["actor_id"] as string | undefined;
   const type = record["type"] as string | undefined;
@@ -320,13 +326,15 @@ async function handleNotification(admin: NonNullable<ReturnType<typeof getSupaba
 
   let actorName = "Someone";
   if (actorId) {
-    const { data: actor } = await admin.from("profiles").select("display_name, handle").eq("id", actorId).single();
-    actorName = ((actor as any)?.display_name || (actor as any)?.handle || "Someone") as string;
+    const actors = await query<{ display_name: string | null; handle: string | null }>(
+      `SELECT display_name, handle FROM public.profiles WHERE id = $1 LIMIT 1`, [actorId],
+    );
+    actorName = (actors[0]?.display_name || actors[0]?.handle || "Someone") as string;
   }
 
   const mapped = mapper(record, actorName);
 
-  await pushToUser(admin, userId, {
+  await pushToUser(userId, {
     title: mapped.title,
     body: mapped.body,
     type: mapped.pushType,
@@ -354,12 +362,6 @@ type WebhookPayload = {
 };
 
 router.post("/push/webhook", async (req: Request, res: Response) => {
-  const admin = getSupabaseAdmin();
-  if (!admin) {
-    res.status(503).json({ error: "Server not configured" });
-    return;
-  }
-
   // Verify webhook token
   const webhookToken = process.env.PUSH_WEBHOOK_TOKEN || "";
   if (webhookToken) {
@@ -381,13 +383,13 @@ router.post("/push/webhook", async (req: Request, res: Response) => {
 
     switch (webhook.table) {
       case "messages":
-        await handleMessage(admin, webhook.record);
+        await handleMessage(webhook.record);
         break;
       case "calls":
-        await handleCall(admin, webhook.record);
+        await handleCall(webhook.record);
         break;
       case "notifications":
-        await handleNotification(admin, webhook.record);
+        await handleNotification(webhook.record);
         break;
       default:
         logger.debug({ table: webhook.table }, "[push] unhandled table");
@@ -403,24 +405,14 @@ router.post("/push/webhook", async (req: Request, res: Response) => {
 // ── POST /api/push/register-token ─────────────────────────────────────────────
 
 router.post("/push/register-token", async (req: Request, res: Response) => {
-  const admin = getSupabaseAdmin();
-  if (!admin) {
-    res.status(503).json({ error: "Server not configured" });
-    return;
-  }
-
   const authHeader = req.headers.authorization || "";
   if (!authHeader.startsWith("Bearer ")) {
     res.status(401).json({ error: "Authorization required" });
     return;
   }
 
-  const jwt = authHeader.slice(7);
-  const { data: { user }, error: authErr } = await admin.auth.getUser(jwt);
-  if (authErr || !user) {
-    res.status(401).json({ error: "Invalid or expired token" });
-    return;
-  }
+  const authUser = await verifyAuth(req, res as any);
+  if (!authUser) return;
 
   const { token } = req.body as { token?: string };
   if (!token || typeof token !== "string" || !token.startsWith("ExponentPushToken[")) {
@@ -428,14 +420,13 @@ router.post("/push/register-token", async (req: Request, res: Response) => {
     return;
   }
 
-  const { error: updateErr } = await admin.from("profiles").update({ expo_push_token: token }).eq("id", user.id);
-  if (updateErr) {
-    logger.error({ err: updateErr }, "[push] failed to save push token");
+  try {
+    await query(`UPDATE public.profiles SET expo_push_token = $1 WHERE id = $2`, [token, authUser.userId]);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error({ err }, "[push] failed to save push token");
     res.status(500).json({ error: "Failed to save push token" });
-    return;
   }
-
-  res.json({ ok: true });
 });
 
 export default router;

@@ -31,10 +31,10 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 
-  // Start background Supabase realtime watcher for email notifications
+  // Start background realtime watcher for email notifications
   startRealtimeWatcher();
 
-  // Start the video encoding worker (no-op if SUPABASE_SERVICE_ROLE_KEY
+  // Start the video encoding worker (no-op if DATABASE_URL
   // is missing or VIDEO_WORKER_ENABLED=false).
   startVideoEncoder().catch((err) =>
     logger.error({ err }, "failed to start video encoder"),

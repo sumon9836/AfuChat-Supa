@@ -301,7 +301,7 @@ export default function PremiumScreen() {
             acoin_paid: selectedPlan.acoin_price,
           }, { onConflict: "user_id" });
           if (subError) {
-            await supabase.rpc("credit_acoin", { p_user_id: profile.id, p_amount: selectedPlan.acoin_price }).catch(() => {});
+            await supabase.rpc("credit_acoin", { p_user_id: profile.id, p_amount: selectedPlan.acoin_price }).then(null, () => {});
             showAlert("Error", "Could not activate subscription. Your ACoin has been refunded.");
             setSubscribing(false);
             return;
