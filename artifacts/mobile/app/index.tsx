@@ -21,22 +21,35 @@ export default function IndexScreen() {
   const redirected = useRef(false);
   const { handle } = useLocalSearchParams<{ handle?: string }>();
 
-  function doRedirect(hasSession: boolean, _profileReady: boolean, _profileOnboarded: boolean, _userId?: string) {
+  function doRedirect(hasSession: boolean, profileReady: boolean, profileOnboarded: boolean, _userId?: string) {
     if (redirected.current) return;
-    redirected.current = true;
-    // A user is "logged in" if there's a live Supabase session OR a cached user
-    // ID from a previous session (MMKV sync read — works offline, zero I/O).
-    const isLoggedIn = hasSession || Boolean(getCachedUserId());
-    if (isLoggedIn) {
-      // Always go straight to the app — never redirect a logged-in user to
-      // onboarding (even if onboarding_completed is false in the DB).
-      router.replace("/(tabs)/chats");
-    } else {
+
+    const cachedId = getCachedUserId();
+    const isLoggedIn = hasSession || Boolean(cachedId);
+
+    if (!isLoggedIn) {
+      redirected.current = true;
       if (Platform.OS === "web") {
         router.replace("/landing");
       } else {
         router.replace("/welcome");
       }
+      return;
+    }
+
+    // Logged in — but if we have a live session and the profile hasn't loaded
+    // yet, wait. Profile is in the dependency array so this will re-fire once
+    // the profile resolves. The timeout below is the safety net for slow networks.
+    if (hasSession && !profileReady) return;
+
+    redirected.current = true;
+
+    if (hasSession && profileReady && !profileOnboarded) {
+      // Profile is complete but onboarding wasn't finished — send them there.
+      router.replace("/onboarding");
+    } else {
+      // Onboarding done, or offline mode (cached userId, no live session/profile).
+      router.replace("/(tabs)/chats");
     }
   }
 
@@ -52,7 +65,7 @@ export default function IndexScreen() {
     doRedirect(
       !!session,
       !!profile,
-      profile?.onboarding_completed ?? true,
+      profile?.onboarding_completed === true,
       session?.user?.id,
     );
   }, [session, profile, loading, handle]);

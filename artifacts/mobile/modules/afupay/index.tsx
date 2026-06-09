@@ -321,7 +321,7 @@ function TopUpView({ colors, insets, profile, onBack }: any) {
       const res = await fetch(`${getEdgeFnBase()}/pesapal-initiate`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ amount: acoinAmt * 0.01, currency: "USD", description: `${acoinAmt} ACoin Top-Up`, callback_url: "https://afuchat.com/wallet/payment-complete" }),
+        body: JSON.stringify({ acoin_amount: acoinAmt, currency: "USD" }),
       });
       const data = await res.json();
       if (data.redirect_url) {

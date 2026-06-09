@@ -291,6 +291,10 @@ export async function startVideoEncoder(): Promise<void> {
     logger.info("video encoder disabled via VIDEO_WORKER_ENABLED=false");
     return;
   }
+  if (!process.env.SUPABASE_DB_URL) {
+    logger.info("video encoder not started: SUPABASE_DB_URL not configured");
+    return;
+  }
   const caps = await checkFfmpegEncoders();
   if (!caps.ok || !caps.hasH264) {
     logger.warn(

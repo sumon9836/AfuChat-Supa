@@ -337,6 +337,17 @@ export default function TabLayout() {
     prevSessionRef.current = session;
   }, [session, user, loading]);
 
+  // Guard: if a logged-in user somehow reaches the tabs without completing
+  // onboarding, push them back to the onboarding flow.
+  useEffect(() => {
+    if (loading) return;
+    if (!session || !user) return;
+    if (!profile) return;
+    if (profile.onboarding_completed === false) {
+      router.replace("/onboarding");
+    }
+  }, [session, user, profile, loading]);
+
   return (
     <TabSwipeProvider>
       <View style={{ flex: 1 }}>
