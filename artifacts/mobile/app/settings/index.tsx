@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -73,7 +74,7 @@ export default function SettingsScreen() {
   const hasOtherAccounts = otherAccounts.length > 0;
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.backgroundSecondary }]}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <GlassHeader title="Settings" />
 
       {switchingId && (
@@ -259,13 +260,13 @@ export default function SettingsScreen() {
           <GlassMenuItem
             icon="document-text-outline"
             label="Terms of Service"
-            onPress={() => router.push("/terms" as any)}
+            onPress={() => Linking.openURL("https://afuchat.com/terms")}
           />
           <GlassMenuSeparator />
           <GlassMenuItem
             icon="shield-outline"
             label="Privacy Policy"
-            onPress={() => router.push("/privacy" as any)}
+            onPress={() => Linking.openURL("https://afuchat.com/privacy")}
           />
           <GlassMenuSeparator />
           <GlassMenuItem
@@ -297,7 +298,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  body: { gap: 28, paddingTop: 24, paddingHorizontal: 16 },
+  body: { gap: 0, paddingTop: 8, paddingHorizontal: 0 },
 
   switchOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center", zIndex: 100 },
   switchCard: {

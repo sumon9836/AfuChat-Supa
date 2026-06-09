@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -186,8 +187,8 @@ export default function AboutScreen() {
         </View>
         <View style={[st.legalCard, { backgroundColor: colors.surface }]}>
           {[
-            { label: "Terms of Service",   sub: "Rules and conditions of use",          icon: "document-text-outline",    iconBg: "#007AFF18",   iconColor: "#007AFF",  route: "/terms"   },
-            { label: "Privacy Policy",     sub: "How we collect and use your data",      icon: "shield-checkmark-outline", iconBg: "#34C75918",   iconColor: "#34C759",  route: "/privacy" },
+            { label: "Terms of Service",   sub: "Rules and conditions of use",          icon: "document-text-outline",    iconBg: "#007AFF18",   iconColor: "#007AFF",  route: null, url: "https://afuchat.com/terms"   },
+            { label: "Privacy Policy",     sub: "How we collect and use your data",      icon: "shield-checkmark-outline", iconBg: "#34C75918",   iconColor: "#34C759",  route: null, url: "https://afuchat.com/privacy" },
             { label: "License",            sub: "Open-source licenses and attributions", icon: "ribbon-outline",           iconBg: "#5856D618",   iconColor: "#5856D6",  route: null,       info: "MIT License · © " + new Date().getFullYear() + " AfuChat" },
             { label: "Support Center",     sub: "Submit a ticket or browse help articles",icon: "help-buoy-outline",       iconBg: "#FF950018",   iconColor: "#FF9500",  route: "/support" },
             { label: "Contact Us",         sub: "Visit our contact page",               icon: "chatbubble-outline",       iconBg: "#1f95ff18",   iconColor: "#1f95ff",  route: "/contact" },
@@ -198,7 +199,8 @@ export default function AboutScreen() {
                 style={st.legalRow}
                 activeOpacity={item.info ? 1 : 0.7}
                 onPress={() => {
-                  if (item.route) router.push(item.route as any);
+                  if ((item as any).url) Linking.openURL((item as any).url);
+                  else if (item.route) router.push(item.route as any);
                 }}
               >
                 <View style={[st.legalIcon, { backgroundColor: item.iconBg }]}>

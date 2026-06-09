@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Animated,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -583,9 +584,9 @@ export default function SignInScreen() {
           {/* Footer */}
           <View style={{ marginTop: "auto", paddingTop: 28, alignItems: "center", gap: 6 }}>
             <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
-              <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/terms")}>Terms</Text>
+              <Text style={[sc.footerLink, { color: accent }]} onPress={() => Linking.openURL("https://afuchat.com/terms")}>Terms</Text>
               <Text style={{ color: mutedColor, fontSize: 12 }}>·</Text>
-              <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/privacy")}>Privacy</Text>
+              <Text style={[sc.footerLink, { color: accent }]} onPress={() => Linking.openURL("https://afuchat.com/privacy")}>Privacy</Text>
               <Text style={{ color: mutedColor, fontSize: 12 }}>·</Text>
               <Text style={[sc.footerLink, { color: accent }]} onPress={() => router.push("/help")}>Help</Text>
             </View>
