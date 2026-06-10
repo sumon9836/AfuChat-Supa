@@ -131,9 +131,11 @@ router.get("/sitemap.xml", async (_req, res) => {
   const profiles: any[] = [];
   const posts: any[] = [];
   const videos: any[] = [];
+  const articles: any[] = [];
+  const companies: any[] = [];
 
   if (supabase) {
-    const [profileResult, postResult, videoResult] = await Promise.all([
+    const [profileResult, postResult, videoResult, articleResult, companyResult] = await Promise.all([
       supabase
         .from("profiles")
         .select("handle, updated_at")
@@ -144,9 +146,9 @@ router.get("/sitemap.xml", async (_req, res) => {
         .limit(5000),
       supabase
         .from("posts")
-        .select("id, created_at, author_id")
+        .select("id, created_at, author_id, image_url, post_images(image_url, display_order)")
         .eq("is_blocked", false)
-        .neq("post_type", "video")
+        .eq("post_type", "text")
         .or("visibility.eq.public,visibility.is.null")
         .order("created_at", { ascending: false })
         .limit(5000),
@@ -158,15 +160,30 @@ router.get("/sitemap.xml", async (_req, res) => {
         .or("visibility.eq.public,visibility.is.null")
         .order("created_at", { ascending: false })
         .limit(2000),
+      supabase
+        .from("posts")
+        .select("id, content, article_title, article_cover_url, created_at, author_id")
+        .eq("is_blocked", false)
+        .eq("post_type", "article")
+        .or("visibility.eq.public,visibility.is.null")
+        .order("created_at", { ascending: false })
+        .limit(2000),
+      supabase
+        .from("organization_pages")
+        .select("slug, updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(1000),
     ]);
 
     profiles.push(...(profileResult.data || []));
+    companies.push(...(companyResult.data || []));
 
     // Only include content from public (non-private) accounts
     const allAuthorIds = [
       ...new Set([
         ...(postResult.data || []).map((p: any) => p.author_id),
         ...(videoResult.data || []).map((p: any) => p.author_id),
+        ...(articleResult.data || []).map((p: any) => p.author_id),
       ]),
     ];
     let privateSet = new Set<string>();
@@ -186,9 +203,14 @@ router.get("/sitemap.xml", async (_req, res) => {
         return !privateSet.has(p.author_id) && prof && !prof.is_private;
       }),
     );
+    articles.push(...(articleResult.data || []).filter((p: any) => !privateSet.has(p.author_id)));
   }
 
   const today = new Date().toISOString().split("T")[0];
+
+  function xmlEsc(s: string): string {
+    return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
 
   const profileUrls = profiles.map((p) => `
   <url>
@@ -198,12 +220,42 @@ router.get("/sitemap.xml", async (_req, res) => {
     <priority>0.8</priority>
   </url>`).join("");
 
-  const postUrls = posts.map((p) => `
+  const postUrls = posts.map((p) => {
+    const sortedImages: string[] = (p.post_images || [])
+      .sort((a: any, b: any) => a.display_order - b.display_order)
+      .map((i: any) => i.image_url as string);
+    if (sortedImages.length === 0 && p.image_url) sortedImages.push(p.image_url);
+    const imageTags = sortedImages.slice(0, 5).map((url: string) =>
+      `\n    <image:image><image:loc>${xmlEsc(url)}</image:loc></image:image>`
+    ).join("");
+    return `
   <url>
     <loc>${SITE_URL}/p/${encodeUuidToShort(p.id)}</loc>
     <lastmod>${new Date(p.created_at || Date.now()).toISOString().split("T")[0]}</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.6</priority>${imageTags}
+  </url>`;
+  }).join("");
+
+  const articleUrls = articles.map((p) => {
+    const coverTags = p.article_cover_url
+      ? `\n    <image:image><image:loc>${xmlEsc(p.article_cover_url)}</image:loc></image:image>`
+      : "";
+    return `
+  <url>
+    <loc>${SITE_URL}/article/${encodeUuidToShort(p.id)}</loc>
+    <lastmod>${new Date(p.created_at || Date.now()).toISOString().split("T")[0]}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>${coverTags}
+  </url>`;
+  }).join("");
+
+  const companyUrls = companies.map((p) => `
+  <url>
+    <loc>${SITE_URL}/company/${encodeURIComponent(p.slug)}</loc>
+    <lastmod>${new Date(p.updated_at || Date.now()).toISOString().split("T")[0]}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>`).join("");
 
   const videoUrls = videos.map((p) => {
@@ -219,10 +271,11 @@ router.get("/sitemap.xml", async (_req, res) => {
     <lastmod>${new Date(p.created_at || Date.now()).toISOString().split("T")[0]}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+    <image:image><image:loc>${xmlEsc(thumbUrl)}</image:loc></image:image>
     <video:video>
-      <video:thumbnail_loc>${thumbUrl}</video:thumbnail_loc>
-      <video:title>${title.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</video:title>
-      <video:description>${description.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</video:description>
+      <video:thumbnail_loc>${xmlEsc(thumbUrl)}</video:thumbnail_loc>
+      <video:title>${xmlEsc(title)}</video:title>
+      <video:description>${xmlEsc(description)}</video:description>
       <video:content_loc>${pageUrl}</video:content_loc>
       <video:player_loc>${pageUrl}/embed</video:player_loc>
       <video:publication_date>${new Date(p.created_at).toISOString()}</video:publication_date>
@@ -235,7 +288,6 @@ router.get("/sitemap.xml", async (_req, res) => {
   res.set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
   res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
   <url>
@@ -253,7 +305,7 @@ router.get("/sitemap.xml", async (_req, res) => {
     <loc>${SITE_URL}/privacy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
-  </url>${profileUrls}${postUrls}${videoUrls}
+  </url>${profileUrls}${postUrls}${articleUrls}${companyUrls}${videoUrls}
 </urlset>`);
 });
 

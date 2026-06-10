@@ -62,7 +62,33 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(months / 12)}y ago`;
 }
 
-function renderPostPage(post: any, author: any, images: string[], stats: { likes: number; replies: number }, shortId?: string): string {
+function renderComments(comments: any[], postUrl: string): string {
+  if (!comments.length) return "";
+  return comments.map((c) => {
+    const authorName = c.profiles?.display_name || "User";
+    const handle = c.profiles?.handle || "user";
+    const avatar = c.profiles?.avatar_url || "";
+    const body = escapeHtml(c.content || "");
+    const ago = timeAgo(c.created_at);
+    const profileUrl = `${SITE_URL}/@${handle}`;
+    return `
+    <div class="comment" itemprop="comment" itemscope itemtype="https://schema.org/Comment">
+      <div class="comment-row">
+        ${avatar ? `<img src="${escapeHtml(avatar)}" class="c-avatar" alt="${escapeHtml(authorName)}" loading="lazy" />` : `<div class="c-avatar c-avatar-ph">${escapeHtml(authorName.charAt(0).toUpperCase())}</div>`}
+        <div class="c-body">
+          <div class="c-meta">
+            <a href="${profileUrl}" class="c-name" itemprop="author" itemscope itemtype="https://schema.org/Person"><span itemprop="name">${escapeHtml(authorName)}</span></a>
+            <span class="c-handle"> @${escapeHtml(handle)} · ${ago}</span>
+          </div>
+          <p class="c-text" itemprop="text">${body}</p>
+          <meta itemprop="datePublished" content="${c.created_at}" />
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderPostPage(post: any, author: any, images: string[], stats: { likes: number; replies: number }, shortId?: string, comments: any[] = []): string {
   const displayName = escapeHtml(author.display_name || "User");
   const handle = escapeHtml(author.handle || "user");
   const avatarUrl = author.avatar_url || "";
@@ -87,7 +113,9 @@ function renderPostPage(post: any, author: any, images: string[], stats: { likes
 
   const viewCount = post.view_count || 0;
 
-  const jsonLd = {
+  const commentsHtml = renderComments(comments, postUrl);
+
+  const jsonLd: any = {
     "@context": "https://schema.org",
     "@type": "SocialMediaPosting",
     headline: truncate(content, 110) || `Post by ${author.display_name}`,
@@ -112,6 +140,18 @@ function renderPostPage(post: any, author: any, images: string[], stats: { likes
       name: SITE_NAME,
       url: SITE_URL,
     },
+    ...(comments.length > 0 ? {
+      comment: comments.slice(0, 10).map((c) => ({
+        "@type": "Comment",
+        text: (c.content || "").slice(0, 500),
+        datePublished: c.created_at,
+        author: {
+          "@type": "Person",
+          name: c.profiles?.display_name || "User",
+          url: `${SITE_URL}/@${c.profiles?.handle || "user"}`,
+        },
+      })),
+    } : {}),
   };
 
   return `<!DOCTYPE html>
@@ -174,6 +214,18 @@ function renderPostPage(post: any, author: any, images: string[], stats: { likes
     .footer{text-align:center;padding:24px 16px 40px;color:#444;font-size:13px}
     .footer a{color:${BRAND_COLOR};text-decoration:none}
     .more-link{display:block;text-align:center;padding:16px;color:${BRAND_COLOR};text-decoration:none;font-weight:600;font-size:15px}
+    .comments-section{margin-top:8px}
+    .comments-title{font-size:15px;font-weight:700;color:#888;padding:14px 16px 10px;border-top:1px solid #1e1e1e}
+    .comment{padding:12px 16px;border-bottom:1px solid #161616}
+    .comment:last-child{border-bottom:0}
+    .comment-row{display:flex;gap:10px}
+    .c-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0}
+    .c-avatar-ph{width:32px;height:32px;border-radius:50%;background:${BRAND_COLOR};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+    .c-body{flex:1;min-width:0}
+    .c-meta{display:flex;align-items:baseline;gap:0;flex-wrap:wrap;margin-bottom:3px}
+    .c-name{font-weight:600;font-size:13px;color:#ddd;text-decoration:none}
+    .c-handle{color:#666;font-size:12px}
+    .c-text{font-size:14px;line-height:1.55;color:#bbb;word-wrap:break-word;white-space:pre-wrap}
     @media(max-width:480px){.container{padding:12px 0}.post-card{border-radius:0;border-left:0;border-right:0}}
   </style>
 </head>
@@ -210,6 +262,12 @@ function renderPostPage(post: any, author: any, images: string[], stats: { likes
     </article>
 
     <a class="more-link" href="${profileUrl}">See more from @${handle} &rarr;</a>
+
+    ${commentsHtml ? `
+    <section class="comments-section" itemscope itemtype="https://schema.org/CommentCollection">
+      <div class="comments-title">&#128172; Comments (${stats.replies.toLocaleString()})</div>
+      ${commentsHtml}
+    </section>` : ""}
 
     <div class="cta-section">
       <div class="cta-title">Join the conversation</div>
@@ -275,11 +333,18 @@ async function handlePostPage(param: string, res: any) {
     return res.redirect(301, `/video/${shortId}`);
   }
 
-  const [{ data: author }, { data: postImages }, { data: likes }, { data: replies }] = await Promise.all([
+  const [{ data: author }, { data: postImages }, { data: likes }, { data: replies }, { data: comments }] = await Promise.all([
     supabase.from("profiles").select("display_name, handle, avatar_url, is_verified, is_organization_verified, is_private").eq("id", post.author_id).single(),
     supabase.from("post_images").select("image_url, display_order").eq("post_id", postId).order("display_order", { ascending: true }),
     supabase.from("post_acknowledgments").select("id", { count: "exact", head: true }).eq("post_id", postId),
     supabase.from("post_replies").select("id", { count: "exact", head: true }).eq("post_id", postId),
+    supabase
+      .from("post_replies")
+      .select("id, content, created_at, profiles!post_replies_author_id_fkey(display_name, handle, avatar_url)")
+      .eq("post_id", postId)
+      .is("parent_reply_id", null)
+      .order("created_at", { ascending: true })
+      .limit(20),
   ]);
 
   if (!author || author.is_private) return res.status(404).send(render404());
@@ -302,7 +367,7 @@ async function handlePostPage(param: string, res: any) {
 
   const shortId = encodeUuidToShort(post.id);
   res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
-  res.send(renderPostPage(post, author, images, { likes: likeCount, replies: replyCount }, shortId));
+  res.send(renderPostPage(post, author, images, { likes: likeCount, replies: replyCount }, shortId, comments || []));
 }
 
 router.get("/p/:shortId", async (req, res) => {
