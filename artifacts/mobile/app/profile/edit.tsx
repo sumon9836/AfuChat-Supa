@@ -307,7 +307,7 @@ export default function EditProfileScreen() {
       if (nameChanged)   storage.setString(KEYS.NAME_CHANGED_AT_PREFIX   + user!.id, Date.now().toString());
       if (handleChanged) storage.setString(KEYS.HANDLE_CHANGED_AT_PREFIX + user!.id, Date.now().toString());
       patchProfile(updateData);
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/(tabs)/me" as any);
     }
     setSaving(false);
   }

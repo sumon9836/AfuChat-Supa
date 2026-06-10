@@ -90,7 +90,7 @@ export default function LinkedAccountsScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showAlert("Account linked!", "You can now switch to it anytime.");
       if (isQuickAdd) {
-        router.back();
+        if (router.canGoBack()) router.back(); else router.replace("/(tabs)/me" as any);
       } else {
         closeForm();
       }

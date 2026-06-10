@@ -151,7 +151,7 @@ export default function MatchOnboarding() {
   }
 
   function prevStep() {
-    if (step === 1) { router.back(); return; }
+    if (step === 1) { if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any); return; }
     const prev = step - 1;
     setStep(prev);
     advanceProgress(prev);

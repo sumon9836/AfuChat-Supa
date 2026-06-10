@@ -936,7 +936,7 @@ export default function PostDetailScreen() {
       { text: "Delete", style: "destructive", onPress: async () => {
         const { error } = await supabase.from("posts").delete().eq("id", post.id).eq("author_id", user.id);
         if (error) { showAlert("Error", "Could not delete post."); }
-        else { router.back(); }
+        else { if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any); }
       }},
     ]);
   }

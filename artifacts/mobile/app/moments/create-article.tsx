@@ -132,7 +132,7 @@ export default function CreateArticleScreen() {
       });
       if (error) throw error;
       try { const { rewardXp } = await import("../../lib/rewardXp"); rewardXp("post_created"); } catch (_) {}
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any);
     } catch (err: any) {
       showAlert("Error", err.message || "Failed to publish article.");
     } finally {

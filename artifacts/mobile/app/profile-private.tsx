@@ -63,8 +63,10 @@ export function ProfilePrivateView({
     if (onBack) { onBack(); return; }
     if (Platform.OS === "web" && typeof window !== "undefined") {
       window.history.back();
-    } else {
+    } else if (router.canGoBack()) {
       router.back();
+    } else {
+      router.replace("/(tabs)/discover" as any);
     }
   }
 
@@ -79,7 +81,7 @@ export function ProfilePrivateView({
         { onConflict: "follower_id,following_id" }
       );
     setLoading(false);
-    router.back();
+    if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any);
   }
 
   return (
@@ -189,8 +191,10 @@ export default function ProfilePrivateScreen() {
           onPress={() => {
             if (Platform.OS === "web" && typeof window !== "undefined") {
               window.history.back();
-            } else {
+            } else if (router.canGoBack()) {
               router.back();
+            } else {
+              router.replace("/(tabs)/discover" as any);
             }
           }}
           hitSlop={{ top: 8, left: 8, right: 12, bottom: 8 }}

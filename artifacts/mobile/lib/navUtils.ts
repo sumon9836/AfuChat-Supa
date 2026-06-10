@@ -66,7 +66,7 @@ export const safeRouter = {
   push    (href: any, cooldown = NAV_COOLDOWN_MS): void { if (acquireNavLock(cooldown)) { try { router.push(href); } catch (e: any) { if (!String(e?.message).includes("mounting")) throw e; } } },
   replace (href: any, cooldown = NAV_COOLDOWN_MS): void { if (acquireNavLock(cooldown)) { try { router.replace(href); } catch (e: any) { if (!String(e?.message).includes("mounting")) throw e; } } },
   navigate(href: any, cooldown = NAV_COOLDOWN_MS): void { if (acquireNavLock(cooldown)) { try { router.navigate(href); } catch (e: any) { if (!String(e?.message).includes("mounting")) throw e; } } },
-  back    (cooldown = NAV_COOLDOWN_MS):             void { if (acquireNavLock(cooldown)) { try { if (router.canGoBack()) router.back(); } catch {} } },
+  back    (fallback: string = "/(tabs)/discover", cooldown = NAV_COOLDOWN_MS): void { if (acquireNavLock(cooldown)) { try { if (router.canGoBack()) router.back(); else router.replace(fallback as any); } catch {} } },
 };
 
 // ── React hooks ───────────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ export function useSafeNavigation() {
   const push     = useCallback((href: any) => safeRouter.push(href),     []);
   const replace  = useCallback((href: any) => safeRouter.replace(href),  []);
   const navigate = useCallback((href: any) => safeRouter.navigate(href), []);
-  const back     = useCallback(()          => safeRouter.back(),          []);
+  const back     = useCallback((fallback?: string) => safeRouter.back(fallback), []);
   return { push, replace, navigate, back };
 }
 

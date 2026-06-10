@@ -148,8 +148,10 @@ function PublicProfileScreen({ handle }: { handle: string }) {
           onPress={() => {
             if (Platform.OS === "web" && typeof window !== "undefined") {
               window.history.back();
-            } else {
+            } else if (router.canGoBack()) {
               router.back();
+            } else {
+              router.replace("/(tabs)/discover" as any);
             }
           }}
           hitSlop={{ top: 8, left: 8, right: 12, bottom: 8 }}

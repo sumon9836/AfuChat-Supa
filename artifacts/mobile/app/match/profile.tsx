@@ -235,7 +235,7 @@ export default function MatchProfileEditScreen() {
         })));
       }
       showAlert("Saved!", "Your dating profile has been updated.");
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any);
     } else {
       showAlert("Error", "Failed to save. Please try again.");
     }

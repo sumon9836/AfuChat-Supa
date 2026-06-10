@@ -34,7 +34,7 @@ export default function LanguageSettingsScreen() {
     setSaving(lang ?? "none");
     await setPreferredLang(lang);
     setSaving(null);
-    router.back();
+    if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any);
   }
 
   return (

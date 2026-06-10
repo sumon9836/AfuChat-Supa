@@ -70,7 +70,7 @@ export default function WalletScanPage() {
     const p = data?.[0];
     if (!p) {
       showAlert("Not Found", "No user found with this AfuChat ID.");
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any);
       return;
     }
     setRecipient(p as Recipient);
@@ -86,7 +86,7 @@ export default function WalletScanPage() {
       .maybeSingle();
     if (!data) {
       showAlert("Not Found", "No user found with that handle.");
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any);
       return;
     }
     setRecipient(data as Recipient);

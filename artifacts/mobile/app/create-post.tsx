@@ -88,7 +88,7 @@ export default function CreatePostScreen() {
 
       if (error) throw error;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any);
     } catch (err: any) {
       showAlert("Error", err?.message ?? "Could not publish. Please try again.");
     } finally {

@@ -3201,7 +3201,7 @@ function ChatScreen() {
                 await supabase.from("messages").delete().eq("chat_id", chatId);
                 await supabase.from("conversations").delete().eq("id", chatId);
               }
-              router.back();
+              if (router.canGoBack()) router.back(); else router.replace("/(tabs)/chats" as any);
             } catch {
               showAlert("Error", "Could not complete this action. Please try again.");
             }
@@ -5238,7 +5238,7 @@ STRICT RULES:
                     if (!chatInfo.other_id || !user) return;
                     try { await supabase.from("blocked_users").insert({ blocker_id: user.id, blocked_id: chatInfo.other_id }); } catch {}
                     setIsStranger(false);
-                    router.back();
+                    if (router.canGoBack()) router.back(); else router.replace("/(tabs)/chats" as any);
                   }},
                 ]);
               }}

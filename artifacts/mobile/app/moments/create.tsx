@@ -142,7 +142,7 @@ export default function CreatePostScreen() {
     const _locationTag = locationTag;
 
     // Navigate immediately — upload runs in the background
-    router.back();
+    if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any);
 
     startPostUpload("post", _content.slice(0, 80));
 

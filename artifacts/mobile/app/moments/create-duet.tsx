@@ -304,7 +304,7 @@ export default function CreateDuetScreen() {
         const { rewardXp } = await import("../../lib/rewardXp");
         rewardXp("post_created");
       } catch {}
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any);
     } catch (err: any) {
       showAlert("Error", err.message || "Failed to post duet.");
     } finally {

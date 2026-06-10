@@ -196,7 +196,7 @@ export default function TwoFactorScreen() {
         onBack={() => {
           if (step.id === "enroll-verify" || step.id === "enroll-qr") loadStatus();
           else if (step.id === "recovery-email" || step.id === "recovery-otp") setStep({ id: "status", enrolled: false });
-          else router.back();
+          else if (router.canGoBack()) router.back(); else router.replace("/(tabs)/me" as any);
         }}
       />
     );

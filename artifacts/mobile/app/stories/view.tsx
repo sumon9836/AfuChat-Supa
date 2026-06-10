@@ -178,7 +178,8 @@ export default function ViewStoryScreen() {
     if (index < stories.length - 1) {
       setIndex((i) => i + 1);
     } else {
-      router.back();
+      if (router.canGoBack()) router.back();
+      else router.replace("/(tabs)/discover" as any);
     }
   }, [index, stories.length]);
 
