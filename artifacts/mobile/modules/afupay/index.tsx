@@ -24,6 +24,7 @@ import { supabase } from "@/lib/supabase";
 import { showAlert } from "@/lib/alert";
 import * as Haptics from "@/lib/haptics";
 import * as Clipboard from "expo-clipboard";
+import { router } from "expo-router";
 import QRCode from "@/components/ui/QRCode";
 import Colors from "@/constants/colors";
 
@@ -154,6 +155,7 @@ export default function AfuPayApp() {
   const [refreshing, setRefreshing] = useState(false);
   const [txFilter, setTxFilter] = useState<TxFilter>("all");
   const [currSettings, setCurrSettings] = useState<{ nexa_to_acoin_rate: number; conversion_fee_percent: number } | null>(null);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
 
   const acoin = profile?.acoin ?? 0;
   const nexa = profile?.xp ?? 0;
@@ -209,14 +211,29 @@ export default function AfuPayApp() {
   }, [user]);
 
   useEffect(() => { loadTransactions(); }, [loadTransactions]);
+
+  // Fetch pending money-request count for badge
+  const loadPendingCount = useCallback(async () => {
+    if (!user) return;
+    const { count } = await supabase
+      .from("money_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("target_id", user.id)
+      .eq("status", "pending");
+    setPendingRequestCount(count ?? 0);
+  }, [user]);
+
+  useEffect(() => { loadPendingCount(); }, [loadPendingCount]);
+
   useEffect(() => {
     if (!user) return;
     const ch = supabase.channel(`afupay:${user.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "acoin_transactions", filter: `user_id=eq.${user.id}` }, () => { loadTransactions(); refreshProfile?.(); })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "xp_transfers", filter: `receiver_id=eq.${user.id}` }, () => { loadTransactions(); refreshProfile?.(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "money_requests", filter: `target_id=eq.${user.id}` }, () => loadPendingCount())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, loadTransactions]);
+  }, [user, loadTransactions, loadPendingCount]);
 
   const filteredTx = txFilter === "all" ? transactions
     : txFilter === "gifts" ? transactions.filter(t => ["gift_sent", "gift_received", "red_envelope_sent", "red_envelope_claimed"].includes(t.type))
@@ -254,16 +271,26 @@ export default function AfuPayApp() {
           { icon: "paper-plane" as const, label: "Send", color: "#FF9500", view: "send" as AppView },
           { icon: "qr-code" as const, label: "Receive", color: Colors.brand, view: "receive" as AppView },
           { icon: "swap-horizontal" as const, label: "Convert", color: "#7B61FF", view: "exchange" as AppView },
-          { icon: "receipt-outline" as const, label: "Requests", color: "#AF52DE", view: "requests" as AppView },
+          { icon: "receipt-outline" as const, label: "Requests", color: "#AF52DE", view: "requests" as AppView, onPress: () => router.push("/wallet/incoming-requests" as any) },
           { icon: "time-outline" as const, label: "History", color: "#FF6B35", view: "history" as AppView },
-        ].map((a) => (
-          <TouchableOpacity key={a.label} style={s.actionItem} onPress={() => { Haptics.selectionAsync(); setView(a.view); }} activeOpacity={0.75}>
-            <View style={[s.actionIcon, { backgroundColor: a.color + "18" }]}>
-              <Ionicons name={a.icon} size={22} color={a.color} />
-            </View>
-            <Text style={[s.actionLabel, { color: colors.textSecondary }]}>{a.label}</Text>
-          </TouchableOpacity>
-        ))}
+        ].map((a) => {
+          const badge = a.label === "Requests" && pendingRequestCount > 0 ? pendingRequestCount : 0;
+          return (
+            <TouchableOpacity key={a.label} style={s.actionItem} onPress={() => { Haptics.selectionAsync(); (a as any).onPress ? (a as any).onPress() : setView(a.view); }} activeOpacity={0.75}>
+              <View style={{ position: "relative" }}>
+                <View style={[s.actionIcon, { backgroundColor: a.color + "18" }]}>
+                  <Ionicons name={a.icon} size={22} color={a.color} />
+                </View>
+                {badge > 0 && (
+                  <View style={{ position: "absolute", top: -4, right: -4, backgroundColor: "#FF3B30", borderRadius: 8, minWidth: 16, height: 16, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 }}>
+                    <Text style={{ color: "#fff", fontSize: 9, fontFamily: "Inter_700Bold" }}>{badge > 99 ? "99+" : badge}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[s.actionLabel, { color: colors.textSecondary }]}>{a.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {txLoading && transactions.length === 0 ? (
