@@ -101,7 +101,12 @@ function AnimatedBar({ pct, color }: { pct: number; color: string }) {
 }
 
 // ── Reward step row ───────────────────────────────────────────────────────────
-function StepRow({ step, total, isLast, accent, colors }: { step: RewardStep; total: number; isLast: boolean; accent: string; colors: any }) {
+function StepRow({
+  step, total, isLast, accent, colors, claimed, claiming, onClaim,
+}: {
+  step: RewardStep; total: number; isLast: boolean; accent: string; colors: any;
+  claimed?: boolean; claiming?: boolean; onClaim?: () => void;
+}) {
   const status   = getStepStatus(total, step);
   const isDone   = status === "done";
   const isActive = status === "active";
@@ -109,6 +114,8 @@ function StepRow({ step, total, isLast, accent, colors }: { step: RewardStep; to
   const circleColor  = isDone ? step.color : isActive ? accent : colors.backgroundTertiary;
   const circleBorder = isDone ? step.color : isActive ? accent : colors.border;
   const moreNeeded   = step.invites - total;
+
+  const showClaimBtn = isDone && step.bonusNexa > 0;
 
   return (
     <View style={stepStyles.row}>
@@ -129,7 +136,8 @@ function StepRow({ step, total, isLast, accent, colors }: { step: RewardStep; to
         <View style={stepStyles.header}>
           <View style={stepStyles.titleRow}>
             <Text style={[stepStyles.title, { color: isDone ? step.color : isActive ? colors.text : colors.textMuted }]}>{step.title}</Text>
-            {isDone && <View style={[stepStyles.badge, { backgroundColor: step.color + "20" }]}><Text style={[stepStyles.badgeText, { color: step.color }]}>Unlocked</Text></View>}
+            {isDone && !claimed && step.bonusNexa === 0 && <View style={[stepStyles.badge, { backgroundColor: step.color + "20" }]}><Text style={[stepStyles.badgeText, { color: step.color }]}>Unlocked</Text></View>}
+            {isDone && claimed && <View style={[stepStyles.badge, { backgroundColor: "#34C75920" }]}><Text style={[stepStyles.badgeText, { color: "#34C759" }]}>✓ Claimed</Text></View>}
             {isActive && <View style={[stepStyles.badge, { backgroundColor: accent + "18" }]}><Text style={[stepStyles.badgeText, { color: accent }]}>In Progress</Text></View>}
           </View>
           <Text style={[stepStyles.role, { color: colors.textMuted }]}>{step.invites} invite{step.invites !== 1 ? "s" : ""} · {step.role}</Text>
@@ -143,7 +151,10 @@ function StepRow({ step, total, isLast, accent, colors }: { step: RewardStep; to
           {step.bonusNexa > 0 && (
             <View style={stepStyles.rewardRow}>
               <Ionicons name="gift-outline" size={13} color={step.color} />
-              <Text style={[stepStyles.rewardText, { color: step.color }]}>+{step.bonusNexa.toLocaleString()} milestone bonus</Text>
+              <Text style={[stepStyles.rewardText, { color: step.color }]}>
+                +{step.bonusNexa.toLocaleString()} milestone bonus
+                {claimed ? " · Collected" : isDone ? " · Ready to claim!" : ""}
+              </Text>
             </View>
           )}
         </View>
@@ -159,8 +170,125 @@ function StepRow({ step, total, isLast, accent, colors }: { step: RewardStep; to
         )}
 
         <Text style={[stepStyles.desc, { color: colors.textMuted }]}>{step.description}</Text>
+
+        {showClaimBtn && (
+          claimed ? (
+            <View style={[stepStyles.claimedRow]}>
+              <Ionicons name="checkmark-circle" size={14} color="#34C759" />
+              <Text style={[stepStyles.claimedText]}>Bonus collected</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[stepStyles.claimBtn, { backgroundColor: step.color, opacity: claiming ? 0.7 : 1 }]}
+              onPress={onClaim}
+              disabled={claiming}
+              activeOpacity={0.82}
+            >
+              {claiming ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="gift" size={14} color="#fff" />
+                  <Text style={stepStyles.claimBtnText}>Claim +{step.bonusNexa.toLocaleString()} Nexa</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )
+        )}
       </View>
     </View>
+  );
+}
+
+// ── Milestone Claim Modal ─────────────────────────────────────────────────────
+function MilestoneClaimModal({ step, onClose }: { step: RewardStep | null; onClose: () => void }) {
+  const { colors } = useTheme();
+  const cardScale   = useRef(new Animated.Value(0.78)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const flashScale  = useRef(new Animated.Value(0)).current;
+  const flashOpac   = useRef(new Animated.Value(0)).current;
+  const nexaY       = useRef(new Animated.Value(30)).current;
+  const nexaOpac    = useRef(new Animated.Value(0)).current;
+
+  const visible = !!step;
+
+  useEffect(() => {
+    if (!visible) {
+      cardScale.setValue(0.78);
+      cardOpacity.setValue(0);
+      flashScale.setValue(0);
+      flashOpac.setValue(0);
+      nexaY.setValue(30);
+      nexaOpac.setValue(0);
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Animated.parallel([
+      Animated.spring(cardScale,   { toValue: 1, damping: 12, stiffness: 100, useNativeDriver: true }),
+      Animated.timing(cardOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
+    ]).start();
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.spring(flashScale, { toValue: 1, damping: 9, stiffness: 120, useNativeDriver: true }),
+        Animated.timing(flashOpac,  { toValue: 1, duration: 280, useNativeDriver: true }),
+      ]).start();
+    }, 200);
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.spring(nexaY,    { toValue: 0, damping: 11, stiffness: 100, useNativeDriver: true }),
+        Animated.timing(nexaOpac, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+    }, 380);
+  }, [visible]);
+
+  if (!step) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+      <View style={claimModalS.overlay}>
+        <Animated.View style={[claimModalS.card, { backgroundColor: colors.surface, transform: [{ scale: cardScale }], opacity: cardOpacity }]}>
+
+          <LinearGradient
+            colors={[step.color + "EE", step.color + "99"]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={claimModalS.header}
+          >
+            <Animated.View style={{ transform: [{ scale: flashScale }], opacity: flashOpac }}>
+              <View style={claimModalS.iconRing}>
+                <Ionicons name={step.icon as any} size={36} color="#fff" />
+              </View>
+            </Animated.View>
+            <Text style={claimModalS.headerTitle}>{step.title}</Text>
+            <Text style={claimModalS.headerSub}>{step.role}</Text>
+          </LinearGradient>
+
+          <View style={claimModalS.body}>
+            <Text style={[claimModalS.congrats, { color: colors.text }]}>Milestone Bonus Collected! 🎉</Text>
+            <Text style={[claimModalS.desc, { color: colors.textMuted }]}>{step.description}</Text>
+
+            <Animated.View style={[claimModalS.nexaCard, { borderColor: "#FFD60A40", transform: [{ translateY: nexaY }], opacity: nexaOpac }]}>
+              <LinearGradient colors={["#FFD60A18", "#FF9F0A10"]} style={claimModalS.nexaGradient}>
+                <View style={claimModalS.nexaIconWrap}>
+                  <Ionicons name="flash" size={28} color="#FFD60A" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[claimModalS.nexaLabel, { color: colors.textMuted }]}>Bonus Nexa added to your wallet</Text>
+                  <Text style={[claimModalS.nexaAmount, { color: "#FFD60A" }]}>+{step.bonusNexa.toLocaleString()} Nexa</Text>
+                </View>
+                <Ionicons name="checkmark-circle" size={24} color="#34C759" />
+              </LinearGradient>
+            </Animated.View>
+          </View>
+
+          <View style={claimModalS.footer}>
+            <TouchableOpacity style={[claimModalS.doneBtn, { backgroundColor: step.color }]} onPress={onClose} activeOpacity={0.85}>
+              <Text style={claimModalS.doneBtnText}>Awesome!</Text>
+              <Ionicons name="checkmark" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
@@ -484,6 +612,9 @@ export default function AfuReferralApp() {
   const [showQRModal,   setShowQRModal]   = useState(false);
   const [activeShare,   setActiveShare]   = useState<"link" | "code">("link");
   const [activeView,    setActiveView]    = useState<"me" | "leaderboard">("me");
+  const [claimedSteps,  setClaimedSteps]  = useState<Set<number>>(new Set());
+  const [claimingStep,  setClaimingStep]  = useState<number | null>(null);
+  const [claimSuccess,  setClaimSuccess]  = useState<RewardStep | null>(null);
 
   const referralLink = `https://afuchat.com/${profile?.handle || ""}`;
   const referralCode = (profile?.handle || "").toUpperCase();
@@ -532,6 +663,55 @@ export default function AfuReferralApp() {
 
   useEffect(() => { loadReferrals(); }, [loadReferrals]);
 
+  const loadClaimedMilestones = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from("referral_milestone_claims")
+        .select("milestone_step")
+        .eq("user_id", user.id);
+      if (data) {
+        setClaimedSteps(new Set(data.map((r: any) => Number(r.milestone_step))));
+      }
+    } catch {}
+  }, [user]);
+
+  useEffect(() => { loadClaimedMilestones(); }, [loadClaimedMilestones]);
+
+  async function handleClaimMilestone(step: RewardStep) {
+    if (!user || claimingStep !== null) return;
+    setClaimingStep(step.step);
+    try {
+      const { error: claimError } = await supabase
+        .from("referral_milestone_claims")
+        .insert({ user_id: user.id, milestone_step: step.step, bonus_nexa: step.bonusNexa });
+
+      if (claimError) {
+        if (claimError.code === "23505") {
+          setClaimedSteps(prev => new Set([...prev, step.step]));
+          showToast("Already claimed!");
+        } else {
+          showToast("Could not claim. Try again shortly.");
+        }
+        setClaimingStep(null);
+        return;
+      }
+
+      await supabase.rpc("reward_activity_xp", {
+        p_activity_type: "milestone_bonus",
+        p_xp_amount: step.bonusNexa,
+        p_cooldown_seconds: 0,
+        p_metadata: { milestone_step: step.step, milestone_title: step.title },
+      });
+
+      setClaimedSteps(prev => new Set([...prev, step.step]));
+      setClaimSuccess(step);
+    } catch {
+      showToast("Something went wrong. Please try again.");
+    }
+    setClaimingStep(null);
+  }
+
   async function copyToClipboard(text: string) {
     await Clipboard.setStringAsync(text);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -556,6 +736,7 @@ export default function AfuReferralApp() {
       showsVerticalScrollIndicator={false}
     >
       <QRModal visible={showQRModal} link={referralLink} accent={accent} onClose={() => setShowQRModal(false)} />
+      <MilestoneClaimModal step={claimSuccess} onClose={() => setClaimSuccess(null)} />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <LinearGradient colors={["#0A2E1F", "#062218"]} style={s.hero}>
@@ -665,7 +846,17 @@ export default function AfuReferralApp() {
         <Text style={[s.sectionTitle, { color: colors.textSecondary }]}>REWARD MILESTONES</Text>
         <View style={[s.stepsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {REWARD_STEPS.map((step, i) => (
-            <StepRow key={step.step} step={step} total={totalReferrals} isLast={i === REWARD_STEPS.length - 1} accent={accent} colors={colors} />
+            <StepRow
+              key={step.step}
+              step={step}
+              total={totalReferrals}
+              isLast={i === REWARD_STEPS.length - 1}
+              accent={accent}
+              colors={colors}
+              claimed={claimedSteps.has(step.step)}
+              claiming={claimingStep === step.step}
+              onClaim={() => handleClaimMilestone(step)}
+            />
           ))}
         </View>
       </View>
@@ -787,6 +978,13 @@ const stepStyles = StyleSheet.create({
   rewardText: { fontSize: 12, fontFamily: "Inter_500Medium" },
   progressLabel: { fontSize: 11, fontFamily: "Inter_500Medium" },
   desc: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 6 },
+  claimBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, borderRadius: 10, paddingVertical: 10, marginTop: 10,
+  },
+  claimBtnText: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold" },
+  claimedRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 10, justifyContent: "center" },
+  claimedText: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: "#34C759" },
 });
 
 const qrS = StyleSheet.create({
@@ -823,4 +1021,43 @@ const invS = StyleSheet.create({
   contactPhone: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
   actionBtns: { flexDirection: "row", gap: 6 },
   actionBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+});
+
+const claimModalS = StyleSheet.create({
+  overlay: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.72)",
+    alignItems: "center", justifyContent: "center", paddingHorizontal: 24,
+  },
+  card: {
+    width: "100%", maxWidth: 380, borderRadius: 24, overflow: "hidden",
+    ...Platform.select({
+      web: { boxShadow: "0 12px 28px rgba(0,0,0,0.38)" } as any,
+      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 16 },
+    }),
+  },
+  header: { alignItems: "center", paddingTop: 32, paddingBottom: 24, paddingHorizontal: 24, gap: 8 },
+  iconRing: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center", justifyContent: "center", marginBottom: 4,
+  },
+  headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: -0.3 },
+  headerSub: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.80)" },
+  body: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8, gap: 12 },
+  congrats: { fontSize: 17, fontFamily: "Inter_700Bold", textAlign: "center" },
+  desc: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 19 },
+  nexaCard: { borderRadius: 14, borderWidth: 1, overflow: "hidden" },
+  nexaGradient: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
+  nexaIconWrap: {
+    width: 48, height: 48, borderRadius: 14,
+    backgroundColor: "#FFD60A20", alignItems: "center", justifyContent: "center",
+  },
+  nexaLabel: { fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 2 },
+  nexaAmount: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24 },
+  doneBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 8, borderRadius: 14, paddingVertical: 14,
+  },
+  doneBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
 });
