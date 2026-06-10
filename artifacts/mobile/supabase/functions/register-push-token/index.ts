@@ -24,7 +24,6 @@ serve(async (req) => {
       );
     }
 
-    // Verify the caller's JWT with the anon client
     const anonClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -36,7 +35,7 @@ serve(async (req) => {
       );
     }
 
-    const { token } = await req.json();
+    const { token, platform } = await req.json();
     if (!token || typeof token !== "string") {
       return new Response(
         JSON.stringify({ error: "token is required" }),
@@ -44,11 +43,13 @@ serve(async (req) => {
       );
     }
 
-    // Use service role key so RLS doesn't block the update
     const serviceClient = createClient(supabaseUrl, serviceKey);
     const { error: updateErr } = await serviceClient
       .from("profiles")
-      .update({ expo_push_token: token })
+      .update({
+        fcm_token: token,
+        push_token_platform: platform ?? null,
+      })
       .eq("id", user.id);
 
     if (updateErr) {
@@ -59,7 +60,6 @@ serve(async (req) => {
       );
     }
 
-    // Optionally respect notification_preferences if the table exists
     try {
       await serviceClient
         .from("notification_preferences")

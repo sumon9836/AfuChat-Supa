@@ -1,15 +1,9 @@
 // @ts-nocheck
 import { Platform } from "react-native";
 import { router } from "expo-router";
-import { supabase, supabaseUrl, supabaseAnonKey } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { getPushSoundToken } from "@/lib/soundManager";
 import { handleNotificationAction } from "@/lib/notificationActions";
-
-const EAS_PROJECT_ID = "b4af70bc-1c1b-4337-8892-ffcedbaa3742";
-
-// AfuChat branded sound — kept for reference (used only in call ringtone flow).
-// Android notification channels use device default sound instead.
-const AFUCHAT_SOUND = "notification.wav";
 
 // ── Notification Category IDs ─────────────────────────────────────────
 export const NOTIF_CATEGORY = {
@@ -41,8 +35,6 @@ let Device: typeof import("expo-device") | null = null;
 
 if (Platform.OS !== "web") {
   try {
-    // Load lazily — "removed from Expo Go" is only a console warning, not an
-    // exception; the surrounding try/catch handles any real import failures.
     Notifications = require("expo-notifications");
     Device = require("expo-device");
 
@@ -69,7 +61,6 @@ if (Platform.OS !== "web") {
 export async function setupNotificationCategories(): Promise<void> {
   if (Platform.OS === "web" || !Notifications) return;
   try {
-    // ── Chat message: inline reply + mark read + snooze ──────────────
     await Notifications.setNotificationCategoryAsync(NOTIF_CATEGORY.MESSAGE_REPLY, [
       {
         identifier: "chat_reply",
@@ -92,7 +83,6 @@ export async function setupNotificationCategories(): Promise<void> {
       },
     ]);
 
-    // ── Post / mention: inline reply + like + view ────────────────────
     await Notifications.setNotificationCategoryAsync(NOTIF_CATEGORY.POST_INTERACT, [
       {
         identifier: "post_reply",
@@ -115,7 +105,6 @@ export async function setupNotificationCategories(): Promise<void> {
       },
     ]);
 
-    // ── New follower: follow back + view profile + mark read ──────────
     await Notifications.setNotificationCategoryAsync(NOTIF_CATEGORY.NEW_FOLLOWER, [
       {
         identifier: "follow_back",
@@ -134,7 +123,6 @@ export async function setupNotificationCategories(): Promise<void> {
       },
     ]);
 
-    // ── Order / marketplace: view order + dismiss ─────────────────────
     await Notifications.setNotificationCategoryAsync(NOTIF_CATEGORY.ORDER_UPDATE, [
       {
         identifier: "view_order",
@@ -148,7 +136,6 @@ export async function setupNotificationCategories(): Promise<void> {
       },
     ]);
 
-    // ── Shipped order: confirm delivery directly from notification ─────
     await Notifications.setNotificationCategoryAsync(NOTIF_CATEGORY.ORDER_SHIPPED, [
       {
         identifier: "confirm_delivery",
@@ -162,7 +149,6 @@ export async function setupNotificationCategories(): Promise<void> {
       },
     ]);
 
-    // ── Gift received: view wallet + thank sender (open profile) ──────
     await Notifications.setNotificationCategoryAsync(NOTIF_CATEGORY.GIFT_RECEIVED, [
       {
         identifier: "view_profile",
@@ -176,7 +162,6 @@ export async function setupNotificationCategories(): Promise<void> {
       },
     ]);
 
-    // ── Mention: inline reply + view post ────────────────────────────
     await Notifications.setNotificationCategoryAsync(NOTIF_CATEGORY.MENTION, [
       {
         identifier: "post_reply",
@@ -204,7 +189,7 @@ export async function setupNotificationCategories(): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Notification Channels (Android — each branded with AfuChat sound)
+// Notification Channels (Android)
 // ─────────────────────────────────────────────────────────────────────
 
 export async function setupNotificationChannels(): Promise<void> {
@@ -259,7 +244,6 @@ export async function setupNotificationChannels(): Promise<void> {
       ...base,
     });
 
-    // ── Incoming calls — max priority, bypass DnD ──────────────────────
     await Notifications.setNotificationChannelAsync("calls", {
       name: "Incoming Calls",
       description: "Voice and video call alerts",
@@ -278,7 +262,8 @@ export async function setupNotificationChannels(): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Registration
+// Registration — gets native FCM token (Android) / APNs token (iOS)
+// and saves it to the profiles.fcm_token column via the edge function.
 // ─────────────────────────────────────────────────────────────────────
 
 export async function registerForPushNotifications(userId: string): Promise<string | null> {
@@ -289,8 +274,6 @@ export async function registerForPushNotifications(userId: string): Promise<stri
     await setupNotificationChannels();
     await setupNotificationCategories();
 
-    // Register the CallService background task so FCM data messages can wake
-    // the app even when fully killed. Silently skips in Expo Go / web.
     try {
       const { CALL_SERVICE_TASK } = require("./callService");
       await Notifications.registerTaskAsync(CALL_SERVICE_TASK);
@@ -308,9 +291,10 @@ export async function registerForPushNotifications(userId: string): Promise<stri
 
     if (finalStatus !== "granted") return null;
 
-    const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || EAS_PROJECT_ID;
-    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-    const token = tokenData.data;
+    // Get the native device push token directly — FCM token on Android,
+    // APNs device token on iOS. No Expo relay involved.
+    const tokenData = await Notifications.getDevicePushTokenAsync();
+    const token = tokenData.data as string;
 
     // Primary: save via Supabase Edge Function (uses service role key server-side)
     let savedViaEdgeFn = false;
@@ -319,7 +303,7 @@ export async function registerForPushNotifications(userId: string): Promise<stri
       const accessToken = sessionData?.session?.access_token;
       if (accessToken) {
         const { error: fnErr } = await supabase.functions.invoke("register-push-token", {
-          body: { token },
+          body: { token, platform: Platform.OS },
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         if (!fnErr) savedViaEdgeFn = true;
@@ -329,11 +313,11 @@ export async function registerForPushNotifications(userId: string): Promise<stri
       console.warn("[PushNotif] Edge function unreachable:", fnCatchErr?.message);
     }
 
-    // Fallback: direct Supabase client update (if edge function unavailable)
+    // Fallback: direct Supabase client update
     if (!savedViaEdgeFn) {
       const { error: dbError } = await supabase
         .from("profiles")
-        .update({ expo_push_token: token })
+        .update({ fcm_token: token })
         .eq("id", userId);
       if (dbError) console.warn("[PushNotif] Fallback DB save failed:", dbError.message);
     }
@@ -353,14 +337,12 @@ export async function registerForPushNotifications(userId: string): Promise<stri
 
 export async function clearPushToken(userId: string): Promise<void> {
   try {
-    await supabase.from("profiles").update({ expo_push_token: null }).eq("id", userId);
+    await supabase.from("profiles").update({ fcm_token: null }).eq("id", userId);
   } catch {}
 }
 
 // ─────────────────────────────────────────────────────────────────────
 // Linked-account session registry
-// Call registerSwitchAccount + setCurrentUserId from AuthContext on mount
-// so notification taps can switch to the correct linked account first.
 // ─────────────────────────────────────────────────────────────────────
 
 let _switchAccount: ((userId: string) => Promise<{ success: boolean; error?: string }>) | null = null;
@@ -386,8 +368,6 @@ async function routeNotificationResponse(response: any) {
 
   const data = (response.notification.request.content.data || {}) as Record<string, string>;
 
-  // If this notification was sent to a linked account that is not currently
-  // active, switch to it before navigating so the right data loads.
   if (
     data.recipientUserId &&
     data.recipientUserId !== _currentUserId &&
@@ -395,12 +375,10 @@ async function routeNotificationResponse(response: any) {
   ) {
     try {
       await _switchAccount(data.recipientUserId);
-      // Brief pause for React state + navigation stack to settle.
       await new Promise<void>((resolve) => setTimeout(resolve, 350));
     } catch {}
   }
 
-  // Explicit view / navigation actions from action buttons
   if (response.actionIdentifier === "view_post" && data.postId) {
     router.push(`/p/${data.postId}` as any);
     return;
@@ -414,7 +392,6 @@ async function routeNotificationResponse(response: any) {
     else router.push("/shop/my-orders" as any);
     return;
   }
-  // Default tap (no action button) — deep link or type-based routing
   if (data?.url) { router.push(data.url as any); return; }
 
   switch (data?.type) {
@@ -445,7 +422,6 @@ async function routeNotificationResponse(response: any) {
       router.push("/(tabs)/me" as any);
       break;
     case "missed_call":
-      // Always routes to call history — only place missed calls are shown.
       router.push("/call-history" as any);
       break;
     default:
@@ -464,7 +440,6 @@ export function setupNotificationListeners() {
   if (_listenersActive) return () => {};
   _listenersActive = true;
 
-  // Drain cold-start response (app launched by tapping notification)
   Notifications.getLastNotificationResponseAsync().then((response) => {
     if (response) {
       const { actionIdentifier, userText } = response as any;
@@ -475,9 +450,6 @@ export function setupNotificationListeners() {
     }
   }).catch(() => {});
 
-  // OS plays the channel sound for push notifications automatically.
-  // In-app sound is handled per-screen (e.g. the active open chat).
-  // Mark delivered_at so senders know the message reached this device even if the chat is not open.
   const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
     const data = (notification.request.content.data || {}) as Record<string, string>;
     if (data.message_id) {
@@ -497,16 +469,13 @@ export function setupNotificationListeners() {
     }
   });
 
-  // Handle action button taps AND notification taps
   const responseSubscription = Notifications.addNotificationResponseReceivedListener(
     async (response) => {
       const { actionIdentifier, userText } = response as any;
       const data = (response.notification.request.content.data || {}) as Record<string, string>;
 
-      // Run action (reply, like, follow_back, etc.) — safe in background
       await handleNotificationAction(actionIdentifier, userText, data);
 
-      // Then route if needed (navigation actions / default tap)
       const DEFAULT = Notifications?.DEFAULT_ACTION_IDENTIFIER ?? "expo.modules.notifications.actions.DEFAULT";
       const isNavAction = [
         DEFAULT,
@@ -529,7 +498,8 @@ export function setupNotificationListeners() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Direct push sender (client-side, for completeness)
+// Direct push sender — calls the send-push-notification edge function
+// which sends via FCM HTTP v1 API using server-side credentials.
 // ─────────────────────────────────────────────────────────────────────
 
 export async function sendPushNotification(params: {
@@ -540,81 +510,30 @@ export async function sendPushNotification(params: {
   categoryIdentifier?: string;
 }): Promise<void> {
   try {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("expo_push_token")
-      .eq("id", params.userId)
-      .single();
-
-    if (!profile?.expo_push_token) return;
-
     const soundToken = await getPushSoundToken();
-
-    const type = params.data?.type;
-    const channelId =
-      type === "message"  ? "messages"
-      : type === "call"   ? "calls"
-      : type === "follow" ? "social"
-      : type === "like"   ? "social"
-      : type === "reply"  ? "social"
-      : type === "mention"? "social"
-      : type === "order"  ? "marketplace"
-      : type === "escrow" ? "marketplace"
-      : type === "payment"? "marketplace"
-      : "default";
-
-    const payload: Record<string, any> = {
-      to: profile.expo_push_token,
-      title: params.title,
-      body: params.body,
-      // Always embed the intended recipient so the tap handler can switch
-      // to the correct linked account before navigating.
-      data: { recipientUserId: params.userId, ...(params.data || {}) },
-      badge: 1,
-      priority: type === "call" ? "high" : "normal",
-      channelId,
-      ttl: type === "call" ? 30 : 604800,
-      expiration: Math.floor(Date.now() / 1000) + (type === "call" ? 30 : 604800),
-    };
-
-    // Collapse duplicate notifications of the same conversation/thread on both
-    // iOS (thread-id) and Android (collapse_key via collapseId).
-    if (type === "message" && params.data?.chatId) {
-      payload.collapseId = `chat_${params.data.chatId}`;
-      payload["thread-id"] = params.data.chatId;
-    }
-    if (type === "call") {
-      payload.collapseId = `call_${params.data?.callId || params.userId}`;
-    }
-
-    if (soundToken) payload.sound = soundToken;
-    if (params.categoryIdentifier) payload.categoryIdentifier = params.categoryIdentifier;
-
-    const res = await fetch("https://exp.host/--/api/v2/push/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "Accept-Encoding": "gzip, deflate",
+    const { error } = await supabase.functions.invoke("send-push-notification", {
+      body: {
+        userId: params.userId,
+        title: params.title,
+        body: params.body,
+        data: params.data,
+        categoryIdentifier: params.categoryIdentifier,
+        sound: soundToken ?? "default",
       },
-      body: JSON.stringify(payload),
     });
-
-    const json = await res.json();
-    if (json?.data?.status === "error") {
-      console.warn("[PushNotif] Send error:", json.data.message, json.data.details);
-    }
-  } catch (error) {
-    console.error("[PushNotif] Send failed:", error);
+    if (error) console.warn("[PushNotif] send-push-notification edge fn error:", error.message);
+  } catch (error: any) {
+    console.warn("[PushNotif] sendPushNotification failed:", error?.message);
   }
 }
 
-export async function getBadgeCount(): Promise<number> {
-  if (Platform.OS === "web" || !Notifications) return 0;
-  return Notifications.getBadgeCountAsync();
-}
+// ─────────────────────────────────────────────────────────────────────
+// Badge
+// ─────────────────────────────────────────────────────────────────────
 
 export async function clearBadge(): Promise<void> {
   if (Platform.OS === "web" || !Notifications) return;
-  await Notifications.setBadgeCountAsync(0);
+  try {
+    await Notifications.setBadgeCountAsync(0);
+  } catch {}
 }

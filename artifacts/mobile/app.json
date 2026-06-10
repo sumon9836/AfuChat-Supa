@@ -19,7 +19,7 @@
       "color": "#1f95ff"
     },
     "android": {
-      "package": "com.afuchat.app",
+      "package": "com.afuchat.afuapp",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/notification-icon-transparent.png",
         "backgroundColor": "#1f95ff"
@@ -189,7 +189,7 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "com.afuchat.app",
+      "bundleIdentifier": "com.afuchat.afuapp",
       "buildNumber": "2.2.5",
       "infoPlist": {
         "NSCameraUsageDescription": "AfuChat uses the camera to take photos and videos for stories and messages.",

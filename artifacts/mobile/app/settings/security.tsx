@@ -110,7 +110,7 @@ export default function SecuritySettingsScreen() {
       if (user) {
         const deletionDate = new Date();
         deletionDate.setDate(deletionDate.getDate() + 30);
-        await supabase.from("profiles").update({ scheduled_deletion_at: deletionDate.toISOString(), expo_push_token: null }).eq("id", user.id);
+        await supabase.from("profiles").update({ scheduled_deletion_at: deletionDate.toISOString(), fcm_token: null }).eq("id", user.id);
       }
       await signOut();
       showAlert("Account Scheduled for Deletion", "Your account will be permanently deleted after 30 days. Log back in within that period to restore it.");

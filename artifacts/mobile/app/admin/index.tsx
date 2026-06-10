@@ -1396,7 +1396,7 @@ export default function AdminDashboard() {
         const { data: profiles, error: profileErr } = await supabase
           .from("profiles")
           .select("id")
-          .not("expo_push_token", "is", null)
+          .not("fcm_token", "is", null)
           .eq("account_deleted", false);
         if (profileErr) throw new Error(profileErr.message);
         userIds = (profiles || []).map((p: any) => p.id);
