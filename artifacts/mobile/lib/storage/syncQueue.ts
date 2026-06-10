@@ -150,6 +150,29 @@ async function executeAction(
         });
         return !error;
       }
+      case "send_message": {
+        // Pending messages are primarily tracked via the SQLite messages table
+        // (is_pending=1) and synced by offlineSync.ts. If a send_message entry
+        // lands in the offline queue, look up the SQLite row and send it now.
+        const { getPendingLocalMessages, markMessageSynced } = await import("./localMessages");
+        const pending = await getPendingLocalMessages();
+        const msg = pending.find((m) => m.id === payload.local_id || m.conversation_id === payload.conversation_id);
+        if (!msg) return true; // already sent or not found — remove from queue
+        const { data, error } = await supabase
+          .from("messages")
+          .insert({
+            chat_id: msg.conversation_id,
+            sender_id: msg.sender_id,
+            encrypted_content: msg.content,
+          })
+          .select("id")
+          .single();
+        if (!error && data?.id) {
+          await markMessageSynced(msg.id, data.id);
+          return true;
+        }
+        return false;
+      }
       default:
         return true;
     }

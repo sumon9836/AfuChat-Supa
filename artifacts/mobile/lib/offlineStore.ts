@@ -312,6 +312,18 @@ export async function clearAccountCache(): Promise<void> {
     storage.delete(KEYS.PUSH_TOKEN);
     storage.delete(KEYS.INTERESTS);
 
+    // ── SQLite — per-account permanent data ───────────────────────────────────
+    // Chat folders and video progress are user-specific and must be cleared on
+    // account switch so they never leak from one account to another.
+    // (Messages, conversations, contacts, feed, settings are cleared separately
+    //  by their own delete* helpers or are the new user's data anyway.)
+    import("./storage/chatFolders")
+      .then(({ clearAllFolders }) => clearAllFolders())
+      .catch(() => {});
+    import("./videoProgress")
+      .then(({ clearAllVideoProgress }) => clearAllVideoProgress())
+      .catch(() => {});
+
     // ── AsyncStorage (async batch) ────────────────────────────────────────────
     const allKeys = await AsyncStorage.getAllKeys();
 
@@ -326,7 +338,7 @@ export async function clearAccountCache(): Promise<void> {
     );
 
     await AsyncStorage.multiRemove([
-      // Core offline caches
+      // Core offline caches (legacy AsyncStorage — SQLite is now the source of truth)
       CACHE_KEYS.PROFILE,
       CACHE_KEYS.CONVERSATIONS,
       CACHE_KEYS.CONTACTS,
@@ -349,6 +361,8 @@ export async function clearAccountCache(): Promise<void> {
       "@afuchat:storage_usage_v1",
       // UI preferences that are per-account
       "suggested_users_dismissed_v1",
+      // Legacy chat folders key (already migrated to SQLite on v13 upgrade)
+      "chat_folders_v1",
       ...messageCacheKeys,
       ...featureUsageKeys,
     ]);
