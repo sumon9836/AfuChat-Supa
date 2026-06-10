@@ -83,6 +83,7 @@ import { useChatPreferences, CHAT_THEME_COLORS, BUBBLE_RADIUS } from "@/context/
 import { useAdvancedFeatures } from "@/context/AdvancedFeaturesContext";
 import { useDataMode } from "@/context/DataModeContext";
 import { markChatVisited, setActiveChatId, clearActiveChatId } from "@/lib/chatVisited";
+import { getProfileCache, setProfileCache } from "@/lib/profileCache";
 import { askAi, aiSuggestReply, transcribeAudio, getEdgeFnBase, edgeHeaders, aiTransformTone, aiFixText, aiEmojifyText } from "@/lib/aiHelper";
 import { buildNavigationContext, ACTION_ROUTES_GUIDE, detectVoiceNavCommand, pickNavConfirmation } from "@/lib/platformKnowledge";
 import { playNotificationSound as playMgrSound } from "@/lib/soundManager";
@@ -2333,8 +2334,21 @@ function ChatScreen() {
             if (blocked.length > 0 && blocked.some((b: string) => msgLower.includes(b))) return;
           }
 
-          const { data: senderProfile } = await supabase.from("profiles").select("display_name, avatar_url, handle").eq("id", newMsg.sender_id).single();
-          setMessages((prev) => [{ ...newMsg, sender: senderProfile as any, reactions: [], status: undefined }, ...prev]);
+          // Cache-first: show the message instantly with cached sender data;
+          // only fire a Supabase round-trip when we haven't seen this sender before.
+          const _cachedSender = getProfileCache(newMsg.sender_id);
+          const _senderSnap = _cachedSender
+            ? { display_name: _cachedSender.display_name, avatar_url: _cachedSender.avatar_url ?? null, handle: _cachedSender.handle }
+            : { display_name: "User", avatar_url: null, handle: "" };
+          setMessages((prev) => [{ ...newMsg, sender: _senderSnap as any, reactions: [], status: undefined }, ...prev]);
+          if (!_cachedSender) {
+            supabase.from("profiles").select("display_name, avatar_url, handle").eq("id", newMsg.sender_id).single().then(({ data: _sp }) => {
+              if (_sp) {
+                setProfileCache(newMsg.sender_id, _sp as any);
+                setMessages((prev) => prev.map((m) => m.id === newMsg.id ? { ...m, sender: _sp as any } : m));
+              }
+            });
+          }
           // Auto-download images/gifs/audio on incoming messages (NOT files — user must tap)
           if (newMsg.attachment_url && newMsg.attachment_type &&
               newMsg.attachment_type !== "video" && newMsg.attachment_type !== "file") {
@@ -3872,8 +3886,19 @@ STRICT RULES:
           const newMsg = payload.new as any;
           if (newMsg.sender_id === user.id) return;
           if (newMsg.sender_id === AFUAI_BOT_ID) return;
-          const { data: senderProfile } = await supabase.from("profiles").select("display_name, avatar_url, handle").eq("id", newMsg.sender_id).single();
-          setMessages((prev) => [{ ...newMsg, sender: senderProfile as any, reactions: [], status: undefined }, ...prev]);
+          const _cs2 = getProfileCache(newMsg.sender_id);
+          const _ss2 = _cs2
+            ? { display_name: _cs2.display_name, avatar_url: _cs2.avatar_url ?? null, handle: _cs2.handle }
+            : { display_name: "User", avatar_url: null, handle: "" };
+          setMessages((prev) => [{ ...newMsg, sender: _ss2 as any, reactions: [], status: undefined }, ...prev]);
+          if (!_cs2) {
+            supabase.from("profiles").select("display_name, avatar_url, handle").eq("id", newMsg.sender_id).single().then(({ data: _sp2 }) => {
+              if (_sp2) {
+                setProfileCache(newMsg.sender_id, _sp2 as any);
+                setMessages((prev) => prev.map((m) => m.id === newMsg.id ? { ...m, sender: _sp2 as any } : m));
+              }
+            });
+          }
         }
       )
       .subscribe();

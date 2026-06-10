@@ -50,6 +50,7 @@ import { notifyPostLike } from "@/lib/notifyUser";
 import { timeAgo as formatRelative } from "@/lib/timeAgo";
 import { sharePost, shareVideo } from "@/lib/share";
 import { matchInterestsWeighted, recordInteraction, getLearnedInterestBoosts, computeFeedScore, diversifyFeed, getSeenPostIds, markPostsSeen, weightedSample, type FeedSignals } from "@/lib/feedAlgorithm";
+import { setHandleId } from "@/lib/profileCache";
 import { trackEvent } from "@/lib/activityTracker";
 import { getMergedLearnedWeights } from "@/lib/personalization";
 import { useLanguage } from "@/context/LanguageContext";
@@ -857,9 +858,44 @@ export default function DiscoverScreen() {
   }).current;
   const [newPostAuthors, setNewPostAuthors] = useState<{ id: string; avatar_url: string | null; display_name: string }[]>([]);
   const newPostAuthorIdsRef = useRef<Set<string>>(new Set());
+  // Floating "new posts" popup animation
+  const popupSlide = useRef(new Animated.Value(-80)).current;
+  const popupOpacity = useRef(new Animated.Value(0)).current;
+  const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [popupSnapshot, setPopupSnapshot] = useState<{ id: string; avatar_url: string | null; display_name: string }[]>([]);
 
   useEffect(() => { postsRef.current = posts; }, [posts]);
   useEffect(() => { feedTabRef.current = feedTab; }, [feedTab]);
+
+  // Animate the floating "new posts" popup in when new authors arrive,
+  // out when the list is cleared (refresh, tab switch, etc.).
+  // useNativeDriver is only available on native — web uses JS-driven animation.
+  const _useND = Platform.OS !== "web";
+  useEffect(() => {
+    if (newPostAuthors.length === 0) {
+      if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+      Animated.parallel([
+        Animated.timing(popupSlide, { toValue: -80, duration: 250, useNativeDriver: _useND }),
+        Animated.timing(popupOpacity, { toValue: 0, duration: 250, useNativeDriver: _useND }),
+      ]).start();
+      return;
+    }
+    setPopupSnapshot(newPostAuthors);
+    if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+    Animated.parallel([
+      Animated.spring(popupSlide, { toValue: 0, useNativeDriver: _useND, tension: 70, friction: 10 }),
+      Animated.timing(popupOpacity, { toValue: 1, duration: 180, useNativeDriver: _useND }),
+    ]).start();
+    // Auto-dismiss after 5.5 s
+    popupTimerRef.current = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(popupSlide, { toValue: -80, duration: 280, useNativeDriver: _useND }),
+        Animated.timing(popupOpacity, { toValue: 0, duration: 280, useNativeDriver: _useND }),
+      ]).start();
+    }, 5500);
+    return () => { if (popupTimerRef.current) clearTimeout(popupTimerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newPostAuthors.length]);
 
   // If the user logs out while on the Following tab, snap back to For You
   useEffect(() => {
@@ -1038,6 +1074,11 @@ export default function DiscoverScreen() {
           language_code: p.language_code || null,
         }));
 
+        // Seed handle→id cache — makes mention-taps to these authors instant
+        for (const p of data) {
+          if (p.author_id && p.profiles?.handle) setHandleId(p.profiles.handle, p.author_id);
+        }
+
         if (isRefresh) {
           // Delta sync: prepend new posts to existing local posts (don't wipe them)
           if (followNewerThan && mapped.length > 0) {
@@ -1173,6 +1214,10 @@ export default function DiscoverScreen() {
       [allRaw[i], allRaw[j]] = [allRaw[j], allRaw[i]];
     }
     const data = allRaw;
+    // Seed handle→id cache — makes mention-taps to these authors instant
+    for (const p of allRaw) {
+      if (p.author_id && p.profiles?.handle) setHandleId(p.profiles.handle, p.author_id);
+    }
 
     if (data) {
       // hasMore if any stream still has content to page through
@@ -1793,24 +1838,7 @@ export default function DiscoverScreen() {
         </View>
 
 
-        {/* New posts indicator — lives inside the animated block */}
-        {newPostAuthors.length > 0 && (
-          <TouchableOpacity
-            style={[styles.newPostsPill, { backgroundColor: colors.accent }]}
-            onPress={handleShowNewPosts}
-            activeOpacity={0.85}
-          >
-            <View style={styles.newPostsAvatars}>
-              {newPostAuthors.slice(0, 3).map((a, i) => (
-                <View key={a.id} style={[styles.newPostsAvatarWrap, { marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }]}>
-                  <Avatar uri={a.avatar_url} name={a.display_name} size={22} />
-                </View>
-              ))}
-            </View>
-            <Ionicons name="arrow-up" size={14} color="#fff" style={{ marginLeft: 2 }} />
-            <Text style={styles.newPostsPillText}>New posts</Text>
-          </TouchableOpacity>
-        )}
+        {/* New posts indicator — replaced by floating popup below */}
 
         {/* Background refresh indicator */}
         {bgRefreshing && newPostAuthors.length === 0 && (
@@ -2126,6 +2154,46 @@ export default function DiscoverScreen() {
         </Text>
         <TouchableOpacity onPress={handleUndo} style={snackStyles.undoBtn} hitSlop={8}>
           <Text style={[snackStyles.undoText, { color: colors.accent }]}>Undo</Text>
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* ── Floating "new posts" popup ─────────────────────────────────────── */}
+      {/* Absolutely positioned above the feed; slides in from the top when   */}
+      {/* Realtime delivers a new post from someone the user follows.          */}
+      <Animated.View
+        style={[
+          styles.newPostsFloatingWrap,
+          {
+            top: insets.top + 10,
+            transform: [{ translateY: popupSlide }],
+            opacity: popupOpacity,
+            pointerEvents: popupSnapshot.length > 0 ? "box-none" : "none",
+          } as any,
+        ]}
+      >
+        <TouchableOpacity
+          style={[styles.newPostsFloatingCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+          onPress={handleShowNewPosts}
+          activeOpacity={0.9}
+        >
+          <View style={styles.newPostsAvatars}>
+            {popupSnapshot.slice(0, 3).map((a, i) => (
+              <View key={a.id} style={[styles.newPostsAvatarWrap, { marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }]}>
+                <Avatar uri={a.avatar_url} name={a.display_name} size={30} />
+              </View>
+            ))}
+          </View>
+          <View style={{ flex: 1, marginLeft: 10, marginRight: 4 }}>
+            <Text style={[styles.newPostsPopupTitle, { color: colors.text }]} numberOfLines={1}>
+              {popupSnapshot.length === 1 ? popupSnapshot[0].display_name : `${popupSnapshot.length} people`}
+            </Text>
+            <Text style={[styles.newPostsPopupSub, { color: colors.textMuted }]}>
+              just posted · tap to refresh
+            </Text>
+          </View>
+          <View style={[styles.newPostsPopupBadge, { backgroundColor: colors.accent }]}>
+            <Ionicons name="arrow-up" size={13} color="#fff" />
+          </View>
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -2455,6 +2523,41 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#fff",
     overflow: "hidden",
+  },
+  // Floating popup card
+  newPostsFloatingWrap: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 200,
+  },
+  newPostsFloatingCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    ...Platform.select({
+      web: { boxShadow: "0 4px 16px rgba(0,0,0,0.15)" } as any,
+      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
+    }),
+  },
+  newPostsPopupTitle: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  newPostsPopupSub: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    marginTop: 1,
+  },
+  newPostsPopupBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 
