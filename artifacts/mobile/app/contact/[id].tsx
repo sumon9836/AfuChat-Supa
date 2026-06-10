@@ -285,23 +285,24 @@ export default function ContactProfileScreen() {
 
   useEffect(() => {
     if (!id) return;
-    const hasFreshCache = !!getProfileCache(id as string);
-    if (!hasFreshCache) {
-      supabase
-        .from("profiles")
-        .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, is_business_mode, xp, current_grade, website_url, country, created_at, last_seen, show_online_status, acoin, hide_followers_list, hide_following_list")
-        .eq("id", id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setProfile(data as Profile);
-            setProfileCache(id as string, data as any);
-          }
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
+
+    // Stale-while-revalidate: always fire a background fetch so the cache
+    // stays fresh and bio/counts/verified state never go stale.
+    // If initialProfile was already set (cache or params), loading is already
+    // false and the render is instant; the fetch just silently updates the UI.
+    // Only on a true first visit (no cache, no params) does the skeleton show.
+    supabase
+      .from("profiles")
+      .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, is_business_mode, xp, current_grade, website_url, country, created_at, last_seen, show_online_status, acoin, hide_followers_list, hide_following_list")
+      .eq("id", id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setProfile(data as Profile);
+          setProfileCache(id as string, data as any);
+        }
+        setLoading(false);
+      });
 
     supabase.from("shops").select("id, pin_to_profile").eq("seller_id", id).eq("is_active", true).eq("pin_to_profile", true).maybeSingle().then(({ data }) => setHasShop(!!data));
 
