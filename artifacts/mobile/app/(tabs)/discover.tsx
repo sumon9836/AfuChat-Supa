@@ -1888,9 +1888,6 @@ export default function DiscoverScreen() {
         </View>
 
 
-        {/* Suggested users strip — shown below tabs, loads instantly from cache */}
-        {user && <SuggestedUsers compact maxCards={8} />}
-
         {/* Background refresh indicator */}
         {bgRefreshing && newPostAuthors.length === 0 && (
           <View style={[styles.bgRefreshBar, { backgroundColor: colors.accent + "18" }]}>
@@ -1934,6 +1931,7 @@ export default function DiscoverScreen() {
                       <PostCard item={entry.item} onToggleLike={toggleLike} onToggleBookmark={toggleBookmark} onToggleFollow={toggleFollow} onImagePress={imgViewer.openViewer} onRequireAuth={onRequireAuth} colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined} onOpenComments={onOpenComments} onDismiss={onDismissPost} onMuteAuthor={onMuteAuthor} />
                     );
                   }}
+                  ListHeaderComponent={user ? <SuggestedUsers compact maxCards={8} /> : null}
                   contentContainerStyle={{ gap: 8, paddingTop: headerHeight + 8, paddingBottom: insets.bottom + 100 }}
                   showsVerticalScrollIndicator={false}
                   onScroll={onFeedScroll}
@@ -2073,6 +2071,7 @@ export default function DiscoverScreen() {
                 <PostCard item={entry.item} onToggleLike={toggleLike} onToggleBookmark={toggleBookmark} onToggleFollow={toggleFollow} onImagePress={imgViewer.openViewer} onRequireAuth={onRequireAuth} colWidth={isDesktop ? FEED_COLUMN_MAX_WIDTH : undefined} onOpenComments={onOpenComments} onDismiss={onDismissPost} onMuteAuthor={onMuteAuthor} />
               );
             }}
+            ListHeaderComponent={user && feedTab === "for_you" ? <SuggestedUsers compact maxCards={8} /> : null}
             contentContainerStyle={{ gap: 8, paddingTop: headerHeight + 8, paddingBottom: insets.bottom + 100 }}
             showsVerticalScrollIndicator={false}
             onScroll={onFeedScroll}
