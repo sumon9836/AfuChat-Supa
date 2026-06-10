@@ -14,9 +14,10 @@
 import React, { useMemo, useState } from "react";
 import { Linking, Platform, StyleSheet, Text } from "react-native";
 import { router } from "expo-router";
-import { supabase } from "@/lib/supabase";
 import { useAppAccent } from "@/context/AppAccentContext";
 import { useOpenLink } from "@/lib/useOpenLink";
+import { useAuth } from "@/context/AuthContext";
+import { navigateToProfile } from "@/lib/navigateToProfile";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -192,6 +193,7 @@ export function RichText({
 }: RichTextProps) {
   const { accent } = useAppAccent();
   const openLink = useOpenLink();
+  const { session } = useAuth();
   const effectiveLinkColor = linkColor ?? accent;
 
   function handlePress(span: Span) {
@@ -206,8 +208,9 @@ export function RichText({
         Linking.openURL(`mailto:${span.text}`).catch(() => {});
         break;
       case "mention": {
-        const handle = span.text.replace("@", "");
-        router.push(`/@${handle}` as any);
+        navigateToProfile(span.text, !!session).catch(() => {
+          router.push(`/@${span.text.replace("@", "")}` as any);
+        });
         break;
       }
       case "hashtag": {

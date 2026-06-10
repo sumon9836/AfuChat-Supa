@@ -36,10 +36,22 @@ type Entry = { data: CachedProfile; fetchedAt: number };
 
 const _cache = new Map<string, Entry>();
 
-/** Store or update a profile entry. Partial updates are merged. */
+/**
+ * handle → profile-id map. Never expires — a handle's owner UUID never changes.
+ * Populated whenever a profile is stored via setProfileCache or
+ * setHandleId; consumed by navigateToProfile.
+ */
+const _handleToId = new Map<string, string>();
+
+/** Store or update a profile entry. Partial updates are merged.
+ *  Also keeps the handle→id index in sync. */
 export function setProfileCache(id: string, data: Partial<CachedProfile>): void {
   const existing = _cache.get(id)?.data ?? ({ id } as CachedProfile);
-  _cache.set(id, { data: { ...existing, ...data, id }, fetchedAt: Date.now() });
+  const merged = { ...existing, ...data, id };
+  _cache.set(id, { data: merged, fetchedAt: Date.now() });
+  if (merged.handle) {
+    _handleToId.set(merged.handle.toLowerCase(), id);
+  }
 }
 
 /** Retrieve a cached profile by ID, or null if not cached / expired. */
@@ -53,7 +65,25 @@ export function getProfileCache(id: string): CachedProfile | null {
   return entry.data;
 }
 
+/**
+ * Look up a profile ID by handle from the local index.
+ * Returns null if we've never seen this handle before.
+ * The handle→id mapping never expires (UUIDs are permanent).
+ */
+export function getProfileIdByHandle(handle: string): string | null {
+  return _handleToId.get(handle.toLowerCase()) ?? null;
+}
+
+/**
+ * Explicitly seed the handle→id index (e.g. from post author data
+ * that already contains both handle and id, without a full profile fetch).
+ */
+export function setHandleId(handle: string, id: string): void {
+  _handleToId.set(handle.toLowerCase(), id);
+}
+
 /** Clear the entire cache (e.g. on logout). */
 export function clearProfileCache(): void {
   _cache.clear();
+  _handleToId.clear();
 }
