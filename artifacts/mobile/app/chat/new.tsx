@@ -21,7 +21,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import * as Contacts from "expo-contacts";
+// expo-contacts: lazy-loaded to avoid bundler issues on web
+let Contacts: typeof import("expo-contacts") | null = null;
+if (typeof navigator === "undefined" || !("userAgent" in navigator)) {
+  // native only
+  try { Contacts = require("expo-contacts"); } catch {}
+} else if (!/Mozilla/.test(navigator.userAgent)) {
+  try { Contacts = require("expo-contacts"); } catch {}
+}
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -253,6 +260,45 @@ export default function NewChatScreen() {
     setChannels([...subChannels, ...ownedChannels]);
   }, [user]);
 
+  // IMPORTANT: loadPhoneContacts must be declared BEFORE the useEffect that
+  // lists it as a dependency, otherwise the minifier sees a TDZ (const used
+  // before initialization) and the production bundle crashes with
+  // "Cannot access '…' before initialization".
+  const loadPhoneContacts = useCallback(async () => {
+    if (Platform.OS === "web" || !Contacts) return;
+    try {
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== "granted") return;
+
+      const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name] });
+      const phoneMap = new Map<string, string>();
+      for (const c of data) {
+        const name = c.name || "Unknown";
+        for (const pn of c.phoneNumbers || []) {
+          if (pn.number) {
+            const n = normalizePhone(pn.number);
+            if (n.length >= 8) phoneMap.set(n, name);
+          }
+        }
+      }
+      const phones = Array.from(phoneMap.keys());
+      if (phones.length === 0) return;
+
+      const foundPhones = new Set<string>();
+      for (let i = 0; i < phones.length; i += 100) {
+        const { data: profiles } = await supabase
+          .from("profiles").select("phone_number")
+          .in("phone_number", phones.slice(i, i + 100)).neq("id", user?.id || "");
+        if (profiles) profiles.forEach((p: any) => foundPhones.add(p.phone_number));
+      }
+      const notFound: NonAfuContact[] = [];
+      for (const [phone, name] of phoneMap.entries()) {
+        if (!foundPhones.has(phone)) notFound.push({ name, phone });
+      }
+      setPhoneNotAfu(notFound.slice(0, 200));
+    } catch {}
+  }, [user]);
+
   useEffect(() => {
     loadContacts();
     loadRecents();
@@ -315,41 +361,6 @@ export default function NewChatScreen() {
     });
   }, []);
 
-  const loadPhoneContacts = useCallback(async () => {
-    if (Platform.OS === "web") return;
-    try {
-      const { status } = await Contacts.requestPermissionsAsync();
-      if (status !== "granted") return;
-
-      const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name] });
-      const phoneMap = new Map<string, string>();
-      for (const c of data) {
-        const name = c.name || "Unknown";
-        for (const pn of c.phoneNumbers || []) {
-          if (pn.number) {
-            const n = normalizePhone(pn.number);
-            if (n.length >= 8) phoneMap.set(n, name);
-          }
-        }
-      }
-      const phones = Array.from(phoneMap.keys());
-      if (phones.length === 0) return;
-
-      const foundPhones = new Set<string>();
-      for (let i = 0; i < phones.length; i += 100) {
-        const { data: profiles } = await supabase
-          .from("profiles").select("phone_number")
-          .in("phone_number", phones.slice(i, i + 100)).neq("id", user?.id || "");
-        if (profiles) profiles.forEach((p: any) => foundPhones.add(p.phone_number));
-      }
-      const notFound: NonAfuContact[] = [];
-      for (const [phone, name] of phoneMap.entries()) {
-        if (!foundPhones.has(phone)) notFound.push({ name, phone });
-      }
-      setPhoneNotAfu(notFound.slice(0, 200));
-    } catch {}
-  }, [user]);
-
   async function openChat(contactId: string) {
     if (!user) return;
     setStarting(true);
@@ -364,7 +375,7 @@ export default function NewChatScreen() {
       return;
     }
     const isSelfChat = contactId === user.id;
-    router.replace({
+    router.push({
       pathname: "/chat/[id]",
       params: isSelfChat
         ? { id: chatId, otherId: user.id, otherName: "My Notes" }
