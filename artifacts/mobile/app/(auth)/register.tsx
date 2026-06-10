@@ -169,7 +169,13 @@ export default function SignUpScreen() {
   const { width: SW } = useWindowDimensions();
   const isWeb = Platform.OS === "web";
 
-  useEffect(() => { if (user) router.replace("/(tabs)/chats"); }, [user]);
+  // Only redirect already-logged-in users when this screen first mounts.
+  // Do NOT react to `user` becoming set during the sign-up flow itself —
+  // the sign-up handlers navigate explicitly. Reacting to [user] caused a
+  // race: SIGNED_IN fires → setUser() → this effect → router.replace("/(tabs)/chats")
+  // which overwrote the intentional router.replace("/onboarding") and sent
+  // the new user back to the start of onboarding with a fresh (empty) state.
+  useEffect(() => { if (user) router.replace("/(tabs)/chats"); }, []);
 
   const [step, setStep] = useState<"landing" | "email">("landing");
   const [email, setEmail] = useState("");
