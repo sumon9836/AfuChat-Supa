@@ -144,9 +144,9 @@
             "targetSdkVersion": 36,
             "minSdkVersion": 24,
             "kotlinVersion": "2.1.21",
-            "enableProguardInReleaseBuilds": false,
-            "enableShrinkResources": false,
-            "enableMinifyInReleaseBuilds": false,
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResources": true,
+            "enableMinifyInReleaseBuilds": true,
             "newArchEnabled": false
           },
           "ios": {
@@ -155,6 +155,7 @@
           }
         }
       ],
+      "./plugins/withProguardRules",
       "expo-secure-store",
       "expo-sqlite",
       [

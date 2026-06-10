@@ -1,5 +1,20 @@
 # EAS Build History
 
+## v2.2.5 — R8/ProGuard configuration (pending build)
+
+- **Changes**:
+  - **R8 enabled** — `enableProguardInReleaseBuilds: true` in `app.json` (was `false`)
+  - **Resource shrinking enabled** — `enableShrinkResources: true` (was `false`)
+  - **JS minification enabled** — `enableMinifyInReleaseBuilds: true` (was `false`)
+  - **Custom ProGuard rules** — `proguard-rules.pro` created with rules for Hermes JNI, OkHttp, WebSocket, Firebase/FCM, Expo modules, MMKV v3, RNTP, Reanimated 4, WorkManager, and deep-link activities
+  - **Config plugin** — `plugins/withProguardRules.js` injects rules into the generated `android/app/proguard-rules.pro` at prebuild time (CNG-safe, idempotent)
+  - **Mapping file** — R8 now outputs `android/app/build/outputs/mapping/release/mapping.txt` + a version-stamped copy (`mapping-<version>-<versionCode>.txt`) for every release build; upload to Google Play Console for crash deobfuscation
+  - **Documentation** — `PROGUARD.md` added covering setup, mapping file retrieval, and rule rationale
+- **Expected APK size reduction**: 15–30% vs debug build (R8 tree-shaking + resource shrinking)
+- **Note**: If a library causes a runtime crash after this change, check `PROGUARD.md → Updating rules for new libraries` before disabling R8
+
+---
+
 ## v2.2.4 — Android APK (preview) [BUILD #5 — `79718f4a-e6cf-4eec-a957-34d6d0245d0d` — 🔨 IN PROGRESS]
 
 - **Dashboard**: https://expo.dev/accounts/amkaweesi1/projects/afuchat/builds/79718f4a-e6cf-4eec-a957-34d6d0245d0d
