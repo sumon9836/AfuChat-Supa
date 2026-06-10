@@ -1105,7 +1105,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
             showTail ? (isMe ? st.bubbleTailMe : st.bubbleTailOther) : null,
             replyPreview ? st.bubbleWithReply : null,
             isPending && { opacity: 0.6 },
-            useInlineTimestamp && { paddingBottom: 22 },
+            useInlineTimestamp && { paddingBottom: 18 },
           ]}>
           {isPremiumSender && <PremiumBubbleShimmer />}
           {!isMe && showName && (
@@ -1158,7 +1158,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                   </View>
                 </TouchableOpacity>
               {hasTextContent && (
-                <RichText style={[st.bubbleText, { color: textColor, marginTop: 6, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND} selectable={true}>{displayText}</RichText>
+                <RichText style={[st.bubbleText, { color: textColor, marginTop: 3, fontSize: chatPrefsLocal?.font_size ?? 14, lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5 }]} linkColor={isMe ? "#FFFFFF" : BRAND} selectable={true}>{displayText}</RichText>
               )}
             </>
           ) : hasVideo ? (
@@ -1180,7 +1180,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
               {canTranscribe && (
                 <TouchableOpacity
                   onPress={handleTranscribe}
-                  style={[st.translateChip, { backgroundColor: isMe ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.06)", marginTop: 6 }]}
+                  style={[st.translateChip, { backgroundColor: isMe ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.06)", marginTop: 3 }]}
                   hitSlop={8}
                 >
                   {transcribing ? (
@@ -1194,7 +1194,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                 </TouchableOpacity>
               )}
               {showTranscript && transcript && (
-                <Text style={[st.bubbleText, { color: textColor, marginTop: 6, fontStyle: "italic", fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]}>{transcript}</Text>
+                <Text style={[st.bubbleText, { color: textColor, marginTop: 3, fontStyle: "italic", fontSize: chatPrefsLocal?.font_size ?? 14, lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5 }]}>{transcript}</Text>
               )}
             </TouchableOpacity>
           ) : hasFile ? (
@@ -1265,7 +1265,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                     </View>
                   </View>
                   {storyDisplayText && !isShared ? (
-                    <Text style={[st.bubbleText, { color: textColor, marginTop: 6, fontSize: chatPrefsLocal?.font_size ?? 15, lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5 }]}>
+                    <Text style={[st.bubbleText, { color: textColor, marginTop: 3, fontSize: chatPrefsLocal?.font_size ?? 14, lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5 }]}>
                       {storyDisplayText}
                     </Text>
                   ) : null}
@@ -1323,8 +1323,8 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                     <RichText
                       style={[st.bubbleText, {
                         color: textColor,
-                        fontSize: chatPrefsLocal?.font_size ?? 15,
-                        lineHeight: (chatPrefsLocal?.font_size ?? 15) + 5,
+                        fontSize: chatPrefsLocal?.font_size ?? 14,
+                        lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5,
                         // Reserve right-side space so the absolutely-positioned
                         // inline timestamp never overlaps the last word of the text.
                         paddingRight: useInlineTimestamp ? 58 : 0,
@@ -7322,11 +7322,11 @@ const st = StyleSheet.create({
   tailOther: { position: "absolute", left: -12, bottom: 0, zIndex: 1 },
 
   bubble: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 6,
+    paddingHorizontal: 10,
+    paddingTop: 6,
+    paddingBottom: 4,
     borderRadius: 18,
-    minWidth: 64,
+    minWidth: 48,
     overflow: "hidden",
     flexShrink: 1,
   },
@@ -7352,9 +7352,9 @@ const st = StyleSheet.create({
   replyTextWrap: { flex: 1, minWidth: 0, paddingHorizontal: 8, paddingVertical: 6, justifyContent: "center" },
   replyPreviewText: { fontSize: 12.5, fontFamily: "Inter_500Medium", flexShrink: 1, minWidth: 0 },
 
-  bubbleText: { fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 21 },
+  bubbleText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 19 },
 
-  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", marginTop: 3, gap: 3 },
+  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", marginTop: 1, gap: 3 },
   msgTime: { fontSize: 11, fontFamily: "Inter_400Regular" },
 
   reactionsRow: {
