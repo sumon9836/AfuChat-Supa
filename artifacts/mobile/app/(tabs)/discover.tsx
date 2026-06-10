@@ -77,7 +77,7 @@ type PostItem = {
   visibility: string;
   is_verified: boolean;
   is_organization_verified: boolean;
-  profile: { display_name: string; handle: string; avatar_url: string | null };
+  profile: { display_name: string; handle: string; avatar_url: string | null; bio: string | null };
   liked: boolean;
   likeCount: number;
   replyCount: number;
@@ -290,37 +290,41 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                 <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={isDesktop ? 44 : 40} square={!!(item.is_organization_verified)} />
               </TouchableOpacity>
             )}
-            <View style={{ flex: 1, gap: 2 }}>
-              <View style={styles.nameRow}>
-                <TouchableOpacity
-                  onPress={() => item.org_page_id ? safeRouter.push(`/company/${item.org_slug}` as any) : undefined}
-                  activeOpacity={item.org_page_id ? 0.7 : 1}
-                >
-                  <Text style={[styles.cardName, { color: colors.text, fontSize: isDesktop ? 17 : 15 }]} numberOfLines={1}>
-                    {item.profile.display_name}
-                  </Text>
-                </TouchableOpacity>
-                {item.org_page_id ? (
-                  item.org_verified ? <VerifiedBadge isVerified={false} isOrganizationVerified size={isDesktop ? 15 : 13} /> : null
-                ) : (
-                  <VerifiedBadge isVerified={item.is_verified} isOrganizationVerified={item.is_organization_verified} size={isDesktop ? 15 : 13} />
-                )}
-              </View>
+            <View style={{ flex: 1, gap: 0 }}>
               {item.org_page_id ? (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <View style={{ backgroundColor: colors.accent + "15", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 }}>
-                    <Text style={{ fontSize: 10, fontFamily: "Inter_600SemiBold", color: colors.accent, textTransform: "capitalize" }}>
-                      {item.org_type?.replace(/\s*\/.*$/, "") || "Company"}
-                    </Text>
+                /* ── Org page: keep display name + type badge inline ── */
+                <>
+                  <View style={styles.nameRow}>
+                    <TouchableOpacity onPress={() => safeRouter.push(`/company/${item.org_slug}` as any)} activeOpacity={0.7}>
+                      <Text style={[styles.cardHandle, { color: colors.text, fontSize: isDesktop ? 14 : 13, flexShrink: 1 }]} numberOfLines={1}>
+                        {item.profile.display_name}
+                      </Text>
+                    </TouchableOpacity>
+                    {item.org_verified ? <VerifiedBadge isVerified={false} isOrganizationVerified size={isDesktop ? 14 : 12} /> : null}
+                    <View style={{ backgroundColor: colors.accent + "15", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                      <Text style={{ fontSize: 9.5, fontFamily: "Inter_600SemiBold", color: colors.accent, textTransform: "capitalize" }}>
+                        {item.org_type?.replace(/\s*\/.*$/, "") || "Company"}
+                      </Text>
+                    </View>
+                    <Text style={[styles.cardMeta, { color: colors.textMuted }]}>· {formatRelative(item.created_at)}</Text>
                   </View>
-                  <Text style={[styles.cardMeta, { color: colors.textMuted, fontSize: isDesktop ? 13 : 12 }]}>
-                    · {formatRelative(item.created_at)}
-                  </Text>
-                </View>
+                </>
               ) : (
-                <Text style={[styles.cardMeta, { color: colors.textMuted, fontSize: isDesktop ? 13 : 12 }]} numberOfLines={1}>
-                  @{item.profile.handle} · {formatRelative(item.created_at)}
-                </Text>
+                /* ── Person: @handle as identity, bio as whisper line ── */
+                <>
+                  <View style={styles.nameRow}>
+                    <Text style={[styles.cardHandle, { color: colors.text, fontSize: isDesktop ? 14 : 13, flexShrink: 1 }]} numberOfLines={1}>
+                      @{item.profile.handle}
+                    </Text>
+                    <VerifiedBadge isVerified={item.is_verified} isOrganizationVerified={item.is_organization_verified} size={isDesktop ? 14 : 12} />
+                    <Text style={[styles.cardMeta, { color: colors.textMuted }]}>· {formatRelative(item.created_at)}</Text>
+                  </View>
+                  {item.profile.bio ? (
+                    <Text style={[styles.cardBio, { color: colors.textMuted }]} numberOfLines={1}>
+                      {item.profile.bio}
+                    </Text>
+                  ) : null}
+                </>
               )}
             </View>
             {!item.org_page_id && showFollowBtn && (
@@ -956,7 +960,7 @@ export default function DiscoverScreen() {
             likeCount: r.like_count,
             replyCount: r.reply_count,
             is_organization_verified: r.is_org_verified,
-            profile: { display_name: r.author_name ?? "User", handle: r.author_handle ?? "user", avatar_url: r.author_avatar ?? null },
+            profile: { display_name: r.author_name ?? "User", handle: r.author_handle ?? "user", avatar_url: r.author_avatar ?? null, bio: null },
             article_body: null,
             duration_seconds: null,
             isFollowing: activeTab === "following",
@@ -1030,7 +1034,7 @@ export default function DiscoverScreen() {
         .select(`
           id, author_id, content, image_url, created_at, view_count, like_count, visibility, language_code,
           post_type, article_title, article_body, video_url,
-          profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified),
+          profiles!posts_author_id_fkey(display_name, handle, avatar_url, bio, is_verified, is_organization_verified),
           post_images(image_url, display_order),
           video_assets!posts_video_asset_id_fkey(duration_seconds)
         `)
@@ -1067,7 +1071,7 @@ export default function DiscoverScreen() {
           visibility: p.visibility || "public",
           is_verified: p.profiles?.is_verified || false,
           is_organization_verified: p.profiles?.is_organization_verified || false,
-          profile: { display_name: p.profiles?.display_name || "User", handle: p.profiles?.handle || "user", avatar_url: p.profiles?.avatar_url || null },
+          profile: { display_name: p.profiles?.display_name || "User", handle: p.profiles?.handle || "user", avatar_url: p.profiles?.avatar_url || null, bio: p.profiles?.bio || null },
           liked: myLikeSet.has(p.id), likeCount: p.like_count || 0, replyCount: replyMap[p.id] || 0, score: 0, bookmarked: myBookmarkSet.has(p.id),
           post_type: p.post_type || "post", article_title: p.article_title || null, article_body: p.article_body || null, video_url: p.video_url || null,
           duration_seconds: (() => { const arr = Array.isArray(p.video_assets) ? p.video_assets : (p.video_assets ? [p.video_assets] : []); return arr.length > 0 ? (arr[0].duration_seconds ?? null) : null; })(),
@@ -1127,7 +1131,7 @@ export default function DiscoverScreen() {
     const fySelect = `
       id, author_id, content, image_url, created_at, view_count, like_count, visibility, language_code,
       post_type, article_title, article_body, video_url,
-      profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified, country, interests, hide_posts_non_followers),
+      profiles!posts_author_id_fkey(display_name, handle, avatar_url, bio, is_verified, is_organization_verified, country, interests, hide_posts_non_followers),
       post_images(image_url, display_order),
       video_assets!posts_video_asset_id_fkey(duration_seconds)
     `;
@@ -1349,6 +1353,7 @@ export default function DiscoverScreen() {
             display_name: p.profiles?.display_name || "User",
             handle: p.profiles?.handle || "user",
             avatar_url: p.profiles?.avatar_url || null,
+            bio: p.profiles?.bio || null,
           },
           liked: myLikeSet.has(p.id),
           likeCount,
@@ -1532,13 +1537,13 @@ export default function DiscoverScreen() {
         getLocalFeedPosts("following", 30),
       ]);
       if (fyLocal.length > 0) {
-        const toItem = (r: any) => ({ ...r, likeCount: r.like_count, replyCount: r.reply_count, is_organization_verified: r.is_org_verified, profile: { display_name: r.author_name ?? "User", handle: r.author_handle ?? "user", avatar_url: r.author_avatar ?? null }, article_body: null, duration_seconds: null, isFollowing: false }) as unknown as PostItem;
+        const toItem = (r: any) => ({ ...r, likeCount: r.like_count, replyCount: r.reply_count, is_organization_verified: r.is_org_verified, profile: { display_name: r.author_name ?? "User", handle: r.author_handle ?? "user", avatar_url: r.author_avatar ?? null, bio: null }, article_body: null, duration_seconds: null, isFollowing: false }) as unknown as PostItem;
         tabPostsCache.current.for_you = fyLocal.map(toItem);
         tabCacheTimestamp.current.for_you = fyLocal[0]?.stored_at ?? Date.now();
         if (feedTabRef.current === "for_you") { setPosts(tabPostsCache.current.for_you); setLoading(false); }
       }
       if (flLocal.length > 0) {
-        const toItem = (r: any) => ({ ...r, likeCount: r.like_count, replyCount: r.reply_count, is_organization_verified: r.is_org_verified, profile: { display_name: r.author_name ?? "User", handle: r.author_handle ?? "user", avatar_url: r.author_avatar ?? null }, article_body: null, duration_seconds: null, isFollowing: true }) as unknown as PostItem;
+        const toItem = (r: any) => ({ ...r, likeCount: r.like_count, replyCount: r.reply_count, is_organization_verified: r.is_org_verified, profile: { display_name: r.author_name ?? "User", handle: r.author_handle ?? "user", avatar_url: r.author_avatar ?? null, bio: null }, article_body: null, duration_seconds: null, isFollowing: true }) as unknown as PostItem;
         tabPostsCache.current.following = flLocal.map(toItem);
         tabCacheTimestamp.current.following = flLocal[0]?.stored_at ?? Date.now();
         if (feedTabRef.current === "following") { setPosts(tabPostsCache.current.following); setLoading(false); }
@@ -2248,15 +2253,17 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 10,
+    paddingTop: 10,
+    paddingBottom: 4,
     gap: 10,
   },
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "nowrap" },
+  cardHandle: { fontSize: 13, fontFamily: "Inter_600SemiBold", letterSpacing: -0.2 },
   cardName: { fontSize: 15, fontFamily: "Inter_700Bold", letterSpacing: -0.1 },
-  cardMeta: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  cardMeta: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 0.1 },
+  cardBio: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 0.05, marginTop: 1, opacity: 0.72 },
   followBtn: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: Colors.brand, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
   followBtnText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
   cardContent: {
