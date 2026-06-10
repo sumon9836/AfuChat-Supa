@@ -92,7 +92,7 @@ type Shop = {
   } | null;
 };
 
-type Screen = "browse" | "product";
+type Screen = "browse" | "product" | "apply-seller";
 
 const PAGE = 20;
 
@@ -118,6 +118,12 @@ export default function AfuMarketApp() {
   const [search, setSearch] = useState("");
   const [debSearch, setDebSearch] = useState("");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [userShop, setUserShop] = useState<{ id: string; name: string } | null | undefined>(undefined);
+  const [sellerName, setSellerName] = useState("");
+  const [sellerDesc, setSellerDesc] = useState("");
+  const [sellerCat, setSellerCat] = useState(CATEGORIES[0]);
+  const [sellerSaving, setSellerSaving] = useState(false);
 
   const CARD_W = Math.floor((width - 16 * 2 - 12) / 2);
 
@@ -174,7 +180,17 @@ export default function AfuMarketApp() {
     loadProducts(0);
     loadStores();
     loadCart();
-  }, [loadProducts, loadStores, loadCart]);
+    if (user) {
+      supabase
+        .from("shops")
+        .select("id, name")
+        .eq("seller_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => setUserShop(data as { id: string; name: string } | null ?? null));
+    } else {
+      setUserShop(null);
+    }
+  }, [loadProducts, loadStores, loadCart, user]);
 
   const onRefresh = useCallback(() => {
     loadProducts(0, true);
@@ -198,6 +214,94 @@ export default function AfuMarketApp() {
     } finally {
       setAddingId(null);
     }
+  }
+
+  async function createSellerShop() {
+    if (!user) { showAlert("Sign In", "Please sign in to become a seller."); return; }
+    if (!sellerName.trim()) { showAlert("Required", "Please enter your shop name."); return; }
+    setSellerSaving(true);
+    const { data, error } = await supabase.from("shops").insert({
+      seller_id: user.id,
+      name: sellerName.trim(),
+      description: sellerDesc.trim() || null,
+      category: sellerCat,
+      is_active: true,
+      rating: 0,
+      total_sales: 0,
+    }).select("id, name").single();
+    setSellerSaving(false);
+    if (error) { showAlert("Error", error.message); return; }
+    setUserShop(data as { id: string; name: string });
+    setScreen("browse");
+    showAlert("Welcome, Seller!", `Your shop "${sellerName.trim()}" is now live on AfuMarket!`);
+  }
+
+  if (screen === "apply-seller") {
+    return (
+      <View style={[s.root, { backgroundColor: accent === "#1f95ff" ? "#0a0a0a" : "#0a0a0a" }]}>
+        <View style={[s.topBar, { borderBottomColor: "rgba(255,255,255,0.08)", borderBottomWidth: 0.5 }]}>
+          <Pressable onPress={() => setScreen("browse")} hitSlop={12} style={{ padding: 4 }}>
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </Pressable>
+          <Text style={[s.topTitle, { color: "#fff" }]}>Become a Seller</Text>
+          <View style={{ width: 30 }} />
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }} keyboardShouldPersistTaps="handled">
+          <LinearGradient colors={[accent, accent + "88"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 20, padding: 20, gap: 8, alignItems: "center" }}>
+            <Ionicons name="storefront" size={40} color="#fff" />
+            <Text style={{ color: "#fff", fontSize: 20, fontFamily: "Inter_700Bold", textAlign: "center" }}>Open Your Store</Text>
+            <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" }}>
+              Reach thousands of AfuChat users. List your products and get paid via AfuPay escrow.
+            </Text>
+          </LinearGradient>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            {[
+              { icon: "shield-checkmark", label: "Secure Payments", desc: "AfuPay escrow protection" },
+              { icon: "people", label: "Huge Audience", desc: "Reach real buyers" },
+              { icon: "trending-up", label: "Analytics", desc: "Track your sales" },
+            ].map((f) => (
+              <View key={f.label} style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 12, padding: 12, gap: 4, alignItems: "center" }}>
+                <Ionicons name={f.icon as any} size={20} color={accent} />
+                <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold", textAlign: "center" }}>{f.label}</Text>
+                <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "center" }}>{f.desc}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={{ gap: 6 }}>
+            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "Inter_500Medium" }}>Shop Name *</Text>
+            <TextInput
+              style={{ backgroundColor: "rgba(255,255,255,0.07)", borderWidth: 0.5, borderColor: "rgba(255,255,255,0.12)", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, fontFamily: "Inter_400Regular", color: "#fff" }}
+              value={sellerName} onChangeText={setSellerName} placeholder="e.g. Tech Hub Store" placeholderTextColor="rgba(255,255,255,0.3)"
+            />
+          </View>
+          <View style={{ gap: 6 }}>
+            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "Inter_500Medium" }}>Category</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {CATEGORIES.map((c) => (
+                <Pressable key={c} onPress={() => setSellerCat(c)} style={{ borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: sellerCat === c ? accent : "rgba(255,255,255,0.07)", borderWidth: sellerCat === c ? 0 : 0.5, borderColor: "rgba(255,255,255,0.15)" }}>
+                  <Text style={{ fontSize: 12, fontFamily: "Inter_500Medium", color: sellerCat === c ? "#fff" : "rgba(255,255,255,0.6)" }}>{c}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+          <View style={{ gap: 6 }}>
+            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "Inter_500Medium" }}>About your shop (optional)</Text>
+            <TextInput
+              style={{ backgroundColor: "rgba(255,255,255,0.07)", borderWidth: 0.5, borderColor: "rgba(255,255,255,0.12)", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, fontFamily: "Inter_400Regular", color: "#fff", height: 90, textAlignVertical: "top" }}
+              value={sellerDesc} onChangeText={setSellerDesc} placeholder="What do you sell?" placeholderTextColor="rgba(255,255,255,0.3)" multiline
+            />
+          </View>
+          <Pressable onPress={createSellerShop} disabled={sellerSaving} style={{ backgroundColor: accent, borderRadius: 14, paddingVertical: 15, alignItems: "center", opacity: sellerSaving ? 0.7 : 1 }}>
+            {sellerSaving ? <ActivityIndicator size="small" color="#fff" /> : (
+              <Text style={{ color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" }}>Launch My Store</Text>
+            )}
+          </Pressable>
+          <Text style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center" }}>
+            By creating a store you agree to our seller terms. Funds are held in AfuPay escrow until delivery is confirmed.
+          </Text>
+        </ScrollView>
+      </View>
+    );
   }
 
   if (screen === "product" && selected) {
@@ -301,6 +405,38 @@ export default function AfuMarketApp() {
               </View>
             ))}
           </ScrollView>
+        </View>
+      )}
+
+      {/* Become a Seller CTA */}
+      {userShop === null && (
+        <Pressable
+          onPress={() => setScreen("apply-seller")}
+          style={[s.sellerCTA, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
+          <LinearGradient colors={[accent + "22", accent + "08"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.sellerCTAGrad}>
+            <View style={[s.sellerCTAIcon, { backgroundColor: accent + "22" }]}>
+              <Ionicons name="storefront" size={20} color={accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.sellerCTATitle, { color: colors.text }]}>Sell on AfuMarket</Text>
+              <Text style={[s.sellerCTASub, { color: colors.textMuted }]}>Open your store and reach thousands of buyers</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </LinearGradient>
+        </Pressable>
+      )}
+      {userShop && (
+        <View style={[s.sellerCTA, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <LinearGradient colors={["#34C75922", "#34C75908"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.sellerCTAGrad}>
+            <View style={[s.sellerCTAIcon, { backgroundColor: "#34C75922" }]}>
+              <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.sellerCTATitle, { color: colors.text }]}>{userShop.name}</Text>
+              <Text style={[s.sellerCTASub, { color: "#34C759" }]}>Your store is live on AfuMarket</Text>
+            </View>
+          </LinearGradient>
         </View>
       )}
 
@@ -733,4 +869,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14,
   },
   ctaBtnText: { fontSize: 15, color: "#fff", fontFamily: "Inter_700Bold" },
+  sellerCTA: {
+    marginHorizontal: 16, marginBottom: 12,
+    borderRadius: 14, borderWidth: 0.5, overflow: "hidden",
+  },
+  sellerCTAGrad: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 14, paddingVertical: 12, gap: 12,
+  },
+  sellerCTAIcon: {
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: "center", justifyContent: "center",
+  },
+  sellerCTATitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  sellerCTASub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
 });

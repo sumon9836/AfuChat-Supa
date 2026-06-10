@@ -34,6 +34,7 @@ type AppItem = {
   badge?: string;
   featuredSub?: string;
   adminOnly?: boolean;
+  orgOnly?: boolean;
   comingSoon?: boolean;
   miniApp?: boolean;
   nativeOnly?: boolean;
@@ -86,6 +87,7 @@ const CATEGORIES: Category[] = [
         gradient: ["#1C1C1E", "#3A3A3C"],
         route: "/business",
         miniApp: true,
+        orgOnly: true,
         featuredSub: "Tools and analytics for your business.",
       },
       {
@@ -345,6 +347,7 @@ export default function AppsScreen() {
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
   const { isPremium, profile } = useAuth();
   const isAdmin = !!profile?.is_admin;
+  const isOrgVerified = !!profile?.is_organization_verified;
   const { openApp } = useSuperApp();
 
   const tileWidth = Math.floor((SW - H_PAD * 2) / COLS);
@@ -371,6 +374,7 @@ export default function AppsScreen() {
   function isVisible(a: AppItem) {
     if (a.nativeOnly && isWeb) return false;
     if (a.adminOnly && !isAdmin) return false;
+    if (a.orgOnly && !isOrgVerified) return false;
     return true;
   }
 
