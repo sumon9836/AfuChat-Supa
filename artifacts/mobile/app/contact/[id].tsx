@@ -67,6 +67,7 @@ type Profile = {
   acoin: number;
   hide_followers_list?: boolean;
   hide_following_list?: boolean;
+  is_private?: boolean;
 };
 
 type UserPost = {
@@ -190,6 +191,8 @@ export default function ContactProfileScreen() {
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [ownedUsernames, setOwnedUsernames] = useState<string[]>([]);
+  const [followStateLoaded, setFollowStateLoaded] = useState(false);
+  const [serverProfileLoaded, setServerProfileLoaded] = useState(false);
 
   type PurchaseInfo = {
     handle: string;
@@ -246,6 +249,24 @@ export default function ContactProfileScreen() {
     router.replace(`/@${profile.handle}` as any);
   }, [profile?.handle, user]);
 
+  // Private account gate: once we have both the live profile AND follow state,
+  // redirect non-followers to the dedicated private-account page.
+  useEffect(() => {
+    if (!serverProfileLoaded || !followStateLoaded) return;
+    if (!profile?.is_private) return;
+    if (user?.id === profile.id) return;
+    if (isFollowing) return;
+    router.replace({
+      pathname: "/profile-private",
+      params: {
+        handle: profile.handle,
+        display_name: profile.display_name,
+        id: profile.id,
+        avatar_url: profile.avatar_url || "",
+      },
+    } as any);
+  }, [serverProfileLoaded, followStateLoaded, profile?.is_private, isFollowing, user?.id, profile?.id]);
+
   // On web, replace the URL with the pretty /@handle format for logged-in users.
   useEffect(() => {
     if (!profile?.handle || !user) return;
@@ -273,6 +294,7 @@ export default function ContactProfileScreen() {
     ]);
     setFollowerCount(fcRes.count ?? 0);
     setFollowingCount(fgRes.count ?? 0);
+    setFollowStateLoaded(true);
   }, [id, user]);
 
   // Re-sync follow state every time the screen comes back into focus
@@ -293,7 +315,7 @@ export default function ContactProfileScreen() {
     // Only on a true first visit (no cache, no params) does the skeleton show.
     supabase
       .from("profiles")
-      .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, is_business_mode, xp, current_grade, website_url, country, created_at, last_seen, show_online_status, acoin, hide_followers_list, hide_following_list")
+      .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, is_business_mode, xp, current_grade, website_url, country, created_at, last_seen, show_online_status, acoin, hide_followers_list, hide_following_list, is_private")
       .eq("id", id)
       .single()
       .then(({ data }) => {
@@ -302,6 +324,7 @@ export default function ContactProfileScreen() {
           setProfileCache(id as string, data as any);
         }
         setLoading(false);
+        setServerProfileLoaded(true);
       });
 
     supabase.from("shops").select("id, pin_to_profile").eq("seller_id", id).eq("is_active", true).eq("pin_to_profile", true).maybeSingle().then(({ data }) => setHasShop(!!data));

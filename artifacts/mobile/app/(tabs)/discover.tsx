@@ -64,6 +64,7 @@ import { PostShareCaptureModal, type ShareablePost } from "@/components/ui/PostS
 import { VideoCommentsSheet } from "@/components/ui/VideoCommentsSheet";
 import { UserRecsCard } from "@/components/discover/UserRecsCard";
 import { DismissSheet, type DismissReason } from "@/components/discover/DismissSheet";
+import { SuggestedUsers } from "@/components/ui/SuggestedUsers";
 
 type PostItem = {
   id: string;
@@ -1838,7 +1839,8 @@ export default function DiscoverScreen() {
         </View>
 
 
-        {/* New posts indicator — replaced by floating popup below */}
+        {/* Suggested users strip — shown below tabs, loads instantly from cache */}
+        {user && <SuggestedUsers compact maxCards={8} />}
 
         {/* Background refresh indicator */}
         {bgRefreshing && newPostAuthors.length === 0 && (

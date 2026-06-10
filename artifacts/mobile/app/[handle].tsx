@@ -25,7 +25,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { Avatar } from "@/components/ui/Avatar";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
-import NotFoundScreen from "@/app/+not-found";
+import { ProfileNotFoundView } from "@/app/profile-not-found";
+import { ProfilePrivateView } from "@/app/profile-private";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import AfuLogo from "@/components/ui/AfuLogo";
@@ -56,6 +57,7 @@ type PubProfile = {
   xp: number;
   current_grade: string;
   country: string | null;
+  is_private?: boolean;
 };
 
 type PubCounts = { followers: number; following: number; posts: number };
@@ -76,7 +78,7 @@ function PublicProfileScreen({ handle }: { handle: string }) {
 
       const { data: primary } = await supabase
         .from("profiles")
-        .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, xp, current_grade, country")
+        .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, xp, current_grade, country, is_private")
         .eq("handle", handle)
         .maybeSingle();
 
@@ -91,7 +93,7 @@ function PublicProfileScreen({ handle }: { handle: string }) {
         if (alias?.owner_id) {
           const { data: byId } = await supabase
             .from("profiles")
-            .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, xp, current_grade, country")
+            .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, xp, current_grade, country, is_private")
             .eq("id", alias.owner_id)
             .maybeSingle();
           profileData = byId as PubProfile | null;
@@ -120,7 +122,21 @@ function PublicProfileScreen({ handle }: { handle: string }) {
       </View>
     );
   }
-  if (notFound || !profile) return <NotFoundScreen />;
+  if (notFound || !profile) return (
+    <View style={[pub.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <ProfileNotFoundView handle={handle} />
+    </View>
+  );
+  if (profile.is_private) return (
+    <View style={[pub.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <ProfilePrivateView
+        handle={profile.handle}
+        displayName={profile.display_name}
+        avatarUrl={profile.avatar_url ?? undefined}
+        profileId={profile.id}
+      />
+    </View>
+  );
 
   return (
     <View style={[pub.root, { backgroundColor: colors.background }]}>
@@ -377,18 +393,30 @@ export default function HandleScreen() {
   // Logged-in user — never show the splash; render transparent and navigate
   // as soon as the profile ID is resolved (contact page shows its own skeleton).
   if (session) {
-    if (dataReady && (profileNotFound || !isValidHandle)) return <NotFoundScreen />;
+    if (dataReady && (profileNotFound || !isValidHandle)) return (
+      <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
+        <ProfileNotFoundView handle={cleanHandle} />
+      </View>
+    );
     return null;
   }
 
   // Unauthenticated @-handle → public profile page
   if (isAtHandle) {
-    if (!isValidHandle) return <NotFoundScreen />;
+    if (!isValidHandle) return (
+      <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
+        <ProfileNotFoundView handle={cleanHandle} />
+      </View>
+    );
     return <PublicProfileScreen handle={cleanHandle} />;
   }
 
   // Unauthenticated plain handle → invite / referral splash
-  if (dataReady && (profileNotFound || !isValidHandle)) return <NotFoundScreen />;
+  if (dataReady && (profileNotFound || !isValidHandle)) return (
+    <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
+      <ProfileNotFoundView handle={cleanHandle} />
+    </View>
+  );
 
   return (
     <View style={[splash.container, { backgroundColor: Colors.brand, paddingTop: insets.top }]}>
