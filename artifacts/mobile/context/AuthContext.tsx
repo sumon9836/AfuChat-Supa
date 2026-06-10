@@ -253,13 +253,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // current account. We temporarily sign in as the new user purely to
   // obtain their tokens, then immediately restore the original session.
 
+  // Synchronous in-flight guard — prevents duplicate signInWithPassword calls
+  // from rapid UI taps before the caller's loading state has flushed.
+  const isAddingAccountRef = useRef(false);
+
   async function addAccount(
     email: string,
     password: string
   ): Promise<{ success: boolean; error?: string }> {
+    if (isAddingAccountRef.current) {
+      return { success: false, error: "Already in progress." };
+    }
+    isAddingAccountRef.current = true;
+
+    // Validate account limit
     if (!profile?.is_admin) {
       const current = await getStoredAccounts();
       if (current.length >= 2) {
+        isAddingAccountRef.current = false;
         return { success: false, error: "You've reached the maximum of 2 linked accounts." };
       }
     }
@@ -270,9 +281,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await supabase.auth.getSession();
       currentSession = data.session;
     } catch {
+      isAddingAccountRef.current = false;
       return { success: false, error: "Failed to read current session." };
     }
-    if (!currentSession) return { success: false, error: "No active session." };
+    if (!currentSession) {
+      isAddingAccountRef.current = false;
+      return { success: false, error: "No active session." };
+    }
 
     const savedAccess = currentSession.access_token;
     const savedRefresh = currentSession.refresh_token;
@@ -330,8 +345,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await refreshLinkedAccounts();
       return { success: true };
     } finally {
-      // Always un-gate, even on unexpected errors
+      // Always un-gate both guards, even on unexpected errors
       isLinkingRef.current = false;
+      isAddingAccountRef.current = false;
     }
   }
 

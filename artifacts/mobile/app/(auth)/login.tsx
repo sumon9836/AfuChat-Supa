@@ -256,6 +256,10 @@ export default function SignInScreen() {
   const [verifyEmail, setVerifyEmail] = useState("");
   const pwdRef = useRef<TextInput>(null);
   const oauthHandledRef = useRef(false);
+  // Synchronous in-flight guard — prevents double-submission when the keyboard
+  // "Done" key and the Sign In button fire handleLogin in the same event tick
+  // before React has flushed the setLoading(true) state update.
+  const isSubmittingRef = useRef(false);
 
   // ── Biometric state ─────────────────────────────────────────────────────────
   const [bioAvailable, setBioAvailable] = useState(false);
@@ -299,6 +303,8 @@ export default function SignInScreen() {
   }
 
   async function handleBioSignIn() {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setBioLoading(true);
     try {
       const result = await LocalAuthentication.authenticateAsync({
@@ -330,6 +336,8 @@ export default function SignInScreen() {
     } catch {
       setBioLoading(false);
       showAlert("Error", "Biometric authentication failed.");
+    } finally {
+      isSubmittingRef.current = false;
     }
   }
 
@@ -383,64 +391,89 @@ export default function SignInScreen() {
 
   // ── Login ───────────────────────────────────────────────────────────────────
   async function handleLogin() {
+    // Synchronous guard: blocks double-fire when the keyboard "Done" key and the
+    // Sign In button both call this function in the same event loop tick before
+    // React has flushed the setLoading(true) state update.
+    if (isSubmittingRef.current) return;
     const raw = identifier.trim();
     if (!raw || !password) return showAlert("Missing fields", "Please enter your email/username and password.");
+
+    isSubmittingRef.current = true;
     setLoading(true);
-    let resolvedEmail = raw;
-    const type = detectType(raw);
-    if (type !== "email") {
-      const found = await resolveToEmail(raw);
-      if (!found) {
+
+    if (__DEV__) {
+      console.log("[Auth] signInWithPassword →", raw, new Date().toISOString());
+    }
+
+    try {
+      let resolvedEmail = raw;
+      const type = detectType(raw);
+      if (type !== "email") {
+        const found = await resolveToEmail(raw);
+        if (!found) {
+          setLoading(false);
+          showAlert("Account not found", type === "handle" ? "No account found for that username." : "No account found for that phone number.");
+          return;
+        }
+        resolvedEmail = found;
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email: resolvedEmail, password });
+
+      if (error) {
         setLoading(false);
-        showAlert("Account not found", type === "handle" ? "No account found for that username." : "No account found for that phone number.");
+        const msg = error.message ?? "";
+        const msgL = msg.toLowerCase();
+        const isRateLimit =
+          error.status === 429 ||
+          msgL.includes("rate limit") ||
+          msgL.includes("too many requests") ||
+          msgL.includes("over_email_send_rate_limit") ||
+          msgL.includes("email rate limit exceeded") ||
+          msgL.includes("too many sign");
+        if (isRateLimit) {
+          showAlert(
+            "Too many attempts",
+            "You've made too many sign-in attempts.\n\nPlease wait a few minutes before trying again."
+          );
+        } else {
+          showAlert("Sign in failed", msg || "An unexpected error occurred. Please try again.");
+        }
         return;
       }
-      resolvedEmail = found;
-    }
-    const { data, error } = await supabase.auth.signInWithPassword({ email: resolvedEmail, password });
-    if (error) {
+
+      if (data.user) {
+        if (!data.user.email_confirmed_at) {
+          await supabase.auth.signOut();
+          setLoading(false);
+          setVerifyEmail(resolvedEmail); setVerifyVisible(true); return;
+        }
+        const { data: prof } = await supabase.from("profiles").select("scheduled_deletion_at, account_deleted").eq("id", data.user.id).single();
+        if (prof?.account_deleted) {
+          setLoading(false); await supabase.auth.signOut();
+          showAlert("Account Deleted", "This account has been permanently deleted."); return;
+        }
+        if (prof?.scheduled_deletion_at) {
+          const days = Math.max(0, Math.ceil((new Date(prof.scheduled_deletion_at).getTime() - Date.now()) / 86400000));
+          setLoading(false);
+          showAlert("Account Scheduled for Deletion", `Your account will be deleted in ${days} day${days !== 1 ? "s" : ""}. Restore it?`, [
+            { text: "Delete Anyway", style: "destructive", onPress: async () => supabase.auth.signOut() },
+            { text: "Restore", style: "default", onPress: async () => { await supabase.from("profiles").update({ scheduled_deletion_at: null }).eq("id", data.user!.id); router.replace("/(tabs)/chats"); } },
+          ]); return;
+        }
+      }
+
+      // Store session for biometric on future visits (fire-and-forget)
+      if (data.session) {
+        storeSessionForBio(data.session.refresh_token, resolvedEmail);
+      }
       setLoading(false);
-      const msg = error.message ?? "";
-      const isRateLimit =
-        error.status === 429 ||
-        msg.toLowerCase().includes("rate limit") ||
-        msg.toLowerCase().includes("too many requests");
-      if (isRateLimit) {
-        showAlert(
-          "Too many attempts",
-          "You've made too many sign-in attempts.\n\nPlease wait a few minutes before trying again."
-        );
-      } else {
-        showAlert("Sign in failed", msg || "An unexpected error occurred. Please try again.");
-      }
-      return;
+      router.replace("/(tabs)/chats");
+    } finally {
+      // Always release the in-flight lock so the button becomes tappable again
+      // even if an unexpected error propagates past all the catch sites above.
+      isSubmittingRef.current = false;
     }
-    if (data.user) {
-      if (!data.user.email_confirmed_at) {
-        await supabase.auth.signOut();
-        setLoading(false);
-        setVerifyEmail(resolvedEmail); setVerifyVisible(true); return;
-      }
-      const { data: prof } = await supabase.from("profiles").select("scheduled_deletion_at, account_deleted").eq("id", data.user.id).single();
-      if (prof?.account_deleted) {
-        setLoading(false); await supabase.auth.signOut();
-        showAlert("Account Deleted", "This account has been permanently deleted."); return;
-      }
-      if (prof?.scheduled_deletion_at) {
-        const days = Math.max(0, Math.ceil((new Date(prof.scheduled_deletion_at).getTime() - Date.now()) / 86400000));
-        setLoading(false);
-        showAlert("Account Scheduled for Deletion", `Your account will be deleted in ${days} day${days !== 1 ? "s" : ""}. Restore it?`, [
-          { text: "Delete Anyway", style: "destructive", onPress: async () => supabase.auth.signOut() },
-          { text: "Restore", style: "default", onPress: async () => { await supabase.from("profiles").update({ scheduled_deletion_at: null }).eq("id", data.user!.id); router.replace("/(tabs)/chats"); } },
-        ]); return;
-      }
-    }
-    // Store session for biometric on future visits (fire-and-forget)
-    if (data.session) {
-      storeSessionForBio(data.session.refresh_token, resolvedEmail);
-    }
-    setLoading(false);
-    router.replace("/(tabs)/chats");
   }
 
   // ── Google ──────────────────────────────────────────────────────────────────
