@@ -558,6 +558,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // supabase.auth.refreshSession() with no args can silently fail.
               supabase.auth
                 .refreshSession({ refresh_token: primaryAccount.refreshToken })
+                .then(({ error }) => {
+                  if (error) {
+                    // Refresh token is genuinely dead (revoked, rotated, session wiped).
+                    // Remove the stale SecureStore entry and clear MMKV so the user is
+                    // routed to the welcome/login screen on the next navigation tick
+                    // rather than silently stuck in a broken half-logged-in state.
+                    removeStoredAccount(primaryAccount.userId).catch(() => {});
+                    clearCachedUserId();
+                    clearProfileCache();
+                    setProfile(null);
+                    setSubscription(null);
+                    setUser(null);
+                    setSession(null);
+                    setLoading(false);
+                  }
+                })
                 .catch(() => {});
             } else {
               const syntheticUser = {
@@ -621,19 +637,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // isUserSigningOut=true, which is the only case where we allow clearing.
       if (!newSession?.user) {
         if (!isUserSigningOut.current) {
-          // Involuntary SIGNED_OUT: Supabase has cleared its AsyncStorage session.
-          // Restore it from SecureStore so that when the user comes back online,
-          // refreshSession() and all API calls work correctly again.
-          // We do NOT touch React state — the user stays in the app untouched.
+          // Involuntary SIGNED_OUT: Supabase cleared its AsyncStorage session
+          // (e.g., access token expired and refresh token was rejected).
+          // Attempt a one-shot restore from SecureStore. If it succeeds, the
+          // TOKEN_REFRESHED event will fire next and keep everything in sync.
+          // If it FAILS (tokens are dead), clean up completely — do NOT loop by
+          // retrying with the same dead token, which previously caused an infinite
+          // SIGNED_OUT → setSession → SIGNED_OUT cycle.
           getStoredAccounts()
-            .then((accts) => {
+            .then(async (accts) => {
               const stored = accts[0] ?? null;
-              if (stored) {
-                supabase.auth.setSession({
-                  access_token: stored.accessToken,
-                  refresh_token: stored.refreshToken,
-                }).catch(() => {});
+              if (!stored) return;
+
+              const { error } = await supabase.auth.setSession({
+                access_token: stored.accessToken,
+                refresh_token: stored.refreshToken,
+              });
+
+              if (error) {
+                // Tokens are genuinely dead (revoked, rotated away, session wiped).
+                // Remove the stale entry so it is never retried, then sign out cleanly.
+                await removeStoredAccount(stored.userId).catch(() => {});
+                clearCachedUserId();
+                clearProfileCache();
+                // isUserSigningOut must be true so the state-clear branch below runs
+                // on the SIGNED_OUT that setSession failure fires.
+                isUserSigningOut.current = true;
+                await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+                isUserSigningOut.current = false;
+                setProfile(null);
+                setSubscription(null);
+                setSession(null);
+                setUser(null);
               }
+              // On success: TOKEN_REFRESHED fires, tokens are rotated,
+              // updateAccountTokens keeps SecureStore current.
             })
             .catch(() => {});
           return;
@@ -653,6 +691,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCachedUserId(newUserId);
 
       if (event === "SIGNED_IN") {
+        // Persist fresh tokens to SecureStore immediately on every sign-in.
+        // This is the earliest opportunity — profile metadata is not yet loaded,
+        // so displayName/handle are stored as empty strings and overwritten by
+        // fetchProfile → updateAccountProfile below.  Without this, a user who
+        // logs in and quits before TOKEN_REFRESHED fires has no SecureStore entry,
+        // and the bootstrap refresh-fallback path has nothing to restore from.
+        storeAccount({
+          userId: newSession.user.id,
+          email: newSession.user.email || "",
+          displayName: "",
+          handle: "",
+          avatarUrl: null,
+          accessToken: newSession.access_token,
+          refreshToken: newSession.refresh_token,
+        }).catch(() => {});
+
         registerDeviceSession(newSession.user.id).catch(() => {});
         fetchProfile(newSession.user.id)
           .then(() => {

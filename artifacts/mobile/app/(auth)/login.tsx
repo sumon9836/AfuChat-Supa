@@ -398,7 +398,23 @@ export default function SignInScreen() {
       resolvedEmail = found;
     }
     const { data, error } = await supabase.auth.signInWithPassword({ email: resolvedEmail, password });
-    if (error) { setLoading(false); showAlert("Sign in failed", error.message); return; }
+    if (error) {
+      setLoading(false);
+      const msg = error.message ?? "";
+      const isRateLimit =
+        error.status === 429 ||
+        msg.toLowerCase().includes("rate limit") ||
+        msg.toLowerCase().includes("too many requests");
+      if (isRateLimit) {
+        showAlert(
+          "Too many attempts",
+          "You've made too many sign-in attempts.\n\nPlease wait a few minutes before trying again."
+        );
+      } else {
+        showAlert("Sign in failed", msg || "An unexpected error occurred. Please try again.");
+      }
+      return;
+    }
     if (data.user) {
       if (!data.user.email_confirmed_at) {
         await supabase.auth.signOut();
