@@ -1,43 +1,26 @@
 {
   "project_info": {
-    "project_number": "148957999957",
-    "project_id": "afuchat-lyw89",
-    "storage_bucket": "afuchat-lyw89.firebasestorage.app"
+    "project_number": "833168683124",
+    "project_id": "afuchat-4abf4",
+    "storage_bucket": "afuchat-4abf4.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:148957999957:android:0fa08c691b22e90c90b5dc",
+        "mobilesdk_app_id": "1:833168683124:android:b8d36b049564fe43f72121",
         "android_client_info": {
-          "package_name": "com.afuchat.app"
+          "package_name": "com.afuchat.afuapp"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "528657994783-vancb50a5v4539fecpkr13o4jgvv7tib.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.afuchat.app"
-          }
-        },
-        {
-          "client_id": "148957999957-i5pgudckm6c9sc8pthqr2cl918nd3153.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCBz1vmF27mmQHAUFxcKTPnUTAqs9IJQUo"
+          "current_key": "AIzaSyBPPajG7fpD0b19Z3l_eGNf5JdJZm8aUB0"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "148957999957-i5pgudckm6c9sc8pthqr2cl918nd3153.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }
