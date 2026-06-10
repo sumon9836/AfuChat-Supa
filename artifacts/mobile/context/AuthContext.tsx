@@ -62,6 +62,7 @@ type Profile = {
   onboarding_completed: boolean;
   scheduled_deletion_at: string | null;
   created_at: string | null;
+  platinum_until: string | null;
 };
 
 type Subscription = {
@@ -147,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         supabase
           .from("profiles")
           .select(
-            "id, handle, display_name, avatar_url, banner_url, bio, phone_number, xp, acoin, current_grade, is_verified, is_private, show_online_status, country, website_url, language, tipping_enabled, is_admin, is_support_staff, is_organization_verified, is_business_mode, gender, date_of_birth, region, interests, onboarding_completed, scheduled_deletion_at, created_at"
+            "id, handle, display_name, avatar_url, banner_url, bio, phone_number, xp, acoin, current_grade, is_verified, is_private, show_online_status, country, website_url, language, tipping_enabled, is_admin, is_support_staff, is_organization_verified, is_business_mode, gender, date_of_birth, region, interests, onboarding_completed, scheduled_deletion_at, created_at, platinum_until"
           )
           .eq("id", userId)
           .single(),
@@ -817,9 +818,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  // POLICY: every logged-in user gets full access — never gate on subscription.
-  // isPremium is true whenever the user has an active session or cached profile.
-  const isPremium = !!(user || profile);
+  // isPremium: true only when the user has an active paid subscription OR
+  // an active referral-granted platinum period (platinum_until in the future).
+  const isPremium = !!(
+    subscription !== null ||
+    (profile?.platinum_until && new Date(profile.platinum_until) > new Date())
+  );
 
   const contextValue = useMemo(
     () => ({
