@@ -501,7 +501,7 @@ export default function OnboardingScreen() {
           sendPushNotification({
             userId: rpcResult.referrer_id,
             title: "🎉 Someone joined using your referral!",
-            body: `You earned +50 ACoin and +2,000 Nexa! Keep sharing to earn more.`,
+            body: `You earned +2,000 Nexa! Keep sharing to earn more.`,
             data: { type: "referral", screen: "referral" },
           }).catch(() => {});
 

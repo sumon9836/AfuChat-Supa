@@ -324,7 +324,6 @@ type LeaderEntry = {
   display_name: string;
   avatar_url: string | null;
   total_referrals: number;
-  total_acoin_earned: number;
   total_platinum_days_given: number;
   last_referral_at: string;
 };
@@ -357,7 +356,7 @@ function LeaderboardTab({ accent, currentUserId }: { accent: string; currentUser
       try {
         const { data } = await supabase
           .from("referral_stats")
-          .select("referrer_id, handle, display_name, avatar_url, total_referrals, total_acoin_earned, total_platinum_days_given, last_referral_at")
+          .select("referrer_id, handle, display_name, avatar_url, total_referrals, total_platinum_days_given, last_referral_at")
           .order("total_referrals", { ascending: false })
           .limit(50);
 
@@ -453,13 +452,13 @@ function LeaderboardTab({ accent, currentUserId }: { accent: string; currentUser
                   </Text>
                 </View>
 
-                {/* ACoin earned */}
+                {/* Nexa earned via referrals (2,000 × rewarded invites) */}
                 <View style={lb.acoinCol}>
                   <Ionicons name="flash" size={12} color="#FFD60A" />
                   <Text style={[lb.acoinVal, { color: colors.text }]}>
-                    {Number(entry.total_acoin_earned || 0).toLocaleString()}
+                    {(entry.total_referrals * 2000).toLocaleString()}
                   </Text>
-                  <Text style={[lb.acoinLabel, { color: colors.textMuted }]}>ACoin</Text>
+                  <Text style={[lb.acoinLabel, { color: colors.textMuted }]}>Nexa</Text>
                 </View>
               </View>
             </View>
@@ -491,7 +490,7 @@ export default function AfuReferralApp() {
 
   const totalReferrals = referrals.length;
   const rewardedCount  = referrals.filter(r => r.reward_given).length;
-  const acoinEarned    = rewardedCount * 50;
+  const nexaEarned     = rewardedCount * NEXA_PER_INVITE;
   const doneSteps      = REWARD_STEPS.filter(s => totalReferrals >= s.invites);
   const currentStep    = doneSteps[doneSteps.length - 1] ?? null;
   const nextStep       = getNextStep(totalReferrals);
@@ -563,7 +562,7 @@ export default function AfuReferralApp() {
         <View style={s.heroStats}>
           {[
             { label: "Invited",     value: totalReferrals,            icon: "person-add"      as const, color: accent },
-            { label: "ACoin",       value: acoinEarned,               icon: "logo-bitcoin"    as const, color: "#FFD60A" },
+            { label: "Nexa",        value: nexaEarned,                icon: "flash"           as const, color: "#FFD60A" },
             { label: "Rank",        value: currentStep?.role || "—",  icon: "ribbon"          as const, color: "#BF5AF2" },
           ].map(stat => (
             <View key={stat.label} style={s.heroStat}>
