@@ -1,11 +1,18 @@
 import { useEffect } from "react";
-import { Linking } from "react-native";
+import { Linking, Platform } from "react-native";
 import { router } from "expo-router";
 
 export default function TermsRedirect() {
   useEffect(() => {
-    Linking.openURL("https://afuchat.com/terms");
-    router.back();
+    if (Platform.OS !== "web") {
+      Linking.openURL("https://afuchat.com/terms");
+    }
+    try {
+      if (router.canGoBack()) router.back();
+      else router.replace("/");
+    } catch {
+      try { router.replace("/"); } catch {}
+    }
   }, []);
   return null;
 }
