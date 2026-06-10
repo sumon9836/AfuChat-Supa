@@ -1,0 +1,90 @@
+Implement a customizable theme and accent color system for AfuChat.
+
+Goals:
+
+* Allow users to personalize the app's appearance by choosing an accent color.
+* Maintain a consistent and professional UI across all screens.
+* Ensure excellent support for both light and dark modes.
+
+Requirements:
+
+1. Accent color selection:
+
+   * Users can choose from predefined accent colors.
+   * Store the selected color persistently.
+   * Apply changes immediately without restarting the app.
+
+2. Theme architecture:
+
+   * Use a centralized theme provider.
+   * Avoid hardcoded UI colors.
+   * All interactive components should use theme tokens.
+
+3. Accent color should affect:
+
+   * Buttons.
+   * Active navigation icons.
+   * Active tab indicators.
+   * Links.
+   * Switches.
+   * Checkboxes.
+   * Radio buttons.
+   * Progress indicators.
+   * Loading spinners.
+   * Focus states.
+   * Selected chips.
+   * Highlights.
+   * Verified UI accents where appropriate.
+
+4. Text and icons:
+
+   * Normal text colors remain optimized for readability.
+   * Interface icons continue matching surrounding text unless representing active actions.
+   * Active icons use the chosen accent color.
+
+5. Light and dark mode:
+
+   * Accent colors adapt automatically.
+   * Contrast remains accessible.
+
+6. User settings:
+
+   * Add a Theme & Appearance section.
+   * Include:
+
+     * Light mode.
+     * Dark mode.
+     * System default.
+     * Accent color picker.
+
+7. Predefined accent colors:
+
+   * Blue.
+   * Green.
+   * Purple.
+   * Red.
+   * Orange.
+   * Pink.
+   * Cyan.
+   * Teal.
+   * Indigo.
+   * Emerald.
+   * Gold.
+   * AfuChat default blue.
+
+8. Persistence:
+
+   * Save preferences locally.
+   * Sync preferences to the user's account for restoration across devices.
+
+9. Performance:
+
+   * Theme changes should be smooth.
+   * Avoid unnecessary rerenders.
+
+10. Future support:
+
+    * Architecture should allow adding more themes without major code changes.
+    * Support seasonal and promotional themes if needed.
+
+The implementation should provide a polished, maintainable, and scalable personalization system while preserving a consistent user experience across the platform.

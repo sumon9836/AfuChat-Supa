@@ -246,7 +246,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
   return (
     <>
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.background }]}
+        style={[styles.card, { backgroundColor: colors.background, borderBottomColor: colors.border }]}
         onPress={openPost}
         activeOpacity={0.97}
         // @ts-ignore — RN Web supports onContextMenu
@@ -287,7 +287,18 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                 onPress={() => safeRouter.push(`/@${item.profile.handle}` as any)}
                 activeOpacity={0.8}
               >
-                <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={isDesktop ? 44 : 40} square={!!(item.is_organization_verified)} />
+                {(item.is_verified || item.is_organization_verified) ? (
+                  <View style={{
+                    borderRadius: item.is_organization_verified ? 10 : (isDesktop ? 25 : 23),
+                    borderWidth: 1.5,
+                    borderColor: colors.accent,
+                    padding: 1.5,
+                  }}>
+                    <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={isDesktop ? 41 : 37} square={!!(item.is_organization_verified)} />
+                  </View>
+                ) : (
+                  <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={isDesktop ? 44 : 40} square={!!(item.is_organization_verified)} />
+                )}
               </TouchableOpacity>
             )}
             <View style={{ flex: 1, gap: 0 }}>
@@ -329,12 +340,11 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
             </View>
             {!item.org_page_id && showFollowBtn && (
               <TouchableOpacity
-                style={[styles.followBtn, { backgroundColor: colors.accent }]}
+                style={[styles.followBtn, { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.accent }]}
                 onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } onToggleFollow(item.author_id); }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="add" size={15} color="#fff" />
-                <Text style={styles.followBtnText}>Follow</Text>
+                <Text style={[styles.followBtnText, { color: colors.accent }]}>Follow</Text>
               </TouchableOpacity>
             )}
             {item.org_page_id ? (
@@ -530,16 +540,15 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="arrow-redo-outline" size={18} color={colors.textMuted} />
-              <Text style={[styles.footerStatNum, { color: colors.textMuted }]}>Share</Text>
+              <Ionicons name="arrow-redo-outline" size={17} color={colors.textMuted} />
             </TouchableOpacity>
 
             <View style={{ flex: 1 }} />
 
-            {/* Views */}
-            <View style={styles.footerStat}>
-              <Ionicons name="eye-outline" size={15} color={colors.textMuted} />
-              <Text style={[styles.footerStatNum, { color: colors.textMuted }]}>{formatNum(item.view_count)}</Text>
+            {/* Views — deemphasised */}
+            <View style={[styles.footerStat, { opacity: 0.55 }]}>
+              <Ionicons name="eye-outline" size={13} color={colors.textMuted} />
+              <Text style={[styles.footerStatNum, { color: colors.textMuted, fontSize: 11 }]}>{formatNum(item.view_count)}</Text>
             </View>
 
             {/* Bookmark */}
@@ -2250,28 +2259,29 @@ const styles = StyleSheet.create({
   tabPillText: { fontSize: 15, fontFamily: "Inter_700Bold" },
   card: {
     overflow: "hidden",
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   cardHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: 4,
     gap: 10,
   },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "nowrap" },
-  cardHandle: { fontSize: 13, fontFamily: "Inter_600SemiBold", letterSpacing: -0.2 },
+  cardHandle: { fontSize: 13.5, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   cardName: { fontSize: 15, fontFamily: "Inter_700Bold", letterSpacing: -0.1 },
   cardMeta: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 0.1 },
-  cardBio: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 0.05, marginTop: 1, opacity: 0.72 },
-  followBtn: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: Colors.brand, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
+  cardBio: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 0.1, marginTop: 2, opacity: 0.6 },
+  followBtn: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 20 },
   followBtnText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
   cardContent: {
     fontSize: 15,
     fontFamily: "Inter_400Regular",
     paddingLeft: 66,
     paddingRight: 16,
-    paddingBottom: 12,
+    paddingBottom: 8,
     lineHeight: 23,
   },
   translatedBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 66, paddingRight: 16, marginBottom: 8 },
@@ -2280,22 +2290,22 @@ const styles = StyleSheet.create({
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
-    paddingLeft: 60,
-    paddingRight: 14,
-    paddingVertical: 10,
-    paddingBottom: 12,
-    gap: 2,
+    paddingLeft: 58,
+    paddingRight: 12,
+    paddingTop: 6,
+    paddingBottom: 10,
+    gap: 0,
   },
   footerStat: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
     borderRadius: 8,
   },
   footerStatNum: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "Inter_500Medium",
     letterSpacing: -0.1,
   },
