@@ -357,26 +357,33 @@ export default function HandleScreen() {
   useEffect(() => {
     if (Platform.OS !== "web") return;
     if (hasNavigated.current) return;
-    if (isAtHandle && !session) return;
+    if (session) return; // logged-in users navigate via the main effect
+    if (isAtHandle) return; // unauthenticated @handle shows PublicProfileScreen directly
     const timeout = setTimeout(() => {
       if (hasNavigated.current) return;
       if (!dataReady) return;
       if (profileNotFound) return;
       hasNavigated.current = true;
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        window.location.href = session ? "/" : "/login";
-      } else {
-        router.replace(session ? "/" : "/(auth)/login");
-      }
+      if (typeof window !== "undefined") window.location.href = "/login";
+      else router.replace("/(auth)/login");
     }, 8000);
     return () => clearTimeout(timeout);
   }, [dataReady, session, profileNotFound, isAtHandle]);
 
-  if (isAtHandle && !authLoading && !session) {
+  // Logged-in user — never show the splash; render transparent and navigate
+  // as soon as the profile ID is resolved (contact page shows its own skeleton).
+  if (session) {
+    if (dataReady && (profileNotFound || !isValidHandle)) return <NotFoundScreen />;
+    return null;
+  }
+
+  // Unauthenticated @-handle → public profile page
+  if (isAtHandle) {
     if (!isValidHandle) return <NotFoundScreen />;
     return <PublicProfileScreen handle={cleanHandle} />;
   }
 
+  // Unauthenticated plain handle → invite / referral splash
   if (dataReady && (profileNotFound || !isValidHandle)) return <NotFoundScreen />;
 
   return (
@@ -384,9 +391,7 @@ export default function HandleScreen() {
       <AfuLogo size={96} style={{ marginBottom: 16 }} />
       <Text style={splash.brandText}>AfuChat</Text>
       <ActivityIndicator size="small" color="#fff" style={splash.loader} />
-      <Text style={splash.subText}>
-        {session ? "Loading profile…" : isAtHandle ? "Loading profile…" : "Processing invite…"}
-      </Text>
+      <Text style={splash.subText}>Processing invite…</Text>
     </View>
   );
 }
