@@ -144,6 +144,15 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
   const [shareablePost, setShareablePost] = useState<ShareablePost | null>(null);
   const isOwnPost = currentUser?.id === item.author_id;
 
+  const heartScale = useRef(new Animated.Value(1)).current;
+  const animateHeart = useCallback(() => {
+    heartScale.setValue(1);
+    Animated.sequence([
+      Animated.spring(heartScale, { toValue: 1.4, useNativeDriver: true, speed: 50, bounciness: 14 }),
+      Animated.spring(heartScale, { toValue: 1,   useNativeDriver: true, speed: 22, bounciness: 4  }),
+    ]).start();
+  }, [heartScale]);
+
   const { bind: ctxBind, menuProps: ctxMenuProps } = useContextMenu([
     [
       { key: "open",    label: "Open post",                     icon: "open-outline",     onSelect: () => openPost() },
@@ -504,14 +513,20 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
             {/* Likes */}
             <TouchableOpacity
               style={styles.footerStat}
-              onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } onToggleLike(item.id); }}
+              onPress={() => {
+                if (!currentUser) { onRequireAuth?.(); return; }
+                animateHeart();
+                onToggleLike(item.id);
+              }}
               activeOpacity={0.7}
             >
-              <Ionicons
-                name={item.liked ? "heart" : "heart-outline"}
-                size={19}
-                color={item.liked ? "#FF3B30" : colors.textMuted}
-              />
+              <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+                <Ionicons
+                  name={item.liked ? "heart" : "heart-outline"}
+                  size={19}
+                  color={item.liked ? "#FF3B30" : colors.textMuted}
+                />
+              </Animated.View>
               <Text style={[styles.footerStatNum, { color: item.liked ? "#FF3B30" : colors.textMuted }]}>
                 {formatNum(item.likeCount)}
               </Text>
