@@ -223,6 +223,13 @@ function ResultSheet({
     router.push({ pathname: "/wallet/scan" as any, params: { prefill_afu_id: res.afuId } });
   }
 
+  async function handleRequestMoney() {
+    const res = await resolveAfuChatId();
+    if (!res) return;
+    onClose();
+    router.push({ pathname: "/wallet/request" as any, params: { afu_id: res.afuId } });
+  }
+
   async function handleAfuChatUrl() {
     try {
       const url = new URL(result.raw);
@@ -324,6 +331,14 @@ function ResultSheet({
             >
               <Ionicons name="wallet" size={18} color="#fff" />
               <Text style={sheet.actionBtnText}>Send Money</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[sheet.actionBtn, { backgroundColor: "#FF9500" }]}
+              onPress={handleRequestMoney}
+              disabled={resolving}
+            >
+              <Ionicons name="hand-left" size={18} color="#fff" />
+              <Text style={sheet.actionBtnText}>Request Money</Text>
             </TouchableOpacity>
           </>
         )}

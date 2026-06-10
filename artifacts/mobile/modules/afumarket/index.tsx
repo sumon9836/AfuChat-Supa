@@ -14,6 +14,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "@/components/ui/SafeGradient";
@@ -326,14 +327,22 @@ export default function AfuMarketApp() {
           <Text style={[s.topTitle, { color: colors.text }]}>AfuMarket</Text>
           <Text style={[s.topSub, { color: colors.textMuted }]}>Shop from verified stores</Text>
         </View>
-        {cartCount > 0 && (
-          <View style={[s.cartBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Ionicons name="bag-outline" size={20} color={colors.text} />
-            <View style={[s.cartBadge, { backgroundColor: accent }]}>
-              <Text style={s.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <TouchableOpacity
+            onPress={() => router.push("/shop/my-orders" as any)}
+            style={[s.cartBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <Ionicons name="receipt-outline" size={20} color={colors.text} />
+          </TouchableOpacity>
+          {cartCount > 0 && (
+            <View style={[s.cartBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Ionicons name="bag-outline" size={20} color={colors.text} />
+              <View style={[s.cartBadge, { backgroundColor: accent }]}>
+                <Text style={s.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
+              </View>
             </View>
-          </View>
-        )}
+          )}
+        </View>
       </View>
 
       {/* Search */}
