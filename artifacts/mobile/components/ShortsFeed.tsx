@@ -848,11 +848,7 @@ export default function ShortsFeed({
 
   async function toggleLike(postId: string, currentlyLiked: boolean) {
     if (!user) { router.push("/(auth)/login" as any); return; }
-    if (currentlyLiked) {
-      await supabase.from("post_acknowledgments").delete().eq("post_id", postId).eq("user_id", user.id);
-    } else {
-      await supabase.from("post_acknowledgments").insert({ post_id: postId, user_id: user.id });
-    }
+    // Optimistic update — flip instantly
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
@@ -860,6 +856,30 @@ export default function ShortsFeed({
           : p,
       ),
     );
+    if (currentlyLiked) {
+      const { error } = await supabase.from("post_acknowledgments").delete().eq("post_id", postId).eq("user_id", user.id);
+      if (error) {
+        // Revert on failure
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p
+          )
+        );
+      }
+    } else {
+      const { error } = await supabase.from("post_acknowledgments").upsert(
+        { post_id: postId, user_id: user.id },
+        { onConflict: "post_id,user_id", ignoreDuplicates: true }
+      );
+      if (error) {
+        // Revert on failure
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p
+          )
+        );
+      }
+    }
   }
 
   async function toggleBookmark(postId: string, currentlyBookmarked: boolean) {
