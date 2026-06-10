@@ -1722,23 +1722,33 @@ export default function DiscoverScreen() {
     if (postId.startsWith("org_")) {
       const realId = postId.slice(4);
       if (post.liked) {
+        // Optimistic update
+        setPosts((prev) =>
+          prev.map((p) => p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p)
+        );
         const { error } = await supabase
           .from("organization_page_posts")
           .update({ likes: Math.max(0, post.likeCount - 1) })
           .eq("id", realId);
-        if (!error) {
+        if (error) {
+          // Revert on failure
           setPosts((prev) =>
-            prev.map((p) => p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p)
+            prev.map((p) => p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p)
           );
         }
       } else {
+        // Optimistic update
+        setPosts((prev) =>
+          prev.map((p) => p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p)
+        );
         const { error } = await supabase
           .from("organization_page_posts")
           .update({ likes: post.likeCount + 1 })
           .eq("id", realId);
-        if (!error) {
+        if (error) {
+          // Revert on failure
           setPosts((prev) =>
-            prev.map((p) => p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p)
+            prev.map((p) => p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p)
           );
         }
       }
@@ -1746,32 +1756,42 @@ export default function DiscoverScreen() {
     }
 
     if (post.liked) {
+      // Optimistic update — flip instantly
+      setPosts((prev) =>
+        prev.map((p) => p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p)
+      );
       const { error } = await supabase.from("post_acknowledgments").delete().eq("post_id", postId).eq("user_id", user.id);
-      if (!error) {
-        setPosts((prev) =>
-          prev.map((p) => p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p)
-        );
-      }
-    } else {
-      const { error } = await supabase.from("post_acknowledgments").upsert({ post_id: postId, user_id: user.id }, { onConflict: "post_id,user_id", ignoreDuplicates: true });
-      if (!error) {
+      if (error) {
+        // Revert on failure
         setPosts((prev) =>
           prev.map((p) => p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p)
         );
-        const content = [post.content, post.article_title].filter(Boolean).join(" ");
-        recordInteraction(content, "like").then(async () => {
-          learnedWeightsRef.current = await getMergedLearnedWeights();
+      }
+    } else {
+      // Optimistic update — flip instantly
+      setPosts((prev) =>
+        prev.map((p) => p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p)
+      );
+      const content = [post.content, post.article_title].filter(Boolean).join(" ");
+      recordInteraction(content, "like").then(async () => {
+        learnedWeightsRef.current = await getMergedLearnedWeights();
+      });
+      trackEvent("like_post", { post_id: postId, author_id: post.author_id });
+      if (post.author_id !== user.id) {
+        notifyPostLike({
+          postAuthorId: post.author_id,
+          likerName: profile?.display_name || "Someone",
+          likerUserId: user.id,
+          postId,
         });
-        trackEvent("like_post", { post_id: postId, author_id: post.author_id });
-        if (post.author_id !== user.id) {
-          notifyPostLike({
-            postAuthorId: post.author_id,
-            likerName: profile?.display_name || "Someone",
-            likerUserId: user.id,
-            postId,
-          });
-        }
-        try { const { rewardXp } = await import("../../lib/rewardXp"); rewardXp("post_liked"); } catch (_) {}
+      }
+      try { const { rewardXp } = await import("../../lib/rewardXp"); rewardXp("post_liked"); } catch (_) {}
+      const { error } = await supabase.from("post_acknowledgments").upsert({ post_id: postId, user_id: user.id }, { onConflict: "post_id,user_id", ignoreDuplicates: true });
+      if (error) {
+        // Revert on failure
+        setPosts((prev) =>
+          prev.map((p) => p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p)
+        );
       }
     }
   }, [user, profile, postsRef]);
