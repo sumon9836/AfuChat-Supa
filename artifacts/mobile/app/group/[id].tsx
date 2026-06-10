@@ -23,6 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { supabase } from "@/lib/supabase";
 import { uploadToStorage } from "@/lib/mediaUpload";
@@ -80,7 +81,25 @@ function BottomSheet({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const { isDesktop } = useIsDesktop();
   if (!visible) return null;
+
+  if (Platform.OS === "web" && isDesktop) {
+    return (
+      <Modal transparent animationType="fade" onRequestClose={onClose}>
+        <TouchableOpacity
+          style={bsDesktop.backdrop}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={bsDesktop.popup}>{children}</View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    );
+  }
+
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={bs.overlay} activeOpacity={1} onPress={onClose} />
@@ -102,6 +121,35 @@ const bs = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 40,
     maxHeight: "80%",
+  },
+});
+
+const bsDesktop = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+  popup: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    width: "100%",
+    maxWidth: 480,
+    paddingTop: 8,
+    paddingBottom: 24,
+    maxHeight: "80vh" as any,
+    ...Platform.select({
+      web: { boxShadow: "0 8px 40px rgba(0,0,0,0.25)", overflowY: "auto" } as any,
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 12,
+      },
+    }),
   },
 });
 

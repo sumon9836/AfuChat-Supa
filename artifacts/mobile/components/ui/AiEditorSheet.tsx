@@ -28,6 +28,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import {
   aiTransformTone,
   aiFixText,
@@ -211,6 +212,13 @@ export default function AiEditorSheet({
 
   const hasResult = !!result && !loading;
   const sheetH = Math.min(winH * 0.72, 560);
+  const { isDesktop } = useIsDesktop();
+  const isDesktopWeb = Platform.OS === "web" && isDesktop;
+
+  const animStyle = isDesktopWeb ? {} : { transform: [{ translateY: sheetTranslateY }] };
+  const sheetRadius = isDesktopWeb
+    ? { borderRadius: 16, borderWidth: 0.5, borderColor: (colors.border as string) + "80", pointerEvents: "none" }
+    : { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderTopWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: (colors.border as string) + "80", pointerEvents: "none" };
 
   return (
     <Modal
@@ -220,19 +228,26 @@ export default function AiEditorSheet({
       onRequestClose={dismissSheet}
       statusBarTranslucent
     >
-      <Pressable style={s.backdrop} onPress={dismissSheet}>
-        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
+      <Pressable
+        style={isDesktopWeb ? [s.backdrop, s.backdropDesktop] : s.backdrop}
+        onPress={dismissSheet}
+      >
+        <Animated.View style={animStyle}>
         <Pressable
           onPress={() => {}}
-          style={[s.sheet, {
-            backgroundColor: colors.backgroundSecondary ?? (colors.background as string),
-            paddingBottom: Math.max(insets.bottom, 16),
-            height: sheetH,
-          }]}
+          style={[
+            s.sheet,
+            isDesktopWeb ? s.sheetDesktop : undefined,
+            {
+              backgroundColor: colors.backgroundSecondary ?? (colors.background as string),
+              paddingBottom: isDesktopWeb ? 16 : Math.max(insets.bottom, 16),
+              height: sheetH,
+            },
+          ]}
         >
-          <View style={[StyleSheet.absoluteFill, { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderTopWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: (colors.border as string) + "80", pointerEvents: "none" } as any]} />
+          <View style={[StyleSheet.absoluteFill, sheetRadius as any]} />
 
-          <View {...sheetPan.panHandlers} style={s.handle} />
+          {!isDesktopWeb && <View {...sheetPan.panHandlers} style={s.handle} />}
 
           <View style={s.header}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -383,9 +398,27 @@ const s = StyleSheet.create({
   backdrop: {
     flex: 1, backgroundColor: "rgba(0,0,0,0.52)", justifyContent: "flex-end",
   },
+  backdropDesktop: {
+    justifyContent: "center", alignItems: "center", padding: 32,
+  },
   sheet: {
     borderTopLeftRadius: 22, borderTopRightRadius: 22, overflow: "hidden",
     paddingHorizontal: 0,
+  },
+  sheetDesktop: {
+    borderRadius: 16,
+    width: "100%",
+    maxWidth: 560,
+    ...Platform.select({
+      web: { boxShadow: "0 12px 48px rgba(0,0,0,0.30)" } as any,
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 24,
+        elevation: 16,
+      },
+    }),
   },
   handle: {
     width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(128,128,128,0.3)",

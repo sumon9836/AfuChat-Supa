@@ -1119,16 +1119,29 @@ export default function ContactProfileScreen() {
       <Modal
         visible={optionsVisible}
         transparent
-        animationType="slide"
+        animationType={Platform.OS === "web" && isDesktop ? "fade" : "slide"}
         statusBarTranslucent
         onRequestClose={() => setOptionsVisible(false)}
       >
         <TouchableOpacity
-          style={st.optionsBackdrop}
+          style={[st.optionsBackdrop, Platform.OS === "web" && isDesktop ? { justifyContent: "center", alignItems: "center" } : undefined]}
           activeOpacity={1}
           onPress={() => setOptionsVisible(false)}
         />
-        <View style={[st.optionsSheet, { backgroundColor: colors.background, paddingBottom: insets.bottom + 8 }]}>
+        <View style={[
+          st.optionsSheet,
+          { backgroundColor: colors.background, paddingBottom: insets.bottom + 8 },
+          Platform.OS === "web" && isDesktop ? {
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: [{ translateX: "-50%" as any }, { translateY: "-50%" as any }],
+            bottom: undefined,
+            width: 400,
+            borderRadius: 20,
+            maxHeight: "80vh" as any,
+          } : undefined,
+        ]}>
           {/* Handle bar */}
           <View style={[st.optionsHandle, { backgroundColor: colors.border }]} />
 

@@ -23,7 +23,8 @@ import { getSoundMode, setSoundMode, playNotificationSound, SoundMode } from "@/
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { patchLocalSetting } from "@/lib/storage/localSettings";
-import { BottomSheetContainer, SHEET_OVERLAY_STYLE } from "@/components/ui/BottomSheetContainer";
+import { BottomSheetContainer, SHEET_OVERLAY_STYLE, DESKTOP_OVERLAY_STYLE } from "@/components/ui/BottomSheetContainer";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -245,6 +246,7 @@ interface TimePickerSheetProps {
 function TimePickerSheet({ visible, label, value, onConfirm, onClose }: TimePickerSheetProps) {
   const { colors, accent } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useIsDesktop();
 
   const parsed = parse24(value);
 
@@ -276,9 +278,12 @@ function TimePickerSheet({ visible, label, value, onConfirm, onClose }: TimePick
 
   const COLUMN_W = 64;
 
+  const overlayStyle = Platform.OS === "web" && isDesktop ? DESKTOP_OVERLAY_STYLE : SHEET_OVERLAY_STYLE;
+  const animType = Platform.OS === "web" && isDesktop ? "fade" : "slide";
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={[SHEET_OVERLAY_STYLE, { backgroundColor: "rgba(0,0,0,0.5)" }]} onPress={onClose}>
+    <Modal visible={visible} transparent animationType={animType} onRequestClose={onClose}>
+      <Pressable style={[overlayStyle, { backgroundColor: "rgba(0,0,0,0.5)" }]} onPress={onClose}>
         <Pressable onPress={() => {}}>
           <BottomSheetContainer backgroundColor={colors.surface}>
             <View style={[tps.inner, { paddingBottom: insets.bottom + 16 }]}>

@@ -11,6 +11,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import {
   ActivityIndicator,
   Animated,
@@ -872,7 +873,140 @@ export function VideoCommentsSheet({
   const listMaxH = Math.max(sheetMaxH - 230 - mediaBarH - Math.max(insets.bottom, 16), 80);
 
   const canSend = !sending && (text.trim().length > 0 || (recordState === "recorded" && !!recordedUri) || !!attachedImage);
+  const { isDesktop } = useIsDesktop();
+  const isDesktopWeb = Platform.OS === "web" && isDesktop;
 
+  // ─── Desktop: right-side panel ────────────────────────────────────────────
+  if (isDesktopWeb) {
+    return (
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+        <View style={{ flex: 1, flexDirection: "row" }}>
+          <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} onPress={onClose} />
+          <View style={dpStyles.panel}>
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111115" }]} />
+            <View style={cStyles.header}>
+              <View style={{ flex: 1 }}>
+                <Text style={cStyles.title}>
+                  Comments{replies.length > 0 && <Text style={cStyles.titleCount}> {formatCount(replies.length)}</Text>}
+                </Text>
+              </View>
+              <View style={cStyles.sortRow}>
+                {(["recent", "top"] as const).map((mode) => (
+                  <TouchableOpacity key={mode} onPress={() => setSortMode(mode)} activeOpacity={0.7}
+                    style={[cStyles.sortTab, sortMode === mode && { backgroundColor: accent + "22", borderColor: accent + "55" }]}>
+                    <Text style={[cStyles.sortTabText, { color: sortMode === mode ? accent : "rgba(255,255,255,0.45)" }]}>
+                      {mode === "recent" ? "Recent" : "Top"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity onPress={onClose} hitSlop={12}>
+                <Ionicons name="close" size={22} color="rgba(255,255,255,0.5)" />
+              </TouchableOpacity>
+            </View>
+            <View style={{ height: 0.5, backgroundColor: "rgba(255,255,255,0.1)" }} />
+            {loading ? (
+              <View style={{ padding: 32, alignItems: "center" }}><ActivityIndicator color={accent} /></View>
+            ) : sortedTree.length === 0 ? (
+              <View style={cStyles.emptyBox}>
+                <Ionicons name="chatbubble-outline" size={32} color="rgba(255,255,255,0.2)" />
+                <Text style={cStyles.emptyText}>No comments yet</Text>
+                <Text style={cStyles.emptySub}>Be the first to comment</Text>
+              </View>
+            ) : (
+              <FlatList
+                ref={listRef}
+                data={sortedTree}
+                keyExtractor={(r) => r.id}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item: r }) => (
+                  <VideoReplyItem
+                    reply={r} depth={0} onReplyTo={handleReplyTo}
+                    isCreator={r.author_id === postAuthorId}
+                    isNew={newCommentIds.has(r.id)} accent={accent}
+                    likedSet={likedIds} onLike={handleReplyLike}
+                  />
+                )}
+              />
+            )}
+            {replyingTo && (
+              <View style={[cStyles.replyingTo, { borderTopColor: "rgba(255,255,255,0.08)" }]}>
+                <Text style={cStyles.replyingToText}>
+                  Replying to <Text style={{ color: accent }}>@{replyingTo.profile.handle}</Text>
+                </Text>
+                <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8}>
+                  <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={[cStyles.emojiBar, { borderTopColor: "rgba(255,255,255,0.08)" }]}>
+              {QUICK_EMOJIS.map((e) => (
+                <TouchableOpacity key={e} onPress={() => setText((t) => t + e)} style={cStyles.emojiBtn} activeOpacity={0.6}>
+                  <Text style={cStyles.emojiText}>{e}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {user ? (
+              <View style={[cStyles.inputRow, { borderTopColor: "rgba(255,255,255,0.08)" }]}>
+                <Avatar uri={profile?.avatar_url} name={profile?.display_name || "You"} size={32} />
+                <View style={{ flex: 1, position: "relative" }}>
+                  <TextInput
+                    ref={inputRef}
+                    style={cStyles.input}
+                    placeholder="Add a comment…"
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    value={text}
+                    onChangeText={setText}
+                    multiline
+                    maxLength={500}
+                  />
+                  {text.length > 400 && (
+                    <Text style={[cStyles.charCounter, { color: 500 - text.length < 20 ? "#FF453A" : "rgba(255,255,255,0.3)" }]}>
+                      {500 - text.length}
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  onPress={pickImage}
+                  activeOpacity={0.7}
+                  style={[cStyles.attachBtn, attachedImage && { backgroundColor: accent + "30" }]}
+                  hitSlop={6}
+                >
+                  <Ionicons name="image-outline" size={20} color={attachedImage ? accent : "rgba(255,255,255,0.45)"} />
+                </TouchableOpacity>
+                <Animated.View style={{ transform: [{ scale: sendScale }] }}>
+                  <TouchableOpacity
+                    onPress={sendReply}
+                    disabled={!canSend}
+                    style={[cStyles.sendBtn, { backgroundColor: canSend ? accent : "rgba(255,255,255,0.12)" }]}
+                  >
+                    {sending
+                      ? <ActivityIndicator size={14} color="#fff" />
+                      : <Ionicons name="arrow-up" size={16} color="#fff" />
+                    }
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={{ paddingVertical: 14, alignItems: "center" }}
+                onPress={() => { onClose(); router.push("/(auth)/login"); }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, borderWidth: 1, borderColor: accent + "50", backgroundColor: accent + "18" }}>
+                  <Ionicons name="person-circle-outline" size={16} color={accent} />
+                  <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: accent }}>Sign in to comment</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
+  // ─── Mobile: original bottom sheet (untouched) ────────────────────────────
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={dismissSheet} statusBarTranslucent>
       <View style={cStyles.kavFull}>
@@ -1060,6 +1194,19 @@ export function VideoCommentsSheet({
     </Modal>
   );
 }
+
+const dpStyles = StyleSheet.create({
+  panel: {
+    width: 420,
+    height: "100%" as any,
+    overflow: "hidden",
+    flexDirection: "column",
+    ...Platform.select({
+      web: { boxShadow: "-4px 0 24px rgba(0,0,0,0.4)" } as any,
+      default: {},
+    }),
+  },
+});
 
 const cStyles = StyleSheet.create({
   kavFull: { flex: 1 },

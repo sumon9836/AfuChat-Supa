@@ -28,8 +28,9 @@
  */
 
 import React from "react";
-import { StyleSheet, View, ViewStyle } from "react-native";
+import { Platform, StyleSheet, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 export const SHEET_EDGE_GAP = 8;
 export const SHEET_BORDER_RADIUS = 20;
@@ -47,6 +48,22 @@ export function BottomSheetContainer({
   style,
   backgroundColor,
 }: Props) {
+  const { isDesktop } = useIsDesktop();
+
+  if (Platform.OS === "web" && isDesktop) {
+    return (
+      <View
+        style={[
+          styles.desktopCard,
+          backgroundColor ? { backgroundColor } : undefined,
+          style,
+        ]}
+      >
+        {children}
+      </View>
+    );
+  }
+
   return (
     <View
       style={[
@@ -62,7 +79,8 @@ export function BottomSheetContainer({
 
 /**
  * Convenience style object for the transparent backdrop / overlay.
- * Spread this into your own StyleSheet overlay definition.
+ * On desktop, use DESKTOP_OVERLAY_STYLE to center the popup instead of
+ * anchoring to the bottom.
  *
  * Example:
  *   overlay: { ...SHEET_OVERLAY_STYLE, backgroundColor: "rgba(0,0,0,0.5)" }
@@ -72,10 +90,33 @@ export const SHEET_OVERLAY_STYLE: ViewStyle = {
   justifyContent: "flex-end",
 };
 
+export const DESKTOP_OVERLAY_STYLE: ViewStyle = {
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  padding: 32,
+};
+
 const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: SHEET_BORDER_RADIUS,
     borderTopRightRadius: SHEET_BORDER_RADIUS,
     overflow: "hidden",
+  },
+  desktopCard: {
+    borderRadius: SHEET_BORDER_RADIUS,
+    overflow: "hidden",
+    width: "100%",
+    maxWidth: 500,
+    ...Platform.select({
+      web: { boxShadow: "0 8px 40px rgba(0,0,0,0.28)" } as any,
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.28,
+        shadowRadius: 24,
+        elevation: 16,
+      },
+    }),
   },
 });

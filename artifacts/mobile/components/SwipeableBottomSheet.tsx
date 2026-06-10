@@ -4,10 +4,15 @@ import {
   Dimensions,
   Modal,
   PanResponder,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 const SCREEN_H = Dimensions.get("window").height;
 const CLOSE_THRESHOLD = 100;
@@ -20,6 +25,8 @@ interface Props {
   backgroundColor?: string;
   maxHeight?: string | number;
   overlayColor?: string;
+  /** Optional max width for the desktop popup card (default 520) */
+  desktopMaxWidth?: number;
 }
 
 export default function SwipeableBottomSheet({
@@ -29,7 +36,47 @@ export default function SwipeableBottomSheet({
   backgroundColor,
   maxHeight = "85%",
   overlayColor,
+  desktopMaxWidth = 520,
 }: Props) {
+  const { isDesktop } = useIsDesktop();
+
+  // ─── Desktop: centered popup modal ────────────────────────────────────────
+  if (Platform.OS === "web" && isDesktop) {
+    const popupBg = backgroundColor ?? "#1a1a1a";
+    if (!visible) return null;
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}
+        statusBarTranslucent
+      >
+        <Pressable style={ds.backdrop} onPress={onClose}>
+          <Pressable
+            onPress={() => {}}
+            style={[ds.popup, { backgroundColor: popupBg, maxWidth: desktopMaxWidth }]}
+          >
+            <View style={ds.header}>
+              <TouchableOpacity onPress={onClose} style={ds.closeBtn} hitSlop={8}>
+                <Ionicons name="close" size={20} color="rgba(180,180,180,0.9)" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              style={{ maxHeight: "80vh" as any }}
+              contentContainerStyle={{ flexGrow: 1 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {children}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    );
+  }
+
+  // ─── Mobile: original swipeable bottom sheet (untouched) ──────────────────
   const mobileBg = backgroundColor ?? "rgba(18,22,28,0.96)";
   const mobileOverlay = overlayColor ?? "rgba(0,0,0,0.5)";
 
@@ -68,11 +115,11 @@ export default function SwipeableBottomSheet({
 
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={dismissMobile}>
-      <View style={styles.overlay}>
+      <View style={ms.overlay}>
         <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: mobileOverlay }]} onPress={dismissMobile} />
         <Animated.View
           style={[
-            styles.sheet,
+            ms.sheet,
             { maxHeight: maxHeight as any, transform: [{ translateY }] },
           ]}
         >
@@ -86,18 +133,61 @@ export default function SwipeableBottomSheet({
               },
             ]}
           />
-          <View style={[styles.sheetBorder, { pointerEvents: "none" } as any]} />
-          <View {...panResponder.panHandlers} style={styles.handleArea}>
-            <View style={styles.handle} />
+          <View style={[ms.sheetBorder, { pointerEvents: "none" } as any]} />
+          <View {...panResponder.panHandlers} style={ms.handleArea}>
+            <View style={ms.handle} />
           </View>
-          <View style={styles.sheetContent}>{children}</View>
+          <View style={ms.sheetContent}>{children}</View>
         </Animated.View>
       </View>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
+// ─── Desktop styles ────────────────────────────────────────────────────────────
+const ds = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.60)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+  popup: {
+    width: "100%",
+    borderRadius: 16,
+    overflow: "hidden",
+    ...Platform.select({
+      web: { boxShadow: "0 12px 48px rgba(0,0,0,0.35)" } as any,
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 24,
+        elevation: 16,
+      },
+    }),
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 4,
+  },
+  closeBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(128,128,128,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
+
+// ─── Mobile styles (original, untouched) ──────────────────────────────────────
+const ms = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden" },
   sheetBorder: {
@@ -108,7 +198,6 @@ const styles = StyleSheet.create({
     height: 1,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    
     borderLeftWidth: 0.5,
     borderRightWidth: 0.5,
     borderColor: "rgba(255,255,255,0.10)",
