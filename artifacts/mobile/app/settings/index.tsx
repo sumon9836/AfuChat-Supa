@@ -17,28 +17,26 @@ import * as Haptics from "@/lib/haptics";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useAppAccent } from "@/context/AppAccentContext";
+import { ACCENT_SWATCHES, CHAT_THEME_COLORS } from "@/context/ChatPreferencesContext";
 import { showAlert } from "@/lib/alert";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { GlassMenuSection, GlassMenuItem, GlassMenuSeparator } from "@/components/ui/GlassMenuItem";
 import { Avatar } from "@/components/ui/Avatar";
 
-const THEME_LABELS: Record<string, string> = { dark: "Dark", light: "Light", system: "System" };
-const THEME_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]> = {
-  dark: "moon", light: "sunny", system: "phone-portrait-outline",
-};
+const MODE_OPTIONS = [
+  { key: "light"  as const, label: "Light",  icon: "sunny"                  as const },
+  { key: "system" as const, label: "System", icon: "phone-portrait-outline"  as const },
+  { key: "dark"   as const, label: "Dark",   icon: "moon"                   as const },
+];
 
 export default function SettingsScreen() {
   const { colors, themeMode, setThemeMode, accent } = useTheme();
+  const { appTheme, setAppTheme } = useAppAccent();
   const { langLabel } = useLanguage();
   const { user, profile, isPremium, linkedAccounts, switchAccount, signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const [switchingId, setSwitchingId] = useState<string | null>(null);
-
-  function cycleTheme() {
-    const next = themeMode === "dark" ? "light" : themeMode === "light" ? "system" : "dark";
-    Haptics.selectionAsync();
-    setThemeMode(next);
-  }
 
   async function handleSwitch(userId: string) {
     if (userId === user?.id || switchingId) return;
@@ -150,7 +148,7 @@ export default function SettingsScreen() {
               </View>
             );
           })}
-          
+
           <TouchableOpacity
             style={styles.manageRow}
             onPress={() => router.push("/linked-accounts")}
@@ -165,15 +163,74 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </GlassMenuSection>
 
+        {/* ── THEME & APPEARANCE ────────────────────────────────────────── */}
+        <GlassMenuSection title="THEME & APPEARANCE">
+
+          {/* Mode selector */}
+          <View style={styles.modeRow}>
+            {MODE_OPTIONS.map(({ key, label, icon }) => {
+              const active = themeMode === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.modeBtn,
+                    {
+                      backgroundColor: active ? accent : colors.backgroundSecondary,
+                      borderColor: active ? accent : colors.border,
+                    },
+                  ]}
+                  onPress={() => { Haptics.selectionAsync(); setThemeMode(key); }}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name={icon} size={15} color={active ? "#fff" : colors.textMuted} />
+                  <Text style={[styles.modeBtnText, { color: active ? "#fff" : colors.textMuted }]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Accent label row */}
+          <View style={[styles.accentLabelRow, { borderTopColor: colors.border }]}>
+            <Text style={[styles.accentLabelText, { color: colors.textSecondary }]}>Accent Color</Text>
+            <View style={[styles.accentPreview, { backgroundColor: accent }]} />
+          </View>
+
+          {/* Colour swatches */}
+          <View style={styles.swatchGrid}>
+            {ACCENT_SWATCHES.map(({ key, label }) => {
+              const color = CHAT_THEME_COLORS[key]?.accent ?? "#1f95ff";
+              const selected = appTheme === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => { Haptics.selectionAsync(); setAppTheme(key); }}
+                  activeOpacity={0.8}
+                  style={styles.swatchWrap}
+                >
+                  <View
+                    style={[
+                      styles.swatch,
+                      { backgroundColor: color },
+                      selected && styles.swatchSelected,
+                    ]}
+                  >
+                    {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                  </View>
+                  <Text style={[styles.swatchLabel, { color: selected ? accent : colors.textMuted }]} numberOfLines={1}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+        </GlassMenuSection>
+
         {/* ── PREFERENCES ─────────────────────────────────────────────── */}
         <GlassMenuSection title="PREFERENCES">
-          <GlassMenuItem
-            icon={THEME_ICONS[themeMode] ?? "phone-portrait-outline"}
-            label="Appearance"
-            value={THEME_LABELS[themeMode] ?? "System"}
-            onPress={cycleTheme}
-          />
-          <GlassMenuSeparator />
           <GlassMenuItem
             icon="language-outline"
             label="Language"
@@ -216,7 +273,7 @@ export default function SettingsScreen() {
           <GlassMenuItem
             icon="flash-outline"
             label="Advanced Features"
-            subtitle="Colour theme, presence, chat and power settings"
+            subtitle="Power settings, chat and feed customisation"
             onPress={() => router.push("/advanced-features" as any)}
           />
         </GlassMenuSection>
@@ -326,4 +383,34 @@ const styles = StyleSheet.create({
   separator: { height: 0 },
   manageRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 12 },
   manageText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
+
+  modeRow: { flexDirection: "row", gap: 8, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
+  modeBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 10, borderRadius: 12, borderWidth: 1,
+  },
+  modeBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+
+  accentLabelRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  accentLabelText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  accentPreview: { width: 20, height: 20, borderRadius: 10 },
+
+  swatchGrid: {
+    flexDirection: "row", flexWrap: "wrap",
+    paddingHorizontal: 14, paddingBottom: 16, gap: 10,
+  },
+  swatchWrap: { alignItems: "center", gap: 4, width: 44 },
+  swatch: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: "center", justifyContent: "center",
+  },
+  swatchSelected: {
+    borderWidth: 3, borderColor: "rgba(255,255,255,0.9)",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25, shadowRadius: 4,
+  },
+  swatchLabel: { fontSize: 9.5, fontFamily: "Inter_500Medium", textAlign: "center" },
 });

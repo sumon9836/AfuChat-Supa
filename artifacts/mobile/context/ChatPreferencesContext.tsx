@@ -12,7 +12,11 @@ const CHAT_PREF_TO_LOCAL: Partial<Record<string, string>> = {
 
 const APP_ACCENT_KEY = "app_color_theme";
 
-export type ChatTheme = "Teal" | "Blue" | "Purple" | "Rose" | "Amber" | "Emerald";
+export type ChatTheme =
+  | "Teal" | "Blue" | "Green" | "Purple" | "Red"
+  | "Orange" | "Pink" | "Cyan" | "RealTeal" | "Indigo"
+  | "Emerald" | "Gold";
+
 export type BubbleStyle = "Rounded" | "Sharp" | "Minimal";
 export type MediaQuality = "Auto" | "High" | "Low";
 
@@ -33,14 +37,37 @@ export type ChatPrefs = {
   chat_backup: boolean;
 };
 
-export const CHAT_THEME_COLORS: Record<ChatTheme, { bubble: string; bubbleText: string; accent: string }> = {
-  Teal:    { bubble: "#1f95ff", bubbleText: "#fff", accent: "#1f95ff" },
-  Blue:    { bubble: "#007AFF", bubbleText: "#fff", accent: "#007AFF" },
-  Purple:  { bubble: "#AF52DE", bubbleText: "#fff", accent: "#AF52DE" },
-  Rose:    { bubble: "#FF2D55", bubbleText: "#fff", accent: "#FF2D55" },
-  Amber:   { bubble: "#FF9500", bubbleText: "#fff", accent: "#FF9500" },
-  Emerald: { bubble: "#34C759", bubbleText: "#fff", accent: "#34C759" },
+export const CHAT_THEME_COLORS: Record<string, { bubble: string; bubbleText: string; accent: string }> = {
+  Teal:     { bubble: "#1f95ff", bubbleText: "#fff", accent: "#1f95ff" },
+  Blue:     { bubble: "#007AFF", bubbleText: "#fff", accent: "#007AFF" },
+  Green:    { bubble: "#30D158", bubbleText: "#fff", accent: "#30D158" },
+  Purple:   { bubble: "#AF52DE", bubbleText: "#fff", accent: "#AF52DE" },
+  Red:      { bubble: "#FF3B30", bubbleText: "#fff", accent: "#FF3B30" },
+  Orange:   { bubble: "#FF9500", bubbleText: "#fff", accent: "#FF9500" },
+  Pink:     { bubble: "#FF375F", bubbleText: "#fff", accent: "#FF375F" },
+  Cyan:     { bubble: "#32ADE6", bubbleText: "#fff", accent: "#32ADE6" },
+  RealTeal: { bubble: "#0DD3BB", bubbleText: "#fff", accent: "#0DD3BB" },
+  Indigo:   { bubble: "#5856D6", bubbleText: "#fff", accent: "#5856D6" },
+  Emerald:  { bubble: "#34C759", bubbleText: "#fff", accent: "#34C759" },
+  Gold:     { bubble: "#D4A853", bubbleText: "#fff", accent: "#D4A853" },
+  Rose:     { bubble: "#FF375F", bubbleText: "#fff", accent: "#FF375F" },
+  Amber:    { bubble: "#FF9500", bubbleText: "#fff", accent: "#FF9500" },
 };
+
+export const ACCENT_SWATCHES: { key: ChatTheme; label: string }[] = [
+  { key: "Teal",     label: "AfuChat"  },
+  { key: "Blue",     label: "Blue"     },
+  { key: "Green",    label: "Green"    },
+  { key: "Purple",   label: "Purple"   },
+  { key: "Red",      label: "Red"      },
+  { key: "Orange",   label: "Orange"   },
+  { key: "Pink",     label: "Pink"     },
+  { key: "Cyan",     label: "Cyan"     },
+  { key: "RealTeal", label: "Teal"     },
+  { key: "Indigo",   label: "Indigo"   },
+  { key: "Emerald",  label: "Emerald"  },
+  { key: "Gold",     label: "Gold"     },
+];
 
 export const BUBBLE_RADIUS: Record<BubbleStyle, number> = {
   Rounded: 18,
@@ -70,7 +97,7 @@ type ChatPrefsContextType = {
   loading: boolean;
   updatePref: <K extends keyof ChatPrefs>(key: K, value: ChatPrefs[K]) => Promise<void>;
   reload: () => Promise<void>;
-  themeColors: typeof CHAT_THEME_COLORS[ChatTheme];
+  themeColors: typeof CHAT_THEME_COLORS[string];
   bubbleRadius: number;
 };
 
@@ -109,11 +136,9 @@ export function ChatPreferencesProvider({ children }: { children: React.ReactNod
     setPrefs((p) => ({ ...p, [key]: value }));
     if (key === "chat_theme") AsyncStorage.setItem(APP_ACCENT_KEY, value as string).catch(() => {});
     if (!user) return;
-    // Mirror certain prefs to local settings for offline-first access
     const localKey = CHAT_PREF_TO_LOCAL[key as string];
     if (localKey) {
       let localVal: any = value;
-      // Map boolean auto_download → string enum expected by localSettings
       if (key === "auto_download") localVal = (value as boolean) ? "wifi_only" : "never";
       patchLocalSetting(user.id, localKey as any, localVal).catch(() => {});
     }
