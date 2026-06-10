@@ -370,6 +370,10 @@ export default function HandleScreen() {
     return () => clearTimeout(timeout);
   }, [dataReady, session, profileNotFound, isAtHandle]);
 
+  // While auth state is loading, render nothing — prevents flashing the public
+  // profile screen for a logged-in user before session hydrates.
+  if (authLoading) return null;
+
   // Logged-in user — never show the splash; render transparent and navigate
   // as soon as the profile ID is resolved (contact page shows its own skeleton).
   if (session) {
