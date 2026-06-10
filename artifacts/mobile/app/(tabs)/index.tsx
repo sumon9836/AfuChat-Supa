@@ -706,7 +706,7 @@ async function findOrCreateNotesChatId(userId: string): Promise<string | null> {
  */
 export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; onOpenChat?: (item: ChatItem, chatId: string) => void } = {}) {
   const { colors, isDark } = useTheme();
-  const { user, profile, linkedAccounts, switchAccount } = useAuth();
+  const { user, profile, linkedAccounts, switchAccount, loading: authLoading } = useAuth();
   const unreadNotifs = useUnreadNotifCount(user?.id);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -1607,9 +1607,14 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
     : filtered;
 
   if (!user) {
-    if (panelMode) {
-      // Inside the desktop master-detail panel — keep the layout intact and
-      // show a tasteful "sign in" placeholder instead of redirecting.
+    // Auth is still resolving — don't redirect yet. Avoids a race on desktop
+    // where ChatsScreen mounts before the auth context has set the user.
+    if (authLoading) return null;
+
+    if (panelMode || isDesktop) {
+      // Inside the desktop master-detail panel (or any desktop context) — keep
+      // the layout intact and show a tasteful "sign in" placeholder instead of
+      // redirecting to Discover and breaking the desktop shell layout.
       return (
         <View style={[styles.root, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center", padding: 24 }]}>
           <AfuLogo size={88} />
@@ -1617,7 +1622,7 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
         </View>
       );
     }
-    // Chats are private — gate behind auth. Send anyone without a session to discover.
+    // Mobile / non-desktop only — safe to redirect away to discover.
     return <Redirect href="/discover" />;
   }
 
