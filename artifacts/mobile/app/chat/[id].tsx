@@ -1322,23 +1322,21 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                   const _fontSize  = chatPrefsLocal?.font_size ?? 14;
                   const _lineH     = _fontSize + 5;
                   const _timeStr   = formatMsgTime(msg.sent_at);
-                  // Reserve space for the absolute-positioned timestamp using paddingRight
-                  // on all platforms. The ghost-text approach (opacity/transparent inline
-                  // <Text>) leaks through as visible text on Android, causing a duplicate.
-                  // paddingRight on every line is a small trade-off vs a visible duplicate.
-                  const _paddingRight = (msg.edited_at ? 40 : 0) + (isMe ? 78 : 58);
+                  // paddingBottom reserves a dedicated row at the bottom of the text for
+                  // the absolute-positioned timestamp — text stays full-width on every line.
+                  const _tsWidth = (msg.edited_at ? 38 : 0) + (isMe ? 72 : 52);
                   return (
                     <>
-                      <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
+                      <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9} style={{ minWidth: _tsWidth + 16 }}>
                         <RichText
-                          style={[st.bubbleText, { color: textColor, fontSize: _fontSize, lineHeight: _lineH, paddingRight: _paddingRight }]}
+                          style={[st.bubbleText, { color: textColor, fontSize: _fontSize, lineHeight: _lineH, paddingBottom: 18 }]}
                           linkColor={isMe ? "#FFFFFF" : BRAND}
                           selectable={true}
                         >
                           {displayText}
                         </RichText>
                       </TouchableOpacity>
-                      {/* Real timestamp floats over the ghost — bottom/right match bubble padding */}
+                      {/* Timestamp sits in the 18px bottom space — never overlaps text */}
                       <View style={[st.metaRow, { position: "absolute", bottom: 4, right: 10 }]}>
                         {msg.edited_at && (
                           <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 3 }]}>edited</Text>
