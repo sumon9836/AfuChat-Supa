@@ -1327,6 +1327,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                         color: textColor,
                         fontSize: chatPrefsLocal?.font_size ?? 14,
                         lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5,
+                        paddingRight: 6,
                       }]}
                       linkColor={isMe ? "#FFFFFF" : BRAND}
                       selectable={true}
@@ -1334,7 +1335,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                       {displayText}
                     </RichText>
                   </TouchableOpacity>
-                  <View style={[st.metaRow, { marginLeft: 4, flexShrink: 0, marginBottom: 1 }]}>
+                  <View style={[st.metaRow, { marginLeft: 6, flexShrink: 0, marginBottom: 1 }]}>
                     {msg.edited_at && (
                       <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 3 }]}>edited</Text>
                     )}
