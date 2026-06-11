@@ -1316,18 +1316,18 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
           ) : (
             <>
               {useInlineTimestamp ? (
-                /* Text + timestamp always on the same row, bottom-aligned.
-                   No flexWrap → they never separate onto different lines.
-                   flexShrink:1 on text lets it yield space to the timestamp.
-                   alignItems:"flex-end" → timestamp sits at last-line level. */
-                <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
-                  <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9} style={{ flexShrink: 1 }}>
+                /* Timestamp is absolutely positioned inside the Pressable (bubble).
+                   paddingRight on the text reserves horizontal space on every line
+                   so the floating timestamp never overlaps the text.
+                   This keeps bubble width driven purely by text, never by the timestamp. */
+                <>
+                  <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
                     <RichText
                       style={[st.bubbleText, {
                         color: textColor,
                         fontSize: chatPrefsLocal?.font_size ?? 14,
                         lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5,
-                        paddingRight: 6,
+                        paddingRight: msg.edited_at ? 104 : 72,
                       }]}
                       linkColor={isMe ? "#FFFFFF" : BRAND}
                       selectable={true}
@@ -1335,7 +1335,9 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                       {displayText}
                     </RichText>
                   </TouchableOpacity>
-                  <View style={[st.metaRow, { marginLeft: 6, flexShrink: 0, marginBottom: 1 }]}>
+                  {/* Floats at the bottom-right of the bubble content area.
+                      bottom/right match the bubble's paddingBottom/paddingHorizontal. */}
+                  <View style={[st.metaRow, { position: "absolute", bottom: 4, right: 10 }]}>
                     {msg.edited_at && (
                       <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 3 }]}>edited</Text>
                     )}
@@ -1364,7 +1366,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                       </TouchableOpacity>
                     )}
                   </View>
-                </View>
+                </>
               ) : (
                 <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
                   {msg._isAi
