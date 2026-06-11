@@ -3,7 +3,7 @@
  *
  * Rules:
  *  • /@username  (unauthenticated) → public profile page, fully indexed by Google
- *  • /username   (unauthenticated) → saves referrer_handle silently, then shows public profile
+ *  • /username   (unauthenticated) → referral link: saves referrer_handle → sends to /register
  *  • Any handle + logged-in user  → navigate to /contact/[id] (full in-app profile)
  */
 
@@ -310,6 +310,7 @@ export default function HandleScreen() {
   const isValidHandle = /^[a-zA-Z0-9_]+$/.test(cleanHandle);
 
   useEffect(() => {
+    // For /@username when not logged in, skip DB resolve — PublicProfileScreen handles it.
     if (isAtHandle && !authLoading && !session) return;
     if (!cleanHandle || !isValidHandle) { setDataReady(true); return; }
 
@@ -342,6 +343,7 @@ export default function HandleScreen() {
     if (authLoading) return;
     if (!navigationState?.key) return;
     if (profileNotFound || !cleanHandle || !isValidHandle) return;
+    // /@username without session → shown as public profile, no redirect needed
     if (isAtHandle && !session) return;
 
     hasNavigated.current = true;
@@ -350,11 +352,9 @@ export default function HandleScreen() {
       // Logged-in: go to full contact/profile screen
       if (profileId) safeNavigate("/contact/[id]", { id: profileId });
     } else {
-      // Not logged in: for plain /username (referral link), save referrer silently
-      // but do NOT redirect — the profile is shown publicly below
-      if (!isAtHandle && profileId) {
-        AsyncStorage.setItem("referrer_handle", cleanHandle).catch(() => {});
-      }
+      // Plain /username (referral link): save referrer_handle then send to register
+      AsyncStorage.setItem("referrer_handle", cleanHandle).catch(() => {});
+      safeNavigate("/(auth)/register");
     }
   }, [dataReady, authLoading, navigationState?.key, cleanHandle, isValidHandle, profileId, profileNotFound, session, isAtHandle]);
 
@@ -372,7 +372,10 @@ export default function HandleScreen() {
     return null;
   }
 
-  // Unauthenticated — show public profile for both /@handle and /handle (referral)
+  // Plain /username referral link — render nothing while the redirect fires
+  if (!isAtHandle) return null;
+
+  // /@username — public profile (Google-indexed)
   if (!isValidHandle || (dataReady && profileNotFound)) return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
       <ProfileNotFoundView handle={cleanHandle} />
