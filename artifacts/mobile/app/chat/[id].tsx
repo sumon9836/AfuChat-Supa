@@ -1316,17 +1316,17 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
           ) : (
             <>
               {useInlineTimestamp ? (
-                /* Timestamp always pinned to the right end of the last text line.
-                   paddingRight reserves space so text never runs into the timestamp.
-                   No paddingBottom — bottom:0 anchors the timestamp to the last line. */
-                <View style={{ position: "relative" }}>
-                  <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
+                /* Text + timestamp always on the same row, bottom-aligned.
+                   No flexWrap → they never separate onto different lines.
+                   flexShrink:1 on text lets it yield space to the timestamp.
+                   alignItems:"flex-end" → timestamp sits at last-line level. */
+                <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+                  <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9} style={{ flexShrink: 1 }}>
                     <RichText
                       style={[st.bubbleText, {
                         color: textColor,
                         fontSize: chatPrefsLocal?.font_size ?? 14,
                         lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5,
-                        paddingRight: 62,
                       }]}
                       linkColor={isMe ? "#FFFFFF" : BRAND}
                       selectable={true}
@@ -1334,8 +1334,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                       {displayText}
                     </RichText>
                   </TouchableOpacity>
-                  {/* Always pinned bottom-right — never wraps left */}
-                  <View style={[st.metaRow, { position: "absolute", bottom: 0, right: 0 }]}>
+                  <View style={[st.metaRow, { marginLeft: 4, flexShrink: 0, marginBottom: 1 }]}>
                     {msg.edited_at && (
                       <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 3 }]}>edited</Text>
                     )}
