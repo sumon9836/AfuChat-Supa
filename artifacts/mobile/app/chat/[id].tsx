@@ -1328,9 +1328,12 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                   const _timeStr   = formatMsgTime(msg.sent_at);
                   const _tsWidth = (msg.edited_at ? 38 : 0) + (isMe ? 72 : 52);
                   // Ghost: same color as bubble background → visually invisible on all platforms.
+                  // Content mirrors the real timestamp exactly plus a leading gap ("   ")
+                  // so the last line of text never crowds or overlaps the timestamp.
+                  const _iconPad = isMe ? "      " : "  "; // space for checkmark icon + margins
                   const ghost = (
                     <Text style={{ color: bubbleColor, fontSize: 11, fontFamily: "Inter_400Regular", includeFontPadding: false }}>
-                      {msg.edited_at ? "  edited" : ""}{" "}{_timeStr}{isMe ? "    " : " "}
+                      {"   "}{msg.edited_at ? "edited  " : ""}{_timeStr}{_iconPad}
                     </Text>
                   );
                   return (

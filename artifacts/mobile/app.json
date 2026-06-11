@@ -46,7 +46,10 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.READ_CONTACTS",
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.WRITE_CONTACTS"
       ],
       "intentFilters": [
         {
@@ -82,7 +85,7 @@
           ]
         }
       ],
-      "versionCode": 226
+      "versionCode": 227
     },
     "plugins": [
       [
@@ -186,7 +189,7 @@
     "owner": "afuapp",
     "extra": {
       "eas": {
-        "projectId": "b4af70bc-1c1b-4337-8892-ffcedbaa3742"
+        "projectId": "7efbd70c-e8d4-485d-88a9-d05e3d34f280"
       }
     },
     "ios": {
