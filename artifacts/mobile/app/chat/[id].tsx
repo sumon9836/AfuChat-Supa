@@ -1316,39 +1316,24 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
           ) : (
             <>
               {useInlineTimestamp ? (
-                /* WhatsApp-style inline timestamp:
-                   - A transparent "ghost" spacer is appended inline at the END of the
-                     text via the RichText `tail` prop.  It only pushes the LAST LINE
-                     left — all other lines wrap edge-to-edge with zero wasted space.
-                   - The real timestamp is position:absolute at bottom-right of the bubble,
-                     sitting on top of the ghost.
-                   - No paddingRight on the text, so line 1..n-1 fill the full bubble width. */
+                /* Inline timestamp: paddingRight reserves space on every line for the
+                   absolute-positioned timestamp at bottom-right of the bubble. */
                 (()=>{
                   const _fontSize  = chatPrefsLocal?.font_size ?? 14;
                   const _lineH     = _fontSize + 5;
                   const _timeStr   = formatMsgTime(msg.sent_at);
-                  // On web the opacity:0 ghost leaks through as visible text — use
-                  // paddingRight instead to reserve space on the last line.
-                  const isWeb = Platform.OS === "web";
-                  const webPaddingRight = isWeb
-                    ? (msg.edited_at ? 40 : 0) + (isMe ? 78 : 58)
-                    : 0;
-                  // Ghost: invisible replica of the real timestamp — native only.
-                  // Use color:'transparent' (not opacity:0) — opacity on inline Text nodes
-                  // leaks through on some Android RN versions, making the ghost visible.
-                  const ghost = isWeb ? undefined : (
-                    <Text style={{ color: "transparent", fontSize: 11, fontFamily: "Inter_400Regular", includeFontPadding: false }}>
-                      {msg.edited_at ? "  edited" : ""}{" "}{_timeStr}{isMe ? "    " : " "}
-                    </Text>
-                  );
+                  // Reserve space for the absolute-positioned timestamp using paddingRight
+                  // on all platforms. The ghost-text approach (opacity/transparent inline
+                  // <Text>) leaks through as visible text on Android, causing a duplicate.
+                  // paddingRight on every line is a small trade-off vs a visible duplicate.
+                  const _paddingRight = (msg.edited_at ? 40 : 0) + (isMe ? 78 : 58);
                   return (
                     <>
                       <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
                         <RichText
-                          style={[st.bubbleText, { color: textColor, fontSize: _fontSize, lineHeight: _lineH, paddingRight: webPaddingRight }]}
+                          style={[st.bubbleText, { color: textColor, fontSize: _fontSize, lineHeight: _lineH, paddingRight: _paddingRight }]}
                           linkColor={isMe ? "#FFFFFF" : BRAND}
                           selectable={true}
-                          tail={ghost}
                         >
                           {displayText}
                         </RichText>
