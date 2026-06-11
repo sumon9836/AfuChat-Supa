@@ -1316,57 +1316,68 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
           ) : (
             <>
               {useInlineTimestamp ? (
-                /* Timestamp is absolutely positioned inside the Pressable (bubble).
-                   paddingRight on the text reserves horizontal space on every line
-                   so the floating timestamp never overlaps the text.
-                   This keeps bubble width driven purely by text, never by the timestamp. */
-                <>
-                  <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
-                    <RichText
-                      style={[st.bubbleText, {
-                        color: textColor,
-                        fontSize: chatPrefsLocal?.font_size ?? 14,
-                        lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5,
-                        paddingRight: msg.edited_at ? 104 : 72,
-                      }]}
-                      linkColor={isMe ? "#FFFFFF" : BRAND}
-                      selectable={true}
-                    >
-                      {displayText}
-                    </RichText>
-                  </TouchableOpacity>
-                  {/* Floats at the bottom-right of the bubble content area.
-                      bottom/right match the bubble's paddingBottom/paddingHorizontal. */}
-                  <View style={[st.metaRow, { position: "absolute", bottom: 4, right: 10 }]}>
-                    {msg.edited_at && (
-                      <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 3 }]}>edited</Text>
-                    )}
-                    <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted }]}>
-                      {formatMsgTime(msg.sent_at)}
+                /* WhatsApp-style inline timestamp:
+                   - A transparent "ghost" spacer is appended inline at the END of the
+                     text via the RichText `tail` prop.  It only pushes the LAST LINE
+                     left — all other lines wrap edge-to-edge with zero wasted space.
+                   - The real timestamp is position:absolute at bottom-right of the bubble,
+                     sitting on top of the ghost.
+                   - No paddingRight on the text, so line 1..n-1 fill the full bubble width. */
+                (()=>{
+                  const _fontSize  = chatPrefsLocal?.font_size ?? 14;
+                  const _lineH     = _fontSize + 5;
+                  const _timeStr   = formatMsgTime(msg.sent_at);
+                  // Ghost: invisible replica of the real timestamp — only last line is indented
+                  const ghost = (
+                    <Text style={{ opacity: 0, fontSize: 11, fontFamily: "Inter_400Regular", includeFontPadding: false }}>
+                      {msg.edited_at ? "  edited" : ""}{" "}{_timeStr}{isMe ? "    " : " "}
                     </Text>
-                    {isMe && (
-                      <TouchableOpacity onPress={() => onStatusPress?.(msg)} hitSlop={8} activeOpacity={0.65} disabled={!onStatusPress}>
-                        <Ionicons
-                          name={
-                            msg.status === "failed" ? "alert-circle-outline" :
-                            isPending ? "time-outline" :
-                            msg.status === "read" ? "checkmark-done" :
-                            msg.status === "delivered" ? "checkmark-done" : "checkmark"
-                          }
-                          size={14}
-                          color={
-                            msg.status === "failed" ? "#FF4444" :
-                            isPending ? rcptSent :
-                            msg.status === "read" ? rcptRead :
-                            msg.status === "delivered" ? rcptDelivered :
-                            rcptSent
-                          }
-                          style={{ marginLeft: 2 }}
-                        />
+                  );
+                  return (
+                    <>
+                      <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
+                        <RichText
+                          style={[st.bubbleText, { color: textColor, fontSize: _fontSize, lineHeight: _lineH }]}
+                          linkColor={isMe ? "#FFFFFF" : BRAND}
+                          selectable={true}
+                          tail={ghost}
+                        >
+                          {displayText}
+                        </RichText>
                       </TouchableOpacity>
-                    )}
-                  </View>
-                </>
+                      {/* Real timestamp floats over the ghost — bottom/right match bubble padding */}
+                      <View style={[st.metaRow, { position: "absolute", bottom: 4, right: 10 }]}>
+                        {msg.edited_at && (
+                          <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 3 }]}>edited</Text>
+                        )}
+                        <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted }]}>
+                          {_timeStr}
+                        </Text>
+                        {isMe && (
+                          <TouchableOpacity onPress={() => onStatusPress?.(msg)} hitSlop={8} activeOpacity={0.65} disabled={!onStatusPress}>
+                            <Ionicons
+                              name={
+                                msg.status === "failed" ? "alert-circle-outline" :
+                                isPending ? "time-outline" :
+                                msg.status === "read" ? "checkmark-done" :
+                                msg.status === "delivered" ? "checkmark-done" : "checkmark"
+                              }
+                              size={14}
+                              color={
+                                msg.status === "failed" ? "#FF4444" :
+                                isPending ? rcptSent :
+                                msg.status === "read" ? rcptRead :
+                                msg.status === "delivered" ? rcptDelivered :
+                                rcptSent
+                              }
+                              style={{ marginLeft: 2 }}
+                            />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </>
+                  );
+                })()
               ) : (
                 <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
                   {msg._isAi
