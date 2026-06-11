@@ -1316,11 +1316,10 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
           ) : (
             <>
               {useInlineTimestamp ? (
-                /* Timestamp always pinned to the bottom-right corner of the bubble.
-                   paddingRight reserves space on every last line of text so the
-                   timestamp never overlaps text. paddingBottom reserves vertical
-                   space for the absolutely-positioned timestamp row. */
-                <View style={{ position: "relative", paddingBottom: 17 }}>
+                /* Timestamp always pinned to the right end of the last text line.
+                   paddingRight reserves space so text never runs into the timestamp.
+                   No paddingBottom — bottom:0 anchors the timestamp to the last line. */
+                <View style={{ position: "relative" }}>
                   <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
                     <RichText
                       style={[st.bubbleText, {
