@@ -204,6 +204,31 @@ Deno.serve(async (req) => {
         ? 300
         : 2048;
 
+  // ── Inject real-time temporal context into the system prompt ──
+  // Build a rich date/time string the AI can reference for any
+  // time-aware question ("what time is it?", "what day is today?", etc.)
+  const now = new Date();
+  const utcStr = now.toUTCString(); // e.g. "Wed, 11 Jun 2026 10:45:00 GMT"
+  // East Africa Time = UTC+3 (Uganda, Kenya, Tanzania)
+  const eatOffset = 3 * 60 * 60 * 1000;
+  const eatDate = new Date(now.getTime() + eatOffset);
+  const eatStr = eatDate.toISOString().replace("T", " ").substring(0, 19) + " EAT (UTC+3)";
+  const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const dayOfWeek = dayNames[eatDate.getUTCDay()];
+  const timeContext = `[CURRENT TIME] Today is ${dayOfWeek}, ${eatStr}. UTC: ${utcStr}. Always use this as the authoritative current date and time when the user asks what time or day it is.`;
+
+  // Prepend to the existing system message, or insert one at the front
+  const enrichedMessages = messages.map((m: any, i: number) => {
+    if (m.role === "system") {
+      return { ...m, content: `${timeContext}\n\n${m.content}` };
+    }
+    return m;
+  });
+  // If no system message existed, add one at the start
+  if (!messages.some((m: any) => m.role === "system")) {
+    enrichedMessages.unshift({ role: "system", content: timeContext });
+  }
+
   const GROQ_KEY = Deno.env.get("GROQ_API_KEY");
   const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
 
@@ -217,8 +242,8 @@ Deno.serve(async (req) => {
   // Try Groq first
   if (GROQ_KEY) {
     try {
-      console.log(`Groq chat: ${messages.length} messages, ${tokenLimit} tokens`);
-      const reply = await chatWithGroq(messages, tokenLimit, GROQ_KEY);
+      console.log(`Groq chat: ${enrichedMessages.length} messages, ${tokenLimit} tokens`);
+      const reply = await chatWithGroq(enrichedMessages, tokenLimit, GROQ_KEY);
       console.log("Groq chat succeeded");
       return json({ reply });
     } catch (e: any) {
@@ -232,7 +257,7 @@ Deno.serve(async (req) => {
   if (GEMINI_KEY) {
     try {
       console.log("Gemini fallback chat...");
-      const reply = await chatWithGemini(messages, tokenLimit, GEMINI_KEY);
+      const reply = await chatWithGemini(enrichedMessages, tokenLimit, GEMINI_KEY);
       console.log("Gemini fallback succeeded");
       return json({ reply });
     } catch (e: any) {
