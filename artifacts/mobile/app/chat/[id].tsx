@@ -1316,27 +1316,36 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
           ) : (
             <>
               {useInlineTimestamp ? (
-                /* Inline timestamp: paddingRight reserves space on every line for the
-                   absolute-positioned timestamp at bottom-right of the bubble. */
+                /* WhatsApp-style inline timestamp:
+                   Ghost text (same color as bubble background) is appended inline at
+                   the END of the message text so the last line wraps around it, leaving
+                   room for the real absolute-positioned timestamp at bottom-right.
+                   Using bubbleColor (not opacity/transparent) is the only reliably
+                   invisible technique on Android — nested Text opacity leaks through. */
                 (()=>{
                   const _fontSize  = chatPrefsLocal?.font_size ?? 14;
                   const _lineH     = _fontSize + 5;
                   const _timeStr   = formatMsgTime(msg.sent_at);
-                  // paddingBottom reserves a dedicated row at the bottom of the text for
-                  // the absolute-positioned timestamp — text stays full-width on every line.
                   const _tsWidth = (msg.edited_at ? 38 : 0) + (isMe ? 72 : 52);
+                  // Ghost: same color as bubble background → visually invisible on all platforms.
+                  const ghost = (
+                    <Text style={{ color: bubbleColor, fontSize: 11, fontFamily: "Inter_400Regular", includeFontPadding: false }}>
+                      {msg.edited_at ? "  edited" : ""}{" "}{_timeStr}{isMe ? "    " : " "}
+                    </Text>
+                  );
                   return (
                     <>
                       <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9} style={{ minWidth: _tsWidth + 16 }}>
                         <RichText
-                          style={[st.bubbleText, { color: textColor, fontSize: _fontSize, lineHeight: _lineH, paddingBottom: 18 }]}
+                          style={[st.bubbleText, { color: textColor, fontSize: _fontSize, lineHeight: _lineH }]}
                           linkColor={isMe ? "#FFFFFF" : BRAND}
                           selectable={true}
+                          tail={ghost}
                         >
                           {displayText}
                         </RichText>
                       </TouchableOpacity>
-                      {/* Timestamp sits in the 18px bottom space — never overlaps text */}
+                      {/* Real timestamp floats at bottom-right, over the invisible ghost */}
                       <View style={[st.metaRow, { position: "absolute", bottom: 4, right: 10 }]}>
                         {msg.edited_at && (
                           <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 3 }]}>edited</Text>
