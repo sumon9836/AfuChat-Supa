@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,30 @@ const COMPANY = "AfuChat Technologies Limited";
 const COMPANY_ADDRESS = "Entebbe, Uganda";
 const CONTACT_EMAIL = "privacy@afuchat.com";
 const APP_NAME = "AfuChat";
+
+const EMAIL_SPLIT = /([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/g;
+const EMAIL_TEST  = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+
+function BodyText({ text, style }: { text: string; style?: object }) {
+  const parts = text.split(EMAIL_SPLIT);
+  return (
+    <Text style={style}>
+      {parts.map((part, i) =>
+        EMAIL_TEST.test(part) ? (
+          <Text
+            key={i}
+            style={{ color: Colors.brand, textDecorationLine: "underline" }}
+            onPress={() => Linking.openURL(`mailto:${part}`)}
+          >
+            {part}
+          </Text>
+        ) : (
+          <Text key={i}>{part}</Text>
+        )
+      )}
+    </Text>
+  );
+}
 
 type Section = {
   id: string;
@@ -183,7 +208,7 @@ export default function PrivacyPolicy() {
               {Platform.OS === "web" ? (
                 <>
                   <Text style={[st.sectionTitle, { color: colors.text }]}>{section.title}</Text>
-                  <Text style={[st.sectionBody, { color: colors.textMuted }]}>{section.body}</Text>
+                  <BodyText text={section.body} style={[st.sectionBody, { color: colors.textMuted }]} />
                 </>
               ) : (
                 <>
@@ -202,9 +227,7 @@ export default function PrivacyPolicy() {
                     />
                   </TouchableOpacity>
                   {isOpen && (
-                    <Text style={[st.sectionBody, { color: colors.textMuted }]}>
-                      {section.body}
-                    </Text>
+                    <BodyText text={section.body} style={[st.sectionBody, { color: colors.textMuted }]} />
                   )}
                 </>
               )}
