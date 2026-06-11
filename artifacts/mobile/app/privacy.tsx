@@ -75,7 +75,7 @@ const SECTIONS: Section[] = [
   {
     id: "10",
     title: "10. Children's Privacy",
-    body: `${APP_NAME} is not directed at children under the age of 16. We do not knowingly collect personal information from children under 16.\n\nIf you are a parent or guardian and believe your child has provided us with personal information, please contact ${CONTACT_EMAIL} and we will promptly delete such information.\n\nIf we discover we have collected data from a child under 16 without verified parental consent, we will take immediate steps to delete that information.`,
+    body: `${APP_NAME} is not directed at children under the age of 13. We do not knowingly collect personal information from children under 13.\n\nIf you are a parent or guardian and believe your child has provided us with personal information, please contact ${CONTACT_EMAIL} and we will promptly delete such information.\n\nIf we discover we have collected data from a child under 13 without verified parental consent, we will take immediate steps to delete that information.`,
   },
   {
     id: "11",

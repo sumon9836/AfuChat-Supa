@@ -35,7 +35,7 @@ const SECTIONS: Section[] = [
   {
     id: "2",
     title: "2. Eligibility",
-    body: `You must be at least 16 years old to create an account. If you are under 18, you confirm you have parental or guardian consent.\n\nBy using the Service you represent that: (a) you are at least 16 years old; (b) you have the legal capacity to enter into a binding agreement; (c) you are not barred from receiving the Service under applicable law; and (d) all information you provide is accurate and truthful.`,
+    body: `You must be at least 13 years old to create an account. If you are under 18, you confirm you have parental or guardian consent.\n\nBy using the Service you represent that: (a) you are at least 13 years old; (b) you have the legal capacity to enter into a binding agreement; (c) you are not barred from receiving the Service under applicable law; and (d) all information you provide is accurate and truthful.`,
   },
   {
     id: "3",
