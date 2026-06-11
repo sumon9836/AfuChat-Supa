@@ -13,9 +13,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 import Colors from "@/constants/colors";
 
-const LAST_UPDATED = "June 1, 2025";
-const EFFECTIVE_DATE = "June 1, 2025";
-const COMPANY = "AfuChat Ltd.";
+const LAST_UPDATED = "June 11, 2026";
+const EFFECTIVE_DATE = "June 11, 2026";
+const COMPANY = "AfuChat Technologies Limited";
+const COMPANY_ADDRESS = "Entebbe, Uganda";
 const CONTACT_EMAIL = "privacy@afuchat.com";
 const APP_NAME = "AfuChat";
 
@@ -84,7 +85,7 @@ const SECTIONS: Section[] = [
   {
     id: "12",
     title: "12. International Data Transfers",
-    body: `${COMPANY} is based in Kenya. Your data may be processed in countries outside your own, including countries where data protection laws may differ.\n\nWhen we transfer data internationally, we use appropriate safeguards such as Standard Contractual Clauses (SCCs) approved by the European Commission, or we transfer to countries recognised as providing adequate data protection.\n\nBy using the Service, you consent to these international transfers.`,
+    body: `${COMPANY} is incorporated and based in Entebbe, Uganda. Your data may be processed in countries outside your own, including countries where data protection laws may differ.\n\nWhen we transfer data internationally, we use appropriate safeguards such as Standard Contractual Clauses (SCCs) approved by the European Commission, or we transfer to countries recognised as providing adequate data protection.\n\nBy using the Service, you consent to these international transfers.`,
   },
   {
     id: "13",
@@ -99,7 +100,7 @@ const SECTIONS: Section[] = [
   {
     id: "15",
     title: "15. Contact & Data Protection Officer",
-    body: `For privacy questions, data requests, or to exercise your rights:\n\n${COMPANY}\nPrivacy team: ${CONTACT_EMAIL}\nWebsite: https://afuchat.com/privacy\n\nFor EEA users: you also have the right to lodge a complaint with your local data protection authority. A list of EEA data protection authorities is available at https://edpb.europa.eu.`,
+    body: `For privacy questions, data requests, or to exercise your rights:\n\n${COMPANY}\n${COMPANY_ADDRESS}\nPrivacy team: ${CONTACT_EMAIL}\nWebsite: https://afuchat.com/privacy\n\nFor EEA users: you also have the right to lodge a complaint with your local data protection authority. A list of EEA data protection authorities is available at https://edpb.europa.eu.`,
   },
 ];
 

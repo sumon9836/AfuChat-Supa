@@ -13,9 +13,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 import Colors from "@/constants/colors";
 
-const LAST_UPDATED = "June 1, 2025";
-const EFFECTIVE_DATE = "June 1, 2025";
-const COMPANY = "AfuChat Ltd.";
+const LAST_UPDATED = "June 11, 2026";
+const EFFECTIVE_DATE = "June 11, 2026";
+const COMPANY = "AfuChat Technologies Limited";
+const COMPANY_ADDRESS = "Entebbe, Uganda";
 const CONTACT_EMAIL = "legal@afuchat.com";
 const APP_NAME = "AfuChat";
 
@@ -89,7 +90,7 @@ const SECTIONS: Section[] = [
   {
     id: "13",
     title: "13. Governing Law",
-    body: `These Terms are governed by the laws of Kenya, without regard to its conflict-of-law principles. Any dispute arising from these Terms shall be resolved by the courts of Kenya.\n\nIf you are a consumer in the European Union, you also have the right to use your local courts and applicable EU consumer protection laws.`,
+    body: `These Terms are governed by the laws of the Republic of Uganda, without regard to its conflict-of-law principles. Any dispute arising from these Terms shall be subject to the exclusive jurisdiction of the courts of Uganda.\n\nIf you are a consumer in the European Union, you also have the right to use your local courts and applicable EU consumer protection laws.`,
   },
   {
     id: "14",
@@ -99,7 +100,7 @@ const SECTIONS: Section[] = [
   {
     id: "15",
     title: "15. Contact Us",
-    body: `For questions about these Terms, please contact:\n\n${COMPANY}\nEmail: ${CONTACT_EMAIL}\nWebsite: https://afuchat.com\n\nFor urgent account issues or to report abuse, use the in-app report feature or contact support@afuchat.com.`,
+    body: `For questions about these Terms, please contact:\n\n${COMPANY}\n${COMPANY_ADDRESS}\nEmail: ${CONTACT_EMAIL}\nWebsite: https://afuchat.com\n\nFor urgent account issues or to report abuse, use the in-app report feature or contact support@afuchat.com.`,
   },
 ];
 
