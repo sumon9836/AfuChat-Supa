@@ -101,8 +101,8 @@ function CompactTabBar({
 
   const bottomPos = Math.max(insets.bottom, 4) + 6;
 
-  const barBg      = isDark ? "rgba(28,28,30,0.97)" : "rgba(255,255,255,0.97)";
-  const borderColor = isDark ? "rgba(44,44,46,1)"   : "rgba(221,215,201,1)";
+  const barBg      = isDark ? "rgba(38,38,44,0.96)" : "rgba(255,255,255,0.97)";
+  const borderColor = isDark ? "rgba(58,58,64,1)"   : "rgba(221,215,201,1)";
 
   const shadow = isDark
     ? { elevation: 20 }

@@ -9,7 +9,7 @@ export default {
   blue: BRAND_BLUE,
   gold: GOLD,
   light: {
-    text: "#1A1208",
+    text: "#000000",
     textSecondary: "#5A5040",
     textMuted: "#8C7F6A",
     background: "#F5F0E8",
@@ -37,7 +37,7 @@ export default {
     accent: BRAND,
   },
   dark: {
-    text: "#F1F1F1",
+    text: "#FFF8F0",
     textSecondary: "#AAAAAA",
     textMuted: "#717171",
     background: "#0F0F0F",
