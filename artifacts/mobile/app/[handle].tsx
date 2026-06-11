@@ -2,9 +2,9 @@
  * [handle].tsx — catch-all route for /@username and /username
  *
  * Rules:
- *  • /@username  → public profile page (no auth required, NOT a referral)
- *  • /username   → referral link: saves referrer_handle + sends to register
- *  • Any handle + logged-in user → navigate to /contact/[id]
+ *  • /@username  (unauthenticated) → public profile page, fully indexed by Google
+ *  • /username   (unauthenticated) → saves referrer_handle silently, then shows public profile
+ *  • Any handle + logged-in user  → navigate to /contact/[id] (full in-app profile)
  */
 
 import React, { useEffect, useRef, useState } from "react";
@@ -29,8 +29,8 @@ import { ProfileNotFoundView } from "@/app/profile-not-found";
 import { ProfilePrivateView } from "@/app/profile-private";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
-import AfuLogo from "@/components/ui/AfuLogo";
 import { T } from "@/constants/theme";
+import { setPageMeta, resetPageMeta } from "@/lib/webMeta";
 
 function safeNavigate(path: string, params?: Record<string, string>) {
   try {
@@ -71,6 +71,51 @@ function PublicProfileScreen({ handle }: { handle: string }) {
   const [counts, setCounts] = useState<PubCounts>({ followers: 0, following: 0, posts: 0 });
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // ── SEO meta + Schema.org Person for Google indexing ──────────────────
+  useEffect(() => {
+    if (!profile || Platform.OS !== "web") return;
+    const title = `${profile.display_name} (@${profile.handle}) — AfuChat`;
+    const desc = profile.bio
+      ? `${profile.bio.slice(0, 155)}`
+      : `Follow @${profile.handle} on AfuChat — the all-in-one social super app.`;
+    setPageMeta({
+      title,
+      description: desc,
+      image: profile.avatar_url ?? undefined,
+      url: `https://afuchat.com/@${profile.handle}`,
+      type: "profile",
+    });
+
+    // Inject Schema.org Person structured data
+    if (typeof document !== "undefined") {
+      const id = `schema-person-${profile.handle}`;
+      let el = document.getElementById(id) as HTMLScriptElement | null;
+      if (!el) {
+        el = document.createElement("script") as HTMLScriptElement;
+        el.id = id;
+        el.type = "application/ld+json";
+        document.head.appendChild(el);
+      }
+      el.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: profile.display_name,
+        alternateName: `@${profile.handle}`,
+        description: profile.bio ?? undefined,
+        image: profile.avatar_url ?? undefined,
+        url: `https://afuchat.com/@${profile.handle}`,
+        sameAs: [`https://afuchat.com/@${profile.handle}`],
+      });
+    }
+
+    return () => {
+      resetPageMeta();
+      if (typeof document !== "undefined") {
+        document.getElementById(`schema-person-${profile.handle}`)?.remove();
+      }
+    };
+  }, [profile]);
 
   useEffect(() => {
     async function load() {
@@ -242,66 +287,7 @@ function PublicProfileScreen({ handle }: { handle: string }) {
           </TouchableOpacity>
         </View>
 
-        {/* ── Join AfuChat prompt ───────────────────────────────────────── */}
-        <View style={[pub.joinBlock, { borderBottomColor: colors.separator }]}>
-          <AfuLogo size={30} style={{ flexShrink: 0 }} />
-          <View style={{ flex: 1 }}>
-            <Text style={[pub.joinTitle, { color: colors.text }]}>
-              Join AfuChat
-            </Text>
-            <Text style={[pub.joinSub, { color: colors.textMuted }]}>
-              Connect with @{profile.handle} and millions of others
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[pub.joinBtn, { backgroundColor: Colors.brand }]}
-            onPress={() => router.push("/(auth)/register" as any)}
-            activeOpacity={0.85}
-          >
-            <Text style={pub.joinBtnText}>Sign up</Text>
-          </TouchableOpacity>
-        </View>
-
       </ScrollView>
-
-      {/* ── Sticky bottom sign-in bar ─────────────────────────────────────── */}
-      <View
-        style={[
-          pub.bottomBar,
-          {
-            backgroundColor: colors.background,
-            borderTopColor: colors.separator,
-            paddingBottom: Math.max(insets.bottom, 16),
-          },
-        ]}
-      >
-        <View style={pub.bottomBarInner}>
-          <View style={{ flex: 1 }}>
-            <Text style={[pub.bottomBarTitle, { color: colors.text }]}>
-              Sign in to follow or message
-            </Text>
-            <Text style={[pub.bottomBarSub, { color: colors.textMuted }]}>
-              Join AfuChat to connect with @{profile.handle}
-            </Text>
-          </View>
-        </View>
-        <View style={pub.bottomBtnRow}>
-          <TouchableOpacity
-            style={[pub.bottomBtn, { backgroundColor: Colors.brand }]}
-            onPress={() => router.push("/(auth)/login" as any)}
-            activeOpacity={0.85}
-          >
-            <Text style={pub.bottomBtnText}>Sign In</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[pub.bottomBtn, pub.bottomBtnOutline, { borderColor: Colors.brand }]}
-            onPress={() => router.push("/(auth)/register" as any)}
-            activeOpacity={0.85}
-          >
-            <Text style={[pub.bottomBtnText, { color: Colors.brand }]}>Create Account</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     </View>
   );
 }
@@ -361,39 +347,22 @@ export default function HandleScreen() {
     hasNavigated.current = true;
 
     if (session) {
+      // Logged-in: go to full contact/profile screen
       if (profileId) safeNavigate("/contact/[id]", { id: profileId });
     } else {
-      if (profileId) {
-        if (!isAtHandle) {
-          AsyncStorage.setItem("referrer_handle", cleanHandle).catch(() => {});
-        }
-        safeNavigate("/(auth)/register");
+      // Not logged in: for plain /username (referral link), save referrer silently
+      // but do NOT redirect — the profile is shown publicly below
+      if (!isAtHandle && profileId) {
+        AsyncStorage.setItem("referrer_handle", cleanHandle).catch(() => {});
       }
     }
   }, [dataReady, authLoading, navigationState?.key, cleanHandle, isValidHandle, profileId, profileNotFound, session, isAtHandle]);
-
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
-    if (hasNavigated.current) return;
-    if (session) return; // logged-in users navigate via the main effect
-    if (isAtHandle) return; // unauthenticated @handle shows PublicProfileScreen directly
-    const timeout = setTimeout(() => {
-      if (hasNavigated.current) return;
-      if (!dataReady) return;
-      if (profileNotFound) return;
-      hasNavigated.current = true;
-      if (typeof window !== "undefined") window.location.href = "/login";
-      else router.replace("/(auth)/login");
-    }, 8000);
-    return () => clearTimeout(timeout);
-  }, [dataReady, session, profileNotFound, isAtHandle]);
 
   // While auth state is loading, render nothing — prevents flashing the public
   // profile screen for a logged-in user before session hydrates.
   if (authLoading) return null;
 
-  // Logged-in user — never show the splash; render transparent and navigate
-  // as soon as the profile ID is resolved (contact page shows its own skeleton).
+  // Logged-in user — navigate to full contact/profile screen (renders blank while navigating)
   if (session) {
     if (dataReady && (profileNotFound || !isValidHandle)) return (
       <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
@@ -403,31 +372,14 @@ export default function HandleScreen() {
     return null;
   }
 
-  // Unauthenticated @-handle → public profile page
-  if (isAtHandle) {
-    if (!isValidHandle) return (
-      <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
-        <ProfileNotFoundView handle={cleanHandle} />
-      </View>
-    );
-    return <PublicProfileScreen handle={cleanHandle} />;
-  }
-
-  // Unauthenticated plain handle → invite / referral splash
-  if (dataReady && (profileNotFound || !isValidHandle)) return (
+  // Unauthenticated — show public profile for both /@handle and /handle (referral)
+  if (!isValidHandle || (dataReady && profileNotFound)) return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
       <ProfileNotFoundView handle={cleanHandle} />
     </View>
   );
 
-  return (
-    <View style={[splash.container, { backgroundColor: Colors.brand, paddingTop: insets.top }]}>
-      <AfuLogo size={96} style={{ marginBottom: 16 }} />
-      <Text style={splash.brandText}>AfuChat</Text>
-      <ActivityIndicator size="small" color="#fff" style={splash.loader} />
-      <Text style={splash.subText}>Processing invite…</Text>
-    </View>
-  );
+  return <PublicProfileScreen handle={cleanHandle} />;
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -530,58 +482,4 @@ const pub = StyleSheet.create({
   },
   btnSecondaryText: { ...T.bodySemi },
 
-  // Join AfuChat row
-  joinBlock: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: T.pageH,
-    paddingVertical: 16,
-    
-  },
-  joinTitle: { ...T.bodyMed, marginBottom: 1 },
-  joinSub: { ...T.caption, lineHeight: 17 },
-  joinBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  joinBtnText: { color: "#fff", ...T.captionMed, fontFamily: "Inter_600SemiBold" },
-
-  // Bottom sticky bar
-  bottomBar: {
-    
-    paddingHorizontal: T.pageH,
-    paddingTop: 14,
-  },
-  bottomBarInner: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  bottomBarTitle: { ...T.bodyMed, marginBottom: 2 },
-  bottomBarSub: { ...T.caption, lineHeight: 18 },
-  bottomBtnRow: { flexDirection: "row", gap: 10 },
-  bottomBtn: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  bottomBtnOutline: {
-    borderWidth: 1.5,
-    backgroundColor: "transparent",
-  },
-  bottomBtnText: {
-    color: "#fff",
-    ...T.bodySemi,
-  },
-});
-
-const splash = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  brandText: { color: "#fff", fontSize: 24, fontFamily: "Inter_700Bold", marginTop: 12 },
-  loader: { marginTop: 24 },
-  subText: { color: "rgba(255,255,255,0.7)", ...T.caption, marginTop: 8 },
 });
