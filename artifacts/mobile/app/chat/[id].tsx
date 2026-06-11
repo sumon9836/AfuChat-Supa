@@ -1105,7 +1105,6 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
             showTail ? (isMe ? st.bubbleTailMe : st.bubbleTailOther) : null,
             replyPreview ? st.bubbleWithReply : null,
             isPending && { opacity: 0.6 },
-            useInlineTimestamp && { paddingBottom: 18 },
           ]}>
           {isPremiumSender && <PremiumBubbleShimmer />}
           {!isMe && showName && (
@@ -1316,29 +1315,76 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
             </TouchableOpacity>
           ) : (
             <>
-              <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
-                {msg._isAi
-                  ? <AiRichContent content={displayText} colors={colors} isUser={isMe} />
-                  : (
+              {useInlineTimestamp ? (
+                /* Plain text: text + timestamp flow together on same line (WhatsApp-style).
+                   flexWrap:"wrap" means short messages stay on one line, long messages
+                   wrap naturally and timestamp appears at end bottom-right. */
+                <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end" }}>
+                  <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9} style={{ flexShrink: 1 }}>
                     <RichText
                       style={[st.bubbleText, {
                         color: textColor,
                         fontSize: chatPrefsLocal?.font_size ?? 14,
                         lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5,
-                        // Reserve right-side space so the absolutely-positioned
-                        // inline timestamp never overlaps the last word of the text.
-                        paddingRight: useInlineTimestamp ? 58 : 0,
                       }]}
                       linkColor={isMe ? "#FFFFFF" : BRAND}
                       selectable={true}
                     >
                       {displayText}
                     </RichText>
-                  )
-                }
-              </TouchableOpacity>
+                  </TouchableOpacity>
+                  {/* Inline timestamp — flows directly after text */}
+                  <View style={[st.metaRow, { marginLeft: 4, marginBottom: 1, flexShrink: 0 }]}>
+                    {msg.edited_at && (
+                      <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 3 }]}>edited</Text>
+                    )}
+                    <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted }]}>
+                      {formatMsgTime(msg.sent_at)}
+                    </Text>
+                    {isMe && (
+                      <TouchableOpacity onPress={() => onStatusPress?.(msg)} hitSlop={8} activeOpacity={0.65} disabled={!onStatusPress}>
+                        <Ionicons
+                          name={
+                            msg.status === "failed" ? "alert-circle-outline" :
+                            isPending ? "time-outline" :
+                            msg.status === "read" ? "checkmark-done" :
+                            msg.status === "delivered" ? "checkmark-done" : "checkmark"
+                          }
+                          size={14}
+                          color={
+                            msg.status === "failed" ? "#FF4444" :
+                            isPending ? rcptSent :
+                            msg.status === "read" ? rcptRead :
+                            msg.status === "delivered" ? rcptDelivered :
+                            rcptSent
+                          }
+                          style={{ marginLeft: 2 }}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
+                  {msg._isAi
+                    ? <AiRichContent content={displayText} colors={colors} isUser={isMe} />
+                    : (
+                      <RichText
+                        style={[st.bubbleText, {
+                          color: textColor,
+                          fontSize: chatPrefsLocal?.font_size ?? 14,
+                          lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5,
+                        }]}
+                        linkColor={isMe ? "#FFFFFF" : BRAND}
+                        selectable={true}
+                      >
+                        {displayText}
+                      </RichText>
+                    )
+                  }
+                </TouchableOpacity>
+              )}
 
-              {/* Link preview lives outside the relative wrapper so it never shifts the timestamp */}
               {!msg._isAi && !isSpecial && chatPrefsLocal?.link_previews !== false && msgBubbleFeatures.interactive_link_preview && (
                 <LinkPreview text={displayText} isMe={isMe} />
               )}
@@ -1399,44 +1445,39 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
             </TouchableOpacity>
           )}
 
-          {/* metaRow: timestamp + status
-              - Plain text (useInlineTimestamp): absolutely positioned at bottom-right of bubble
-                so it appears on the same line as the last word (WhatsApp-style).
-              - All other types: normal flow row below the content. */}
-          <View style={[
-            st.metaRow,
-            useInlineTimestamp
-              ? { position: "absolute", bottom: 5, right: 8 }
-              : { marginTop: 3 },
-          ]}>
-            {msg.edited_at && (
-              <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 4 }]}>edited</Text>
-            )}
-            <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted }]}>
-              {formatMsgTime(msg.sent_at)}
-            </Text>
-            {isMe && (
-              <TouchableOpacity onPress={() => onStatusPress?.(msg)} hitSlop={8} activeOpacity={0.65} disabled={!onStatusPress}>
-                <Ionicons
-                  name={
-                    msg.status === "failed" ? "alert-circle-outline" :
-                    isPending ? "time-outline" :
-                    msg.status === "read" ? "checkmark-done" :
-                    msg.status === "delivered" ? "checkmark-done" : "checkmark"
-                  }
-                  size={16}
-                  color={
-                    msg.status === "failed" ? "#FF4444" :
-                    isPending ? rcptSent :
-                    msg.status === "read" ? rcptRead :
-                    msg.status === "delivered" ? rcptDelivered :
-                    rcptSent
-                  }
-                  style={{ marginLeft: 2 }}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
+          {/* metaRow: only rendered for non-plain-text messages (images, audio, AI, etc.).
+              Plain text messages render their timestamp inline in the text flow above. */}
+          {!useInlineTimestamp && (
+            <View style={[st.metaRow, { marginTop: 3 }]}>
+              {msg.edited_at && (
+                <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 4 }]}>edited</Text>
+              )}
+              <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted }]}>
+                {formatMsgTime(msg.sent_at)}
+              </Text>
+              {isMe && (
+                <TouchableOpacity onPress={() => onStatusPress?.(msg)} hitSlop={8} activeOpacity={0.65} disabled={!onStatusPress}>
+                  <Ionicons
+                    name={
+                      msg.status === "failed" ? "alert-circle-outline" :
+                      isPending ? "time-outline" :
+                      msg.status === "read" ? "checkmark-done" :
+                      msg.status === "delivered" ? "checkmark-done" : "checkmark"
+                    }
+                    size={14}
+                    color={
+                      msg.status === "failed" ? "#FF4444" :
+                      isPending ? rcptSent :
+                      msg.status === "read" ? rcptRead :
+                      msg.status === "delivered" ? rcptDelivered :
+                      rcptSent
+                    }
+                    style={{ marginLeft: 2 }}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </Pressable>
 
         {msg.reactions && msg.reactions.length > 0 && (
