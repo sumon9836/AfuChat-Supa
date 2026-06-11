@@ -136,7 +136,7 @@ function CompactTabBar({
               width: PILL_W,
               height: PILL_H,
               borderRadius: PILL_H / 2,
-              backgroundColor: colors.accent + "40",
+              backgroundColor: colors.accent + "30",
               left: BAR_PAD + (ITEM_W - PILL_W) / 2,
               transform: [{ translateX: pillX }],
             },
@@ -144,9 +144,10 @@ function CompactTabBar({
         />
 
         {TABS.map((tab) => {
-          const focused   = active === tab.route;
-          const iconColor = isDark ? "rgba(95,93,105,1)" : "rgba(110,108,118,1)";
-          const isProfile = tab.route === "/(tabs)/me";
+          const focused    = active === tab.route;
+          const mutedColor = isDark ? "rgba(95,93,105,1)" : "rgba(110,108,118,1)";
+          const iconColor  = focused ? colors.accent : mutedColor;
+          const isProfile  = tab.route === "/(tabs)/me";
 
           return (
             <View key={tab.route} style={bar.item}>
