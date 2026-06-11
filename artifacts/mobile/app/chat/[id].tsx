@@ -1334,8 +1334,10 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                     ? (msg.edited_at ? 40 : 0) + (isMe ? 78 : 58)
                     : 0;
                   // Ghost: invisible replica of the real timestamp — native only.
+                  // Use color:'transparent' (not opacity:0) — opacity on inline Text nodes
+                  // leaks through on some Android RN versions, making the ghost visible.
                   const ghost = isWeb ? undefined : (
-                    <Text style={{ opacity: 0, fontSize: 11, fontFamily: "Inter_400Regular", includeFontPadding: false }}>
+                    <Text style={{ color: "transparent", fontSize: 11, fontFamily: "Inter_400Regular", includeFontPadding: false }}>
                       {msg.edited_at ? "  edited" : ""}{" "}{_timeStr}{isMe ? "    " : " "}
                     </Text>
                   );
