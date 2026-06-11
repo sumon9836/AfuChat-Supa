@@ -17,23 +17,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "@/lib/haptics";
 import { useTheme } from "@/hooks/useTheme";
 import { useAdvancedFeatures, type ActivityStatus } from "@/context/AdvancedFeaturesContext";
-import { useChatPreferences, type ChatTheme } from "@/context/ChatPreferencesContext";
-import { useAppAccent } from "@/context/AppAccentContext";
+import { useChatPreferences } from "@/context/ChatPreferencesContext";
 import { useTier, TIER_COLORS, TIER_LABELS, type Tier } from "@/hooks/useTier";
 import { ListRowSkeleton } from "@/components/ui/Skeleton";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const THEMES: { name: ChatTheme; hex: string }[] = [
-  { name: "Teal",    hex: "#1f95ff" },
-  { name: "Blue",    hex: "#007AFF" },
-  { name: "Purple",  hex: "#AF52DE" },
-  { name: "Rose",    hex: "#FF2D55" },
-  { name: "Amber",   hex: "#FF9500" },
-  { name: "Emerald", hex: "#34C759" },
-];
 
 const STATUS_OPTIONS: {
   value: ActivityStatus;
@@ -52,9 +42,8 @@ const EXPORT_FORMATS = ["pdf", "txt", "json"] as const;
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 
-type TabId = "look" | "presence" | "chat" | "power";
+type TabId = "presence" | "chat" | "power";
 const TABS: { id: TabId; label: string; icon: React.ComponentProps<typeof Ionicons>["name"] }[] = [
-  { id: "look",     label: "Look",     icon: "color-palette-outline" },
   { id: "presence", label: "Presence", icon: "radio-button-on-outline" },
   { id: "chat",     label: "Chat",     icon: "chatbubble-outline" },
   { id: "power",    label: "Power",    icon: "flash-outline" },
@@ -206,9 +195,8 @@ export default function AdvancedFeaturesScreen() {
   const insets = useSafeAreaInsets();
   const { features, loading: advLoading, setFeature } = useAdvancedFeatures();
   const { prefs, loading: prefsLoading, updatePref } = useChatPreferences();
-  const { appTheme, setAppTheme } = useAppAccent();
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabId>("look");
+  const [activeTab, setActiveTab] = useState<TabId>("presence");
   const pillX = useRef(new Animated.Value(0)).current;
   const tabW = (SCREEN_W - 32) / TABS.length;
 
@@ -226,12 +214,6 @@ export default function AdvancedFeaturesScreen() {
   }
   async function handleTypingToggle(v: boolean) {
     setSaving(true); await updatePref("typing_indicators", v); setSaving(false);
-  }
-  async function handleTheme(t: ChatTheme) {
-    Haptics.selectionAsync(); setSaving(true);
-    await updatePref("chat_theme", t);
-    setAppTheme(t);
-    setSaving(false);
   }
   async function handleStatus(s: ActivityStatus) {
     Haptics.selectionAsync(); setSaving(true);
@@ -304,38 +286,6 @@ export default function AdvancedFeaturesScreen() {
         contentContainerStyle={[af.scroll, { paddingBottom: insets.bottom + 48 }]}
         key={activeTab}
       >
-
-        {/* ── LOOK ─────────────────────────────────────────────────────── */}
-        {activeTab === "look" && (
-          <>
-            <SectionLabel label="APP COLOUR" />
-            <FloatCard>
-              <View style={af.row}>
-                <View style={[af.iconWrap, { backgroundColor: accent }]}>
-                  <Ionicons name="color-palette" size={17} color="#fff" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[af.rowLabel, { color: colors.text }]}>App Colour</Text>
-                  <Text style={[af.rowDesc, { color: colors.textMuted }]}>Changes tabs, buttons, and chat bubbles</Text>
-                </View>
-                <Text style={[af.rowValue, { color: accent }]}>{appTheme}</Text>
-              </View>
-              <Sep />
-              <View style={af.colourRow}>
-                {THEMES.map((t) => (
-                  <TouchableOpacity
-                    key={t.name}
-                    onPress={() => handleTheme(t.name)}
-                    style={[af.colourCircle, { backgroundColor: t.hex }, appTheme === t.name && af.colourActive]}
-                    activeOpacity={0.8}
-                  >
-                    {appTheme === t.name && <Ionicons name="checkmark" size={18} color="#fff" />}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </FloatCard>
-          </>
-        )}
 
         {/* ── PRESENCE ─────────────────────────────────────────────────── */}
         {activeTab === "presence" && (
@@ -532,20 +482,6 @@ const af = StyleSheet.create({
   },
   tierPillText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
 
-  colourRow: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    justifyContent: "center",
-  },
-  colourCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   colourActive: {
     borderWidth: 3,
     borderColor: "#fff",
