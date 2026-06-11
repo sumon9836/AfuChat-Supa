@@ -53,7 +53,7 @@ export default {
     bubbleText: "#FFFFFF",
     bubbleIncoming: "#272727",
     bubbleIncomingText: "#F1F1F1",
-    inputBg: "#1E1E1E",
+    inputBg: "#252528",
     header: "#0F0F0F",
     badgeBg: "#FF3B30",
     badgeText: "#FFFFFF",
