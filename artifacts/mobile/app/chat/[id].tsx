@@ -1316,16 +1316,18 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
           ) : (
             <>
               {useInlineTimestamp ? (
-                /* Plain text: text + timestamp flow together on same line (WhatsApp-style).
-                   flexWrap:"wrap" means short messages stay on one line, long messages
-                   wrap naturally and timestamp appears at end bottom-right. */
-                <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end" }}>
-                  <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9} style={{ flexShrink: 1 }}>
+                /* Timestamp always pinned to the bottom-right corner of the bubble.
+                   paddingRight reserves space on every last line of text so the
+                   timestamp never overlaps text. paddingBottom reserves vertical
+                   space for the absolutely-positioned timestamp row. */
+                <View style={{ position: "relative", paddingBottom: 17 }}>
+                  <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
                     <RichText
                       style={[st.bubbleText, {
                         color: textColor,
                         fontSize: chatPrefsLocal?.font_size ?? 14,
                         lineHeight: (chatPrefsLocal?.font_size ?? 14) + 5,
+                        paddingRight: 62,
                       }]}
                       linkColor={isMe ? "#FFFFFF" : BRAND}
                       selectable={true}
@@ -1333,8 +1335,8 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                       {displayText}
                     </RichText>
                   </TouchableOpacity>
-                  {/* Inline timestamp — flows directly after text */}
-                  <View style={[st.metaRow, { marginLeft: 4, marginBottom: 1, flexShrink: 0 }]}>
+                  {/* Always pinned bottom-right — never wraps left */}
+                  <View style={[st.metaRow, { position: "absolute", bottom: 0, right: 0 }]}>
                     {msg.edited_at && (
                       <Text style={[st.msgTime, { color: isMe ? myTimeColor : colors.textMuted, marginRight: 3 }]}>edited</Text>
                     )}

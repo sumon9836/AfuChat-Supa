@@ -3,7 +3,7 @@
 - [Chat keyboard avoidance](chat-keyboard-avoidance.md) — effectiveBottom must use keyboardHeight on BOTH platforms; Android adjustResize does not move absolute children.
 - [Unread badge shared store](unread-badge-store.md) — tab bar reads from in-memory store (chatUnreadEvents.ts), not SQLite; ChatsScreen pushes on every chats state change.
 - [Post replies trigger bug](post-replies-trigger.md) — stale DB trigger on post_replies caused comment inserts to fail (42703); migrations applied to drop it.
-- [Edge function deploy from Replit](edge-fn-deploy.md) — Replit container has no outbound DNS; use `supabase functions deploy --use-api` to bundle server-side. `ALTER DATABASE` is also blocked; embed token fallback directly in PL/pgSQL function body.
+- [Edge function deploy from Replit](edge-fn-deploy.md) — Use `SUPABASE_ACCESS_TOKEN=<token> pnpm --package=supabase dlx supabase functions deploy <fn> --project-ref rhnsjqqtdzlkvqazfcbg --use-api`. No global CLI needed. Token: store in Replit secrets as SUPABASE_ACCESS_TOKEN.
 - [Inline timestamp ghost-tail unreliable](inline-timestamp-padright.md) — color:"transparent" on nested RN Text bleeds through on some engines; use paddingRight on the RichText instead to reserve timestamp space.
 - [Chat bubble tail direction](chat-bubble-tail-direction.md) — FlatList is inverted (index 0 = bottom/newest). Tail must check index-1 (below=newer) for WhatsApp-style bottom-of-group tail; index+1 (above=older) is correct for group sender name at top.
 - [AfuMusic MusicBrainz metadata pattern](afumusic-metadata.md) — offline-first cache in AsyncStorage; subscribeToMeta listener uses tracksRef to avoid recreating on every tracks state change; updateTrackMeta calls RNTP.updateMetadataForTrack for live lock screen updates.

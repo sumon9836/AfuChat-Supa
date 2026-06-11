@@ -4,6 +4,10 @@
  * Handles text chat and audio transcription.
  * Provider chain: Groq (6 models) → Gemini (3 models)
  * so a single provider outage never silences the chat.
+ *
+ * Features injected into every system prompt:
+ *  - Current date/time (EAT UTC+3)
+ *  - Live weather data (Open-Meteo, free, no API key) when user asks about weather
  */
 
 const corsHeaders = {
@@ -159,6 +163,89 @@ async function chatWithGemini(
   throw new Error(lastError || "All Gemini models failed");
 }
 
+// ── Weather awareness (Open-Meteo — free, no API key needed) ─────────────────
+
+/** Map WMO weather interpretation code → human-readable condition */
+function wmoCodeToCondition(code: number): string {
+  if (code === 0) return "clear sky";
+  if (code === 1) return "mainly clear";
+  if (code === 2) return "partly cloudy";
+  if (code === 3) return "overcast";
+  if (code >= 45 && code <= 48) return "foggy";
+  if (code >= 51 && code <= 55) return "drizzle";
+  if (code >= 56 && code <= 57) return "freezing drizzle";
+  if (code >= 61 && code <= 65) return "rain";
+  if (code >= 66 && code <= 67) return "freezing rain";
+  if (code >= 71 && code <= 77) return "snow";
+  if (code >= 80 && code <= 82) return "rain showers";
+  if (code >= 85 && code <= 86) return "snow showers";
+  if (code === 95) return "thunderstorm";
+  if (code >= 96 && code <= 99) return "thunderstorm with hail";
+  return "mixed conditions";
+}
+
+/** Fetch live weather for a city using Open-Meteo (geocoding + forecast APIs). */
+async function fetchWeather(city: string): Promise<string | null> {
+  try {
+    const geoRes = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`,
+      { signal: AbortSignal.timeout(5000) },
+    );
+    if (!geoRes.ok) return null;
+    const geoData = await geoRes.json();
+    const loc = geoData.results?.[0];
+    if (!loc) return null;
+
+    const { latitude, longitude, name, country } = loc;
+    const weatherRes = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+      `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,precipitation,apparent_temperature` +
+      `&timezone=auto`,
+      { signal: AbortSignal.timeout(5000) },
+    );
+    if (!weatherRes.ok) return null;
+    const wd = await weatherRes.json();
+    const cur = wd.current;
+    if (!cur) return null;
+
+    const condition = wmoCodeToCondition(cur.weather_code ?? 0);
+    return (
+      `[CURRENT WEATHER] ${name}, ${country}: ${cur.temperature_2m}°C ` +
+      `(feels like ${cur.apparent_temperature}°C), ${condition}, ` +
+      `humidity ${cur.relative_humidity_2m}%, wind ${cur.wind_speed_10m} km/h, ` +
+      `precipitation ${cur.precipitation} mm. ` +
+      `Use this as the authoritative current weather when answering weather questions about ${name}.`
+    );
+  } catch (err) {
+    console.warn("Weather fetch failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/** Detect if the user's latest message is asking about weather, and extract the city name. */
+function detectWeatherCity(messages: any[]): string | null {
+  const lastUser = [...messages].reverse().find((m) => m.role === "user");
+  if (!lastUser) return null;
+
+  const text = (lastUser.content ?? "").toLowerCase();
+  const weatherKw = ["weather", "temperature", "forecast", "rain", "sunny", "cloudy",
+    "hot outside", "cold outside", "humid", "wind speed", "how's the weather",
+    "what's the weather", "whats the weather", "weather like", "degrees outside"];
+  if (!weatherKw.some((kw) => text.includes(kw))) return null;
+
+  // "weather in Kampala", "forecast for Nairobi", "temperature in Lagos"
+  const m1 = text.match(/(?:weather|temperature|forecast|rain|weather like)\s+(?:in|at|for|of)\s+([a-z][a-z\s\-]{1,30}?)(?:\?|$|,|\s+(?:today|now|tomorrow|tonight|this week|right now))/);
+  if (m1) return m1[1].trim();
+
+  // "in Kampala weather", "Kampala temperature"
+  const m2 = text.match(/(?:in|at)\s+([a-z][a-z\s\-]{1,30}?)\s+(?:weather|temperature|forecast)/);
+  if (m2) return m2[1].trim();
+
+  // "how's the weather?" with no city → default to Kampala (AfuChat's primary market)
+  return "Kampala";
+}
+
+// ── Main handler ─────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -204,12 +291,9 @@ Deno.serve(async (req) => {
         ? 300
         : 2048;
 
-  // ── Inject real-time temporal context into the system prompt ──
-  // Build a rich date/time string the AI can reference for any
-  // time-aware question ("what time is it?", "what day is today?", etc.)
+  // ── 1. Inject real-time temporal context into the system prompt ──
   const now = new Date();
-  const utcStr = now.toUTCString(); // e.g. "Wed, 11 Jun 2026 10:45:00 GMT"
-  // East Africa Time = UTC+3 (Uganda, Kenya, Tanzania)
+  const utcStr = now.toUTCString();
   const eatOffset = 3 * 60 * 60 * 1000;
   const eatDate = new Date(now.getTime() + eatOffset);
   const eatStr = eatDate.toISOString().replace("T", " ").substring(0, 19) + " EAT (UTC+3)";
@@ -217,16 +301,33 @@ Deno.serve(async (req) => {
   const dayOfWeek = dayNames[eatDate.getUTCDay()];
   const timeContext = `[CURRENT TIME] Today is ${dayOfWeek}, ${eatStr}. UTC: ${utcStr}. Always use this as the authoritative current date and time when the user asks what time or day it is.`;
 
-  // Prepend to the existing system message, or insert one at the front
-  const enrichedMessages = messages.map((m: any, i: number) => {
+  let enrichedMessages: any[] = messages.map((m: any) => {
     if (m.role === "system") {
       return { ...m, content: `${timeContext}\n\n${m.content}` };
     }
     return m;
   });
-  // If no system message existed, add one at the start
   if (!messages.some((m: any) => m.role === "system")) {
     enrichedMessages.unshift({ role: "system", content: timeContext });
+  }
+
+  // ── 2. Inject live weather if the user is asking about weather ──
+  const weatherCity = detectWeatherCity(messages);
+  if (weatherCity) {
+    console.log(`Weather query detected for city: "${weatherCity}"`);
+    const weatherContext = await fetchWeather(weatherCity);
+    if (weatherContext) {
+      console.log("Weather data fetched successfully");
+      enrichedMessages = enrichedMessages.map((m: any) => {
+        if (m.role === "system") {
+          return { ...m, content: `${m.content}\n\n${weatherContext}` };
+        }
+        return m;
+      });
+      if (!enrichedMessages.some((m: any) => m.role === "system")) {
+        enrichedMessages.unshift({ role: "system", content: weatherContext });
+      }
+    }
   }
 
   const GROQ_KEY = Deno.env.get("GROQ_API_KEY");
