@@ -87,6 +87,13 @@
 -keep class expo.** { *; }
 -keep class expo.modules.** { *; }
 
+# expo-modules-core 55.x removed KeepAwakeManager from the interfaces package,
+# but expo-av's FullscreenVideoPlayer$KeepScreenOnUpdater still references it
+# by name in its compiled bytecode.  The class is never instantiated at runtime
+# (expo-av has its own keep-screen-on logic), so suppressing the missing-class
+# warning is safe and is the fix recommended in the generated missing_rules.txt.
+-dontwarn expo.modules.core.interfaces.services.KeepAwakeManager
+
 # Expo Notifications — the NotificationsModule uses BroadcastReceiver and
 # Service subclasses that Android instantiates by name from the manifest.
 -keep class expo.modules.notifications.** { *; }
