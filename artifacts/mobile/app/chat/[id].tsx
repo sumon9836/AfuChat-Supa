@@ -1673,6 +1673,7 @@ function ChatScreen() {
   const [editHistoryItems, setEditHistoryItems] = useState<{ id: string; previous_content: string; edited_at: string }[]>([]);
   const [editHistoryLoading, setEditHistoryLoading] = useState(false);
   const [showReactions, setShowReactions] = useState<Message | null>(null);
+  const [showMoreEmojis, setShowMoreEmojis] = useState(false);
   const [msgInfoTarget, setMsgInfoTarget] = useState<Message | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; handle: string; display_name: string; avatar_url: string | null }[]>([]);
@@ -6239,22 +6240,70 @@ STRICT RULES:
         currentChatId={chatInfo && !chatInfo.is_group && chatInfo.other_id === miniProfileUserId ? chatInfo.other_id : null}
       />
 
-      <Modal visible={!!showReactions} transparent animationType="fade" onRequestClose={() => { setShowReactions(null); setAiResult(null); setAiResultType(null); setAiReplies([]); }}>
+      <Modal visible={!!showReactions} transparent animationType="fade" onRequestClose={() => { setShowReactions(null); setAiResult(null); setAiResultType(null); setAiReplies([]); setShowMoreEmojis(false); }}>
         <View style={st.reactModalOverlay}>
-          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => { setShowReactions(null); setAiResult(null); setAiResultType(null); setAiReplies([]); }} />
-          <View style={[st.reactModalContainer, { backgroundColor: colors.surface }]}>
-            <View style={[st.reactModalEmojiRow, advancedFeatures.emoji_reactions_advanced ? { flexWrap: "wrap", justifyContent: "center" } : undefined]}>
-              {(advancedFeatures.emoji_reactions_advanced ? REACTION_EMOJIS_ADVANCED : REACTION_EMOJIS).map((emoji) => (
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => { setShowReactions(null); setAiResult(null); setAiResultType(null); setAiReplies([]); setShowMoreEmojis(false); }} />
+
+          {/* ── WhatsApp-style floating emoji pill ───────────────────── */}
+          <View style={[st.reactEmojiPill, { backgroundColor: colors.surface }]}>
+            {REACTION_EMOJIS.map((emoji) => {
+              const alreadyReacted = showReactions?.reactions?.some((r) => r.emoji === emoji && r.myReaction);
+              return (
                 <TouchableOpacity
                   key={emoji}
-                  style={[st.reactModalEmojiBtn, { backgroundColor: colors.inputBg }]}
-                  onPress={() => showReactions && addReaction(showReactions, emoji)}
+                  style={[
+                    st.reactEmojiPillBtn,
+                    alreadyReacted && { backgroundColor: BRAND + "22", transform: [{ scale: 1.18 }] },
+                  ]}
+                  onPress={() => {
+                    if (!showReactions) return;
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    addReaction(showReactions, emoji);
+                    setShowReactions(null);
+                    setShowMoreEmojis(false);
+                  }}
                 >
-                  <Text style={st.reactModalEmojiText}>{emoji}</Text>
+                  <Text style={st.reactEmojiPillText}>{emoji}</Text>
+                  {alreadyReacted && <View style={[st.reactEmojiActiveDot, { backgroundColor: BRAND }]} />}
                 </TouchableOpacity>
-              ))}
+              );
+            })}
+            <TouchableOpacity
+              style={[st.reactEmojiPillBtn, showMoreEmojis && { backgroundColor: colors.inputBg }]}
+              onPress={() => setShowMoreEmojis((v) => !v)}
+            >
+              <Ionicons name={showMoreEmojis ? "chevron-up" : "add"} size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* ── Expanded emoji grid (10 extra emojis) ───────────────── */}
+          {showMoreEmojis && (
+            <View style={[st.reactMoreGrid, { backgroundColor: colors.surface }]}>
+              {REACTION_EMOJIS_ADVANCED.filter((e) => !REACTION_EMOJIS.includes(e)).map((emoji) => {
+                const alreadyReacted = showReactions?.reactions?.some((r) => r.emoji === emoji && r.myReaction);
+                return (
+                  <TouchableOpacity
+                    key={emoji}
+                    style={[st.reactMoreGridBtn, alreadyReacted && { backgroundColor: BRAND + "22" }]}
+                    onPress={() => {
+                      if (!showReactions) return;
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      addReaction(showReactions, emoji);
+                      setShowReactions(null);
+                      setShowMoreEmojis(false);
+                    }}
+                  >
+                    <Text style={st.reactEmojiPillText}>{emoji}</Text>
+                    {alreadyReacted && <View style={[st.reactEmojiActiveDot, { backgroundColor: BRAND }]} />}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-            <View style={[st.reactModalDivider, { backgroundColor: colors.border }]} />
+          )}
+
+          {/* ── Actions card ─────────────────────────────────────────── */}
+          <View style={[st.reactModalContainer, { backgroundColor: colors.surface }]}>
+            <View style={[st.reactModalDivider, { backgroundColor: colors.border, marginTop: 0, marginBottom: 4 }]} />
             <TouchableOpacity style={st.reactModalAction} onPress={() => { if (showReactions) { setReplyTo(showReactions); setTimeout(() => chatInputRef.current?.focus(), 50); setShowReactions(null); } }}>
               <Ionicons name="arrow-undo" size={20} color={colors.text} />
               <Text style={[st.reactModalActionText, { color: colors.text }]}>Reply</Text>
@@ -7578,8 +7627,8 @@ const st = StyleSheet.create({
   sheetTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   sheetInput: { borderRadius: 12, padding: 14, fontSize: 15, fontFamily: "Inter_400Regular" },
 
-  reactModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 20 },
-  reactModalContainer: { width: "100%", borderRadius: 20, padding: 20, elevation: 10, ...Platform.select({ web: { boxShadow: "0 8px 20px rgba(0,0,0,0.25)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 20 } }), maxHeight: "85%" },
+  reactModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.52)", justifyContent: "center", alignItems: "center", paddingHorizontal: 20, gap: 8 },
+  reactModalContainer: { width: "100%", borderRadius: 20, paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, elevation: 10, ...Platform.select({ web: { boxShadow: "0 8px 20px rgba(0,0,0,0.25)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 20 } }), maxHeight: "70%" },
   reactModalEmojiRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 12 },
   reactModalEmojiBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   reactModalEmojiText: { fontSize: 24 },
@@ -7589,6 +7638,23 @@ const st = StyleSheet.create({
   reactionPicker: { flexDirection: "row", justifyContent: "center", paddingVertical: 8, gap: 6 },
   reactionOption: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   reactionOptionEmoji: { fontSize: 24 },
+  reactEmojiPill: {
+    flexDirection: "row", alignItems: "center", gap: 2,
+    borderRadius: 40, paddingHorizontal: 6, paddingVertical: 6,
+    elevation: 16,
+    ...Platform.select({ web: { boxShadow: "0 4px 20px rgba(0,0,0,0.28)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.28, shadowRadius: 16 } }),
+  },
+  reactEmojiPillBtn: { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center" },
+  reactEmojiPillText: { fontSize: 26 },
+  reactEmojiActiveDot: { position: "absolute", bottom: 5, alignSelf: "center", width: 5, height: 5, borderRadius: 2.5 },
+  reactMoreGrid: {
+    width: "100%", flexDirection: "row", flexWrap: "wrap",
+    justifyContent: "center", gap: 4,
+    borderRadius: 20, padding: 10,
+    elevation: 10,
+    ...Platform.select({ web: { boxShadow: "0 4px 12px rgba(0,0,0,0.18)" } as any, default: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12 } }),
+  },
+  reactMoreGridBtn: { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center" },
 
   sheetActionRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 4 },
   sheetActionText: { fontSize: 16, fontFamily: "Inter_500Medium" },
