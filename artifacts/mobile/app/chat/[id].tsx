@@ -596,18 +596,18 @@ function AiInlineText({ text, color }: { text: string; color: string }) {
 }
 function AiRichContent({ content, colors: c, isUser }: { content: string; colors: any; isUser?: boolean }) {
   const textColor = isUser ? "#fff" : c.text;
-  if (isUser) return <Text style={{ fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 21, color: "#fff" }}>{stripMd(content)}</Text>;
+  if (isUser) return <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18, color: "#fff" }}>{stripMd(content)}</Text>;
   const segs = parseAiRichText(content);
   return (
-    <View style={{ gap: 2 }}>
+    <View style={{ gap: 1 }}>
       {segs.map((seg, i) => {
-        if (seg.type === "heading") return <Text key={i} style={{ color: textColor, fontFamily: "Inter_700Bold", fontSize: seg.level === 1 ? 18 : seg.level === 2 ? 16 : 15, marginTop: 4 }}><AiInlineText text={seg.text} color={textColor} /></Text>;
-        if (seg.type === "codeblock") return <ScrollView key={i} horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: c.inputBg || "#1e1e1e", borderRadius: 8, padding: 10, marginVertical: 4 }}><Text style={{ fontFamily: "monospace", fontSize: 13, color: "#1f95ff" }}>{seg.text}</Text></ScrollView>;
-        if (seg.type === "bullet") return <View key={i} style={{ flexDirection: "row", gap: 6, paddingLeft: (seg.indent || 0) * 16 }}><Text style={{ color: "#1f95ff", fontSize: 14, lineHeight: 22 }}>●</Text><Text style={{ color: textColor, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 21, flex: 1 }}><AiInlineText text={seg.text} color={textColor} /></Text></View>;
-        if (seg.type === "numbered") return <View key={i} style={{ flexDirection: "row", gap: 6 }}><Text style={{ color: "#1f95ff", fontSize: 14, fontWeight: "600", lineHeight: 22, minWidth: 20 }}>{seg.num}.</Text><Text style={{ color: textColor, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 21, flex: 1 }}><AiInlineText text={seg.text} color={textColor} /></Text></View>;
-        if (seg.type === "divider") return <View key={i} style={{ height: 1, backgroundColor: c.border, marginVertical: 6 }} />;
-        if (seg.text === "\n") return <View key={i} style={{ height: 6 }} />;
-        return <Text key={i} style={{ color: textColor, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 21 }}><AiInlineText text={seg.text} color={textColor} /></Text>;
+        if (seg.type === "heading") return <Text key={i} style={{ color: textColor, fontFamily: "Inter_700Bold", fontSize: seg.level === 1 ? 14 : seg.level === 2 ? 13 : 13, marginTop: 3 }}><AiInlineText text={seg.text} color={textColor} /></Text>;
+        if (seg.type === "codeblock") return <ScrollView key={i} horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: c.inputBg || "#1e1e1e", borderRadius: 8, padding: 8, marginVertical: 3 }}><Text style={{ fontFamily: "monospace", fontSize: 12, color: "#1f95ff" }}>{seg.text}</Text></ScrollView>;
+        if (seg.type === "bullet") return <View key={i} style={{ flexDirection: "row", gap: 5, paddingLeft: (seg.indent || 0) * 12 }}><Text style={{ color: "#1f95ff", fontSize: 12, lineHeight: 18 }}>●</Text><Text style={{ color: textColor, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18, flex: 1 }}><AiInlineText text={seg.text} color={textColor} /></Text></View>;
+        if (seg.type === "numbered") return <View key={i} style={{ flexDirection: "row", gap: 5 }}><Text style={{ color: "#1f95ff", fontSize: 12, fontWeight: "600", lineHeight: 18, minWidth: 16 }}>{seg.num}.</Text><Text style={{ color: textColor, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18, flex: 1 }}><AiInlineText text={seg.text} color={textColor} /></Text></View>;
+        if (seg.type === "divider") return <View key={i} style={{ height: 1, backgroundColor: c.border, marginVertical: 4 }} />;
+        if (seg.text === "\n") return <View key={i} style={{ height: 4 }} />;
+        return <Text key={i} style={{ color: textColor, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 }}><AiInlineText text={seg.text} color={textColor} /></Text>;
       })}
     </View>
   );
@@ -7312,7 +7312,7 @@ const st = StyleSheet.create({
   msgRowMe: { justifyContent: "flex-end" },
   msgRowOther: { justifyContent: "flex-start" },
 
-  bubbleContainer: { maxWidth: "78%", position: "relative", flexShrink: 1, minWidth: 0 },
+  bubbleContainer: { maxWidth: "72%", position: "relative", flexShrink: 1, minWidth: 0 },
   bubbleContainerMe: { alignItems: "flex-end" },
   bubbleContainerOther: { alignItems: "flex-start" },
 
