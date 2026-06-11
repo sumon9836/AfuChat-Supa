@@ -1327,8 +1327,14 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                   const _fontSize  = chatPrefsLocal?.font_size ?? 14;
                   const _lineH     = _fontSize + 5;
                   const _timeStr   = formatMsgTime(msg.sent_at);
-                  // Ghost: invisible replica of the real timestamp — only last line is indented
-                  const ghost = (
+                  // On web the opacity:0 ghost leaks through as visible text — use
+                  // paddingRight instead to reserve space on the last line.
+                  const isWeb = Platform.OS === "web";
+                  const webPaddingRight = isWeb
+                    ? (msg.edited_at ? 40 : 0) + (isMe ? 78 : 58)
+                    : 0;
+                  // Ghost: invisible replica of the real timestamp — native only.
+                  const ghost = isWeb ? undefined : (
                     <Text style={{ opacity: 0, fontSize: 11, fontFamily: "Inter_400Regular", includeFontPadding: false }}>
                       {msg.edited_at ? "  edited" : ""}{" "}{_timeStr}{isMe ? "    " : " "}
                     </Text>
@@ -1337,7 +1343,7 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
                     <>
                       <TouchableOpacity onLongPress={() => onLongPress(msg)} delayLongPress={500} activeOpacity={0.9}>
                         <RichText
-                          style={[st.bubbleText, { color: textColor, fontSize: _fontSize, lineHeight: _lineH }]}
+                          style={[st.bubbleText, { color: textColor, fontSize: _fontSize, lineHeight: _lineH, paddingRight: webPaddingRight }]}
                           linkColor={isMe ? "#FFFFFF" : BRAND}
                           selectable={true}
                           tail={ghost}
