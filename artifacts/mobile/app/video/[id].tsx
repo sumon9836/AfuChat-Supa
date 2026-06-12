@@ -443,13 +443,14 @@ const VideoItem = React.memo(function VideoItem({
   onOpenComments: (id: string) => void; onShare: (item: VideoPost) => void;
   onFollow: (authorId: string, isFollowing: boolean) => void; onRecordView: (postId: string) => void;
   onOpenMenu: (item: VideoPost) => void;
-  navOffset?: number; tabFocused?: boolean;
+  navOffset?: number; tabFocused?: boolean; onVideoEnd?: () => void;
 }) {
   const { accent } = useAppAccent();
   const insets = useSafeAreaInsets();
   const player = useVideoPlayer(null, (p) => { p.loop = true; p.muted = false; });
   const webVideoRef = useRef<HTMLVideoElement | null>(null);
   const videoViewRef = useRef<VideoView>(null);
+  const videoEndFiredRef = useRef(false);
   const [inPip, setInPip] = useState(false);
   const [paused, setPaused] = useState(false);
   const [buffering, setBuffering] = useState(false);
@@ -530,6 +531,7 @@ const VideoItem = React.memo(function VideoItem({
       // Reset per-frame perf refs when leaving viewport
       bufferingRef.current = false;
       videoStartedRef.current = false;
+      videoEndFiredRef.current = false;
       lastProgressFrameRef.current = 0;
       lastSavedProgressRef.current = 0;
       // Reset offline-save flag so it retries on next view if the save failed
@@ -613,8 +615,10 @@ const VideoItem = React.memo(function VideoItem({
             lastProgressFrameRef.current = now;
             setDurationMs(dur * 1000);
             setProgress(frac);
-            if (frac >= 0.97) clearVideoProgress(item.id);
-            else if (now - lastSavedProgressRef.current >= 2000) { lastSavedProgressRef.current = now; saveVideoProgress(item.id, frac); }
+            if (frac >= 0.97) {
+              clearVideoProgress(item.id);
+              if (!videoEndFiredRef.current) { videoEndFiredRef.current = true; onVideoEnd?.(); }
+            } else if (now - lastSavedProgressRef.current >= 2000) { lastSavedProgressRef.current = now; saveVideoProgress(item.id, frac); }
           }
         }
       } catch {}
@@ -936,6 +940,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
   const [tabFocused, setTabFocused] = useState(true);
+  const [autoScroll, setAutoScroll] = useState(false);
+  const autoScrollRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -973,6 +979,12 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
   useEffect(() => { videoTabRef.current = videoTab; }, [videoTab]);
   useEffect(() => { activeIndexRef.current = activeIndex; }, [activeIndex]);
+  useEffect(() => { autoScrollRef.current = autoScroll; }, [autoScroll]);
+  useEffect(() => {
+    AsyncStorage.getItem("pref:videoAutoScroll").then((v) => {
+      if (v === "1") { setAutoScroll(true); autoScrollRef.current = true; }
+    }).catch(() => {});
+  }, []);
   useEffect(() => {
     videosLenRef.current = videos.length;
     videosRef.current = videos;
@@ -1540,6 +1552,26 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   const onShare = useCallback((item: VideoPost) => setShareSheetItem(item), []);
   const onOpenMenu = useCallback((item: VideoPost) => setMenuItem(item), []);
 
+  const handleVideoEnd = useCallback(() => {
+    if (!autoScrollRef.current) return;
+    const next = activeIndexRef.current + 1;
+    if (next >= videosLenRef.current) return;
+    listRef.current?.scrollToIndex({ index: next, animated: true });
+    if (Platform.OS === "web" && webScrollRef.current) {
+      const el = webScrollRef.current as unknown as Element;
+      el.scrollTo({ top: el.scrollTop + el.clientHeight, behavior: "smooth" });
+    }
+  }, []);
+
+  const toggleAutoScroll = useCallback(() => {
+    setAutoScroll((prev) => {
+      const next = !prev;
+      autoScrollRef.current = next;
+      AsyncStorage.setItem("pref:videoAutoScroll", next ? "1" : "0").catch(() => {});
+      return next;
+    });
+  }, []);
+
   const videoItemProps = React.useMemo(() => ({
     screenH: listHeight, screenW: SCREEN_W,
     navOffset: 0,
@@ -1549,8 +1581,9 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     onFollow: handleFollow,
     onRecordView: handleRecordView,
     onOpenMenu,
+    onVideoEnd: handleVideoEnd,
     tabFocused,
-  }), [listHeight, SCREEN_W, isEmbedded, insets, handleLike, handleBookmark, handleFollow, handleRecordView, onShare, onOpenMenu, tabFocused]);
+  }), [listHeight, SCREEN_W, isEmbedded, insets, handleLike, handleBookmark, handleFollow, handleRecordView, onShare, onOpenMenu, handleVideoEnd, tabFocused]);
 
   const renderItem = useCallback(({ item, index }: { item: VideoPost; index: number }) => (
     <VideoItem
@@ -1591,9 +1624,14 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
               <Text style={[mStyles.tabText, videoTab === "following" && mStyles.tabTextActive]}>Following</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity hitSlop={12} style={mStyles.headerSide} onPress={() => router.push("/search" as any)}>
-            <Ionicons name="search-outline" size={20} color="#fff" />
-          </TouchableOpacity>
+          <View style={mStyles.headerRight}>
+            <TouchableOpacity hitSlop={8} onPress={toggleAutoScroll}>
+              <Ionicons name="repeat" size={20} color={autoScroll ? accent : "rgba(255,255,255,0.55)"} />
+            </TouchableOpacity>
+            <TouchableOpacity hitSlop={8} onPress={() => router.push("/search" as any)}>
+              <Ionicons name="search-outline" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -1623,9 +1661,14 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
             <Text style={[mStyles.tabText, videoTab === "following" && mStyles.tabTextActive]}>Following</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity hitSlop={12} style={mStyles.headerSide} onPress={() => router.push("/search" as any)}>
-          <Ionicons name="search-outline" size={20} color="#fff" />
-        </TouchableOpacity>
+        <View style={mStyles.headerRight}>
+          <TouchableOpacity hitSlop={8} onPress={toggleAutoScroll}>
+            <Ionicons name="repeat" size={20} color={autoScroll ? accent : "rgba(255,255,255,0.55)"} />
+          </TouchableOpacity>
+          <TouchableOpacity hitSlop={8} onPress={() => router.push("/search" as any)}>
+            <Ionicons name="search-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {videos.length === 0 ? (
@@ -1767,6 +1810,7 @@ const mStyles = StyleSheet.create({
   } as any,
   headerRow: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 30, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingBottom: 10 },
   headerSide: { width: 38, alignItems: "center" },
+  headerRight: { width: 72, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 12 },
   tabRow: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 2 },
   tabBtn: { paddingVertical: 8, paddingHorizontal: 18, borderBottomWidth: 2.5, borderBottomColor: "transparent" },
   tabBtnActive: { borderBottomColor: "#fff" },
