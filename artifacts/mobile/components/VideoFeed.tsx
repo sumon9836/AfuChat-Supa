@@ -98,9 +98,9 @@ const ReAnimated       = (_raVF?.default ?? require("react-native").Animated)   
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PAGE_SIZE     = 20;
-const FOR_YOU_POOL  = 200;
-const INFO_H        = 0;    // info now overlays the video — no separate bar
+const PAGE_SIZE      = 20;
+const FOR_YOU_POOL   = 200;
+const BOTTOM_BAR_H   = 64;  // fixed action bar height between video and tab nav
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -554,94 +554,6 @@ const VideoItem = React.memo(
             </View>
           )}
 
-          {/* ── Right action rail ────────────────────────────────────────── */}
-          <View style={[styles.rightRail, { pointerEvents: "box-none" }]}>
-
-            {/* Avatar + follow badge */}
-            <TouchableOpacity
-              onPress={() => router.push(`/@${item.profile.handle}` as any)}
-              style={styles.avatarWrap}
-              activeOpacity={0.85}
-            >
-              <View style={[styles.avatarRing, { borderColor: "#fff" }]}>
-                <Avatar
-                  uri={item.profile.avatar_url}
-                  name={item.profile.display_name}
-                  size={42}
-                />
-              </View>
-              {!isOwn && !item.following && (
-                <View style={[styles.followPlusBadge, { backgroundColor: accent }]}>
-                  <Ionicons name="add" size={13} color="#fff" />
-                </View>
-              )}
-            </TouchableOpacity>
-
-            {/* Like */}
-            <View style={styles.railAction}>
-              <ReAnimated.View style={heartAnimStyle}>
-                <TouchableOpacity onPress={handleLikeTap} activeOpacity={0.7}>
-                  <View style={[styles.railIconCircle, item.liked && { backgroundColor: "rgba(255,45,85,0.35)" }]}>
-                    <Ionicons
-                      name={item.liked ? "heart" : "heart-outline"}
-                      size={26}
-                      color={item.liked ? "#FF2D55" : "#fff"}
-                    />
-                  </View>
-                </TouchableOpacity>
-              </ReAnimated.View>
-              <Text style={styles.railLabel}>{fmt(item.likeCount)}</Text>
-            </View>
-
-            {/* Comment */}
-            <View style={styles.railAction}>
-              <TouchableOpacity
-                onPress={() => router.push({ pathname: "/video/[id]", params: { id: item.id } })}
-                activeOpacity={0.7}
-              >
-                <View style={styles.railIconCircle}>
-                  <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
-                </View>
-              </TouchableOpacity>
-              <Text style={styles.railLabel}>{fmt(item.replyCount)}</Text>
-            </View>
-
-            {/* Bookmark */}
-            <View style={styles.railAction}>
-              <TouchableOpacity
-                onPress={() => onBookmark(item.id, item.bookmarked)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.railIconCircle, item.bookmarked && { backgroundColor: "rgba(255,214,10,0.3)" }]}>
-                  <Ionicons
-                    name={item.bookmarked ? "bookmark" : "bookmark-outline"}
-                    size={24}
-                    color={item.bookmarked ? "#FFD60A" : "#fff"}
-                  />
-                </View>
-              </TouchableOpacity>
-              <Text style={styles.railLabel}>{fmt(item.likeCount > 0 ? Math.round(item.likeCount * 0.23) : 0)}</Text>
-            </View>
-
-            {/* Share / More */}
-            <View style={styles.railAction}>
-              <TouchableOpacity
-                onPress={() => onMore(item)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.railIconCircle}>
-                  <Ionicons name="arrow-redo" size={24} color="#fff" />
-                </View>
-              </TouchableOpacity>
-              <Text style={styles.railLabel}>{fmt(item.view_count > 0 ? Math.round(item.view_count * 0.04) : 0)}</Text>
-            </View>
-
-            {/* Spinning music disc */}
-            <View style={styles.railAction}>
-              <MusicDisc isPlaying={isPlaying} />
-            </View>
-          </View>
-
           {/* Mute toggle (top-right corner, subtle) */}
           <TouchableOpacity
             onPress={onToggleMute}
@@ -659,36 +571,8 @@ const VideoItem = React.memo(
           {/* Bottom gradient — makes caption text legible over video */}
           <BottomGradient />
 
-          {/* ── INFO OVERLAY (absolute, bottom-left, over video) ───────────── */}
+          {/* ── CAPTION OVERLAY (absolute, bottom-left over video) ──────────── */}
           <View style={[styles.infoSection, { pointerEvents: "box-none" }]}>
-            {/* Author row */}
-            <View style={styles.infoAuthorRow}>
-              <TouchableOpacity
-                onPress={() => router.push(`/@${item.profile.handle}` as any)}
-                activeOpacity={0.85}
-                style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 4 }}
-              >
-                <Text style={[styles.infoHandle, { flexShrink: 1 }]} numberOfLines={1}>
-                  @{item.profile.handle}
-                </Text>
-                <VerifiedBadge
-                  isVerified={item.profile.is_verified}
-                  isOrganizationVerified={item.profile.is_organization_verified}
-                  size={14}
-                />
-              </TouchableOpacity>
-              {!isOwn && !item.following && (
-                <TouchableOpacity
-                  onPress={() => onFollow(item.author_id)}
-                  style={styles.infoFollowBtn}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.infoFollowBtnText}>Follow</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Caption */}
             {item.content ? (
               <TouchableOpacity
                 activeOpacity={0.8}
@@ -722,6 +606,92 @@ const VideoItem = React.memo(
             </Text>
           )}
         </View>
+
+        {/* ── BOTTOM ACTION BAR (WeChat style) ─────────────────────────────── */}
+        <View style={styles.bottomBar}>
+
+          {/* Left: avatar · @handle · Follow */}
+          <View style={styles.barLeft}>
+            <TouchableOpacity
+              onPress={() => router.push(`/@${item.profile.handle}` as any)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.barAvatarRing}>
+                <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={34} />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push(`/@${item.profile.handle}` as any)}
+              activeOpacity={0.85}
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                <Text style={styles.barHandle} numberOfLines={1}>@{item.profile.handle}</Text>
+                <VerifiedBadge
+                  isVerified={item.profile.is_verified}
+                  isOrganizationVerified={item.profile.is_organization_verified}
+                  size={12}
+                />
+              </View>
+            </TouchableOpacity>
+            {!isOwn && !item.following && (
+              <TouchableOpacity
+                onPress={() => onFollow(item.author_id)}
+                style={styles.barFollowBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.barFollowBtnText}>Follow</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Right: like · share · bookmark · comment */}
+          <View style={styles.barActions}>
+            {/* Like */}
+            <ReAnimated.View style={heartAnimStyle}>
+              <TouchableOpacity onPress={handleLikeTap} activeOpacity={0.7} style={styles.barAction}>
+                <Ionicons
+                  name={item.liked ? "heart" : "heart-outline"}
+                  size={22}
+                  color={item.liked ? "#FF2D55" : "#fff"}
+                />
+                <Text style={styles.barActionLabel}>{fmt(item.likeCount)}</Text>
+              </TouchableOpacity>
+            </ReAnimated.View>
+            {/* Share / More */}
+            <TouchableOpacity onPress={() => onMore(item)} activeOpacity={0.7} style={styles.barAction}>
+              <Ionicons name="arrow-redo-outline" size={22} color="#fff" />
+              <Text style={styles.barActionLabel}>
+                {fmt(item.view_count > 0 ? Math.round(item.view_count * 0.04) : 0)}
+              </Text>
+            </TouchableOpacity>
+            {/* Bookmark */}
+            <TouchableOpacity
+              onPress={() => onBookmark(item.id, item.bookmarked)}
+              activeOpacity={0.7}
+              style={styles.barAction}
+            >
+              <Ionicons
+                name={item.bookmarked ? "bookmark" : "bookmark-outline"}
+                size={22}
+                color={item.bookmarked ? "#FFD60A" : "#fff"}
+              />
+              <Text style={styles.barActionLabel}>
+                {fmt(item.likeCount > 0 ? Math.round(item.likeCount * 0.23) : 0)}
+              </Text>
+            </TouchableOpacity>
+            {/* Comment */}
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: "/video/[id]", params: { id: item.id } })}
+              activeOpacity={0.7}
+              style={styles.barAction}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={22} color="#fff" />
+              <Text style={styles.barActionLabel}>{fmt(item.replyCount)}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
       </View>
     );
   },
@@ -974,7 +944,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
 
   const ITEM_H  = SCREEN_H - tabBarHeight;
-  const VIDEO_H = ITEM_H - INFO_H;
+  const VIDEO_H = ITEM_H - BOTTOM_BAR_H;
 
   const [tab, setTab] = useState<FeedTab>("for_you");
   const [posts, setPosts] = useState<VideoPost[]>([]);
@@ -1638,57 +1608,7 @@ const styles = StyleSheet.create({
     pointerEvents: "none",
   } as any,
 
-  // ── Right action rail — lifted so it clears the caption overlay ──
-  rightRail: {
-    position: "absolute",
-    right: 12,
-    bottom: 120,
-    alignItems: "center",
-    gap: 14,
-  },
-  avatarWrap: {
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  avatarRing: {
-    borderWidth: 2,
-    borderRadius: 26,
-    padding: 1.5,
-  },
-  followPlusBadge: {
-    position: "absolute",
-    bottom: -10,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "#000",
-  },
-  railAction: {
-    alignItems: "center",
-    gap: 5,
-  },
-  railIconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "rgba(0,0,0,0.42)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  railLabel: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: "Inter_700Bold",
-    ...Platform.select({
-      web: { textShadow: "0 1px 3px rgba(0,0,0,0.8)" } as any,
-      default: { textShadowColor: "rgba(0,0,0,0.8)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
-    }),
-  },
-
-  // ── Music disc ──
+  // ── Music disc (kept for MusicDisc component) ──
   musicDisc: {
     width: 38,
     height: 38,
@@ -1704,6 +1624,65 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: "#666",
+  },
+
+  // ── Bottom action bar (WeChat / Douyin style) ──
+  bottomBar: {
+    height: BOTTOM_BAR_H,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#000",
+    gap: 10,
+  },
+  barLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+  },
+  barAvatarRing: {
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.3)",
+    borderRadius: 20,
+    padding: 1,
+  },
+  barHandle: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  barFollowBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 99,
+    borderWidth: 1.2,
+    borderColor: "rgba(255,255,255,0.55)",
+  },
+  barFollowBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  barActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
+  },
+  barAction: {
+    alignItems: "center",
+    gap: 2,
+  },
+  barActionLabel: {
+    color: "#fff",
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    ...Platform.select({
+      web: { textShadow: "0 1px 3px rgba(0,0,0,0.7)" } as any,
+      default: { textShadowColor: "rgba(0,0,0,0.7)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+    }),
   },
 
   // ── Mute button ──
@@ -1761,12 +1740,12 @@ const styles = StyleSheet.create({
     pointerEvents: "none",
   } as any,
 
-  // ── Info section — absolute overlay at bottom-left over the video ──
+  // ── Caption overlay — absolute, bottom-left of the video section ──
   infoSection: {
     position: "absolute",
     bottom: 14,
     left: 14,
-    right: 78,          // leave room for the right action rail
+    right: 14,
     gap: 4,
   },
   infoAuthorRow: {
