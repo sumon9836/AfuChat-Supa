@@ -1777,9 +1777,12 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         />
       )}
 
-      {/* Inline comments panel — slides in below the squeezed video */}
+      {/* Inline comments panel — slides in below the squeezed video.
+          pointerEvents:"box-none" on the wrapper so the View itself never
+          swallows touches — once the sheet animates off-screen, taps fall
+          through to the video and bottom bar beneath it. */}
       {commentPostId && (
-        <View style={{ position: "absolute", left: 0, right: 0, top: squeezedH, bottom: 0 }}>
+        <View style={{ position: "absolute", left: 0, right: 0, top: squeezedH, bottom: 0, pointerEvents: "box-none" } as any}>
           <VideoCommentsSheet
             visible={!!commentPostId} onClose={() => setCommentPostId(null)}
             postId={commentPostId}

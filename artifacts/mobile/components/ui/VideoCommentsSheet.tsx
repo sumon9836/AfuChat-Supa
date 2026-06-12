@@ -1344,7 +1344,8 @@ export function VideoCommentsSheet({
     <Modal visible={visible} transparent animationType="none" onRequestClose={dismissSheet} statusBarTranslucent>
       {/* Full-screen overlay including tab bar area */}
       <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" }}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={dismissSheet} />
+        {/* Backdrop: tap it → instant close. Swipe gesture uses dismissSheet for animation. */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
         {/* Outer: native-driver slide-in/out — transform only */}
         <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
