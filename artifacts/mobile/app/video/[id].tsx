@@ -375,25 +375,28 @@ const ssStyles = StyleSheet.create({
 
 // ─── VideoContextMenu ─────────────────────────────────────────────────────────
 
-function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownload, onCopyLink, onNotInterested, onReport, onPiP }: {
+function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownload, onCopyLink, onNotInterested, onReport, onPiP, autoScroll, onToggleAutoScroll }: {
   visible: boolean; item: VideoPost | null; onClose: () => void;
   onShare: () => void; onRepost: () => void; onDownload: () => void;
   onCopyLink: () => void; onNotInterested: () => void; onReport: () => void;
   onPiP: () => void;
+  autoScroll: boolean; onToggleAutoScroll: () => void;
 }) {
   if (!visible || !item) return null;
   const ACTIONS: { id: string; label: string; icon: string; bg: string; color: string }[] = [
-    { id: "pip",           label: "Mini player",      icon: "phone-portrait-outline", bg: "#1C1C1E", color: "#fff" },
-    { id: "repost",        label: "Repost",           icon: "repeat",                 bg: "#FF9500", color: "#fff" },
-    { id: "share",         label: "Share to",         icon: "share-social",           bg: "#34C759", color: "#fff" },
-    { id: "copylink",      label: "Copy link",        icon: "link",                   bg: "#007AFF", color: "#fff" },
-    { id: "download",      label: "Save",             icon: "download-outline",       bg: "#5856D6", color: "#fff" },
-    { id: "notinterested", label: "Not interested",   icon: "heart-dislike-outline",  bg: "#f0f0f0", color: "#555" },
-    { id: "report",        label: "Report",           icon: "flag-outline",           bg: "#FFEBEE", color: "#FF3B30" },
+    { id: "pip",           label: "Mini player",      icon: "phone-portrait-outline", bg: "#1C1C1E",                          color: "#fff"  },
+    { id: "autoscroll",    label: autoScroll ? "Auto-play: On" : "Auto-play: Off", icon: autoScroll ? "play-forward" : "play-forward-outline", bg: autoScroll ? "#34C759" : "#8E8E93", color: "#fff" },
+    { id: "repost",        label: "Repost",           icon: "repeat",                 bg: "#FF9500",                          color: "#fff"  },
+    { id: "share",         label: "Share to",         icon: "share-social",           bg: "#007AFF",                          color: "#fff"  },
+    { id: "copylink",      label: "Copy link",        icon: "link",                   bg: "#5856D6",                          color: "#fff"  },
+    { id: "download",      label: "Save",             icon: "download-outline",       bg: "#5856D6",                          color: "#fff"  },
+    { id: "notinterested", label: "Not interested",   icon: "heart-dislike-outline",  bg: "#f0f0f0",                          color: "#555"  },
+    { id: "report",        label: "Report",           icon: "flag-outline",           bg: "#FFEBEE",                          color: "#FF3B30"},
   ];
   const handlers: Record<string, () => void> = {
     repost: onRepost, copylink: onCopyLink, share: onShare,
-    download: onDownload, pip: onPiP, notinterested: onNotInterested, report: onReport,
+    download: onDownload, pip: onPiP, autoscroll: onToggleAutoScroll,
+    notinterested: onNotInterested, report: onReport,
   };
   return (
     <SmartSheet visible={visible} onClose={onClose} backgroundColor="#fff" handleColor="#e0e0e0" peekFraction={0.70}>
@@ -1664,9 +1667,6 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
             </TouchableOpacity>
           </View>
           <View style={mStyles.headerRight}>
-            <TouchableOpacity hitSlop={8} onPress={toggleAutoScroll}>
-              <Ionicons name="repeat" size={20} color={autoScroll ? accent : "rgba(255,255,255,0.55)"} />
-            </TouchableOpacity>
             <TouchableOpacity hitSlop={8} onPress={() => router.push("/search" as any)}>
               <Ionicons name="search-outline" size={20} color="#fff" />
             </TouchableOpacity>
@@ -1701,9 +1701,6 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
           </TouchableOpacity>
         </View>
         <View style={mStyles.headerRight}>
-          <TouchableOpacity hitSlop={8} onPress={toggleAutoScroll}>
-            <Ionicons name="repeat" size={20} color={autoScroll ? accent : "rgba(255,255,255,0.55)"} />
-          </TouchableOpacity>
           <TouchableOpacity hitSlop={8} onPress={() => router.push("/search" as any)}>
             <Ionicons name="search-outline" size={20} color="#fff" />
           </TouchableOpacity>
@@ -1829,6 +1826,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         onNotInterested={() => { if (menuItem) { setMenuItem(null); handleNotInterested(menuItem); } }}
         onReport={() => menuItem && handleReport(menuItem)}
         onPiP={() => { setMenuItem(null); setTimeout(() => pipTriggerRef.current?.(), 300); }}
+        autoScroll={autoScroll}
+        onToggleAutoScroll={() => { toggleAutoScroll(); }}
       />
 
       <SocialShareSheet
