@@ -17,8 +17,6 @@ import * as Haptics from "@/lib/haptics";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/hooks/useTheme";
-import { useAppAccent } from "@/context/AppAccentContext";
-import { ACCENT_SWATCHES, CHAT_THEME_COLORS } from "@/context/ChatPreferencesContext";
 import { showAlert } from "@/lib/alert";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { GlassMenuSection, GlassMenuItem, GlassMenuSeparator } from "@/components/ui/GlassMenuItem";
@@ -32,7 +30,6 @@ const MODE_OPTIONS = [
 
 export default function SettingsScreen() {
   const { colors, themeMode, setThemeMode, accent } = useTheme();
-  const { appTheme, setAppTheme } = useAppAccent();
   const { langLabel } = useLanguage();
   const { user, profile, isPremium, linkedAccounts, switchAccount, signOut } = useAuth();
   const insets = useSafeAreaInsets();
@@ -185,41 +182,6 @@ export default function SettingsScreen() {
                 >
                   <Ionicons name={icon} size={15} color={active ? "#fff" : colors.textMuted} />
                   <Text style={[styles.modeBtnText, { color: active ? "#fff" : colors.textMuted }]}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Accent label row */}
-          <View style={[styles.accentLabelRow, { borderTopColor: colors.border }]}>
-            <Text style={[styles.accentLabelText, { color: colors.textSecondary }]}>Accent Color</Text>
-            <View style={[styles.accentPreview, { backgroundColor: accent }]} />
-          </View>
-
-          {/* Colour swatches */}
-          <View style={styles.swatchGrid}>
-            {ACCENT_SWATCHES.map(({ key, label }) => {
-              const color = CHAT_THEME_COLORS[key]?.accent ?? "#1f95ff";
-              const selected = appTheme === key;
-              return (
-                <TouchableOpacity
-                  key={key}
-                  onPress={() => { Haptics.selectionAsync(); setAppTheme(key); }}
-                  activeOpacity={0.8}
-                  style={styles.swatchWrap}
-                >
-                  <View
-                    style={[
-                      styles.swatch,
-                      { backgroundColor: color },
-                      selected && styles.swatchSelected,
-                    ]}
-                  >
-                    {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
-                  </View>
-                  <Text style={[styles.swatchLabel, { color: selected ? accent : colors.textMuted }]} numberOfLines={1}>
                     {label}
                   </Text>
                 </TouchableOpacity>
@@ -391,26 +353,4 @@ const styles = StyleSheet.create({
   },
   modeBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
-  accentLabelRow: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  accentLabelText: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  accentPreview: { width: 20, height: 20, borderRadius: 10 },
-
-  swatchGrid: {
-    flexDirection: "row", flexWrap: "wrap",
-    paddingHorizontal: 14, paddingBottom: 16, gap: 10,
-  },
-  swatchWrap: { alignItems: "center", gap: 4, width: 44 },
-  swatch: {
-    width: 36, height: 36, borderRadius: 18,
-    alignItems: "center", justifyContent: "center",
-  },
-  swatchSelected: {
-    borderWidth: 3, borderColor: "rgba(255,255,255,0.9)",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25, shadowRadius: 4,
-  },
-  swatchLabel: { fontSize: 9.5, fontFamily: "Inter_500Medium", textAlign: "center" },
 });
