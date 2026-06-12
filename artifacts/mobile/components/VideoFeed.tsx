@@ -755,11 +755,11 @@ function VideoMoreSheet({ visible, item, onClose, onNotInterested }: MoreSheetPr
 
   // ── theme tokens ──────────────────────────────────────────────────────────
   const sheetBg   = isDark ? "#1C1C1E"  : "#F5F0E8";
-  const iconBg    = isDark ? "#2A2A2D"  : "#E8E2D6";
-  const iconColor = isDark ? "#8A8A8E"  : "#6B6259";
-  const labelClr  = isDark ? "#8A8A8E"  : "#6B6259";
-  const handleClr = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.14)";
-  const sepClr    = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
+  const iconBg    = isDark ? "#2A2A2D"  : "#D8D0C4";
+  const iconColor = isDark ? "#8A8A8E"  : "#2D2520";
+  const labelClr  = isDark ? "#8A8A8E"  : "#4A4440";
+  const handleClr = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.18)";
+  const sepClr    = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
 
   const videoUrl = `https://afuchat.com/video/${item.id}`;
 
