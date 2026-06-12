@@ -51,14 +51,17 @@ export default function MoneyRequestScreen() {
   useEffect(() => {
     if (afu_id) resolveByAfuId(afu_id);
     else if (handle) resolveByHandle(handle);
-    else { showAlert("Error", "No target specified."); router.back(); }
+    else if (afu_id !== undefined || handle !== undefined) {
+      showAlert("Error", "No target specified.");
+      if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any);
+    }
   }, [afu_id, handle]);
 
   async function resolveByAfuId(id: string) {
     setLoading(true);
     const { data } = await supabase.rpc("lookup_profile_by_afu_id", { p_afu_id: id });
     const p = data?.[0];
-    if (!p) { showAlert("Not Found", "No user found with this AfuChat ID."); router.back(); return; }
+    if (!p) { showAlert("Not Found", "No user found with this AfuChat ID."); if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any); return; }
     setTarget(p as Target);
     setLoading(false);
   }
@@ -70,7 +73,7 @@ export default function MoneyRequestScreen() {
       .select("id,handle,display_name,avatar_url")
       .eq("handle", h.toLowerCase())
       .maybeSingle();
-    if (!data) { showAlert("Not Found", "No user found."); router.back(); return; }
+    if (!data) { showAlert("Not Found", "No user found."); if (router.canGoBack()) router.back(); else router.replace("/(tabs)/discover" as any); return; }
     setTarget(data as Target);
     setLoading(false);
   }
