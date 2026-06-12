@@ -435,7 +435,7 @@ const cmStyles = StyleSheet.create({
 const VideoItem = React.memo(function VideoItem({
   item, isActive, isNearActive, screenH, screenW, isFollowing, isSelf,
   onLike, onBookmark, onOpenComments, onShare, onFollow, onRecordView, onOpenMenu,
-  navOffset = 0, tabFocused = true,
+  navOffset = 0, tabFocused = true, commentsOpen = false, squeezedH = 0,
 }: {
   item: VideoPost; isActive: boolean; isNearActive: boolean; screenH: number; screenW: number;
   isFollowing: boolean; isSelf: boolean;
@@ -444,6 +444,7 @@ const VideoItem = React.memo(function VideoItem({
   onFollow: (authorId: string, isFollowing: boolean) => void; onRecordView: (postId: string) => void;
   onOpenMenu: (item: VideoPost) => void;
   navOffset?: number; tabFocused?: boolean; onVideoEnd?: () => void;
+  commentsOpen?: boolean; squeezedH?: number;
 }) {
   const { accent } = useAppAccent();
   const insets = useSafeAreaInsets();
@@ -465,6 +466,8 @@ const VideoItem = React.memo(function VideoItem({
   const heartScale = useRef(new Animated.Value(1)).current;
   const doubleTapOpacity = useRef(new Animated.Value(0)).current;
   const doubleTapScale = useRef(new Animated.Value(0.3)).current;
+  const videoAreaAnim = useRef(new Animated.Value(screenH)).current;
+  const overlayOpacity = useRef(new Animated.Value(1)).current;
   const viewRecorded = useRef(false);
   const offlineSaved = useRef(false);
   const cacheAttempted = useRef(false);
@@ -496,6 +499,16 @@ const VideoItem = React.memo(function VideoItem({
     }, 500);
     return () => { if (cacheDelayRef.current) { clearTimeout(cacheDelayRef.current); cacheDelayRef.current = null; } };
   }, [isNearActive]);
+
+  // Squeeze video up when comments open (TikTok/Shorts style)
+  useEffect(() => {
+    const targetH = commentsOpen ? (squeezedH || screenH * 0.38) : screenH;
+    Animated.parallel([
+      Animated.timing(videoAreaAnim, { toValue: targetH, duration: 320, useNativeDriver: false }),
+      Animated.timing(overlayOpacity, { toValue: commentsOpen ? 0 : 1, duration: commentsOpen ? 180 : 300, useNativeDriver: true }),
+    ]).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commentsOpen]);
 
   // Pause and show poster when app/tab loses focus; resume seamlessly on return.
   // Resetting videoStarted shows the poster image immediately so there's no black
@@ -713,171 +726,185 @@ const VideoItem = React.memo(function VideoItem({
 
   return (
     <View style={[vStyles.item, { width: screenW, height: screenH }]}>
-      {videoElement}
+      {/* Animated container — squeezes up when comments open (TikTok/Shorts style) */}
+      <Animated.View style={{
+        width: screenW, height: videoAreaAnim, overflow: "hidden",
+        borderBottomLeftRadius: commentsOpen ? 20 : 0,
+        borderBottomRightRadius: commentsOpen ? 20 : 0,
+      }}>
+        {videoElement}
 
-      {/* Overlays — pointerEvents="none" so touches pass through to TapHandler */}
-      {/* Poster thumbnail: persists until first frame renders, eliminates black flash on swipe */}
-      {item.image_url && !videoStarted && (
-        <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}>
-          <ExpoImage
-            source={{ uri: item.image_url }}
-            style={StyleSheet.absoluteFill}
-            contentFit="contain"
-            priority="high"
-          />
-        </View>
-      )}
-
-      {showBuffering && isActive && (
-        <View style={[vStyles.centerOverlay, { pointerEvents: "none" } as any]}>
-          <ActivityIndicator color="rgba(255,255,255,0.7)" size="small" />
-        </View>
-      )}
-      {paused && !buffering && (
-        <View style={[vStyles.centerOverlay, { pointerEvents: "none" } as any]}>
-          <View style={vStyles.pauseCircle}>
-            <Ionicons name="play" size={32} color="#fff" style={{ marginLeft: 3 }} />
-          </View>
-        </View>
-      )}
-
-      {/* Double-tap like burst */}
-      <Animated.View
-        style={[vStyles.centerOverlay, { opacity: doubleTapOpacity, transform: [{ scale: doubleTapScale }], pointerEvents: "none" } as any]}
-      >
-        <Ionicons name="heart" size={90} color="#FF3B30" />
-      </Animated.View>
-
-      {/* Gradient — bottom only */}
-      <GradientOverlay position="bottom" height={460} />
-
-      {/* Bottom info — handle + caption (TikTok style) */}
-      <View style={[vStyles.bottomArea, { bottom: insets.bottom + 60 + navOffset, pointerEvents: "box-none" } as any]}>
-        <TouchableOpacity
-          onPress={() => router.push(`/@${item.profile.handle}` as any)}
-          style={vStyles.authorRow} activeOpacity={0.85}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Text style={vStyles.authorHandle}>@{item.profile.handle}</Text>
-            <VerifiedBadge
-              isVerified={item.profile.is_verified}
-              isOrganizationVerified={item.profile.is_organization_verified}
-              size={14}
+        {/* Overlays — pointerEvents="none" so touches pass through to TapHandler */}
+        {/* Poster thumbnail: persists until first frame renders, eliminates black flash on swipe */}
+        {item.image_url && !videoStarted && (
+          <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}>
+            <ExpoImage
+              source={{ uri: item.image_url }}
+              style={StyleSheet.absoluteFill}
+              contentFit="contain"
+              priority="high"
             />
           </View>
-          {!!item.profile.display_name && (
-            <Text style={vStyles.authorName}>{item.profile.display_name}</Text>
-          )}
-        </TouchableOpacity>
-
-        {!!item.content && (
-          <TouchableOpacity
-            activeOpacity={showExpand ? 0.75 : 1}
-            onPress={() => showExpand && setExpanded((e) => !e)}
-            disabled={!showExpand}
-            style={vStyles.captionWrap}
-          >
-            <RichText style={vStyles.caption} numberOfLines={expanded ? undefined : 2} linkColor="#1f95ff">
-              {item.content}
-            </RichText>
-            {showExpand && !expanded && (
-              <Text style={vStyles.captionMore}>
-                <Text style={vStyles.captionEllipsis}>... </Text>
-                <Text style={vStyles.captionMoreLink}>more</Text>
-              </Text>
-            )}
-          </TouchableOpacity>
         )}
-      </View>
 
-      {/* Right action rail — TikTok style (no circles, bare icons) */}
-      <View style={[vStyles.rightCol, { bottom: insets.bottom + 30 + navOffset, pointerEvents: "box-none" } as any]}>
-
-        {/* Author avatar + follow badge at top */}
-        <View style={vStyles.avatarAction}>
-          <TouchableOpacity
-            onPress={() => router.push(`/@${item.profile.handle}` as any)}
-            activeOpacity={0.85}
-          >
-            <View style={[vStyles.avatarRing, { borderColor: accent }]}>
-              <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={44} />
+        {showBuffering && isActive && (
+          <View style={[vStyles.centerOverlay, { pointerEvents: "none" } as any]}>
+            <ActivityIndicator color="rgba(255,255,255,0.7)" size="small" />
+          </View>
+        )}
+        {paused && !buffering && (
+          <View style={[vStyles.centerOverlay, { pointerEvents: "none" } as any]}>
+            <View style={vStyles.pauseCircle}>
+              <Ionicons name="play" size={32} color="#fff" style={{ marginLeft: 3 }} />
             </View>
-          </TouchableOpacity>
-          {!isSelf && !isFollowing && (
-            <TouchableOpacity
-              onPress={() => onFollow(item.author_id, isFollowing)}
-              style={vStyles.followBadge}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="add" size={12} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Like */}
-        <View style={vStyles.actionItem}>
-          <Animated.View style={{ transform: [{ scale: heartScale }] }}>
-            <TouchableOpacity onPress={handleLike} hitSlop={10} activeOpacity={0.75}>
-              <Ionicons name={item.liked ? "heart" : "heart-outline"} size={32} color={item.liked ? "#FF3B30" : "#fff"} />
-            </TouchableOpacity>
-          </Animated.View>
-          <Text style={vStyles.actionLabel}>{formatCount(item.likeCount)}</Text>
-        </View>
-
-        {/* Comment */}
-        <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onOpenComments(item.id)} hitSlop={10} activeOpacity={0.75}>
-            <Ionicons name="chatbubble-ellipses" size={30} color="#fff" />
-          </TouchableOpacity>
-          <Text style={vStyles.actionLabel}>{formatCount(item.replyCount)}</Text>
-        </View>
-
-        {/* Bookmark */}
-        <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={10} activeOpacity={0.75}>
-            <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={30} color={item.bookmarked ? "#1f95ff" : "#fff"} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Share */}
-        <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onShare(item)} hitSlop={10} activeOpacity={0.75}>
-            <Ionicons name="paper-plane-outline" size={28} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        {/* PiP (native only) */}
-        {Platform.OS !== "web" && (
-          <View style={vStyles.actionItem}>
-            <TouchableOpacity
-              onPress={() => inPip ? videoViewRef.current?.stopPictureInPicture() : videoViewRef.current?.startPictureInPicture()}
-              hitSlop={10}
-              activeOpacity={0.75}
-            >
-              <Ionicons name={inPip ? "contract" : "expand"} size={24} color={inPip ? "#1f95ff" : "#fff"} />
-            </TouchableOpacity>
           </View>
         )}
 
-        {/* More */}
-        <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onOpenMenu(item)} hitSlop={10} activeOpacity={0.75}>
-            <Ionicons name="ellipsis-vertical" size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
+        {/* Double-tap like burst */}
+        <Animated.View
+          style={[vStyles.centerOverlay, { opacity: doubleTapOpacity, transform: [{ scale: doubleTapScale }], pointerEvents: "none" } as any]}
+        >
+          <Ionicons name="heart" size={90} color="#FF3B30" />
+        </Animated.View>
 
-      {/* Progress bar */}
-      <TouchableOpacity
-        activeOpacity={1}
-        style={[vStyles.progressBar, { bottom: Math.max(insets.bottom, 0) + navOffset }]}
-        onLayout={(e) => setProgressBarWidth(e.nativeEvent.layout.width)}
-        onPress={(e) => handleProgressBarPress(e.nativeEvent.locationX)}
-        hitSlop={{ top: 12, bottom: 12 }}
-      >
-        <View style={[vStyles.progressFill, { width: `${progress * 100}%` as any }]} />
-        <View style={[vStyles.progressThumb, { left: `${progress * 100}%` as any }]} />
-      </TouchableOpacity>
+        {/* Gradient — bottom only */}
+        <GradientOverlay position="bottom" height={460} />
+
+        {/* Bottom info — fades when comments open */}
+        <Animated.View style={[vStyles.bottomArea, { bottom: insets.bottom + 60 + navOffset, opacity: overlayOpacity, pointerEvents: commentsOpen ? "none" : "box-none" } as any]}>
+          <TouchableOpacity
+            onPress={() => router.push(`/@${item.profile.handle}` as any)}
+            style={vStyles.authorRow} activeOpacity={0.85}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Text style={vStyles.authorHandle}>@{item.profile.handle}</Text>
+              <VerifiedBadge
+                isVerified={item.profile.is_verified}
+                isOrganizationVerified={item.profile.is_organization_verified}
+                size={14}
+              />
+            </View>
+            {!!item.profile.display_name && (
+              <Text style={vStyles.authorName}>{item.profile.display_name}</Text>
+            )}
+          </TouchableOpacity>
+
+          {!!item.content && (
+            <TouchableOpacity
+              activeOpacity={showExpand ? 0.75 : 1}
+              onPress={() => showExpand && setExpanded((e) => !e)}
+              disabled={!showExpand}
+              style={vStyles.captionWrap}
+            >
+              <RichText style={vStyles.caption} numberOfLines={expanded ? undefined : 2} linkColor="#1f95ff">
+                {item.content}
+              </RichText>
+              {showExpand && !expanded && (
+                <Text style={vStyles.captionMore}>
+                  <Text style={vStyles.captionEllipsis}>... </Text>
+                  <Text style={vStyles.captionMoreLink}>more</Text>
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+        </Animated.View>
+
+        {/* Right action rail — fades when comments open */}
+        <Animated.View style={[vStyles.rightCol, { bottom: insets.bottom + 30 + navOffset, opacity: overlayOpacity, pointerEvents: commentsOpen ? "none" : "box-none" } as any]}>
+
+          {/* Author avatar + follow badge at top */}
+          <View style={vStyles.avatarAction}>
+            <TouchableOpacity
+              onPress={() => router.push(`/@${item.profile.handle}` as any)}
+              activeOpacity={0.85}
+            >
+              <View style={[vStyles.avatarRing, { borderColor: accent }]}>
+                <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={44} />
+              </View>
+            </TouchableOpacity>
+            {!isSelf && !isFollowing && (
+              <TouchableOpacity
+                onPress={() => onFollow(item.author_id, isFollowing)}
+                style={vStyles.followBadge}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add" size={12} color="#fff" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Like */}
+          <View style={vStyles.actionItem}>
+            <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+              <TouchableOpacity onPress={handleLike} hitSlop={10} activeOpacity={0.75}>
+                <Ionicons name={item.liked ? "heart" : "heart-outline"} size={32} color={item.liked ? "#FF3B30" : "#fff"} />
+              </TouchableOpacity>
+            </Animated.View>
+            <Text style={vStyles.actionLabel}>{formatCount(item.likeCount)}</Text>
+          </View>
+
+          {/* Comment */}
+          <View style={vStyles.actionItem}>
+            <TouchableOpacity onPress={() => onOpenComments(item.id)} hitSlop={10} activeOpacity={0.75}>
+              <Ionicons name="chatbubble-ellipses" size={30} color="#fff" />
+            </TouchableOpacity>
+            <Text style={vStyles.actionLabel}>{formatCount(item.replyCount)}</Text>
+          </View>
+
+          {/* Bookmark */}
+          <View style={vStyles.actionItem}>
+            <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={10} activeOpacity={0.75}>
+              <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={30} color={item.bookmarked ? "#1f95ff" : "#fff"} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Share */}
+          <View style={vStyles.actionItem}>
+            <TouchableOpacity onPress={() => onShare(item)} hitSlop={10} activeOpacity={0.75}>
+              <Ionicons name="paper-plane-outline" size={28} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {/* PiP (native only) */}
+          {Platform.OS !== "web" && (
+            <View style={vStyles.actionItem}>
+              <TouchableOpacity
+                onPress={() => inPip ? videoViewRef.current?.stopPictureInPicture() : videoViewRef.current?.startPictureInPicture()}
+                hitSlop={10}
+                activeOpacity={0.75}
+              >
+                <Ionicons name={inPip ? "contract" : "expand"} size={24} color={inPip ? "#1f95ff" : "#fff"} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* More */}
+          <View style={vStyles.actionItem}>
+            <TouchableOpacity onPress={() => onOpenMenu(item)} hitSlop={10} activeOpacity={0.75}>
+              <Ionicons name="ellipsis-vertical" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        {/* Progress bar — fades when comments open */}
+        <Animated.View style={{
+          position: "absolute", left: 0, right: 0,
+          bottom: Math.max(insets.bottom, 0) + navOffset,
+          height: 2.5, backgroundColor: "rgba(255,255,255,0.2)",
+          justifyContent: "center", opacity: overlayOpacity,
+        }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{ flex: 1 }}
+            onLayout={(e) => setProgressBarWidth(e.nativeEvent.layout.width)}
+            onPress={(e) => handleProgressBarPress(e.nativeEvent.locationX)}
+            hitSlop={{ top: 12, bottom: 12 }}
+          >
+            <View style={[vStyles.progressFill, { width: `${progress * 100}%` as any }]} />
+            <View style={[vStyles.progressThumb, { left: `${progress * 100}%` as any }]} />
+          </TouchableOpacity>
+        </Animated.View>
+      </Animated.View>
     </View>
   );
 }); // React.memo
@@ -1577,6 +1604,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     });
   }, []);
 
+  const squeezedH = Math.round(listHeight * 0.38);
+
   const videoItemProps = React.useMemo(() => ({
     screenH: listHeight, screenW: SCREEN_W,
     navOffset: 0,
@@ -1588,7 +1617,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     onOpenMenu,
     onVideoEnd: handleVideoEnd,
     tabFocused,
-  }), [listHeight, SCREEN_W, isEmbedded, insets, handleLike, handleBookmark, handleFollow, handleRecordView, onShare, onOpenMenu, handleVideoEnd, tabFocused]);
+    squeezedH,
+  }), [listHeight, SCREEN_W, isEmbedded, insets, handleLike, handleBookmark, handleFollow, handleRecordView, onShare, onOpenMenu, handleVideoEnd, tabFocused, squeezedH]);
 
   const renderItem = useCallback(({ item, index }: { item: VideoPost; index: number }) => (
     <VideoItem
@@ -1597,10 +1627,11 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       isNearActive={Math.abs(index - activeIndex) <= 2}
       isFollowing={followingSet.has(item.author_id)}
       isSelf={user?.id === item.author_id}
+      commentsOpen={!!commentPostId && index === activeIndex}
       {...videoItemProps}
     />
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [activeIndex, followingSet, user?.id, videoItemProps]);
+  ), [activeIndex, followingSet, user?.id, videoItemProps, commentPostId]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -1715,6 +1746,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
                 isNearActive={Math.abs(index - activeIndex) <= 2}
                 isFollowing={followingSet.has(item.author_id)}
                 isSelf={user?.id === item.author_id}
+                commentsOpen={!!commentPostId && index === activeIndex}
                 {...videoItemProps}
               />
             </div>
@@ -1734,6 +1766,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
           renderItem={renderItem}
           // Core scroll config
           pagingEnabled
+          scrollEnabled={!commentPostId}
           showsVerticalScrollIndicator={false}
           // Viewability
           onViewableItemsChanged={onViewableItemsChanged}
@@ -1768,12 +1801,18 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         />
       )}
 
-      <VideoCommentsSheet
-        visible={!!commentPostId} onClose={() => setCommentPostId(null)}
-        postId={commentPostId || ""}
-        postAuthorId={videos.find((v) => v.id === commentPostId)?.author_id || ""}
-        onReplyCountChange={handleReplyCountChange}
-      />
+      {/* Inline comments panel — slides in below the squeezed video */}
+      {commentPostId && (
+        <View style={{ position: "absolute", left: 0, right: 0, top: squeezedH, bottom: 0 }}>
+          <VideoCommentsSheet
+            visible={!!commentPostId} onClose={() => setCommentPostId(null)}
+            postId={commentPostId}
+            postAuthorId={videos.find((v) => v.id === commentPostId)?.author_id || ""}
+            onReplyCountChange={handleReplyCountChange}
+            inline
+          />
+        </View>
+      )}
 
       <VideoContextMenu
         visible={!!menuItem} item={menuItem} onClose={() => setMenuItem(null)}

@@ -497,10 +497,11 @@ const pvStyles = StyleSheet.create({
 // ─── VideoCommentsSheet ───────────────────────────────────────────────────────
 
 export function VideoCommentsSheet({
-  visible, onClose, postId, postAuthorId, onReplyCountChange,
+  visible, onClose, postId, postAuthorId, onReplyCountChange, inline = false,
 }: {
   visible: boolean; onClose: () => void; postId: string; postAuthorId: string;
   onReplyCountChange: (postId: string, delta: number) => void;
+  inline?: boolean;
 }) {
   const { accent } = useAppAccent();
   const { isDark } = useTheme();
@@ -1099,8 +1100,206 @@ export function VideoCommentsSheet({
     );
   }
 
-  // ─── Mobile: original bottom sheet (untouched) ────────────────────────────
+  // ─── Mobile: shared inner sheet content ────────────────────────────────────
   const borderTopStyle = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)";
+
+  const innerSheet = (
+    <>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
+      <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: borderTopStyle, pointerEvents: "none" } as any} />
+      <View {...sheetPan.panHandlers} style={[cStyles.handle, { backgroundColor: handleClr }]} />
+
+      <View style={cStyles.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={[cStyles.title, { color: titleClr }]}>
+            Comments{replies.length > 0 && <Text style={{ color: titleCntClr, fontFamily: "Inter_400Regular", fontSize: 14 }}> {formatCount(replies.length)}</Text>}
+          </Text>
+        </View>
+        <View style={cStyles.sortRow}>
+          {(["recent", "top"] as const).map((mode) => (
+            <TouchableOpacity key={mode} onPress={() => setSortMode(mode)} activeOpacity={0.7}
+              style={[cStyles.sortTab, sortMode === mode && { backgroundColor: accent + "22", borderColor: accent + "55" }]}>
+              <Text style={[cStyles.sortTabText, { color: sortMode === mode ? accent : sortTabTxt }]}>
+                {mode === "recent" ? "Recent" : "Top"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity onPress={onClose} hitSlop={12}>
+          <Ionicons name="close" size={22} color={closeBtnClr} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ height: 0.5, backgroundColor: separatorClr }} />
+
+      {loading ? (
+        <View style={{ padding: 32, alignItems: "center" }}>
+          <ActivityIndicator color={accent} />
+        </View>
+      ) : sortedTree.length === 0 ? (
+        <View style={cStyles.emptyBox}>
+          <Ionicons name="chatbubble-outline" size={32} color={emptyIconClr} />
+          <Text style={[cStyles.emptyText, { color: emptyTxtClr }]}>No comments yet</Text>
+          <Text style={[cStyles.emptySub, { color: emptySubClr }]}>Be the first to comment</Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={listRef}
+          data={sortedTree}
+          keyExtractor={(r) => r.id}
+          style={{ flexShrink: 1, minHeight: 80, maxHeight: listMaxH }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={(e) => { listScrollYRef.current = e.nativeEvent.contentOffset.y; }}
+          onScrollBeginDrag={() => {
+            if (!isFullSheetRef.current) snapToFullRef.current();
+          }}
+          onScrollEndDrag={(e) => {
+            const { contentOffset, velocity } = e.nativeEvent;
+            if (contentOffset.y <= 1 && (velocity?.y ?? 0) > 0.4) {
+              snapToPeekRef.current();
+            }
+          }}
+          renderItem={({ item: r }) => (
+            <VideoReplyItem
+              reply={r} depth={0} onReplyTo={handleReplyTo}
+              isCreator={r.author_id === postAuthorId}
+              isNew={newCommentIds.has(r.id)} accent={accent}
+              likedSet={likedIds} onLike={handleReplyLike} isDark={isDark}
+            />
+          )}
+        />
+      )}
+
+      {replyingTo && (
+        <View style={[cStyles.replyingTo, { borderTopColor: borderTopClr }]}>
+          <Text style={[cStyles.replyingToText, { color: replyToTxt }]}>
+            Replying to <Text style={{ color: accent }}>@{replyingTo.profile.handle}</Text>
+          </Text>
+          <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8}>
+            <Ionicons name="close-circle" size={16} color={replyToIcon} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {attachedImage && (
+        <View style={[cStyles.imagePreviewBar, { borderTopColor: borderTopClr }]}>
+          <View style={cStyles.imageThumbWrap}>
+            <Image source={{ uri: attachedImage.uri }} style={cStyles.imageThumb} resizeMode="cover" />
+            <TouchableOpacity onPress={() => setAttachedImage(null)} style={cStyles.imageRemoveBtn}>
+              <Ionicons name="close-circle" size={18} color={imgRmvClr} />
+            </TouchableOpacity>
+          </View>
+          <Text style={{ color: imgRmvClr, fontSize: 11, fontFamily: "Inter_400Regular" }}>Tap × to remove image</Text>
+        </View>
+      )}
+
+      {recordState === "recorded" && recordedUri && (
+        <VoicePreviewBar
+          uri={recordedUri}
+          durationSecs={recordedDuration}
+          onDiscard={discardRecording}
+          accent={accent}
+        />
+      )}
+
+      <View style={[cStyles.emojiBar, { borderTopColor: borderTopClr }]}>
+        {QUICK_EMOJIS.map((e) => (
+          <TouchableOpacity key={e} onPress={() => setText((t) => t + e)} style={cStyles.emojiBtn} activeOpacity={0.6}>
+            <Text style={cStyles.emojiText}>{e}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {user ? (
+        <View style={[cStyles.inputRow, { borderTopColor: borderTopClr }]}>
+          <Avatar uri={profile?.avatar_url} name={profile?.display_name || "You"} size={32} />
+
+          {recordState === "recording" ? (
+            <RecordingBar elapsed={recordElapsed} onStop={() => stopRecording()} accent={accent} />
+          ) : (
+            <View style={{ flex: 1, position: "relative" }}>
+              <TextInput
+                ref={inputRef}
+                style={[cStyles.input, { backgroundColor: inputBg, color: inputTxt }]}
+                placeholder={recordState === "recorded" ? "Add a caption… (optional)" : "Add a comment…"}
+                placeholderTextColor={inputPH}
+                value={text}
+                onChangeText={setText}
+                multiline
+                maxLength={500}
+              />
+              {text.length > 400 && (
+                <Text style={[cStyles.charCounter, { color: charLeft < 20 ? "#FF453A" : inputPH }]}>
+                  {charLeft}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {recordState !== "recording" && (
+            <View style={cStyles.attachRow}>
+              <TouchableOpacity
+                onPress={pickImage}
+                activeOpacity={0.7}
+                style={[cStyles.attachBtn, attachedImage && { backgroundColor: accent + "30" }]}
+                hitSlop={6}
+              >
+                <Ionicons name="image-outline" size={20} color={attachedImage ? accent : attachIconCl} />
+              </TouchableOpacity>
+
+              {recordState === "idle" && Platform.OS !== "web" && (
+                <TouchableOpacity
+                  onPress={startRecording}
+                  activeOpacity={0.7}
+                  style={cStyles.attachBtn}
+                  hitSlop={6}
+                >
+                  <Ionicons name="mic-outline" size={20} color={attachIconCl} />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          <Animated.View style={{ transform: [{ scale: sendScale }] }}>
+            <TouchableOpacity
+              onPress={sendReply}
+              disabled={!canSend}
+              style={[cStyles.sendBtn, { backgroundColor: canSend ? accent : sendDisabled }]}
+            >
+              {sending
+                ? <ActivityIndicator size={14} color="#fff" />
+                : <Ionicons name="arrow-up" size={16} color="#fff" />
+              }
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={{ paddingVertical: 14, alignItems: "center" }}
+          onPress={() => { onClose(); router.push("/(auth)/login"); }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, borderWidth: 1, borderColor: accent + "50", backgroundColor: accent + "18" }}>
+            <Ionicons name="person-circle-outline" size={16} color={accent} />
+            <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: accent }}>Sign in to comment</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+    </>
+  );
+
+  // ─── Inline mode: render directly (no Modal, no backdrop) ───────────────────
+  if (inline) {
+    if (!visible) return null;
+    return (
+      <Pressable onPress={() => {}} style={[cStyles.container, { flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        {innerSheet}
+      </Pressable>
+    );
+  }
+
+  // ─── Modal mode: original bottom sheet ──────────────────────────────────────
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={dismissSheet} statusBarTranslucent>
       <View style={cStyles.kavFull}>
@@ -1116,187 +1315,7 @@ export function VideoCommentsSheet({
             marginBottom: kbHeight,
             flex: 1,
           }]}>
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
-            <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: borderTopStyle, pointerEvents: "none" } as any} />
-            <View {...sheetPan.panHandlers} style={[cStyles.handle, { backgroundColor: handleClr }]} />
-
-            <View style={cStyles.header}>
-              <View style={{ flex: 1 }}>
-                <Text style={[cStyles.title, { color: titleClr }]}>
-                  Comments{replies.length > 0 && <Text style={{ color: titleCntClr, fontFamily: "Inter_400Regular", fontSize: 14 }}> {formatCount(replies.length)}</Text>}
-                </Text>
-              </View>
-              <View style={cStyles.sortRow}>
-                {(["recent", "top"] as const).map((mode) => (
-                  <TouchableOpacity key={mode} onPress={() => setSortMode(mode)} activeOpacity={0.7}
-                    style={[cStyles.sortTab, sortMode === mode && { backgroundColor: accent + "22", borderColor: accent + "55" }]}>
-                    <Text style={[cStyles.sortTabText, { color: sortMode === mode ? accent : sortTabTxt }]}>
-                      {mode === "recent" ? "Recent" : "Top"}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <TouchableOpacity onPress={onClose} hitSlop={12}>
-                <Ionicons name="close" size={22} color={closeBtnClr} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ height: 0.5, backgroundColor: separatorClr }} />
-
-            {loading ? (
-              <View style={{ padding: 32, alignItems: "center" }}>
-                <ActivityIndicator color={accent} />
-              </View>
-            ) : sortedTree.length === 0 ? (
-              <View style={cStyles.emptyBox}>
-                <Ionicons name="chatbubble-outline" size={32} color={emptyIconClr} />
-                <Text style={[cStyles.emptyText, { color: emptyTxtClr }]}>No comments yet</Text>
-                <Text style={[cStyles.emptySub, { color: emptySubClr }]}>Be the first to comment</Text>
-              </View>
-            ) : (
-              <FlatList
-                ref={listRef}
-                data={sortedTree}
-                keyExtractor={(r) => r.id}
-                style={{ flexShrink: 1, minHeight: 80, maxHeight: listMaxH }}
-                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
-                showsVerticalScrollIndicator={false}
-                scrollEventThrottle={16}
-                onScroll={(e) => { listScrollYRef.current = e.nativeEvent.contentOffset.y; }}
-                onScrollBeginDrag={() => {
-                  if (!isFullSheetRef.current) snapToFullRef.current();
-                }}
-                onScrollEndDrag={(e) => {
-                  const { contentOffset, velocity } = e.nativeEvent;
-                  if (contentOffset.y <= 1 && (velocity?.y ?? 0) > 0.4) {
-                    snapToPeekRef.current();
-                  }
-                }}
-                renderItem={({ item: r }) => (
-                  <VideoReplyItem
-                    reply={r} depth={0} onReplyTo={handleReplyTo}
-                    isCreator={r.author_id === postAuthorId}
-                    isNew={newCommentIds.has(r.id)} accent={accent}
-                    likedSet={likedIds} onLike={handleReplyLike} isDark={isDark}
-                  />
-                )}
-              />
-            )}
-
-            {replyingTo && (
-              <View style={[cStyles.replyingTo, { borderTopColor: borderTopClr }]}>
-                <Text style={[cStyles.replyingToText, { color: replyToTxt }]}>
-                  Replying to <Text style={{ color: accent }}>@{replyingTo.profile.handle}</Text>
-                </Text>
-                <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={8}>
-                  <Ionicons name="close-circle" size={16} color={replyToIcon} />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {attachedImage && (
-              <View style={[cStyles.imagePreviewBar, { borderTopColor: borderTopClr }]}>
-                <View style={cStyles.imageThumbWrap}>
-                  <Image source={{ uri: attachedImage.uri }} style={cStyles.imageThumb} resizeMode="cover" />
-                  <TouchableOpacity onPress={() => setAttachedImage(null)} style={cStyles.imageRemoveBtn}>
-                    <Ionicons name="close-circle" size={18} color={imgRmvClr} />
-                  </TouchableOpacity>
-                </View>
-                <Text style={{ color: imgRmvClr, fontSize: 11, fontFamily: "Inter_400Regular" }}>Tap × to remove image</Text>
-              </View>
-            )}
-
-            {recordState === "recorded" && recordedUri && (
-              <VoicePreviewBar
-                uri={recordedUri}
-                durationSecs={recordedDuration}
-                onDiscard={discardRecording}
-                accent={accent}
-              />
-            )}
-
-            <View style={[cStyles.emojiBar, { borderTopColor: borderTopClr }]}>
-              {QUICK_EMOJIS.map((e) => (
-                <TouchableOpacity key={e} onPress={() => setText((t) => t + e)} style={cStyles.emojiBtn} activeOpacity={0.6}>
-                  <Text style={cStyles.emojiText}>{e}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {user ? (
-              <View style={[cStyles.inputRow, { borderTopColor: borderTopClr }]}>
-                <Avatar uri={profile?.avatar_url} name={profile?.display_name || "You"} size={32} />
-
-                {recordState === "recording" ? (
-                  <RecordingBar elapsed={recordElapsed} onStop={() => stopRecording()} accent={accent} />
-                ) : (
-                  <View style={{ flex: 1, position: "relative" }}>
-                    <TextInput
-                      ref={inputRef}
-                      style={[cStyles.input, { backgroundColor: inputBg, color: inputTxt }]}
-                      placeholder={recordState === "recorded" ? "Add a caption… (optional)" : "Add a comment…"}
-                      placeholderTextColor={inputPH}
-                      value={text}
-                      onChangeText={setText}
-                      multiline
-                      maxLength={500}
-                    />
-                    {text.length > 400 && (
-                      <Text style={[cStyles.charCounter, { color: charLeft < 20 ? "#FF453A" : inputPH }]}>
-                        {charLeft}
-                      </Text>
-                    )}
-                  </View>
-                )}
-
-                {recordState !== "recording" && (
-                  <View style={cStyles.attachRow}>
-                    <TouchableOpacity
-                      onPress={pickImage}
-                      activeOpacity={0.7}
-                      style={[cStyles.attachBtn, attachedImage && { backgroundColor: accent + "30" }]}
-                      hitSlop={6}
-                    >
-                      <Ionicons name="image-outline" size={20} color={attachedImage ? accent : attachIconCl} />
-                    </TouchableOpacity>
-
-                    {recordState === "idle" && Platform.OS !== "web" && (
-                      <TouchableOpacity
-                        onPress={startRecording}
-                        activeOpacity={0.7}
-                        style={cStyles.attachBtn}
-                        hitSlop={6}
-                      >
-                        <Ionicons name="mic-outline" size={20} color={attachIconCl} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-
-                <Animated.View style={{ transform: [{ scale: sendScale }] }}>
-                  <TouchableOpacity
-                    onPress={sendReply}
-                    disabled={!canSend}
-                    style={[cStyles.sendBtn, { backgroundColor: canSend ? accent : sendDisabled }]}
-                  >
-                    {sending
-                      ? <ActivityIndicator size={14} color="#fff" />
-                      : <Ionicons name="arrow-up" size={16} color="#fff" />
-                    }
-                  </TouchableOpacity>
-                </Animated.View>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={{ paddingVertical: 14, alignItems: "center" }}
-                onPress={() => { onClose(); router.push("/(auth)/login"); }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, borderWidth: 1, borderColor: accent + "50", backgroundColor: accent + "18" }}>
-                  <Ionicons name="person-circle-outline" size={16} color={accent} />
-                  <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: accent }}>Sign in to comment</Text>
-                </View>
-              </TouchableOpacity>
-            )}
+            {innerSheet}
           </Pressable>
           </Animated.View>
         </Pressable>
