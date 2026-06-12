@@ -100,7 +100,7 @@ const ReAnimated       = (_raVF?.default ?? require("react-native").Animated)   
 
 const PAGE_SIZE     = 20;
 const FOR_YOU_POOL  = 200;
-const INFO_H        = 114;  // caption section height below the video
+const INFO_H        = 0;    // info now overlays the video — no separate bar
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -159,6 +159,30 @@ function TopGradient() {
     <LinearGradient
       colors={["rgba(0,0,0,0.55)", "transparent"]}
       style={[styles.topGradient, { pointerEvents: "none" }]}
+    />
+  );
+}
+
+// ─── Bottom gradient (for caption/author readability) ─────────────────────────
+
+function BottomGradient() {
+  if (Platform.OS === "web") {
+    return (
+      <View
+        style={[
+          styles.bottomGradient,
+          {
+            background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.0) 100%)",
+            pointerEvents: "none",
+          } as any,
+        ]}
+      />
+    );
+  }
+  return (
+    <LinearGradient
+      colors={["transparent", "rgba(0,0,0,0.72)"]}
+      style={[styles.bottomGradient, { pointerEvents: "none" }]}
     />
   );
 }
@@ -632,7 +656,63 @@ const VideoItem = React.memo(
             />
           </TouchableOpacity>
 
-          {/* Progress bar at bottom of video section */}
+          {/* Bottom gradient — makes caption text legible over video */}
+          <BottomGradient />
+
+          {/* ── INFO OVERLAY (absolute, bottom-left, over video) ───────────── */}
+          <View style={[styles.infoSection, { pointerEvents: "box-none" }]}>
+            {/* Author row */}
+            <View style={styles.infoAuthorRow}>
+              <TouchableOpacity
+                onPress={() => router.push(`/@${item.profile.handle}` as any)}
+                activeOpacity={0.85}
+                style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 4 }}
+              >
+                <Text style={[styles.infoHandle, { flexShrink: 1 }]} numberOfLines={1}>
+                  @{item.profile.handle}
+                </Text>
+                <VerifiedBadge
+                  isVerified={item.profile.is_verified}
+                  isOrganizationVerified={item.profile.is_organization_verified}
+                  size={14}
+                />
+              </TouchableOpacity>
+              {!isOwn && !item.following && (
+                <TouchableOpacity
+                  onPress={() => onFollow(item.author_id)}
+                  style={styles.infoFollowBtn}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.infoFollowBtnText}>Follow</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Caption */}
+            {item.content ? (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => captionLong && setCaptionExpanded((e) => !e)}
+              >
+                <Text style={styles.infoCaption} numberOfLines={captionExpanded ? undefined : 2}>
+                  {item.content}
+                </Text>
+                {captionLong && !captionExpanded && (
+                  <Text style={styles.infoCaptionMore}>...more</Text>
+                )}
+              </TouchableOpacity>
+            ) : null}
+
+            {/* Audio name */}
+            <View style={styles.infoAudioRow}>
+              <Ionicons name="musical-notes" size={11} color="rgba(255,255,255,0.6)" />
+              <Text style={styles.infoAudioText} numberOfLines={1}>
+                {item.audio_name ?? `Original audio · ${item.profile.display_name}`}
+              </Text>
+            </View>
+          </View>
+
+          {/* Progress bar at very bottom of video section */}
           <View style={[styles.progressTrack, { pointerEvents: "none" }]}>
             <ReAnimated.View style={[styles.progressFill, progressBarStyle]} />
           </View>
@@ -641,59 +721,6 @@ const VideoItem = React.memo(
               {fmtDur(duration)}
             </Text>
           )}
-        </View>
-
-        {/* ── INFO SECTION (below video, solid dark bg) ──────────────────── */}
-        <View style={styles.infoSection}>
-          {/* Author row */}
-          <View style={styles.infoAuthorRow}>
-            <TouchableOpacity
-              onPress={() => router.push(`/@${item.profile.handle}` as any)}
-              activeOpacity={0.85}
-              style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 4 }}
-            >
-              <Text style={[styles.infoHandle, { flexShrink: 1 }]} numberOfLines={1}>
-                @{item.profile.handle}
-              </Text>
-              <VerifiedBadge
-                isVerified={item.profile.is_verified}
-                isOrganizationVerified={item.profile.is_organization_verified}
-                size={14}
-              />
-            </TouchableOpacity>
-            {!isOwn && !item.following && (
-              <TouchableOpacity
-                onPress={() => onFollow(item.author_id)}
-                style={styles.infoFollowBtn}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.infoFollowBtnText}>Follow</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Caption */}
-          {item.content ? (
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => captionLong && setCaptionExpanded((e) => !e)}
-            >
-              <Text style={styles.infoCaption} numberOfLines={captionExpanded ? undefined : 2}>
-                {item.content}
-              </Text>
-              {captionLong && !captionExpanded && (
-                <Text style={styles.infoCaptionMore}>...more</Text>
-              )}
-            </TouchableOpacity>
-          ) : null}
-
-          {/* Audio name */}
-          <View style={styles.infoAudioRow}>
-            <Ionicons name="musical-notes" size={11} color="rgba(255,255,255,0.5)" />
-            <Text style={styles.infoAudioText} numberOfLines={1}>
-              {item.audio_name ?? `Original audio · ${item.profile.display_name}`}
-            </Text>
-          </View>
         </View>
       </View>
     );
@@ -1611,11 +1638,11 @@ const styles = StyleSheet.create({
     pointerEvents: "none",
   } as any,
 
-  // ── Right action rail ──
+  // ── Right action rail — lifted so it clears the caption overlay ──
   rightRail: {
     position: "absolute",
     right: 12,
-    bottom: 24,
+    bottom: 120,
     alignItems: "center",
     gap: 14,
   },
@@ -1724,15 +1751,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // ── Info section ──
+  // ── Bottom gradient ──
+  bottomGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    pointerEvents: "none",
+  } as any,
+
+  // ── Info section — absolute overlay at bottom-left over the video ──
   infoSection: {
-    height: INFO_H,
-    backgroundColor: "#0a0a0a",
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 8,
-    justifyContent: "center",
-    gap: 3,
+    position: "absolute",
+    bottom: 14,
+    left: 14,
+    right: 78,          // leave room for the right action rail
+    gap: 4,
   },
   infoAuthorRow: {
     flexDirection: "row",
