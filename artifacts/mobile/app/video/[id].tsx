@@ -90,12 +90,13 @@ const VIDEO_PAGE_SIZE = 50;
 const VID_THREAD_COLORS = ["#1f95ff", "#5C6BC0", "#26A69A", "#EF6C00", "#8E24AA"];
 const QUICK_EMOJIS = ["🔥", "❤️", "😂", "😮", "👏", "💯", "🙌", "😍"];
 const SOCIAL_PLATFORMS = [
-  { id: "whatsapp",  label: "WhatsApp",  icon: "logo-whatsapp",  color: "#25D366", scheme: (u: string) => `https://wa.me/?text=${encodeURIComponent(u)}` },
-  { id: "twitter",   label: "X",         icon: "logo-twitter",   color: "#000",    scheme: (u: string) => `https://x.com/intent/tweet?text=${encodeURIComponent(u)}` },
-  { id: "facebook",  label: "Facebook",  icon: "logo-facebook",  color: "#1877F2", scheme: (u: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}` },
-  { id: "instagram", label: "Instagram", icon: "logo-instagram", color: "#E1306C", scheme: (_: string) => `instagram://app` },
-  { id: "copy",      label: "Copy link", icon: "link-outline",   color: "#8E8E93", scheme: null },
-  { id: "more",      label: "More",      icon: "share-social",   color: "#1f95ff", scheme: null },
+  { id: "whatsapp",  label: "WhatsApp",  icon: "logo-whatsapp",      color: "#25D366", scheme: (u: string) => `https://wa.me/?text=${encodeURIComponent(u)}` },
+  { id: "telegram",  label: "Telegram",  icon: "paper-plane-outline", color: "#0088CC", scheme: (u: string) => `https://t.me/share/url?url=${encodeURIComponent(u)}` },
+  { id: "twitter",   label: "X",         icon: "logo-twitter",        color: "#111",    scheme: (u: string) => `https://x.com/intent/tweet?text=${encodeURIComponent(u)}` },
+  { id: "facebook",  label: "Facebook",  icon: "logo-facebook",       color: "#1877F2", scheme: (u: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}` },
+  { id: "instagram", label: "Instagram", icon: "logo-instagram",      color: "#E1306C", scheme: (_: string) => `instagram://app` },
+  { id: "copy",      label: "Copy link", icon: "link",                color: "#007AFF", scheme: null },
+  { id: "more",      label: "More",      icon: "share-social",        color: "#FF9500", scheme: null },
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -339,7 +340,13 @@ function SocialShareSheet({ visible, onClose, url, title }: { visible: boolean; 
       <TouchableOpacity style={ssStyles.backdrop} activeOpacity={1} onPress={onClose} />
       <View style={ssStyles.sheet}>
         <View style={ssStyles.handle} />
-        <Text style={ssStyles.title}>Share video</Text>
+        <View style={ssStyles.header}>
+          <Ionicons name="search-outline" size={20} color="#bbb" />
+          <Text style={ssStyles.title}>Send to</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={10}>
+            <Ionicons name="close" size={22} color="#555" />
+          </TouchableOpacity>
+        </View>
         <View style={ssStyles.grid}>
           {SOCIAL_PLATFORMS.map((p) => (
             <TouchableOpacity key={p.id} style={ssStyles.cell} onPress={() => handlePlatform(p)}>
@@ -358,16 +365,17 @@ function SocialShareSheet({ visible, onClose, url, title }: { visible: boolean; 
   );
 }
 const ssStyles = StyleSheet.create({
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)" },
-  sheet: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#1a1a1a", borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingBottom: 36, paddingTop: 12 },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.2)", alignSelf: "center", marginBottom: 14 },
-  title: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold", textAlign: "center", marginBottom: 20 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "center" },
-  cell: { width: 72, alignItems: "center", gap: 6 },
-  iconCircle: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
-  cellLabel: { color: "rgba(255,255,255,0.7)", fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center" },
-  cancelBtn: { marginTop: 16, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
-  cancelText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
+  sheet: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 36, paddingTop: 12 },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#e0e0e0", alignSelf: "center", marginBottom: 12 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
+  title: { flex: 1, fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#111", textAlign: "center" },
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 4 },
+  cell: { width: "25%", alignItems: "center", gap: 7, paddingVertical: 8 },
+  iconCircle: { width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center" },
+  cellLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#444", textAlign: "center" },
+  cancelBtn: { marginTop: 14, backgroundColor: "#f5f5f5", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  cancelText: { color: "#111", fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
 
 // ─── VideoContextMenu ─────────────────────────────────────────────────────────
@@ -378,36 +386,44 @@ function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownloa
   onCopyLink: () => void; onNotInterested: () => void; onReport: () => void;
 }) {
   if (!visible || !item) return null;
-  const OPTIONS = [
-    { id: "download",      label: "Save to device",  icon: "download-outline",     action: onDownload,      color: "#fff" },
-    { id: "share",         label: "Share to...",     icon: "share-social-outline", action: onShare,         color: "#fff" },
-    { id: "repost",        label: "Repost",          icon: "repeat-outline",       action: onRepost,        color: "#fff" },
-    { id: "copylink",      label: "Copy link",       icon: "link-outline",         action: onCopyLink,      color: "#fff" },
-    { id: "notinterested", label: "Not interested",  icon: "eye-off-outline",      action: onNotInterested, color: "rgba(255,255,255,0.65)" },
-    { id: "report",        label: "Report",          icon: "flag-outline",         action: onReport,        color: "#FF453A" },
+  const ACTIONS: { id: string; label: string; icon: string; bg: string; color: string }[] = [
+    { id: "repost",        label: "Repost",         icon: "repeat",                bg: "#FF9500", color: "#fff" },
+    { id: "copylink",      label: "Copy link",      icon: "link",                  bg: "#007AFF", color: "#fff" },
+    { id: "share",         label: "Share to",       icon: "share-social",          bg: "#34C759", color: "#fff" },
+    { id: "download",      label: "Save",           icon: "download-outline",      bg: "#5856D6", color: "#fff" },
+    { id: "notinterested", label: "Not interested", icon: "heart-dislike-outline", bg: "#f0f0f0", color: "#555" },
+    { id: "report",        label: "Report",         icon: "flag-outline",          bg: "#FFEBEE", color: "#FF3B30" },
   ];
+  const handlers: Record<string, () => void> = {
+    repost: onRepost, copylink: onCopyLink, share: onShare,
+    download: onDownload, notinterested: onNotInterested, report: onReport,
+  };
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={cmStyles.backdrop} activeOpacity={1} onPress={onClose} />
       <View style={cmStyles.sheet}>
         <View style={cmStyles.handle} />
-        <View style={cmStyles.authorPreview}>
-          <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={36} />
-          <View>
+        <View style={cmStyles.previewRow}>
+          <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={34} />
+          <View style={{ flex: 1 }}>
             <Text style={cmStyles.previewHandle}>@{item.profile.handle}</Text>
-            <Text style={cmStyles.previewCaption} numberOfLines={1}>{item.content || "Video"}</Text>
+            {!!item.content && <Text style={cmStyles.previewCaption} numberOfLines={1}>{item.content}</Text>}
           </View>
+          <TouchableOpacity onPress={onClose} hitSlop={10}>
+            <Ionicons name="close" size={22} color="#666" />
+          </TouchableOpacity>
         </View>
         <View style={cmStyles.divider} />
-        {OPTIONS.map((opt) => (
-          <TouchableOpacity key={opt.id} style={cmStyles.row} onPress={() => { onClose(); setTimeout(opt.action, 200); }}>
-            <View style={[cmStyles.rowIcon, opt.id === "report" && { backgroundColor: "rgba(255,69,58,0.12)" }]}>
-              <Ionicons name={opt.icon as any} size={22} color={opt.color} />
-            </View>
-            <Text style={[cmStyles.rowLabel, { color: opt.color }]}>{opt.label}</Text>
-            <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.2)" />
-          </TouchableOpacity>
-        ))}
+        <View style={cmStyles.grid}>
+          {ACTIONS.map((opt) => (
+            <TouchableOpacity key={opt.id} style={cmStyles.gridItem} onPress={() => { onClose(); setTimeout(handlers[opt.id], 200); }}>
+              <View style={[cmStyles.iconCircle, { backgroundColor: opt.bg }]}>
+                <Ionicons name={opt.icon as any} size={24} color={opt.color} />
+              </View>
+              <Text style={cmStyles.gridLabel}>{opt.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <TouchableOpacity style={cmStyles.cancelBtn} onPress={onClose}>
           <Text style={cmStyles.cancelText}>Cancel</Text>
         </TouchableOpacity>
@@ -416,18 +432,19 @@ function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownloa
   );
 }
 const cmStyles = StyleSheet.create({
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
-  sheet: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#1a1a1a", borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingBottom: 36, paddingTop: 12 },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.2)", alignSelf: "center", marginBottom: 14 },
-  authorPreview: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8 },
-  previewHandle: { color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  previewCaption: { color: "rgba(255,255,255,0.45)", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  divider: { height: 1, backgroundColor: "rgba(255,255,255,0.08)", marginVertical: 8 },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 14, gap: 14 },
-  rowIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.08)", alignItems: "center", justifyContent: "center" },
-  rowLabel: { flex: 1, fontSize: 15, fontFamily: "Inter_500Medium" },
-  cancelBtn: { marginTop: 6, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
-  cancelText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
+  sheet: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 36, paddingTop: 12 },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#e0e0e0", alignSelf: "center", marginBottom: 14 },
+  previewRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 12 },
+  previewHandle: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#111" },
+  previewCaption: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#888", marginTop: 2 },
+  divider: { height: 1, backgroundColor: "#f0f0f0", marginBottom: 14 },
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 4 },
+  gridItem: { width: "30%", alignItems: "center", gap: 7, paddingVertical: 10 },
+  iconCircle: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+  gridLabel: { fontSize: 11, fontFamily: "Inter_500Medium", color: "#333", textAlign: "center" },
+  cancelBtn: { marginTop: 10, backgroundColor: "#f5f5f5", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  cancelText: { color: "#111", fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
 
 // ─── VideoItem ────────────────────────────────────────────────────────────────
@@ -748,32 +765,18 @@ const VideoItem = React.memo(function VideoItem({
         <Ionicons name="heart" size={90} color="#FF3B30" />
       </Animated.View>
 
-      {/* Gradient — bottom only, no top shadow */}
-      <GradientOverlay position="bottom" height={440} />
+      {/* Gradient — bottom only */}
+      <GradientOverlay position="bottom" height={460} />
 
-      {/* Bottom info — author + caption */}
-      <View style={[vStyles.bottomArea, { bottom: insets.bottom + 56 + navOffset, pointerEvents: "box-none" } as any]}>
+      {/* Bottom info — handle + caption (TikTok style) */}
+      <View style={[vStyles.bottomArea, { bottom: insets.bottom + 60 + navOffset, pointerEvents: "box-none" } as any]}>
         <TouchableOpacity
           onPress={() => router.push(`/@${item.profile.handle}` as any)}
-          style={vStyles.authorRow} activeOpacity={0.8}
+          style={vStyles.authorRow} activeOpacity={0.85}
         >
-          <View style={[vStyles.avatarWrap, { borderColor: accent }]}>
-            <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={40} />
-          </View>
-          <View style={vStyles.authorInfo}>
-            <Text style={vStyles.authorHandle}>@{item.profile.handle}</Text>
+          <Text style={vStyles.authorHandle}>@{item.profile.handle}</Text>
+          {!!item.profile.display_name && (
             <Text style={vStyles.authorName}>{item.profile.display_name}</Text>
-          </View>
-          {!isSelf && (
-            <TouchableOpacity
-              onPress={() => onFollow(item.author_id, isFollowing)}
-              style={[vStyles.inlineFollow, isFollowing && vStyles.inlineFollowActive]}
-              activeOpacity={0.8}
-            >
-              <Text style={vStyles.inlineFollowText}>
-                {isFollowing ? "Following" : "Follow"}
-              </Text>
-            </TouchableOpacity>
           )}
         </TouchableOpacity>
 
@@ -795,18 +798,37 @@ const VideoItem = React.memo(function VideoItem({
             )}
           </TouchableOpacity>
         )}
-
       </View>
 
-      {/* Right action rail */}
-      <View style={[vStyles.rightCol, { bottom: insets.bottom + 36 + navOffset, pointerEvents: "box-none" } as any]}>
+      {/* Right action rail — TikTok style (no circles, bare icons) */}
+      <View style={[vStyles.rightCol, { bottom: insets.bottom + 30 + navOffset, pointerEvents: "box-none" } as any]}>
+
+        {/* Author avatar + follow badge at top */}
+        <View style={vStyles.avatarAction}>
+          <TouchableOpacity
+            onPress={() => router.push(`/@${item.profile.handle}` as any)}
+            activeOpacity={0.85}
+          >
+            <View style={[vStyles.avatarRing, { borderColor: accent }]}>
+              <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={44} />
+            </View>
+          </TouchableOpacity>
+          {!isSelf && (
+            <TouchableOpacity
+              onPress={() => onFollow(item.author_id, isFollowing)}
+              style={[vStyles.followBadge, isFollowing && { backgroundColor: "#888" }]}
+              activeOpacity={0.8}
+            >
+              <Ionicons name={isFollowing ? "checkmark" : "add"} size={12} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Like */}
         <View style={vStyles.actionItem}>
           <Animated.View style={{ transform: [{ scale: heartScale }] }}>
-            <TouchableOpacity onPress={handleLike} hitSlop={8} activeOpacity={0.75}>
-              <View style={[vStyles.actionBtnCircle, item.liked && { backgroundColor: "rgba(255,59,48,0.25)" }]}>
-                <Ionicons name={item.liked ? "heart" : "heart-outline"} size={26} color={item.liked ? "#FF3B30" : "#fff"} />
-              </View>
+            <TouchableOpacity onPress={handleLike} hitSlop={10} activeOpacity={0.75}>
+              <Ionicons name={item.liked ? "heart" : "heart-outline"} size={32} color={item.liked ? "#FF3B30" : "#fff"} />
             </TouchableOpacity>
           </Animated.View>
           <Text style={vStyles.actionLabel}>{formatCount(item.likeCount)}</Text>
@@ -814,53 +836,43 @@ const VideoItem = React.memo(function VideoItem({
 
         {/* Comment */}
         <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onOpenComments(item.id)} hitSlop={8} activeOpacity={0.75}>
-            <View style={vStyles.actionBtnCircle}>
-              <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
-            </View>
+          <TouchableOpacity onPress={() => onOpenComments(item.id)} hitSlop={10} activeOpacity={0.75}>
+            <Ionicons name="chatbubble-ellipses" size={30} color="#fff" />
           </TouchableOpacity>
           <Text style={vStyles.actionLabel}>{formatCount(item.replyCount)}</Text>
         </View>
 
         {/* Bookmark */}
         <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={8} activeOpacity={0.75}>
-            <View style={[vStyles.actionBtnCircle, item.bookmarked && { backgroundColor: "rgba(0,188,212,0.25)" }]}>
-              <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={24} color={item.bookmarked ? "#1f95ff" : "#fff"} />
-            </View>
+          <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={10} activeOpacity={0.75}>
+            <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={30} color={item.bookmarked ? "#1f95ff" : "#fff"} />
           </TouchableOpacity>
         </View>
 
         {/* Share */}
         <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onShare(item)} hitSlop={8} activeOpacity={0.75}>
-            <View style={vStyles.actionBtnCircle}>
-              <Ionicons name="arrow-redo-outline" size={24} color="#fff" />
-            </View>
+          <TouchableOpacity onPress={() => onShare(item)} hitSlop={10} activeOpacity={0.75}>
+            <Ionicons name="paper-plane-outline" size={28} color="#fff" />
           </TouchableOpacity>
         </View>
 
-        {/* Picture-in-Picture (native only) */}
+        {/* PiP (native only) */}
         {Platform.OS !== "web" && (
           <View style={vStyles.actionItem}>
             <TouchableOpacity
               onPress={() => inPip ? videoViewRef.current?.stopPictureInPicture() : videoViewRef.current?.startPictureInPicture()}
-              hitSlop={8}
+              hitSlop={10}
               activeOpacity={0.75}
             >
-              <View style={[vStyles.actionBtnCircle, inPip && { backgroundColor: "rgba(31,149,255,0.25)" }]}>
-                <Ionicons name={inPip ? "contract" : "expand"} size={22} color={inPip ? "#1f95ff" : "#fff"} />
-              </View>
+              <Ionicons name={inPip ? "contract" : "expand"} size={24} color={inPip ? "#1f95ff" : "#fff"} />
             </TouchableOpacity>
           </View>
         )}
 
         {/* More */}
         <View style={vStyles.actionItem}>
-          <TouchableOpacity onPress={() => onOpenMenu(item)} hitSlop={8} activeOpacity={0.75}>
-            <View style={vStyles.actionBtnCircle}>
-              <Ionicons name="ellipsis-horizontal" size={22} color="#fff" />
-            </View>
+          <TouchableOpacity onPress={() => onOpenMenu(item)} hitSlop={10} activeOpacity={0.75}>
+            <Ionicons name="ellipsis-vertical" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -880,34 +892,35 @@ const VideoItem = React.memo(function VideoItem({
   );
 }); // React.memo
 
+const VS_SHADOW = Platform.select({
+  web: { textShadow: "0 1px 5px rgba(0,0,0,0.8)" } as any,
+  default: { textShadowColor: "rgba(0,0,0,0.8)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 5 },
+});
 const vStyles = StyleSheet.create({
   item: { backgroundColor: "#000", overflow: "hidden" },
   centerOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   pauseCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(0,0,0,0.4)", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },
   gradientBase: { position: "absolute", left: 0, right: 0 },
-  bottomArea: { position: "absolute", left: 14, right: 80, gap: 10 },
-  authorRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
-  avatarWrap: { borderWidth: 2, borderRadius: 25, padding: 1 },
-  authorInfo: { flex: 1 },
-  authorHandle: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold", ...Platform.select({ web: { textShadow: "0 1px 4px rgba(0,0,0,0.65)" } as any, default: { textShadowColor: "rgba(0,0,0,0.65)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 } }) },
-  authorName: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
-  inlineFollow: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.7)", backgroundColor: "rgba(0,0,0,0.25)" },
-  inlineFollowActive: { borderColor: "rgba(255,255,255,0.3)", backgroundColor: "rgba(255,255,255,0.1)" },
-  inlineFollowText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  bottomArea: { position: "absolute", left: 16, right: 80 },
+  authorRow: { marginBottom: 6 },
+  authorHandle: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold", ...VS_SHADOW },
+  authorName: { color: "rgba(255,255,255,0.65)", fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 2, ...VS_SHADOW },
   captionWrap: { marginTop: 2 },
-  caption: { color: "rgba(255,255,255,0.93)", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20, ...Platform.select({ web: { textShadow: "0 1px 4px rgba(0,0,0,0.65)" } as any, default: { textShadowColor: "rgba(0,0,0,0.65)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 } }) },
+  caption: { color: "rgba(255,255,255,0.93)", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21, ...VS_SHADOW },
   captionMore: { marginTop: 2, fontSize: 14, lineHeight: 20 },
-  captionEllipsis: { color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular" },
-  captionMoreLink: { color: "#1f95ff", fontFamily: "Inter_600SemiBold" },
+  captionEllipsis: { color: "rgba(255,255,255,0.55)", fontFamily: "Inter_400Regular" },
+  captionMoreLink: { color: "#fff", fontFamily: "Inter_700Bold" },
   viewRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   viewText: { color: "rgba(255,255,255,0.45)", fontSize: 11, fontFamily: "Inter_400Regular" },
-  rightCol: { position: "absolute", right: 10, gap: 14, alignItems: "center" },
-  actionItem: { alignItems: "center", gap: 5 },
-  actionBtnCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(0,0,0,0.35)", borderWidth: 1, borderColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  actionLabel: { color: "#fff", fontSize: 12, fontFamily: "Inter_700Bold", ...Platform.select({ web: { textShadow: "0 1px 3px rgba(0,0,0,0.6)" } as any, default: { textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 } }) },
-  progressBar: { position: "absolute", left: 0, right: 0, height: 3, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center" },
+  rightCol: { position: "absolute", right: 10, alignItems: "center", gap: 20 },
+  avatarAction: { alignItems: "center" },
+  avatarRing: { borderWidth: 2.5, borderRadius: 27, padding: 1.5 },
+  followBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: "#FF3B30", alignItems: "center", justifyContent: "center", marginTop: -12, zIndex: 2, borderWidth: 1.5, borderColor: "#000" },
+  actionItem: { alignItems: "center", gap: 4 },
+  actionLabel: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold", ...VS_SHADOW },
+  progressBar: { position: "absolute", left: 0, right: 0, height: 2.5, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center" },
   progressFill: { position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: "#fff", borderRadius: 2 },
-  progressThumb: { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "#fff", top: -4.5, marginLeft: -6, elevation: 4 },
+  progressThumb: { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "#fff", top: -4.75, marginLeft: -6, elevation: 4 },
 });
 
 // ─── VideoFeed (embeddable) ───────────────────────────────────────────────────
