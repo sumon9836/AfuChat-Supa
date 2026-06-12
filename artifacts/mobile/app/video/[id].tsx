@@ -886,13 +886,6 @@ const VideoItem = React.memo(function VideoItem({
             <Ionicons name="paper-plane" size={24} color="#fff" />
             <Text style={vStyles.barActionLabel}> </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => onOpenMenu(item, () => { videoViewRef.current?.startPictureInPicture?.(); })}
-            hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}
-          >
-            <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
-            <Text style={vStyles.barActionLabel}> </Text>
-          </TouchableOpacity>
         </View>
       </View>
     </View>
