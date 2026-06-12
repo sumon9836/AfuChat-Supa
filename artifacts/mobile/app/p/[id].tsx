@@ -40,6 +40,95 @@ import { setPageMeta, resetPageMeta } from "@/lib/webMeta";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import * as Haptics from "@/lib/haptics";
 
+// ─── Lazy expo-video (native only) ────────────────────────────────────────────
+let _VideoView: any = null;
+let _useVideoPlayer: any = null;
+if (Platform.OS !== "web") {
+  try {
+    const ev = require("expo-video");
+    _VideoView = ev.VideoView;
+    _useVideoPlayer = ev.useVideoPlayer;
+  } catch {}
+}
+
+// Inline video player used in the post detail header
+function NativeVideoPlayer({ videoUrl }: { videoUrl: string }) {
+  const player = _useVideoPlayer(videoUrl, (p: any) => { p.loop = true; });
+  useEffect(() => { try { player?.play(); } catch {} }, []);
+  return (
+    <_VideoView
+      style={{ width: "100%", aspectRatio: 9 / 16 }}
+      player={player}
+      allowsFullscreen
+      contentFit="contain"
+    />
+  );
+}
+
+function VideoPlayerSection({ videoUrl }: { videoUrl: string | null }) {
+  if (!videoUrl || Platform.OS === "web" || !_VideoView || !_useVideoPlayer) {
+    return (
+      <View style={{ width: "100%", aspectRatio: 9 / 16, backgroundColor: "#000", alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name="play-circle-outline" size={56} color="rgba(255,255,255,0.4)" />
+      </View>
+    );
+  }
+  return <NativeVideoPlayer videoUrl={videoUrl} />;
+}
+
+function VideoDetailHeader({ colors, insets, onMenu }: { colors: any; insets: any; onMenu: () => void }) {
+  const [searchText, setSearchText] = useState("");
+  return (
+    <View style={{
+      paddingTop: insets.top + 2,
+      paddingBottom: 8,
+      paddingHorizontal: 12,
+      backgroundColor: colors.background,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    }}>
+      <TouchableOpacity onPress={() => router.back()} hitSlop={8} style={{ padding: 4 }}>
+        <Ionicons name="arrow-back" size={22} color={colors.text} />
+      </TouchableOpacity>
+      <View style={{
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.inputBg ?? (colors.isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"),
+        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        gap: 7,
+      }}>
+        <Ionicons name="search-outline" size={14} color={colors.textMuted} />
+        <TextInput
+          style={{ flex: 1, fontSize: 14, color: colors.text, fontFamily: "Inter_400Regular", paddingVertical: 0 }}
+          placeholder="Find related content"
+          placeholderTextColor={colors.textMuted}
+          value={searchText}
+          onChangeText={setSearchText}
+          returnKeyType="search"
+        />
+        {searchText.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchText("")} hitSlop={8}>
+            <Ionicons name="close-circle" size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+      </View>
+      <TouchableOpacity
+        onPress={onMenu}
+        hitSlop={8}
+        style={{ padding: 4 }}
+      >
+        <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 type Reply = {
   id: string;
   content: string;
@@ -56,6 +145,7 @@ type PostData = {
   images: string[];
   post_type: string | null;
   article_title: string | null;
+  video_url: string | null;
   created_at: string;
   view_count: number;
   visibility: string;
@@ -296,9 +386,8 @@ export default function PostShortLinkScreen() {
     ]);
     const data = postRes.data;
     if (!data) { setLoading(false); return; }
-    if ((data as any).post_type === "video" && (data as any).video_url && !isDesktop) { router.replace({ pathname: "/video/[id]", params: { id: data.id } }); return; }
     const viewCount = data.view_count || 0;
-    setPost({ id: data.id, content: data.content, image_url: data.image_url, images: ((data as any).post_images || []).sort((a: any, b: any) => a.display_order - b.display_order).map((i: any) => i.image_url), post_type: (data as any).post_type || null, article_title: (data as any).article_title || null, created_at: data.created_at, view_count: viewCount, visibility: (data as any).visibility || "public", author: (data as any).profiles, liked: !!(myLikeRes as any).data, likeCount: likeCountRes.count || 0, replyCount: replyCountRes.count || 0 });
+    setPost({ id: data.id, content: data.content, image_url: data.image_url, images: ((data as any).post_images || []).sort((a: any, b: any) => a.display_order - b.display_order).map((i: any) => i.image_url), post_type: (data as any).post_type || null, article_title: (data as any).article_title || null, video_url: (data as any).video_url || null, created_at: data.created_at, view_count: viewCount, visibility: (data as any).visibility || "public", author: (data as any).profiles, liked: !!(myLikeRes as any).data, likeCount: likeCountRes.count || 0, replyCount: replyCountRes.count || 0 });
     setLoading(false);
     if (user && !(myViewRes as any).data) supabase.from("post_views").insert({ post_id: id, viewer_id: user.id }).then(() => supabase.from("posts").update({ view_count: viewCount + 1 }).eq("id", id));
   }, [id, user]);
@@ -514,14 +603,18 @@ export default function PostShortLinkScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <GlassHeader
-        title={post.post_type === "article" ? "Article" : "Post"}
-        right={
-          <TouchableOpacity onPress={() => setMenuVisible(true)} hitSlop={8}>
-            <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
-          </TouchableOpacity>
-        }
-      />
+      {post.post_type === "video" ? (
+        <VideoDetailHeader colors={colors} insets={insets} onMenu={() => setMenuVisible(true)} />
+      ) : (
+        <GlassHeader
+          title={post.post_type === "article" ? "Article" : "Post"}
+          right={
+            <TouchableOpacity onPress={() => setMenuVisible(true)} hitSlop={8}>
+              <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+            </TouchableOpacity>
+          }
+        />
+      )}
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={0}>
         <FlatList
@@ -534,7 +627,33 @@ export default function PostShortLinkScreen() {
           ) : null}
           ListHeaderComponent={
             <View>
-              {post.post_type === "article" ? (
+              {post.post_type === "video" ? (
+                <View>
+                  <VideoPlayerSection videoUrl={post.video_url} />
+                  <View style={[styles.postSection, { backgroundColor: colors.surface }]}>
+                    <View style={styles.postHeader}>
+                      <TouchableOpacity onPress={() => router.push(`/@${post.author.handle}` as any)}>
+                        <Avatar uri={post.author.avatar_url} name={post.author.display_name} size={46} />
+                      </TouchableOpacity>
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.nameRow}>
+                          <TouchableOpacity onPress={() => router.push(`/@${post.author.handle}` as any)}>
+                            <Text style={[styles.authorName, { color: colors.text }]}>{post.author.display_name}</Text>
+                          </TouchableOpacity>
+                          {post.author.is_organization_verified && <Ionicons name="checkmark-circle" size={14} color={Colors.gold} style={{ marginLeft: 4 }} />}
+                          {!post.author.is_organization_verified && post.author.is_verified && <Ionicons name="checkmark-circle" size={14} color={colors.accent} style={{ marginLeft: 4 }} />}
+                        </View>
+                        <Text style={[styles.authorHandle, { color: colors.textMuted }]}>@{post.author.handle} · {timeAgo(post.created_at)}</Text>
+                      </View>
+                    </View>
+                    {post.content ? <RichText style={[styles.postContent, { color: colors.text }]}>{post.content}</RichText> : null}
+                    <Text style={[styles.postTimestamp, { color: colors.textMuted }]}>{new Date(post.created_at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</Text>
+                    {renderEngagementBar()}
+                    {renderAiSection()}
+                    {renderRepliesHeader()}
+                  </View>
+                </View>
+              ) : post.post_type === "article" ? (
                 <View style={{ backgroundColor: colors.surface }}>
                   {allImages.length > 0 ? (
                     <TouchableOpacity activeOpacity={0.95} onPress={() => imgViewer.openViewer(allImages, 0)} style={styles.heroWrap}>
@@ -652,7 +771,7 @@ export default function PostShortLinkScreen() {
             <View style={[styles.composerBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 4, borderTopColor: colors.border, backgroundColor: colors.surface }]}>
               <Avatar uri={myProfile?.avatar_url ?? null} name={myProfile?.display_name ?? ""} size={32} />
               <View style={[styles.composerPill, { backgroundColor: colors.inputBg }]}>
-                <TextInput ref={replyInputRef} style={[styles.composerInput, { color: colors.text }]} placeholder={replyingTo ? `Reply to @${replyingTo.author.handle}…` : "Write a reply…"} placeholderTextColor={colors.textMuted} value={replyText} onChangeText={setReplyText} maxLength={280} multiline />
+                <TextInput ref={replyInputRef} style={[styles.composerInput, { color: colors.text }]} placeholder={replyingTo ? `Reply to @${replyingTo.author.handle}…` : post.post_type === "video" ? "Add comment…" : "Write a reply…"} placeholderTextColor={colors.textMuted} value={replyText} onChangeText={setReplyText} maxLength={280} multiline />
                 {replyText.length > 200 && <Text style={[styles.charCount, { color: charLeft < 20 ? "#FF3B30" : colors.textMuted }]}>{charLeft}</Text>}
               </View>
               <TouchableOpacity onPress={sendReply} disabled={!replyText.trim() || sending} style={[styles.sendBtn, { backgroundColor: replyText.trim() && !sending ? colors.accent : colors.border }]}>

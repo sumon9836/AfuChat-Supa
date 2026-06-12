@@ -62,6 +62,7 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { showAlert } from "@/lib/alert";
 import { showToast as globalShowToast } from "@/lib/toast";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import SwipeableBottomSheet from "@/components/SwipeableBottomSheet";
 import { notifyNewMessage, notifyGiftReceived } from "@/lib/notifyUser";
 import {
   queueMessage,
@@ -6851,18 +6852,12 @@ STRICT RULES:
 
 
       {/* ── Chat Options Sheet ─────────────────────────────────────────────── */}
-      <Modal
+      <SwipeableBottomSheet
         visible={showChatOptions}
-        transparent
-        animationType="slide"
-        onRequestClose={() => { setShowChatOptions(false); setShowDisappearingPicker(false); }}
+        onClose={() => { setShowChatOptions(false); setShowDisappearingPicker(false); }}
+        backgroundColor={colors.surface}
+        maxHeight="78%"
       >
-        <View style={st.optionsOverlay}>
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => { setShowChatOptions(false); setShowDisappearingPicker(false); }} />
-          <View style={[st.optionsSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 16 }]}>
-            {/* Handle */}
-            <View style={[st.optionsHandle, { backgroundColor: colors.border }]} />
-
             {/* Contact / Chat identity header */}
             <View style={[st.optionsIdentity, { borderBottomColor: colors.border }]}>
               <Avatar
@@ -6878,7 +6873,7 @@ STRICT RULES:
               </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 480 }}>
+            
 
               {/* ── SECTION: Chat ───────────────────────────────────────── */}
               <Text style={[st.optionsSection, { color: colors.textMuted }]}>CHAT</Text>
@@ -7117,10 +7112,8 @@ STRICT RULES:
               </TouchableOpacity>
 
               <View style={{ height: 16 }} />
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+
+      </SwipeableBottomSheet>
 
       {forwardMsg && (
         <Modal

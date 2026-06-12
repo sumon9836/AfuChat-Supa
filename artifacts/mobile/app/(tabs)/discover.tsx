@@ -380,7 +380,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
           {item.post_type === "video" && item.video_url && (
             <TouchableOpacity
               activeOpacity={0.88}
-              onPress={() => safeRouter.push({ pathname: "/video/[id]", params: { id: item.id } })}
+              onPress={() => safeRouter.push({ pathname: "/post/[id]", params: { id: item.id } })}
               style={styles.videoCard}
             >
               <View style={styles.videoThumb}>
