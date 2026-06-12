@@ -512,6 +512,18 @@ const VideoItem = React.memo(function VideoItem({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commentsOpen]);
 
+  // Immediately sync video area height when the container height changes.
+  // videoAreaAnim is initialized with SCREEN_H - BOTTOM_BAR_H, but after
+  // the FlatList measures its actual height (SCREEN_H - tabOffset), screenH
+  // updates to a smaller value. Without this sync the video area overflows
+  // the item container and the action bar gets clipped off-screen.
+  useEffect(() => {
+    if (!commentsOpen) {
+      videoAreaAnim.setValue(screenH - BOTTOM_BAR_H);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screenH]);
+
   // Pause and show poster when app/tab loses focus; resume seamlessly on return.
   // Resetting videoStarted shows the poster image immediately so there's no black
   // frame while the AVPlayer re-syncs after the screen regains focus.
@@ -1332,8 +1344,10 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   // useWindowDimensions() may include status/nav bar pixels that the FlatList
   // itself does not occupy (common on Infinix, Tecno, OPPO with gesture nav),
   // causing pagingEnabled to snap to the wrong position.
-  const [listHeight, setListHeight] = useState(SCREEN_H);
-  const listHeightRef = useRef(SCREEN_H);
+  // Seed with inset-adjusted height so the action bar is correctly positioned
+  // on the very first render, before onLayout fires.
+  const [listHeight, setListHeight] = useState(() => SCREEN_H - tabOffset);
+  const listHeightRef = useRef(SCREEN_H - tabOffset);
   const onListLayout = useCallback((e: any) => {
     const h = e.nativeEvent.layout.height;
     if (h > 0 && Math.abs(h - listHeightRef.current) > 2) {
