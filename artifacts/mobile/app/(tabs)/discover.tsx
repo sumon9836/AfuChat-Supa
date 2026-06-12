@@ -482,14 +482,16 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                     activeOpacity={0.9}
                     onPress={(e) => { e.stopPropagation(); onImagePress?.(allImages, i); }}
                   >
-                    <ExpoImage
-                      source={{ uri }}
-                      style={{ width: singleImgW, height: Math.round(singleImgW * 0.62) }}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      priority={i === 0 ? "high" : "normal"}
-                      transition={150}
-                    />
+                    <View style={{ width: singleImgW, height: Math.round(singleImgW * 0.78), backgroundColor: "#0a0a0a", justifyContent: "center", alignItems: "center" }}>
+                      <ExpoImage
+                        source={{ uri }}
+                        style={{ width: singleImgW, height: Math.round(singleImgW * 0.78) }}
+                        contentFit="contain"
+                        cachePolicy="memory-disk"
+                        priority={i === 0 ? "high" : "normal"}
+                        transition={200}
+                      />
+                    </View>
                   </TouchableOpacity>
                 ))}
               </ScrollView>

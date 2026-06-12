@@ -3,6 +3,7 @@ import {
   Image,
   Modal,
   Platform,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -235,6 +236,102 @@ function AnimatedZoomSlideWithRoot(props: ZoomSlideProps) {
   );
 }
 
+// ─── Shared chrome ────────────────────────────────────────────────────────────
+
+function ViewerChrome({
+  images,
+  index,
+  hasMultiple,
+  zoomed,
+  insets,
+  onClose,
+  onPrev,
+  onNext,
+  onDotPress,
+  imgH,
+}: {
+  images: string[];
+  index: number;
+  hasMultiple: boolean;
+  zoomed: boolean;
+  insets: any;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onDotPress: (i: number) => void;
+  imgH: number;
+}) {
+  function handleShare() {
+    try {
+      Share.share({ url: images[index], message: images[index] });
+    } catch {}
+  }
+
+  return (
+    <>
+      {/* ── Top bar ── */}
+      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
+        <TouchableOpacity onPress={onClose} hitSlop={12} style={styles.glassBtn}>
+          <Ionicons name="close" size={20} color="#fff" />
+        </TouchableOpacity>
+
+        {hasMultiple && (
+          <View style={styles.counterPill}>
+            <Text style={styles.counterText}>{index + 1} / {images.length}</Text>
+          </View>
+        )}
+
+        <TouchableOpacity onPress={handleShare} hitSlop={12} style={styles.glassBtn}>
+          <Ionicons name="share-outline" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Side nav arrows ── */}
+      {hasMultiple && !zoomed && (
+        <>
+          <TouchableOpacity
+            style={[styles.navBtn, styles.navLeft, { top: insets.top + 56 + imgH / 2 - 24 }]}
+            onPress={onPrev}
+            disabled={index === 0}
+            activeOpacity={0.65}
+          >
+            <Ionicons
+              name="chevron-back"
+              size={30}
+              color="#fff"
+              style={{ opacity: index === 0 ? 0.18 : 1, textShadowColor: "rgba(0,0,0,0.8)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 } as any}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.navBtn, styles.navRight, { top: insets.top + 56 + imgH / 2 - 24 }]}
+            onPress={onNext}
+            disabled={index === images.length - 1}
+            activeOpacity={0.65}
+          >
+            <Ionicons
+              name="chevron-forward"
+              size={30}
+              color="#fff"
+              style={{ opacity: index === images.length - 1 ? 0.18 : 1, textShadowColor: "rgba(0,0,0,0.8)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 } as any}
+            />
+          </TouchableOpacity>
+        </>
+      )}
+
+      {/* ── Dot indicators ── */}
+      {hasMultiple && (
+        <View style={[styles.dots, { bottom: insets.bottom + 28 }]}>
+          {images.map((_, i) => (
+            <TouchableOpacity key={i} onPress={() => onDotPress(i)} hitSlop={6}>
+              <View style={[styles.dot, i === index && styles.dotActive]} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </>
+  );
+}
+
 // ─── Exported ImageViewer ─────────────────────────────────────────────────────
 
 type ViewerProps = { images: string[]; initialIndex?: number; visible: boolean; onClose: () => void };
@@ -283,23 +380,21 @@ function AnimatedImageViewer({ images, initialIndex = 0, visible, onClose }: Vie
 
   if (!visible || images.length === 0) return null;
   const hasMultiple = images.length > 1;
-  const imgH = height * 0.88;
+  const imgH = height * 0.86;
 
   return (
     <Modal transparent visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose} hardwareAccelerated>
       <View style={styles.root}>
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={10}>
-            <Ionicons name="close" size={24} color="#fff" />
-          </TouchableOpacity>
-          {hasMultiple && <Text style={styles.counter}>{index + 1} / {images.length}</Text>}
-          {zoomed && (
-            <View style={styles.zoomBadge}>
-              <Ionicons name="scan-outline" size={13} color="#fff" />
-              <Text style={styles.zoomBadgeText}>Pinch to zoom</Text>
-            </View>
-          )}
-        </View>
+        {/* Ambient blurred background */}
+        <Image
+          source={{ uri: images[index] }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+          blurRadius={Platform.OS === "ios" ? 70 : 18}
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.78)" }]} />
+
+        {/* Main image */}
         <Animated.View style={[styles.slideWrap, { width, height: imgH }, slideStyle]}>
           <AnimatedZoomSlideWithRoot
             key={index} uri={images[index]} width={width} height={imgH}
@@ -307,30 +402,19 @@ function AnimatedImageViewer({ images, initialIndex = 0, visible, onClose }: Vie
             onScaleChange={(s) => setZoomed(s > 1.05)}
           />
         </Animated.View>
-        {hasMultiple && !zoomed && (
-          <>
-            <TouchableOpacity style={[styles.navBtn, styles.navLeft, { top: insets.top + 60 + imgH / 2 - 24 }]} onPress={goRight} disabled={index === 0} activeOpacity={0.7}>
-              <Ionicons name="chevron-back" size={26} color="#fff" style={{ opacity: index === 0 ? 0.25 : 1 }} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.navBtn, styles.navRight, { top: insets.top + 60 + imgH / 2 - 24 }]} onPress={goLeft} disabled={index === images.length - 1} activeOpacity={0.7}>
-              <Ionicons name="chevron-forward" size={26} color="#fff" style={{ opacity: index === images.length - 1 ? 0.25 : 1 }} />
-            </TouchableOpacity>
-          </>
-        )}
-        {hasMultiple && (
-          <View style={[styles.dots, { bottom: insets.bottom + 24 }]}>
-            {images.map((_, i) => (
-              <TouchableOpacity key={i} onPress={() => setIndex(i)}>
-                <View style={[styles.dot, i === index && styles.dotActive, i === index && { width: 20 }]} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-        {!zoomed && (
-          <View style={[styles.hint, { bottom: insets.bottom + (hasMultiple ? 60 : 32) }]}>
-            <Text style={styles.hintText}>Double-tap to zoom · Tap to close</Text>
-          </View>
-        )}
+
+        <ViewerChrome
+          images={images}
+          index={index}
+          hasMultiple={hasMultiple}
+          zoomed={zoomed}
+          insets={insets}
+          onClose={onClose}
+          onPrev={goRight}
+          onNext={goLeft}
+          onDotPress={setIndex}
+          imgH={imgH}
+        />
       </View>
     </Modal>
   );
@@ -347,17 +431,21 @@ function SimpleImageViewer({ images, initialIndex = 0, visible, onClose }: Viewe
 
   if (!visible || images.length === 0) return null;
   const hasMultiple = images.length > 1;
-  const imgH = height * 0.88;
+  const imgH = height * 0.86;
 
   return (
     <Modal transparent visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <View style={styles.root}>
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={10}>
-            <Ionicons name="close" size={24} color="#fff" />
-          </TouchableOpacity>
-          {hasMultiple && <Text style={styles.counter}>{index + 1} / {images.length}</Text>}
-        </View>
+        {/* Ambient blurred background */}
+        <Image
+          source={{ uri: images[index] }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+          blurRadius={Platform.OS === "ios" ? 70 : 18}
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.78)" }]} />
+
+        {/* Main image */}
         <View style={[styles.slideWrap, { width, height: imgH }]}>
           <SimpleZoomSlide
             key={index} uri={images[index]} width={width} height={imgH}
@@ -367,28 +455,19 @@ function SimpleImageViewer({ images, initialIndex = 0, visible, onClose }: Viewe
             onScaleChange={() => {}}
           />
         </View>
-        {hasMultiple && (
-          <>
-            <TouchableOpacity style={[styles.navBtn, styles.navLeft, { top: insets.top + 60 + imgH / 2 - 24 }]} onPress={() => { if (index > 0) setIndex(index - 1); }} disabled={index === 0} activeOpacity={0.7}>
-              <Ionicons name="chevron-back" size={26} color="#fff" style={{ opacity: index === 0 ? 0.25 : 1 }} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.navBtn, styles.navRight, { top: insets.top + 60 + imgH / 2 - 24 }]} onPress={() => { if (index < images.length - 1) setIndex(index + 1); }} disabled={index === images.length - 1} activeOpacity={0.7}>
-              <Ionicons name="chevron-forward" size={26} color="#fff" style={{ opacity: index === images.length - 1 ? 0.25 : 1 }} />
-            </TouchableOpacity>
-          </>
-        )}
-        {hasMultiple && (
-          <View style={[styles.dots, { bottom: insets.bottom + 24 }]}>
-            {images.map((_, i) => (
-              <TouchableOpacity key={i} onPress={() => setIndex(i)}>
-                <View style={[styles.dot, i === index && styles.dotActive, i === index && { width: 20 }]} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-        <View style={[styles.hint, { bottom: insets.bottom + (hasMultiple ? 60 : 32) }]}>
-          <Text style={styles.hintText}>Tap to close</Text>
-        </View>
+
+        <ViewerChrome
+          images={images}
+          index={index}
+          hasMultiple={hasMultiple}
+          zoomed={false}
+          insets={insets}
+          onClose={onClose}
+          onPrev={() => { if (index > 0) setIndex(index - 1); }}
+          onNext={() => { if (index < images.length - 1) setIndex(index + 1); }}
+          onDotPress={setIndex}
+          imgH={imgH}
+        />
       </View>
     </Modal>
   );
@@ -415,39 +494,84 @@ export function useImageViewer() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#000", justifyContent: "center", alignItems: "center" },
+  root: {
+    flex: 1,
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   header: {
-    position: "absolute", top: 0, left: 0, right: 0,
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 16, paddingBottom: 12,
-    zIndex: 20, backgroundColor: "rgba(0,0,0,0.4)",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    zIndex: 20,
   },
-  closeBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    justifyContent: "center", alignItems: "center", marginRight: "auto",
+
+  glassBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.13)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.1)",
   },
-  counter: {
-    color: "#fff", fontSize: 15, fontFamily: "Inter_500Medium",
-    position: "absolute", left: 0, right: 0, textAlign: "center",
+
+  counterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.13)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.1)",
   },
-  zoomBadge: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 12,
-    paddingHorizontal: 10, paddingVertical: 5,
+  counterText: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.3,
   },
-  zoomBadgeText: { color: "#fff", fontSize: 12, fontFamily: "Inter_400Regular" },
-  slideWrap: { justifyContent: "center", alignItems: "center", overflow: "visible" },
+
+  slideWrap: {
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "visible",
+  },
+
   navBtn: {
-    position: "absolute", width: 44, height: 44, borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    justifyContent: "center", alignItems: "center", zIndex: 10,
+    position: "absolute",
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
-  navLeft:  { left: 12 },
-  navRight: { right: 12 },
-  dots:     { position: "absolute", flexDirection: "row", gap: 6, alignSelf: "center" },
-  dot:      { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.4)" },
-  dotActive:{ backgroundColor: "#fff", borderRadius: 4 },
-  hint:     { position: "absolute", alignSelf: "center" },
-  hintText: { color: "rgba(255,255,255,0.45)", fontSize: 12, fontFamily: "Inter_400Regular" },
+  navLeft:  { left: 4 },
+  navRight: { right: 4 },
+
+  dots: {
+    position: "absolute",
+    flexDirection: "row",
+    gap: 5,
+    alignSelf: "center",
+  },
+  dot: {
+    width: 6,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.3)",
+  },
+  dotActive: {
+    backgroundColor: "#fff",
+    width: 22,
+    borderRadius: 2,
+  },
 });
