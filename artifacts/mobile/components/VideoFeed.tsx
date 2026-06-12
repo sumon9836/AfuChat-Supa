@@ -1,24 +1,22 @@
 /**
- * VideoFeed — TikTok-style vertical paging feed with smart scoring.
+ * VideoFeed — TikTok-exact vertical paging feed.
  *
- * Architecture:
- *  1. snapToInterval + disableIntervalMomentum — reliable snap on both platforms.
- *  2. Reanimated 4 shared values for heart burst, like scale, progress — UI thread.
- *  3. GestureDetector exclusive double-tap / single-tap — UI-thread gesture.
- *  4. React.memo + deep custom equality — only ±1 items re-render on swipe.
- *  5. viewabilityConfig 50 % — activeIndex updates the instant item crosses mid.
- *  6. windowSize=3, removeClippedSubviews=false — keeps ±1 items mounted.
- *  7. expo-image thumbnails — disk-cached, no black-frame flash.
+ * Layout per item (height = SCREEN_H - tabBarHeight):
+ *   ┌──────────────────────────────┐
+ *   │  VIDEO SECTION  (flex: 1)   │  ← video player fills this
+ *   │  [right action rail]        │  ← overlaid on video, right side
+ *   │  [progress bar]             │  ← very bottom of video
+ *   ├──────────────────────────────┤
+ *   │  INFO SECTION  (INFO_H px)  │  ← solid #0a0a0a, below video
+ *   │  @handle  [Follow]          │
+ *   │  caption text               │
+ *   │  ♫ audio name               │
+ *   └──────────────────────────────┘
  *
- * Algorithm (For You):
- *  - Fetches 200-post pool from the last 30 days.
- *  - Scores each post via computeFeedScore (freshness + velocity + interest +
- *    affinity + seen-video demotion).
- *  - Runs diversifyFeed to prevent back-to-back same-author runs.
- *  - Marks shown IDs seen (7-day expiry) so re-runs surface fresh content.
+ * Header (overlaid, TikTok-style):
+ *   [LIVE]  Following · For You  [🔍]
  *
- * Following tab:
- *  - Cursor-paginates newest content from followed accounts.
+ * Auto-advance: when a video ends it automatically scrolls to the next item.
  */
 
 import React, {
@@ -29,6 +27,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Platform,
   StyleSheet,
@@ -88,13 +87,13 @@ const withTiming       = (_raVF?.withTiming       ?? ((v: any) => v))           
 const withSequence     = (_raVF?.withSequence     ?? ((v: any) => v))               as typeof import("react-native-reanimated").withSequence;
 const withDelay        = (_raVF?.withDelay        ?? ((_d: number, v: any) => v))   as typeof import("react-native-reanimated").withDelay;
 const runOnJS          = (_raVF?.runOnJS          ?? ((fn: any) => fn))             as typeof import("react-native-reanimated").runOnJS;
-const Animated         = (_raVF?.default ?? require("react-native").Animated)      as typeof import("react-native-reanimated").default;
+const ReAnimated       = (_raVF?.default ?? require("react-native").Animated)      as typeof import("react-native-reanimated").default;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE     = 20;
 const FOR_YOU_POOL  = 200;
-const USE_NATIVE    = Platform.OS !== "web";
+const INFO_H        = 114;  // caption section height below the video
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,30 +132,7 @@ function fmtDur(secs: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-// ─── GradientOverlay ──────────────────────────────────────────────────────────
-
-function GradientOverlay() {
-  if (Platform.OS === "web") {
-    return (
-      <View
-        style={[
-          styles.gradient,
-          {
-            background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 40%, transparent 75%)",
-            pointerEvents: "none",
-          } as any,
-        ]}
-      />
-    );
-  }
-  return (
-    <LinearGradient
-      colors={["transparent", "rgba(0,0,0,0.45)", "rgba(0,0,0,0.95)"]}
-      locations={[0.2, 0.55, 1]}
-      style={[styles.gradient, { pointerEvents: "none" }]}
-    />
-  );
-}
+// ─── Gradients ────────────────────────────────────────────────────────────────
 
 function TopGradient() {
   if (Platform.OS === "web") {
@@ -165,7 +141,7 @@ function TopGradient() {
         style={[
           styles.topGradient,
           {
-            background: "linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%)",
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%)",
             pointerEvents: "none",
           } as any,
         ]}
@@ -174,9 +150,40 @@ function TopGradient() {
   }
   return (
     <LinearGradient
-      colors={["rgba(0,0,0,0.5)", "transparent"]}
+      colors={["rgba(0,0,0,0.55)", "transparent"]}
       style={[styles.topGradient, { pointerEvents: "none" }]}
     />
+  );
+}
+
+// ─── Spinning music disc ──────────────────────────────────────────────────────
+
+function MusicDisc({ isPlaying }: { isPlaying: boolean }) {
+  const spin = useRef(new Animated.Value(0)).current;
+  const animRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (isPlaying) {
+      animRef.current = Animated.loop(
+        Animated.timing(spin, {
+          toValue: 1,
+          duration: 3200,
+          useNativeDriver: Platform.OS !== "web",
+        })
+      );
+      animRef.current.start();
+    } else {
+      animRef.current?.stop();
+    }
+    return () => { animRef.current?.stop(); };
+  }, [isPlaying]);
+
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+
+  return (
+    <Animated.View style={[styles.musicDisc, { transform: [{ rotate }] }]}>
+      <View style={styles.musicDiscInner} />
+    </Animated.View>
   );
 }
 
@@ -187,7 +194,8 @@ type VideoItemProps = {
   isActive: boolean;
   isNearActive: boolean;
   screenW: number;
-  screenH: number;
+  itemH: number;
+  videoH: number;
   globalMuted: boolean;
   onLike: (postId: string, liked: boolean) => void;
   onFollow: (authorId: string) => void;
@@ -195,6 +203,7 @@ type VideoItemProps = {
   onBookmark: (postId: string, bookmarked: boolean) => void;
   onShare: (item: VideoPost) => void;
   onToggleMute: () => void;
+  onVideoEnd: () => void;
   currentUserId?: string;
 };
 
@@ -204,7 +213,8 @@ const VideoItem = React.memo(
     isActive,
     isNearActive,
     screenW,
-    screenH,
+    itemH,
+    videoH,
     globalMuted,
     onLike,
     onFollow,
@@ -212,11 +222,12 @@ const VideoItem = React.memo(
     onBookmark,
     onShare,
     onToggleMute,
+    onVideoEnd,
     currentUserId,
   }: VideoItemProps) {
     const { accent } = useAppAccent();
     const player = useVideoPlayer(null, (p) => {
-      p.loop = true;
+      p.loop = false; // we handle loop manually so we can fire onVideoEnd
       p.muted = globalMuted || Platform.OS === "web";
     });
 
@@ -228,22 +239,22 @@ const VideoItem = React.memo(
     const [captionExpanded, setCaptionExpanded] = useState(false);
     const [duration, setDuration] = useState(0);
 
-    const heartScale  = useSharedValue(1);
-    const dtOpacity   = useSharedValue(0);
-    const dtScale     = useSharedValue(0.3);
+    const heartScale   = useSharedValue(1);
+    const dtOpacity    = useSharedValue(0);
+    const dtScale      = useSharedValue(0.3);
     const progressFill = useSharedValue(0);
 
-    // OOM guard: cancel these Reanimated shared values when the app backgrounds.
     useAnimationGuard(heartScale, dtOpacity, dtScale, progressFill);
 
-    const bufferingRef      = useRef(false);
-    const bufferingTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const videoStartedRef   = useRef(false);
-    const lastProgressTs    = useRef(0);
-    const viewRecorded      = useRef(false);
-    const cacheAttempted    = useRef(false);
-    const cacheDelayTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const watchSaved        = useRef(false);
+    const bufferingRef     = useRef(false);
+    const bufferingTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const videoStartedRef  = useRef(false);
+    const lastProgressTs   = useRef(0);
+    const viewRecorded     = useRef(false);
+    const cacheAttempted   = useRef(false);
+    const cacheDelayTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const watchSaved       = useRef(false);
+    const endFired         = useRef(false);
 
     const resolved = useResolvedVideoSource(item.id, item.video_url, {
       targetHeight: getPreferredVideoHeight(),
@@ -252,12 +263,11 @@ const VideoItem = React.memo(
       ? item.video_url
       : (cachedUri ?? resolved.uri ?? item.video_url);
 
-    // Sync muted state to player when globalMuted changes
     useEffect(() => {
       try { player.muted = globalMuted; } catch {}
     }, [globalMuted]);
 
-    // Preload into cache when ±1 window on WiFi
+    // Preload into cache when ±1 on WiFi
     useEffect(() => {
       if (!isNearActive || cacheAttempted.current || !item.video_url) return;
       cacheAttempted.current = true;
@@ -280,7 +290,7 @@ const VideoItem = React.memo(
       };
     }, [isNearActive, item.video_url]);
 
-    // Reset when scrolled away; record view on arrival
+    // Reset when scrolled away; record view + watch on arrival
     useEffect(() => {
       if (!isActive) {
         setPaused(false);
@@ -292,6 +302,7 @@ const VideoItem = React.memo(
         videoStartedRef.current = false;
         lastProgressTs.current = 0;
         watchSaved.current = false;
+        endFired.current = false;
         if (bufferingTimer.current) {
           clearTimeout(bufferingTimer.current);
           bufferingTimer.current = null;
@@ -317,7 +328,7 @@ const VideoItem = React.memo(
       return () => { mountedRef.current = false; };
     }, []);
 
-    // Player source update
+    // Player source
     useEffect(() => {
       if (!playUri || !isNearActive) return;
       player.replaceAsync({ uri: playUri }).catch(() => {
@@ -333,7 +344,7 @@ const VideoItem = React.memo(
       } catch (_) {}
     }, [isActive, isNearActive, paused]);
 
-    // Progress + buffering + duration polling (100ms)
+    // Progress + buffering + duration + auto-advance polling
     useEffect(() => {
       if (!isActive) return;
       const timer = setInterval(() => {
@@ -363,16 +374,24 @@ const VideoItem = React.memo(
           const dur = player.duration;
           if (dur > 0) {
             const now = Date.now();
-            if (now - lastProgressTs.current >= 250) {
+            if (now - lastProgressTs.current >= 100) {
               lastProgressTs.current = now;
-              progressFill.value = player.currentTime / dur;
+              const frac = player.currentTime / dur;
+              progressFill.value = frac;
               if (duration !== dur) setDuration(dur);
+
+              // Auto-advance when within 0.3s of end
+              if (!endFired.current && frac >= 0.97) {
+                endFired.current = true;
+                // Loop back to start if no next video available
+                runOnJS(onVideoEnd)();
+              }
             }
           }
         } catch (_) {}
       }, 100);
       return () => clearInterval(timer);
-    }, [isActive, duration]);
+    }, [isActive, duration, onVideoEnd]);
 
     // ── Animated styles ───────────────────────────────────────────────────────
     const heartAnimStyle = useAnimatedStyle(() => ({
@@ -386,7 +405,7 @@ const VideoItem = React.memo(
       width: `${progressFill.value * 100}%` as any,
     }));
 
-    // ── Gesture handlers ───────────────────────────────────────────────────────
+    // ── Gestures ───────────────────────────────────────────────────────────────
     function triggerLike() { onLike(item.id, item.liked); }
     function triggerPause() { setPaused((p) => !p); }
 
@@ -426,225 +445,242 @@ const VideoItem = React.memo(
     }
 
     const isOwn = currentUserId === item.author_id;
-    const captionLong = item.content.length > 80;
+    const captionLong = item.content.length > 72;
+    const isPlaying = isActive && !paused && videoStarted;
 
     return (
-      <View style={[styles.item, { width: screenW, height: screenH }]}>
+      <View style={{ width: screenW, height: itemH, backgroundColor: "#000" }}>
 
-        {/* Thumbnail poster — no black flash before video starts */}
-        {item.image_url && !videoStarted ? (
-          <ExpoImage
-            source={{ uri: item.image_url }}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            priority="high"
-          />
-        ) : null}
+        {/* ── VIDEO SECTION ───────────────────────────────────────────────── */}
+        <View style={{ width: screenW, height: videoH, overflow: "hidden", backgroundColor: "#000" }}>
 
-        {/* Video — native */}
-        {isNearActive && Platform.OS !== "web" && (
-          <VideoView
-            player={player}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            nativeControls={false}
-          />
-        )}
+          {/* Thumbnail poster */}
+          {item.image_url && !videoStarted ? (
+            <ExpoImage
+              source={{ uri: item.image_url }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              priority="high"
+            />
+          ) : null}
 
-        {/* Video — web */}
-        {isNearActive && Platform.OS === "web" && (
-          // @ts-ignore web-only
-          <video
-            src={playUri}
-            autoPlay={isActive && !paused}
-            loop
-            muted={globalMuted}
-            playsInline
-            style={{
-              position: "absolute", top: 0, left: 0,
-              width: "100%", height: "100%",
-              objectFit: "cover", backgroundColor: "#000",
-            }}
-            onPlaying={() => { videoStartedRef.current = true; setVideoStarted(true); setShowBuffering(false); }}
-            onWaiting={() => setShowBuffering(true)}
-            onCanPlay={() => setShowBuffering(false)}
-          />
-        )}
+          {/* Native video */}
+          {isNearActive && Platform.OS !== "web" && (
+            <VideoView
+              player={player}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              nativeControls={false}
+            />
+          )}
 
-        {/* Gesture area sits above video, below overlays */}
-        <GestureDetector gesture={composed}>
-          <View style={StyleSheet.absoluteFill} />
-        </GestureDetector>
+          {/* Web video */}
+          {isNearActive && Platform.OS === "web" && (
+            // @ts-ignore web-only
+            <video
+              src={playUri}
+              autoPlay={isActive && !paused}
+              loop={false}
+              muted={globalMuted}
+              playsInline
+              style={{
+                position: "absolute", top: 0, left: 0,
+                width: "100%", height: "100%",
+                objectFit: "cover", backgroundColor: "#000",
+              }}
+              onPlaying={() => { videoStartedRef.current = true; setVideoStarted(true); setShowBuffering(false); }}
+              onWaiting={() => setShowBuffering(true)}
+              onCanPlay={() => setShowBuffering(false)}
+              onEnded={() => {
+                if (!endFired.current) { endFired.current = true; onVideoEnd(); }
+              }}
+            />
+          )}
 
-        {/* Double-tap heart burst */}
-        <Animated.View style={[styles.centerOverlay, dtAnimStyle, { pointerEvents: "none" }]}>
-          <Ionicons name="heart" size={96} color="#FF2D55" />
-        </Animated.View>
+          {/* Gesture layer */}
+          <GestureDetector gesture={composed}>
+            <View style={StyleSheet.absoluteFill} />
+          </GestureDetector>
 
-        {/* Pause indicator */}
-        {paused && isActive && (
-          <View style={[styles.centerOverlay, { pointerEvents: "none" }]}>
-            <View style={styles.pauseCircle}>
-              <Ionicons name="play" size={30} color="#fff" style={{ marginLeft: 3 }} />
+          {/* Double-tap heart burst */}
+          <ReAnimated.View style={[styles.centerOverlay, dtAnimStyle, { pointerEvents: "none" }]}>
+            <Ionicons name="heart" size={100} color="#FF2D55" />
+          </ReAnimated.View>
+
+          {/* Pause indicator */}
+          {paused && isActive && (
+            <View style={[styles.centerOverlay, { pointerEvents: "none" }]}>
+              <View style={styles.pauseCircle}>
+                <Ionicons name="play" size={30} color="#fff" style={{ marginLeft: 4 }} />
+              </View>
+            </View>
+          )}
+
+          {/* Buffering spinner */}
+          {showBuffering && isActive && !paused && (
+            <View style={[styles.centerOverlay, { pointerEvents: "none" } as any]}>
+              <ActivityIndicator size="large" color="rgba(255,255,255,0.8)" />
+            </View>
+          )}
+
+          {/* Top gradient for header readability */}
+          <TopGradient />
+
+          {/* ── Right action rail ────────────────────────────────────────── */}
+          <View style={[styles.rightRail, { pointerEvents: "box-none" }]}>
+
+            {/* Avatar + follow badge */}
+            <TouchableOpacity
+              onPress={() => router.push(`/@${item.profile.handle}` as any)}
+              style={styles.avatarWrap}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.avatarRing, { borderColor: "#fff" }]}>
+                <Avatar
+                  uri={item.profile.avatar_url}
+                  name={item.profile.display_name}
+                  size={42}
+                />
+              </View>
+              {!isOwn && !item.following && (
+                <View style={[styles.followPlusBadge, { backgroundColor: accent }]}>
+                  <Ionicons name="add" size={13} color="#fff" />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Like */}
+            <View style={styles.railAction}>
+              <ReAnimated.View style={heartAnimStyle}>
+                <TouchableOpacity onPress={handleLikeTap} hitSlop={12} activeOpacity={0.7}>
+                  <Ionicons
+                    name={item.liked ? "heart" : "heart-outline"}
+                    size={36}
+                    color={item.liked ? "#FF2D55" : "#fff"}
+                  />
+                </TouchableOpacity>
+              </ReAnimated.View>
+              <Text style={styles.railLabel}>{fmt(item.likeCount)}</Text>
+            </View>
+
+            {/* Comment */}
+            <View style={styles.railAction}>
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: "/video/[id]", params: { id: item.id } })}
+                hitSlop={12}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chatbubble-ellipses" size={33} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.railLabel}>{fmt(item.replyCount)}</Text>
+            </View>
+
+            {/* Bookmark */}
+            <View style={styles.railAction}>
+              <TouchableOpacity
+                onPress={() => onBookmark(item.id, item.bookmarked)}
+                hitSlop={12}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={item.bookmarked ? "bookmark" : "bookmark-outline"}
+                  size={32}
+                  color={item.bookmarked ? "#FFD60A" : "#fff"}
+                />
+              </TouchableOpacity>
+              <Text style={styles.railLabel}>{fmt(item.likeCount > 0 ? Math.round(item.likeCount * 0.23) : 0)}</Text>
+            </View>
+
+            {/* Share */}
+            <View style={styles.railAction}>
+              <TouchableOpacity
+                onPress={() => onShare(item)}
+                hitSlop={12}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="arrow-redo" size={32} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.railLabel}>{fmt(item.view_count > 0 ? Math.round(item.view_count * 0.04) : 0)}</Text>
+            </View>
+
+            {/* Spinning music disc */}
+            <View style={styles.railAction}>
+              <MusicDisc isPlaying={isPlaying} />
             </View>
           </View>
-        )}
 
-        {/* Buffering — delayed 400 ms to avoid flash on fast networks */}
-        {showBuffering && isActive && !paused && (
-          <View style={[styles.centerOverlay, { pointerEvents: "none" } as any]}>
-            <ActivityIndicator size="large" color="rgba(255,255,255,0.8)" />
-          </View>
-        )}
-
-        {/* Gradients */}
-        <TopGradient />
-        <GradientOverlay />
-
-        {/* ── Bottom-left: author + caption + audio ─────────────────────────── */}
-        <View style={[styles.bottomArea, { pointerEvents: "box-none" }]}>
-
-          {/* Author row */}
+          {/* Mute toggle (top-right corner, subtle) */}
           <TouchableOpacity
-            onPress={() => router.push(`/@${item.profile.handle}` as any)}
-            style={styles.authorRow}
-            activeOpacity={0.8}
+            onPress={onToggleMute}
+            style={styles.muteBtn}
+            hitSlop={12}
+            activeOpacity={0.7}
           >
-            <View style={[styles.avatarRing, { borderColor: accent }]}>
-              <Avatar
-                uri={item.profile.avatar_url}
-                name={item.profile.display_name}
-                size={38}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.handle}>@{item.profile.handle}</Text>
-              <Text style={styles.displayName} numberOfLines={1}>{item.profile.display_name}</Text>
-            </View>
+            <Ionicons
+              name={globalMuted ? "volume-mute" : "volume-high"}
+              size={17}
+              color="rgba(255,255,255,0.75)"
+            />
+          </TouchableOpacity>
+
+          {/* Progress bar at bottom of video section */}
+          <View style={[styles.progressTrack, { pointerEvents: "none" }]}>
+            <ReAnimated.View style={[styles.progressFill, progressBarStyle]} />
+          </View>
+          {duration > 0 && (
+            <Text style={[styles.durationLabel, { pointerEvents: "none" }]}>
+              {fmtDur(duration)}
+            </Text>
+          )}
+        </View>
+
+        {/* ── INFO SECTION (below video, solid dark bg) ──────────────────── */}
+        <View style={styles.infoSection}>
+          {/* Author row */}
+          <View style={styles.infoAuthorRow}>
+            <TouchableOpacity
+              onPress={() => router.push(`/@${item.profile.handle}` as any)}
+              activeOpacity={0.85}
+              style={{ flex: 1 }}
+            >
+              <Text style={styles.infoHandle} numberOfLines={1}>
+                @{item.profile.handle}
+              </Text>
+            </TouchableOpacity>
             {!isOwn && !item.following && (
               <TouchableOpacity
                 onPress={() => onFollow(item.author_id)}
-                style={styles.followBtn}
+                style={styles.infoFollowBtn}
                 activeOpacity={0.8}
               >
-                <Text style={styles.followBtnText}>Follow</Text>
+                <Text style={styles.infoFollowBtnText}>Follow</Text>
               </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
 
-          {/* Caption — expandable */}
+          {/* Caption */}
           {item.content ? (
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => captionLong && setCaptionExpanded((e) => !e)}
-              style={{ marginTop: 4 }}
             >
-              <Text style={styles.caption} numberOfLines={captionExpanded ? undefined : 2}>
+              <Text style={styles.infoCaption} numberOfLines={captionExpanded ? undefined : 2}>
                 {item.content}
               </Text>
               {captionLong && !captionExpanded && (
-                <Text style={styles.captionMore}>more</Text>
+                <Text style={styles.infoCaptionMore}>...more</Text>
               )}
             </TouchableOpacity>
           ) : null}
 
-          {/* Audio / music name */}
-          {item.audio_name ? (
-            <View style={styles.audioRow}>
-              <Ionicons name="musical-notes" size={12} color="rgba(255,255,255,0.75)" />
-              <Text style={styles.audioName} numberOfLines={1}>{item.audio_name}</Text>
-            </View>
-          ) : null}
-
-          {/* View count */}
-          {item.view_count > 0 ? (
-            <View style={styles.viewRow}>
-              <Ionicons name="eye-outline" size={11} color="rgba(255,255,255,0.38)" />
-              <Text style={styles.viewText}>{fmt(item.view_count)} views</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* ── Right action rail ─────────────────────────────────────────────── */}
-        <View style={[styles.rightCol, { pointerEvents: "box-none" }]}>
-
-          {/* Like */}
-          <View style={styles.actionItem}>
-            <Animated.View style={heartAnimStyle}>
-              <TouchableOpacity onPress={handleLikeTap} hitSlop={12} activeOpacity={0.8}>
-                <Ionicons
-                  name={item.liked ? "heart" : "heart-outline"}
-                  size={32}
-                  color={item.liked ? "#FF2D55" : "#fff"}
-                />
-              </TouchableOpacity>
-            </Animated.View>
-            <Text style={styles.actionLabel}>{fmt(item.likeCount)}</Text>
-          </View>
-
-          {/* Comment */}
-          <View style={styles.actionItem}>
-            <TouchableOpacity
-              onPress={() => router.push({ pathname: "/video/[id]", params: { id: item.id } })}
-              hitSlop={12}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="chatbubble-ellipses" size={28} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.actionLabel}>{fmt(item.replyCount)}</Text>
-          </View>
-
-          {/* Bookmark */}
-          <View style={styles.actionItem}>
-            <TouchableOpacity
-              onPress={() => onBookmark(item.id, item.bookmarked)}
-              hitSlop={12}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={item.bookmarked ? "bookmark" : "bookmark-outline"}
-                size={28}
-                color={item.bookmarked ? accent : "#fff"}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Share */}
-          <View style={styles.actionItem}>
-            <TouchableOpacity
-              onPress={() => onShare(item)}
-              hitSlop={12}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="arrow-redo-outline" size={28} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Mute toggle */}
-          <View style={styles.actionItem}>
-            <TouchableOpacity
-              onPress={onToggleMute}
-              hitSlop={12}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={globalMuted ? "volume-mute" : "volume-high"}
-                size={24}
-                color="rgba(255,255,255,0.8)"
-              />
-            </TouchableOpacity>
+          {/* Audio name */}
+          <View style={styles.infoAudioRow}>
+            <Ionicons name="musical-notes" size={11} color="rgba(255,255,255,0.5)" />
+            <Text style={styles.infoAudioText} numberOfLines={1}>
+              {item.audio_name ?? `Original audio · ${item.profile.display_name}`}
+            </Text>
           </View>
         </View>
-
-        {/* ── Progress bar ──────────────────────────────────────────────────── */}
-        <View style={[styles.progressTrack, { pointerEvents: "none" }]}>
-          <Animated.View style={[styles.progressFill, progressBarStyle]} />
-        </View>
-        {duration > 0 && (
-          <Text style={[styles.durationLabel, { pointerEvents: "none" }]}>
-            {fmtDur(duration)}
-          </Text>
-        )}
       </View>
     );
   },
@@ -652,7 +688,8 @@ const VideoItem = React.memo(
     prev.isActive === next.isActive &&
     prev.isNearActive === next.isNearActive &&
     prev.screenW === next.screenW &&
-    prev.screenH === next.screenH &&
+    prev.itemH === next.itemH &&
+    prev.videoH === next.videoH &&
     prev.globalMuted === next.globalMuted &&
     prev.item.id === next.item.id &&
     prev.item.liked === next.item.liked &&
@@ -673,7 +710,8 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   const insets = useSafeAreaInsets();
   const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
 
-  const ITEM_H = SCREEN_H - tabBarHeight;
+  const ITEM_H  = SCREEN_H - tabBarHeight;
+  const VIDEO_H = ITEM_H - INFO_H;
 
   const [tab, setTab] = useState<FeedTab>("for_you");
   const [posts, setPosts] = useState<VideoPost[]>([]);
@@ -683,12 +721,14 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [globalMuted, setGlobalMuted] = useState(Platform.OS === "web");
 
-  const cursorRef       = useRef<string | null>(null);
-  const loadingMoreRef  = useRef(false);
-  const hasMoreRef      = useRef(true);
-  const postsLenRef     = useRef(0);
-  const activeIndexRef  = useRef(0);
-  const tabRef          = useRef<FeedTab>("for_you");
+  const flatListRef       = useRef<FlatList>(null);
+  const cursorRef         = useRef<string | null>(null);
+  const loadingMoreRef    = useRef(false);
+  const hasMoreRef        = useRef(true);
+  const postsLenRef       = useRef(0);
+  const activeIndexRef    = useRef(0);
+  const tabRef            = useRef<FeedTab>("for_you");
+  const remainderRef      = useRef<VideoPost[]>([]);
 
   useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
   useEffect(() => { postsLenRef.current = posts.length; }, [posts.length]);
@@ -831,12 +871,10 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
           const diversified = diversifyFeed(scored);
           const page = diversified.slice(0, PAGE_SIZE * 3);
 
-          // Mark shown videos as seen so next refresh surfaces fresh content
           markVideosSeen(page.map((v) => v.id)).catch(() => {});
 
           setHasMore(diversified.length > PAGE_SIZE * 3);
           hasMoreRef.current = diversified.length > PAGE_SIZE * 3;
-          // Store remainder for load-more without re-fetching
           remainderRef.current = diversified.slice(PAGE_SIZE * 3);
           cursorRef.current = page[page.length - 1]?.created_at ?? null;
           setPosts(page);
@@ -865,26 +903,17 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
           return;
         }
 
-        // ── Following tab: cursor-paginated chronological ───────────────────
+        // ── Following tab ────────────────────────────────────────────────────
         if (currentTab === "following") {
-          if (!user) {
-            setPosts([]);
-            setLoading(false);
-            return;
-          }
+          if (!user) { setPosts([]); setLoading(false); return; }
 
-          // Fetch followed user IDs
           const { data: followData } = await supabase
             .from("follows")
             .select("following_id")
             .eq("follower_id", user.id);
           const followingIds = (followData || []).map((f: any) => f.following_id as string);
 
-          if (followingIds.length === 0) {
-            setPosts([]);
-            setLoading(false);
-            return;
-          }
+          if (followingIds.length === 0) { setPosts([]); setLoading(false); return; }
 
           let query = supabase
             .from("posts")
@@ -902,12 +931,9 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
           const { data } = await query;
 
           if (!data || data.length === 0) {
-            setHasMore(false);
-            hasMoreRef.current = false;
+            setHasMore(false); hasMoreRef.current = false;
             if (!cursor) setPosts([]);
-            loadingMoreRef.current = false;
-            setLoadingMore(false);
-            setLoading(false);
+            loadingMoreRef.current = false; setLoadingMore(false); setLoading(false);
             return;
           }
 
@@ -937,63 +963,62 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
           const followedSet = new Set((myFollows || []).map((f: any) => f.following_id as string));
 
           const enriched: VideoPost[] = data.map((p: any) => ({
-            id: p.id,
-            author_id: p.author_id,
-            content: p.content || "",
-            video_url: p.video_url,
-            image_url: p.image_url || null,
-            audio_name: p.audio_name || null,
-            created_at: p.created_at,
-            view_count: p.view_count || 0,
+            id: p.id, author_id: p.author_id, content: p.content || "",
+            video_url: p.video_url, image_url: p.image_url || null, audio_name: p.audio_name || null,
+            created_at: p.created_at, view_count: p.view_count || 0,
             profile: {
               display_name: p.profiles?.display_name || "User",
               handle: p.profiles?.handle || "user",
               avatar_url: p.profiles?.avatar_url || null,
             },
-            liked: myLikeSet.has(p.id),
-            bookmarked: myBookmarkSet.has(p.id),
-            likeCount: likeMap[p.id] || 0,
-            replyCount: replyMap[p.id] || 0,
+            liked: myLikeSet.has(p.id), bookmarked: myBookmarkSet.has(p.id),
+            likeCount: likeMap[p.id] || 0, replyCount: replyMap[p.id] || 0,
             following: followedSet.has(p.author_id),
           }));
 
           const more = data.length === PAGE_SIZE;
           cursorRef.current = data[data.length - 1]?.created_at ?? null;
-          setHasMore(more);
-          hasMoreRef.current = more;
+          setHasMore(more); hasMoreRef.current = more;
 
           if (cursor) {
-            setPosts((prev) => {
-              const seen = new Set(prev.map((p) => p.id));
-              return [...prev, ...enriched.filter((p) => !seen.has(p.id))];
-            });
+            setPosts((prev) => { const s = new Set(prev.map((p) => p.id)); return [...prev, ...enriched.filter((p) => !s.has(p.id))]; });
           } else {
             setPosts(enriched);
           }
 
-          setLoading(false);
-          loadingMoreRef.current = false;
-          setLoadingMore(false);
+          setLoading(false); loadingMoreRef.current = false; setLoadingMore(false);
         }
       } catch (_) {
-        setLoading(false);
-        loadingMoreRef.current = false;
-        setLoadingMore(false);
+        setLoading(false); loadingMoreRef.current = false; setLoadingMore(false);
       }
     },
     [user],
   );
-
-  // Store For You remainder between pages (avoids re-fetching the pool)
-  const remainderRef = useRef<VideoPost[]>([]);
 
   useEffect(() => {
     remainderRef.current = [];
     cursorRef.current = null;
     setPosts([]);
     setActiveIndex(0);
+    activeIndexRef.current = 0;
     fetchVideos();
   }, [tab, fetchVideos]);
+
+  // ── Auto-advance ──────────────────────────────────────────────────────────
+
+  const handleVideoEnd = useCallback(() => {
+    const nextIdx = activeIndexRef.current + 1;
+    if (nextIdx < postsLenRef.current) {
+      flatListRef.current?.scrollToIndex({ index: nextIdx, animated: true });
+      activeIndexRef.current = nextIdx;
+      setActiveIndex(nextIdx);
+    } else {
+      // At end: loop back to 0
+      flatListRef.current?.scrollToIndex({ index: 0, animated: true });
+      activeIndexRef.current = 0;
+      setActiveIndex(0);
+    }
+  }, []);
 
   // ── Interactions ──────────────────────────────────────────────────────────
 
@@ -1004,49 +1029,19 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
       if (!post) return;
 
       if (currentlyLiked) {
-        // Optimistic update — flip instantly
-        setPosts((prev) =>
-          prev.map((p) =>
-            p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p
-          )
-        );
-        const { error } = await supabase.from("post_acknowledgments").delete()
-          .eq("post_id", postId).eq("user_id", user.id);
-        if (error) {
-          // Revert on failure
-          setPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p
-            )
-          );
-        }
+        setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p));
+        const { error } = await supabase.from("post_acknowledgments").delete().eq("post_id", postId).eq("user_id", user.id);
+        if (error) setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p));
       } else {
-        // Optimistic update — flip instantly
-        setPosts((prev) =>
-          prev.map((p) =>
-            p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p
-          )
-        );
+        setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, liked: true, likeCount: p.likeCount + 1 } : p));
         if (post.author_id !== user.id) {
-          notifyPostLike({
-            postAuthorId: post.author_id,
-            likerName: profile?.display_name || "Someone",
-            likerUserId: user.id,
-            postId,
-          });
+          notifyPostLike({ postAuthorId: post.author_id, likerName: profile?.display_name || "Someone", likerUserId: user.id, postId });
         }
         const { error } = await supabase.from("post_acknowledgments").upsert(
           { post_id: postId, user_id: user.id },
           { onConflict: "post_id,user_id", ignoreDuplicates: true }
         );
-        if (error) {
-          // Revert on failure
-          setPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p
-            )
-          );
-        }
+        if (error) setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, liked: false, likeCount: Math.max(0, p.likeCount - 1) } : p));
       }
     },
     [user, profile, posts],
@@ -1055,17 +1050,10 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   const handleFollow = useCallback(
     async (authorId: string) => {
       if (!user) { router.push("/(auth)/login" as any); return; }
-      setPosts((prev) =>
-        prev.map((p) => (p.author_id === authorId ? { ...p, following: true } : p))
-      );
+      setPosts((prev) => prev.map((p) => (p.author_id === authorId ? { ...p, following: true } : p)));
       await supabase.from("follows").insert({ follower_id: user.id, following_id: authorId });
-      try {
-        notifyNewFollow({ targetUserId: authorId, followerName: profile?.display_name || "Someone", followerUserId: user.id });
-      } catch (_) {}
-      try {
-        const { rewardXp } = await import("../lib/rewardXp");
-        rewardXp("follow_user");
-      } catch (_) {}
+      try { notifyNewFollow({ targetUserId: authorId, followerName: profile?.display_name || "Someone", followerUserId: user.id }); } catch (_) {}
+      try { const { rewardXp } = await import("../lib/rewardXp"); rewardXp("follow_user"); } catch (_) {}
     },
     [user, profile],
   );
@@ -1075,12 +1063,8 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
     async (postId: string) => {
       if (!user || recordedViews.current.has(postId)) return;
       recordedViews.current.add(postId);
-      supabase.from("post_views")
-        .upsert({ post_id: postId, viewer_id: user.id }, { onConflict: "post_id,viewer_id" })
-        .then(null, () => {});
-      setPosts((prev) =>
-        prev.map((p) => (p.id === postId ? { ...p, view_count: p.view_count + 1 } : p))
-      );
+      supabase.from("post_views").upsert({ post_id: postId, viewer_id: user.id }, { onConflict: "post_id,viewer_id" }).then(null, () => {});
+      setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, view_count: p.view_count + 1 } : p)));
     },
     [user],
   );
@@ -1090,17 +1074,10 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
       if (!user) { router.push("/(auth)/login" as any); return; }
       if (currentlyBookmarked) {
         await supabase.from("post_bookmarks").delete().eq("post_id", postId).eq("user_id", user.id);
-        setPosts((prev) =>
-          prev.map((p) => (p.id === postId ? { ...p, bookmarked: false } : p))
-        );
+        setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, bookmarked: false } : p)));
       } else {
-        await supabase.from("post_bookmarks").upsert(
-          { post_id: postId, user_id: user.id },
-          { onConflict: "post_id,user_id", ignoreDuplicates: true }
-        );
-        setPosts((prev) =>
-          prev.map((p) => (p.id === postId ? { ...p, bookmarked: true } : p))
-        );
+        await supabase.from("post_bookmarks").upsert({ post_id: postId, user_id: user.id }, { onConflict: "post_id,user_id", ignoreDuplicates: true });
+        setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, bookmarked: true } : p)));
       }
     },
     [user],
@@ -1108,11 +1085,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
 
   const handleShare = useCallback(
     (item: VideoPost) => {
-      shareVideo({
-        postId: item.id,
-        authorName: item.profile.display_name,
-        caption: item.content,
-      }).catch(() => {});
+      shareVideo({ postId: item.id, authorName: item.profile.display_name, caption: item.content }).catch(() => {});
     },
     [],
   );
@@ -1138,12 +1111,6 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
     [ITEM_H],
   );
 
-  const stableOnLike     = useCallback(handleLike, [handleLike]);
-  const stableOnFollow   = useCallback(handleFollow, [handleFollow]);
-  const stableOnView     = useCallback(handleView, [handleView]);
-  const stableOnBookmark = useCallback(handleBookmark, [handleBookmark]);
-  const stableOnShare    = useCallback(handleShare, [handleShare]);
-
   const renderItem = useCallback(
     ({ item, index }: { item: VideoPost; index: number }) => (
       <VideoItem
@@ -1151,30 +1118,29 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
         isActive={index === activeIndexRef.current}
         isNearActive={Math.abs(index - activeIndexRef.current) <= 1}
         screenW={SCREEN_W}
-        screenH={ITEM_H}
+        itemH={ITEM_H}
+        videoH={VIDEO_H}
         globalMuted={globalMuted}
-        onLike={stableOnLike}
-        onFollow={stableOnFollow}
-        onView={stableOnView}
-        onBookmark={stableOnBookmark}
-        onShare={stableOnShare}
+        onLike={handleLike}
+        onFollow={handleFollow}
+        onView={handleView}
+        onBookmark={handleBookmark}
+        onShare={handleShare}
         onToggleMute={handleToggleMute}
+        onVideoEnd={handleVideoEnd}
         currentUserId={user?.id}
       />
     ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [SCREEN_W, ITEM_H, globalMuted, stableOnLike, stableOnFollow, stableOnView, stableOnBookmark, stableOnShare, handleToggleMute, user?.id],
+    [SCREEN_W, ITEM_H, VIDEO_H, globalMuted, handleLike, handleFollow, handleView, handleBookmark, handleShare, handleToggleMute, handleVideoEnd, user?.id],
   );
 
   const onEndReached = useCallback(() => {
-    if (!loadingMoreRef.current && hasMore && cursorRef.current) {
-      fetchVideos(cursorRef.current);
-    }
+    if (!loadingMoreRef.current && hasMore && cursorRef.current) fetchVideos(cursorRef.current);
   }, [hasMore, fetchVideos]);
 
-  // ── Tab switcher ──────────────────────────────────────────────────────────
+  // ── Header tab positions ──────────────────────────────────────────────────
 
-  const TAB_TOP = insets.top + 8;
+  const TAB_TOP = insets.top + 6;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -1183,11 +1149,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   if (posts.length === 0) {
     return (
       <View style={[styles.center, { flex: 1, backgroundColor: "#000" }]}>
-        {/* Tab bar shown even on empty state */}
-        <View style={[styles.tabBar, { top: TAB_TOP, pointerEvents: "box-none" } as any]}>
-          <TabBtn label="For You" active={tab === "for_you"} onPress={() => setTab("for_you")} />
-          <TabBtn label="Following" active={tab === "following"} onPress={() => setTab("following")} />
-        </View>
+        <TikTokHeader tab={tab} onTabChange={setTab} top={TAB_TOP} />
         <View style={styles.emptyIcon}>
           <Ionicons name="videocam-outline" size={44} color="rgba(255,255,255,0.25)" />
         </View>
@@ -1199,9 +1161,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
             : "No videos yet"}
         </Text>
         <Text style={styles.emptySubtitle}>
-          {tab === "following" && !user
-            ? ""
-            : "Be the first to post!"}
+          {tab === "following" && !user ? "" : "Be the first to post!"}
         </Text>
         {tab === "following" && !user && (
           <TouchableOpacity
@@ -1226,6 +1186,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
       <FlatList
+        ref={flatListRef}
         data={posts}
         keyExtractor={(p) => p.id}
         renderItem={renderItem}
@@ -1256,37 +1217,132 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
         }
       />
 
-      {/* "For You / Following" tab bar — overlaid on top of feed */}
-      <View
-        style={[styles.tabBar, { top: TAB_TOP, pointerEvents: "box-none" } as any]}
-      >
-        <TabBtn label="For You"   active={tab === "for_you"}   onPress={() => setTab("for_you")}   />
-        <TabBtn label="Following" active={tab === "following"} onPress={() => setTab("following")} />
-      </View>
+      {/* TikTok header overlaid on top */}
+      <TikTokHeader tab={tab} onTabChange={setTab} top={TAB_TOP} />
     </View>
   );
 }
 
-// ─── Tab button ───────────────────────────────────────────────────────────────
+// ─── TikTok-style header ──────────────────────────────────────────────────────
 
-function TabBtn({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function TikTokHeader({
+  tab,
+  onTabChange,
+  top,
+}: {
+  tab: FeedTab;
+  onTabChange: (t: FeedTab) => void;
+  top: number;
+}) {
   return (
-    <TouchableOpacity onPress={onPress} style={styles.tabBtn} activeOpacity={0.8}>
-      <Text style={[styles.tabBtnText, active && styles.tabBtnTextActive]}>
-        {label}
-      </Text>
-      {active && <View style={styles.tabUnderline} />}
-    </TouchableOpacity>
+    <View style={[styles.header, { top } as any]}>
+      {/* LIVE pill */}
+      <TouchableOpacity style={styles.livePill} activeOpacity={0.8}>
+        <Ionicons name="tv-outline" size={13} color="#fff" />
+        <Text style={styles.liveText}>LIVE</Text>
+      </TouchableOpacity>
+
+      {/* Tabs */}
+      <View style={styles.headerTabs}>
+        <TouchableOpacity onPress={() => onTabChange("following")} style={styles.headerTab} activeOpacity={0.85}>
+          <Text style={[styles.headerTabText, tab === "following" && styles.headerTabTextActive]}>
+            Following
+          </Text>
+          {tab === "following" && <View style={styles.headerTabUnderline} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => onTabChange("for_you")} style={styles.headerTab} activeOpacity={0.85}>
+          <Text style={[styles.headerTabText, tab === "for_you" && styles.headerTabTextActive]}>
+            For You
+          </Text>
+          {tab === "for_you" && <View style={styles.headerTabUnderline} />}
+        </TouchableOpacity>
+      </View>
+
+      {/* Search */}
+      <TouchableOpacity
+        onPress={() => router.push("/search" as any)}
+        style={styles.searchBtn}
+        hitSlop={8}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="search" size={22} color="#fff" />
+      </TouchableOpacity>
+    </View>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  item: {
-    backgroundColor: "#000",
-    overflow: "hidden",
+  // ── Header ──
+  header: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    zIndex: 30,
+    pointerEvents: "box-none",
+  } as any,
+  livePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1.2,
+    borderColor: "rgba(255,255,255,0.55)",
+    borderRadius: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
+  liveText: {
+    color: "#fff",
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.5,
+    ...Platform.select({
+      web: { textShadow: "0 1px 3px rgba(0,0,0,0.8)" } as any,
+      default: { textShadowColor: "rgba(0,0,0,0.8)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+    }),
+  },
+  headerTabs: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 4,
+  },
+  headerTab: {
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+  },
+  headerTabText: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    ...Platform.select({
+      web: { textShadow: "0 1px 4px rgba(0,0,0,0.9)" } as any,
+      default: { textShadowColor: "rgba(0,0,0,0.9)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+    }),
+  },
+  headerTabTextActive: {
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+  },
+  headerTabUnderline: {
+    marginTop: 3,
+    width: 22,
+    height: 2.5,
+    borderRadius: 2,
+    backgroundColor: "#fff",
+  },
+  searchBtn: {
+    padding: 4,
+  },
+
+  // ── Layout ──
   center: {
     alignItems: "center",
     justifyContent: "center",
@@ -1302,9 +1358,173 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 120,
+    height: 100,
     pointerEvents: "none",
   } as any,
+
+  // ── Right action rail ──
+  rightRail: {
+    position: "absolute",
+    right: 8,
+    bottom: 18,
+    alignItems: "center",
+    gap: 18,
+  },
+  avatarWrap: {
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  avatarRing: {
+    borderWidth: 2,
+    borderRadius: 26,
+    padding: 1.5,
+  },
+  followPlusBadge: {
+    position: "absolute",
+    bottom: -10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#000",
+  },
+  railAction: {
+    alignItems: "center",
+    gap: 3,
+  },
+  railLabel: {
+    color: "#fff",
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+    ...Platform.select({
+      web: { textShadow: "0 1px 3px rgba(0,0,0,0.8)" } as any,
+      default: { textShadowColor: "rgba(0,0,0,0.8)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+    }),
+  },
+
+  // ── Music disc ──
+  musicDisc: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#222",
+    borderWidth: 3,
+    borderColor: "#333",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  musicDiscInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#666",
+  },
+
+  // ── Mute button ──
+  muteBtn: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+
+  // ── Progress bar ──
+  progressTrack: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2.5,
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: 1.5,
+  },
+  durationLabel: {
+    position: "absolute",
+    bottom: 6,
+    right: 10,
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
+  },
+
+  // ── Pause circle ──
+  pauseCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: "rgba(0,0,0,0.38)",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ── Info section ──
+  infoSection: {
+    height: INFO_H,
+    backgroundColor: "#0a0a0a",
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 8,
+    justifyContent: "center",
+    gap: 3,
+  },
+  infoAuthorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 2,
+  },
+  infoHandle: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  infoFollowBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 5,
+    borderRadius: 99,
+    borderWidth: 1.2,
+    borderColor: "rgba(255,255,255,0.5)",
+  },
+  infoFollowBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  infoCaption: {
+    color: "rgba(255,255,255,0.88)",
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+  },
+  infoCaptionMore: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  infoAudioRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 2,
+  },
+  infoAudioText: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+  },
+
+  // ── Empty state ──
   emptyIcon: {
     width: 80,
     height: 80,
@@ -1313,7 +1533,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
-    marginTop: 80,
+    marginTop: 100,
   },
   emptyTitle: {
     color: "rgba(255,255,255,0.6)",
@@ -1339,186 +1559,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontFamily: "Inter_600SemiBold",
     fontSize: 15,
-  },
-  pauseCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: "rgba(0,0,0,0.38)",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  gradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 420,
-  },
-  bottomArea: {
-    position: "absolute",
-    bottom: 68,
-    left: 14,
-    right: 86,
-    gap: 4,
-  },
-  authorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  avatarRing: {
-    borderWidth: 2,
-    borderRadius: 24,
-    padding: 1,
-  },
-  handle: {
-    color: "#fff",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-    ...Platform.select({
-      web: { textShadow: "0 1px 4px rgba(0,0,0,0.7)" } as any,
-      default: { textShadowColor: "rgba(0,0,0,0.7)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-    }),
-  },
-  displayName: {
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 1,
-  },
-  followBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 99,
-    borderWidth: 1.2,
-    borderColor: "rgba(255,255,255,0.55)",
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  followBtnText: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-  },
-  caption: {
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 19,
-    ...Platform.select({
-      web: { textShadow: "0 1px 4px rgba(0,0,0,0.7)" } as any,
-      default: { textShadowColor: "rgba(0,0,0,0.7)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-    }),
-  },
-  captionMore: {
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    marginTop: 1,
-  },
-  audioRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 2,
-  },
-  audioName: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    flexShrink: 1,
-    ...Platform.select({
-      web: { textShadow: "0 1px 3px rgba(0,0,0,0.6)" } as any,
-      default: { textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
-    }),
-  },
-  viewRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 2,
-  },
-  viewText: {
-    color: "rgba(255,255,255,0.38)",
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-  },
-  rightCol: {
-    position: "absolute",
-    bottom: 80,
-    right: 12,
-    gap: 20,
-    alignItems: "center",
-  },
-  actionItem: {
-    alignItems: "center",
-    gap: 3,
-  },
-  actionLabel: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: "Inter_700Bold",
-    ...Platform.select({
-      web: { textShadow: "0 1px 3px rgba(0,0,0,0.6)" } as any,
-      default: { textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
-    }),
-  },
-  progressTrack: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: "rgba(255,255,255,0.18)",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "rgba(255,255,255,0.85)",
-    borderRadius: 1.5,
-  },
-  durationLabel: {
-    position: "absolute",
-    bottom: 6,
-    right: 10,
-    color: "rgba(255,255,255,0.45)",
-    fontSize: 10,
-    fontFamily: "Inter_400Regular",
-  },
-  // Tab bar
-  tabBar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 0,
-    zIndex: 20,
-  },
-  tabBtn: {
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 6,
-  },
-  tabBtnText: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-    ...Platform.select({
-      web: { textShadow: "0 1px 4px rgba(0,0,0,0.8)" } as any,
-      default: { textShadowColor: "rgba(0,0,0,0.8)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-    }),
-  },
-  tabBtnTextActive: {
-    color: "#fff",
-    fontSize: 16,
-  },
-  tabUnderline: {
-    marginTop: 3,
-    width: 24,
-    height: 2.5,
-    borderRadius: 2,
-    backgroundColor: "#fff",
   },
 });
