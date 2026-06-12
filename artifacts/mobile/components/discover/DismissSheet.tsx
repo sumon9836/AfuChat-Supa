@@ -78,9 +78,6 @@ export function DismissSheet({ visible, authorHandle, onSelect, onClose }: Props
             ))}
           </View>
 
-          <TouchableOpacity style={styles.cancelRow} onPress={onClose}>
-            <Text style={[styles.cancelText, { color: colors.textMuted }]}>Cancel</Text>
-          </TouchableOpacity>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -143,14 +140,5 @@ const styles = StyleSheet.create({
   rowDesc: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",
-  },
-  cancelRow: {
-    alignItems: "center",
-    paddingVertical: 16,
-    marginTop: 4,
-  },
-  cancelText: {
-    fontSize: 14,
-    fontFamily: "Inter_500Medium",
   },
 });

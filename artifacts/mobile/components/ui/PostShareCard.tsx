@@ -413,9 +413,6 @@ export function PostShareCaptureModal({
                 </>
               )}
             </TouchableOpacity>
-            <TouchableOpacity style={m.cancelBtn} onPress={onClose} activeOpacity={0.7}>
-              <Text style={m.cancelText}>Cancel</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -478,6 +475,4 @@ const m = StyleSheet.create({
     borderRadius: 14,
   },
   saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  cancelBtn: { alignItems: "center", paddingVertical: 13 },
-  cancelText: { fontSize: 16, color: "#6B7280", fontWeight: "500" },
 });

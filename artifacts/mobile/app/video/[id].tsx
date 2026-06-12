@@ -27,6 +27,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   Share,
   StatusBar,
   StyleSheet,
@@ -348,7 +349,11 @@ function SocialShareSheet({ visible, onClose, url, title }: { visible: boolean; 
             <Ionicons name="close" size={22} color="#555" />
           </TouchableOpacity>
         </View>
-        <View style={ssStyles.grid}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={ssStyles.scrollRow}
+        >
           {SOCIAL_PLATFORMS.map((p) => (
             <TouchableOpacity key={p.id} style={ssStyles.cell} onPress={() => handlePlatform(p)}>
               <View style={[ssStyles.iconCircle, { backgroundColor: p.color }]}>
@@ -357,10 +362,7 @@ function SocialShareSheet({ visible, onClose, url, title }: { visible: boolean; 
               <Text style={ssStyles.cellLabel}>{p.label}</Text>
             </TouchableOpacity>
           ))}
-        </View>
-        <TouchableOpacity style={ssStyles.cancelBtn} onPress={onClose}>
-          <Text style={ssStyles.cancelText}>Cancel</Text>
-        </TouchableOpacity>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -371,12 +373,10 @@ const ssStyles = StyleSheet.create({
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#e0e0e0", alignSelf: "center", marginBottom: 12 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
   title: { flex: 1, fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#111", textAlign: "center" },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 4 },
-  cell: { width: "25%", alignItems: "center", gap: 7, paddingVertical: 8 },
+  scrollRow: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 4, paddingBottom: 12, gap: 4 },
+  cell: { width: 72, alignItems: "center", gap: 7, paddingVertical: 8 },
   iconCircle: { width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center" },
   cellLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#444", textAlign: "center" },
-  cancelBtn: { marginTop: 14, backgroundColor: "#f5f5f5", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
-  cancelText: { color: "#111", fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
 
 // ─── VideoContextMenu ─────────────────────────────────────────────────────────
@@ -425,9 +425,6 @@ function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownloa
             </TouchableOpacity>
           ))}
         </View>
-        <TouchableOpacity style={cmStyles.cancelBtn} onPress={onClose}>
-          <Text style={cmStyles.cancelText}>Cancel</Text>
-        </TouchableOpacity>
       </View>
     </Modal>
   );
@@ -444,8 +441,6 @@ const cmStyles = StyleSheet.create({
   gridItem: { width: "30%", alignItems: "center", gap: 7, paddingVertical: 10 },
   iconCircle: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
   gridLabel: { fontSize: 11, fontFamily: "Inter_500Medium", color: "#333", textAlign: "center" },
-  cancelBtn: { marginTop: 10, backgroundColor: "#f5f5f5", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
-  cancelText: { color: "#111", fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
 
 // ─── VideoItem ────────────────────────────────────────────────────────────────
