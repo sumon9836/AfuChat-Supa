@@ -1633,7 +1633,6 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       isNearActive={Math.abs(index - activeIndex) <= 2}
       isFollowing={followingSet.has(item.author_id)}
       isSelf={user?.id === item.author_id}
-      commentsOpen={!!commentPostId && index === activeIndex}
       {...videoItemProps}
     />
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1746,7 +1745,6 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
                 isNearActive={Math.abs(index - activeIndex) <= 2}
                 isFollowing={followingSet.has(item.author_id)}
                 isSelf={user?.id === item.author_id}
-                commentsOpen={!!commentPostId && index === activeIndex}
                 {...videoItemProps}
               />
             </div>
@@ -1766,7 +1764,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
           renderItem={renderItem}
           // Core scroll config
           pagingEnabled
-          scrollEnabled={!commentPostId}
+          scrollEnabled
           showsVerticalScrollIndicator={false}
           // Viewability
           onViewableItemsChanged={onViewableItemsChanged}
@@ -1801,21 +1799,14 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         />
       )}
 
-      {/* Inline comments panel — slides in below the squeezed video.
-          pointerEvents:"box-none" on the wrapper so the View itself never
-          swallows touches — once the sheet animates off-screen, taps fall
-          through to the video and bottom bar beneath it. */}
-      {commentPostId && (
-        <View style={{ position: "absolute", left: 0, right: 0, top: squeezedH, bottom: 0, pointerEvents: "box-none" } as any}>
-          <VideoCommentsSheet
-            visible={!!commentPostId} onClose={() => setCommentPostId(null)}
-            postId={commentPostId}
-            postAuthorId={videos.find((v) => v.id === commentPostId)?.author_id || ""}
-            onReplyCountChange={handleReplyCountChange}
-            inline
-          />
-        </View>
-      )}
+      {/* Comments — full Modal bottom sheet, floats over video + tab bar */}
+      <VideoCommentsSheet
+        visible={!!commentPostId}
+        onClose={() => setCommentPostId(null)}
+        postId={commentPostId ?? ""}
+        postAuthorId={videos.find((v) => v.id === commentPostId)?.author_id ?? ""}
+        onReplyCountChange={handleReplyCountChange}
+      />
 
       <VideoContextMenu
         visible={!!menuItem} item={menuItem} onClose={() => setMenuItem(null)}
