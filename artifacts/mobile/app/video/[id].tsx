@@ -914,7 +914,7 @@ const vStyles = StyleSheet.create({
 
 export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
   const { accent } = useAppAccent();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, setForceDark } = useTheme();
   const params = useLocalSearchParams<{ id: string }>();
   const rawId = isEmbedded ? undefined : params.id;
   const id = rawId && !isUuid(rawId) ? decodeId(rawId) : rawId;
@@ -946,16 +946,18 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   useFocusEffect(
     useCallback(() => {
       setTabFocused(true);
+      setForceDark(true);
       if (Platform.OS !== "web") {
         activateKeepAwakeAsync?.("video-feed")?.catch(() => {});
       }
       return () => {
         setTabFocused(false);
+        setForceDark(false);
         if (Platform.OS !== "web") {
           deactivateKeepAwakeAsync?.("video-feed")?.catch(() => {});
         }
       };
-    }, [])
+    }, [setForceDark])
   );
 
   const listRef = useRef<FlatList>(null);

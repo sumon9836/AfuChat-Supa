@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -8,6 +8,7 @@ type ThemeContextType = {
   themeMode: ThemeMode;
   isDark: boolean;
   setThemeMode: (mode: ThemeMode) => void;
+  setForceDark: (v: boolean) => void;
 };
 
 const THEME_KEY = "@afuchat_theme";
@@ -16,11 +17,13 @@ const ThemeContext = createContext<ThemeContextType>({
   themeMode: "system",
   isDark: false,
   setThemeMode: () => {},
+  setForceDark: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>("system");
+  const [forceDark, setForceDarkState] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(THEME_KEY)
@@ -37,11 +40,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.setItem(THEME_KEY, mode).catch(() => {});
   }
 
-  const isDark =
-    themeMode === "system" ? systemScheme === "dark" : themeMode === "dark";
+  const setForceDark = useCallback((v: boolean) => {
+    setForceDarkState(v);
+  }, []);
+
+  const baseIsDark = themeMode === "system" ? systemScheme === "dark" : themeMode === "dark";
+  const isDark = forceDark || baseIsDark;
 
   return (
-    <ThemeContext.Provider value={{ themeMode, isDark, setThemeMode }}>
+    <ThemeContext.Provider value={{ themeMode, isDark, setThemeMode, setForceDark }}>
       {children}
     </ThemeContext.Provider>
   );
