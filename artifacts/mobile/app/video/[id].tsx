@@ -383,20 +383,20 @@ function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownloa
 }) {
   if (!visible || !item) return null;
   const ACTIONS: { id: string; label: string; icon: string; bg: string; color: string }[] = [
-    { id: "repost",        label: "Repost",           icon: "repeat",                bg: "#FF9500", color: "#fff" },
-    { id: "copylink",      label: "Copy link",        icon: "link",                  bg: "#007AFF", color: "#fff" },
-    { id: "share",         label: "Share to",         icon: "share-social",          bg: "#34C759", color: "#fff" },
-    { id: "download",      label: "Save",             icon: "download-outline",      bg: "#5856D6", color: "#fff" },
-    { id: "pip",           label: "Mini player",      icon: "easel-outline",         bg: "#1C1C1E", color: "#fff" },
-    { id: "notinterested", label: "Not interested",   icon: "heart-dislike-outline", bg: "#f0f0f0", color: "#555" },
-    { id: "report",        label: "Report",           icon: "flag-outline",          bg: "#FFEBEE", color: "#FF3B30" },
+    { id: "pip",           label: "Mini player",      icon: "phone-portrait-outline", bg: "#1C1C1E", color: "#fff" },
+    { id: "repost",        label: "Repost",           icon: "repeat",                 bg: "#FF9500", color: "#fff" },
+    { id: "share",         label: "Share to",         icon: "share-social",           bg: "#34C759", color: "#fff" },
+    { id: "copylink",      label: "Copy link",        icon: "link",                   bg: "#007AFF", color: "#fff" },
+    { id: "download",      label: "Save",             icon: "download-outline",       bg: "#5856D6", color: "#fff" },
+    { id: "notinterested", label: "Not interested",   icon: "heart-dislike-outline",  bg: "#f0f0f0", color: "#555" },
+    { id: "report",        label: "Report",           icon: "flag-outline",           bg: "#FFEBEE", color: "#FF3B30" },
   ];
   const handlers: Record<string, () => void> = {
     repost: onRepost, copylink: onCopyLink, share: onShare,
     download: onDownload, pip: onPiP, notinterested: onNotInterested, report: onReport,
   };
   return (
-    <SmartSheet visible={visible} onClose={onClose} backgroundColor="#fff" handleColor="#e0e0e0" peekFraction={0.52}>
+    <SmartSheet visible={visible} onClose={onClose} backgroundColor="#fff" handleColor="#e0e0e0" peekFraction={0.70}>
       <View style={cmStyles.previewRow}>
         <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={34} />
         <View style={{ flex: 1 }}>
@@ -863,7 +863,7 @@ const VideoItem = React.memo(function VideoItem({
           </View>
         </View>
 
-        {/* Right: like · comment · bookmark · share — size 24, all solid, top-aligned */}
+        {/* Right: like · comment · bookmark · share · more — size 24, all solid */}
         <View style={vStyles.bottomBarRight}>
           <TouchableOpacity onPress={handleLike} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
             <Animated.View style={{ transform: [{ scale: heartScale }] }}>
@@ -881,6 +881,13 @@ const VideoItem = React.memo(function VideoItem({
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onShare(item)} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
             <Ionicons name="paper-plane" size={24} color="#fff" />
+            <Text style={vStyles.barActionLabel}> </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => onOpenMenu(item, () => { videoViewRef.current?.startPictureInPicture?.(); })}
+            hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}
+          >
+            <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
             <Text style={vStyles.barActionLabel}> </Text>
           </TouchableOpacity>
         </View>
