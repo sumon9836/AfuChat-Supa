@@ -375,23 +375,25 @@ const ssStyles = StyleSheet.create({
 
 // ─── VideoContextMenu ─────────────────────────────────────────────────────────
 
-function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownload, onCopyLink, onNotInterested, onReport }: {
+function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownload, onCopyLink, onNotInterested, onReport, onPiP }: {
   visible: boolean; item: VideoPost | null; onClose: () => void;
   onShare: () => void; onRepost: () => void; onDownload: () => void;
   onCopyLink: () => void; onNotInterested: () => void; onReport: () => void;
+  onPiP: () => void;
 }) {
   if (!visible || !item) return null;
   const ACTIONS: { id: string; label: string; icon: string; bg: string; color: string }[] = [
-    { id: "repost",        label: "Repost",         icon: "repeat",                bg: "#FF9500", color: "#fff" },
-    { id: "copylink",      label: "Copy link",      icon: "link",                  bg: "#007AFF", color: "#fff" },
-    { id: "share",         label: "Share to",       icon: "share-social",          bg: "#34C759", color: "#fff" },
-    { id: "download",      label: "Save",           icon: "download-outline",      bg: "#5856D6", color: "#fff" },
-    { id: "notinterested", label: "Not interested", icon: "heart-dislike-outline", bg: "#f0f0f0", color: "#555" },
-    { id: "report",        label: "Report",         icon: "flag-outline",          bg: "#FFEBEE", color: "#FF3B30" },
+    { id: "repost",        label: "Repost",           icon: "repeat",                bg: "#FF9500", color: "#fff" },
+    { id: "copylink",      label: "Copy link",        icon: "link",                  bg: "#007AFF", color: "#fff" },
+    { id: "share",         label: "Share to",         icon: "share-social",          bg: "#34C759", color: "#fff" },
+    { id: "download",      label: "Save",             icon: "download-outline",      bg: "#5856D6", color: "#fff" },
+    { id: "pip",           label: "Mini player",      icon: "easel-outline",         bg: "#1C1C1E", color: "#fff" },
+    { id: "notinterested", label: "Not interested",   icon: "heart-dislike-outline", bg: "#f0f0f0", color: "#555" },
+    { id: "report",        label: "Report",           icon: "flag-outline",          bg: "#FFEBEE", color: "#FF3B30" },
   ];
   const handlers: Record<string, () => void> = {
     repost: onRepost, copylink: onCopyLink, share: onShare,
-    download: onDownload, notinterested: onNotInterested, report: onReport,
+    download: onDownload, pip: onPiP, notinterested: onNotInterested, report: onReport,
   };
   return (
     <SmartSheet visible={visible} onClose={onClose} backgroundColor="#fff" handleColor="#e0e0e0" peekFraction={0.52}>
@@ -444,7 +446,7 @@ const VideoItem = React.memo(function VideoItem({
   onLike: (id: string, liked: boolean) => void; onBookmark: (id: string, bookmarked: boolean) => void;
   onOpenComments: (id: string) => void; onShare: (item: VideoPost) => void;
   onFollow: (authorId: string, isFollowing: boolean) => void; onRecordView: (postId: string) => void;
-  onOpenMenu: (item: VideoPost) => void;
+  onOpenMenu: (item: VideoPost, startPiP: () => void) => void;
   navOffset?: number; tabFocused?: boolean; onVideoEnd?: () => void;
   commentsOpen?: boolean; squeezedH?: number;
 }) {
@@ -690,7 +692,7 @@ const VideoItem = React.memo(function VideoItem({
         <WebVideoPlayer
           src={playbackUri} poster={item.image_url} active={isActive && tabFocused} paused={paused} preloadOnly={preloadOnly}
           onTogglePause={() => setPaused((p) => !p)} onDoubleTap={triggerDoubleTapLike}
-          onLongPress={() => onOpenMenu(item)}
+          onLongPress={() => onOpenMenu(item, () => {})}
           onProgress={(pos, dur) => {
             if (!dur) return;
             setDurationMs(dur);
@@ -733,7 +735,7 @@ const VideoItem = React.memo(function VideoItem({
       <TapHandler
         onTap={handleTap}
         onDoubleTap={triggerDoubleTapLike}
-        onLongPress={() => onOpenMenu(item)}
+        onLongPress={() => onOpenMenu(item, () => { videoViewRef.current?.startPictureInPicture?.(); })}
       />
     </View>
   );
@@ -911,7 +913,7 @@ const vStyles = StyleSheet.create({
     gap: 8,
   },
   bottomBarLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, overflow: "hidden" },
-  bottomBarRight: { flexDirection: "row", alignItems: "center", gap: 18 },
+  bottomBarRight: { flexDirection: "row", alignItems: "center", gap: 18, flexShrink: 0 },
   avatarRing: { borderWidth: 2, borderRadius: 22, padding: 1 },
   barHandle: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold", ...VS_SHADOW },
   barName: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
@@ -1570,7 +1572,11 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   // ── Derived callbacks — must be declared before any early return ───────────
 
   const onShare = useCallback((item: VideoPost) => setShareSheetItem(item), []);
-  const onOpenMenu = useCallback((item: VideoPost) => setMenuItem(item), []);
+  const pipTriggerRef = useRef<() => void>(() => {});
+  const onOpenMenu = useCallback((item: VideoPost, startPiP: () => void) => {
+    pipTriggerRef.current = startPiP;
+    setMenuItem(item);
+  }, []);
 
   const handleVideoEnd = useCallback(() => {
     if (!autoScrollRef.current) return;
@@ -1813,6 +1819,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         onCopyLink={() => menuItem && handleCopyLink(menuItem)}
         onNotInterested={() => { if (menuItem) { setMenuItem(null); handleNotInterested(menuItem); } }}
         onReport={() => menuItem && handleReport(menuItem)}
+        onPiP={() => { setMenuItem(null); setTimeout(() => pipTriggerRef.current?.(), 300); }}
       />
 
       <SocialShareSheet
