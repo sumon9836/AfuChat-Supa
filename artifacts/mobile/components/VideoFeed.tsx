@@ -654,16 +654,12 @@ const VideoItem = React.memo(
             </View>
           </View>
 
-          {/* Right: like · comment · bookmark · share — all same size, all solid white */}
+          {/* Right: like · comment · bookmark · share — size 24, all solid, top-aligned */}
           <View style={styles.barActions}>
             {/* Like */}
             <ReAnimated.View style={heartAnimStyle}>
               <TouchableOpacity onPress={handleLikeTap} activeOpacity={0.7} style={styles.barAction}>
-                <Ionicons
-                  name={item.liked ? "heart" : "heart-outline"}
-                  size={24}
-                  color={item.liked ? "#FF2D55" : "#fff"}
-                />
+                <Ionicons name="heart" size={24} color={item.liked ? "#FF2D55" : "#fff"} />
                 <Text style={styles.barActionLabel}>{fmt(item.likeCount)}</Text>
               </TouchableOpacity>
             </ReAnimated.View>
@@ -682,15 +678,13 @@ const VideoItem = React.memo(
               activeOpacity={0.7}
               style={styles.barAction}
             >
-              <Ionicons
-                name={item.bookmarked ? "bookmark" : "bookmark-outline"}
-                size={24}
-                color={item.bookmarked ? "#FFD60A" : "#fff"}
-              />
+              <Ionicons name="bookmark" size={24} color={item.bookmarked ? "#FFD60A" : "#fff"} />
+              <Text style={styles.barActionLabel}> </Text>
             </TouchableOpacity>
             {/* Share */}
             <TouchableOpacity onPress={() => onMore(item)} activeOpacity={0.7} style={styles.barAction}>
-              <Ionicons name="paper-plane-outline" size={24} color="#fff" />
+              <Ionicons name="paper-plane" size={24} color="#fff" />
+              <Text style={styles.barActionLabel}> </Text>
             </TouchableOpacity>
           </View>
         </View>

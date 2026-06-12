@@ -384,15 +384,11 @@ function ShortCard({
             </View>
           </Pressable>
 
-          {/* Horizontal action buttons — all same size, all white */}
+          {/* Horizontal action buttons — size 26, all solid, top-aligned */}
           <View style={styles.fullActionsRow}>
             <Animated.View style={{ transform: [{ scale: heartScale }] }}>
               <Pressable onPress={handleLike} style={styles.fullActionItem} hitSlop={6}>
-                <Ionicons
-                  name={item.liked ? "heart" : "heart-outline"}
-                  size={26}
-                  color={item.liked ? "#FF3B30" : "#fff"}
-                />
+                <Ionicons name="heart" size={26} color={item.liked ? "#FF3B30" : "#fff"} />
                 <Text style={styles.fullActionLabel}>{formatCount(item.likeCount)}</Text>
               </Pressable>
             </Animated.View>
@@ -411,11 +407,8 @@ function ShortCard({
               style={styles.fullActionItem}
               hitSlop={6}
             >
-              <Ionicons
-                name={item.bookmarked ? "bookmark" : "bookmark-outline"}
-                size={26}
-                color={item.bookmarked ? "#FFD60A" : "#fff"}
-              />
+              <Ionicons name="bookmark" size={26} color={item.bookmarked ? "#FFD60A" : "#fff"} />
+              <Text style={styles.fullActionLabel}> </Text>
             </Pressable>
 
             <Pressable
@@ -427,7 +420,8 @@ function ShortCard({
               style={styles.fullActionItem}
               hitSlop={6}
             >
-              <Ionicons name="paper-plane-outline" size={26} color="#fff" />
+              <Ionicons name="paper-plane" size={26} color="#fff" />
+              <Text style={styles.fullActionLabel}> </Text>
             </Pressable>
           </View>
         </View>
@@ -517,11 +511,7 @@ function ShortCard({
               styles.actionBubble,
               { backgroundColor: hovered ? colors.backgroundTertiary : colors.surface },
             ]}>
-              <Ionicons
-                name={item.liked ? "heart" : "heart-outline"}
-                size={26}
-                color={item.liked ? "#FF3B30" : colors.text}
-              />
+              <Ionicons name="heart" size={26} color={item.liked ? "#FF3B30" : colors.text} />
             </Pressable>
           </Animated.View>
           <Text style={[styles.actionLabel, { color: colors.text }]}>{formatCount(item.likeCount)}</Text>
@@ -534,7 +524,7 @@ function ShortCard({
               { backgroundColor: hovered ? colors.backgroundTertiary : colors.surface },
             ]}
           >
-            <Ionicons name="chatbubble-outline" size={24} color={colors.text} />
+            <Ionicons name="chatbubble-ellipses" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.actionLabel, { color: colors.text }]}>{formatCount(item.replyCount)}</Text>
         </View>
@@ -546,11 +536,7 @@ function ShortCard({
               { backgroundColor: hovered ? colors.backgroundTertiary : colors.surface },
             ]}
           >
-            <Ionicons
-              name={item.bookmarked ? "bookmark" : "bookmark-outline"}
-              size={22}
-              color={item.bookmarked ? "#FFD60A" : colors.text}
-            />
+            <Ionicons name="bookmark" size={24} color={item.bookmarked ? "#FFD60A" : colors.text} />
           </Pressable>
         </View>
         <View style={styles.actionItem}>
@@ -565,7 +551,7 @@ function ShortCard({
               { backgroundColor: hovered ? colors.backgroundTertiary : colors.surface },
             ]}
           >
-            <Ionicons name="arrow-redo-outline" size={24} color={colors.text} />
+            <Ionicons name="paper-plane" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.actionLabel, { color: colors.text }]}>Share</Text>
         </View>

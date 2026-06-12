@@ -863,11 +863,11 @@ const VideoItem = React.memo(function VideoItem({
           </View>
         </View>
 
-        {/* Right: like · comment · bookmark · share — all size 24, all solid white */}
+        {/* Right: like · comment · bookmark · share — size 24, all solid, top-aligned */}
         <View style={vStyles.bottomBarRight}>
           <TouchableOpacity onPress={handleLike} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
             <Animated.View style={{ transform: [{ scale: heartScale }] }}>
-              <Ionicons name={item.liked ? "heart" : "heart-outline"} size={24} color={item.liked ? "#FF3B30" : "#fff"} />
+              <Ionicons name="heart" size={24} color={item.liked ? "#FF3B30" : "#fff"} />
             </Animated.View>
             <Text style={vStyles.barActionLabel}>{formatCount(item.likeCount)}</Text>
           </TouchableOpacity>
@@ -876,10 +876,12 @@ const VideoItem = React.memo(function VideoItem({
             <Text style={vStyles.barActionLabel}>{formatCount(item.replyCount)}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
-            <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={24} color={item.bookmarked ? "#FFD60A" : "#fff"} />
+            <Ionicons name="bookmark" size={24} color={item.bookmarked ? "#FFD60A" : "#fff"} />
+            <Text style={vStyles.barActionLabel}> </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onShare(item)} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
-            <Ionicons name="paper-plane-outline" size={24} color="#fff" />
+            <Ionicons name="paper-plane" size={24} color="#fff" />
+            <Text style={vStyles.barActionLabel}> </Text>
           </TouchableOpacity>
         </View>
       </View>
