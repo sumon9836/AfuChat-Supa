@@ -530,8 +530,26 @@ export function VideoCommentsSheet({
 
   const sheetTranslateY = useRef(new Animated.Value(1000)).current;
 
+  // ── Smart expand / collapse ──────────────────────────────────────────────────
+  // animSheetH drives the sheet's visible height (peek ↔ full).
+  // sheetTranslateY drives the enter/exit slide-in animation (native driver).
+  // We keep them separate so native-driver translateY and JS-driver height
+  // can coexist without conflicts.
+  const animSheetH    = useRef(new Animated.Value(0)).current;
+  const isFullSheetRef  = useRef(false);
+  const listScrollYRef  = useRef(0);
+
+  // Ref-stable snap functions — PanResponder closure reads .current at call time.
+  const peekSHRef       = useRef(0);
+  const fullSHRef       = useRef(0);
+  const snapToFullRef   = useRef<() => void>(() => {});
+  const snapToPeekRef   = useRef<() => void>(() => {});
+  const dismissSheetRef = useRef<() => void>(() => {});
+
   useEffect(() => {
     if (visible) {
+      isFullSheetRef.current = false;
+      animSheetH.setValue(peekSHRef.current || 400);
       Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 60, friction: 11 }).start();
     } else {
       sheetTranslateY.setValue(1000);
@@ -544,13 +562,34 @@ export function VideoCommentsSheet({
 
   const sheetPan = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => false,
-    onMoveShouldSetPanResponder: (_, g) => g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
-    onPanResponderMove: (_, g) => { if (g.dy > 0) sheetTranslateY.setValue(g.dy); },
+    onMoveShouldSetPanResponder: (_, g) => {
+      const isV = Math.abs(g.dy) > Math.abs(g.dx) && Math.abs(g.dy) > 5;
+      if (!isV) return false;
+      if (!isFullSheetRef.current) return true; // peek mode: capture all vertical
+      return g.dy > 8 && listScrollYRef.current <= 1; // full mode: down-at-top only
+    },
+    onPanResponderMove: (_, g) => {
+      const base = isFullSheetRef.current ? fullSHRef.current : peekSHRef.current;
+      const next = Math.max(peekSHRef.current * 0.15, Math.min(fullSHRef.current, base - g.dy));
+      animSheetH.setValue(next);
+    },
     onPanResponderRelease: (_, g) => {
-      if (g.dy > 80 || g.vy > 0.5) {
-        Animated.timing(sheetTranslateY, { toValue: 1000, duration: 220, useNativeDriver: true }).start(() => onClose());
+      const base      = isFullSheetRef.current ? fullSHRef.current : peekSHRef.current;
+      const projected = base - g.dy - g.vy * 120;
+      const mid       = (fullSHRef.current + peekSHRef.current) / 2;
+
+      if (g.vy > 1.5 || (!isFullSheetRef.current && g.dy > 100)) {
+        dismissSheetRef.current();
+      } else if (isFullSheetRef.current && (g.vy > 0.6 || g.dy > 80)) {
+        snapToPeekRef.current();
+      } else if (g.vy < -0.5 || g.dy < -50) {
+        snapToFullRef.current();
+      } else if (projected >= mid) {
+        snapToFullRef.current();
+      } else if (projected >= peekSHRef.current * 0.4) {
+        snapToPeekRef.current();
       } else {
-        Animated.spring(sheetTranslateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 12 }).start();
+        dismissSheetRef.current();
       }
     },
   })).current;
@@ -897,8 +936,31 @@ export function VideoCommentsSheet({
 
   const sortedTree = getSortedTree();
   const charLeft = 500 - text.length;
-  const { height: sheetH } = useWindowDimensions();
-  const sheetMaxH = Math.min(sheetH * 0.88, 680);
+  const { height: screenDimH } = useWindowDimensions();
+  const sheetMaxH = Math.min(screenDimH * 0.88, 680);
+
+  // Smart-sheet peek / full heights (computed fresh every render, refs updated below)
+  const peekSH = screenDimH * 0.58;
+  const fullSH = screenDimH - insets.top - 16;
+  peekSHRef.current = peekSH;
+  fullSHRef.current = fullSH;
+
+  // Keep ref-stable snap functions up to date
+  snapToFullRef.current = () => {
+    isFullSheetRef.current = true;
+    Animated.spring(animSheetH, { toValue: fullSHRef.current, useNativeDriver: false, tension: 55, friction: 9 }).start();
+  };
+  snapToPeekRef.current = () => {
+    isFullSheetRef.current = false;
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    Animated.spring(animSheetH, { toValue: peekSHRef.current, useNativeDriver: false, tension: 55, friction: 9 }).start();
+  };
+  dismissSheetRef.current = dismissSheet;
+
+  // Seed animSheetH once dimensions are known (first valid render)
+  if ((animSheetH as any).__getValue() === 0 && peekSH > 0) {
+    animSheetH.setValue(peekSH);
+  }
 
   const mediaBarH = (recordState === "recorded" && recordedUri) ? 88 : (attachedImage ? 72 : 0);
   const listMaxH = Math.max(sheetMaxH - 230 - mediaBarH - Math.max(insets.bottom, 16), 80);
@@ -1043,11 +1105,16 @@ export function VideoCommentsSheet({
     <Modal visible={visible} transparent animationType="none" onRequestClose={dismissSheet} statusBarTranslucent>
       <View style={cStyles.kavFull}>
         <Pressable style={cStyles.overlay} onPress={dismissSheet}>
-          <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
+          <Animated.View style={[
+            { transform: [{ translateY: sheetTranslateY }] },
+            kbHeight > 0
+              ? { maxHeight: screenDimH - kbHeight - 20 }
+              : { maxHeight: animSheetH } as any,
+          ]}>
           <Pressable onPress={() => {}} style={[cStyles.container, {
             paddingBottom: Math.max(insets.bottom, 16),
             marginBottom: kbHeight,
-            maxHeight: kbHeight > 0 ? sheetH - kbHeight - 20 : sheetMaxH,
+            flex: 1,
           }]}>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
             <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: borderTopStyle, pointerEvents: "none" } as any} />
@@ -1094,6 +1161,17 @@ export function VideoCommentsSheet({
                 style={{ flexShrink: 1, minHeight: 80, maxHeight: listMaxH }}
                 contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
                 showsVerticalScrollIndicator={false}
+                scrollEventThrottle={16}
+                onScroll={(e) => { listScrollYRef.current = e.nativeEvent.contentOffset.y; }}
+                onScrollBeginDrag={() => {
+                  if (!isFullSheetRef.current) snapToFullRef.current();
+                }}
+                onScrollEndDrag={(e) => {
+                  const { contentOffset, velocity } = e.nativeEvent;
+                  if (contentOffset.y <= 1 && (velocity?.y ?? 0) > 0.4) {
+                    snapToPeekRef.current();
+                  }
+                }}
                 renderItem={({ item: r }) => (
                   <VideoReplyItem
                     reply={r} depth={0} onReplyTo={handleReplyTo}

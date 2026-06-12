@@ -53,6 +53,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar } from "@/components/ui/Avatar";
+import { SmartSheet } from "@/components/ui/SmartSheet";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { useAppAccent } from "@/context/AppAccentContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -338,42 +339,35 @@ function SocialShareSheet({ visible, onClose, url, title }: { visible: boolean; 
     else await Share.share({ message: `${title} ${url}`, url, title });
   }
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={ssStyles.backdrop} activeOpacity={1} onPress={onClose} />
-      <View style={ssStyles.sheet}>
-        <View style={ssStyles.handle} />
-        <View style={ssStyles.header}>
-          <Ionicons name="search-outline" size={20} color="#bbb" />
-          <Text style={ssStyles.title}>Send to</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={10}>
-            <Ionicons name="close" size={22} color="#555" />
-          </TouchableOpacity>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={ssStyles.scrollRow}
-        >
-          {SOCIAL_PLATFORMS.map((p) => (
-            <TouchableOpacity key={p.id} style={ssStyles.cell} onPress={() => handlePlatform(p)}>
-              <View style={[ssStyles.iconCircle, { backgroundColor: p.color }]}>
-                <Ionicons name={p.icon as any} size={22} color="#fff" />
-              </View>
-              <Text style={ssStyles.cellLabel}>{p.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+    <SmartSheet visible={visible} onClose={onClose} backgroundColor="#fff" handleColor="#e0e0e0" peekFraction={0.36}>
+      <View style={ssStyles.header}>
+        <Ionicons name="search-outline" size={20} color="#bbb" />
+        <Text style={ssStyles.title}>Send to</Text>
+        <TouchableOpacity onPress={onClose} hitSlop={10}>
+          <Ionicons name="close" size={22} color="#555" />
+        </TouchableOpacity>
       </View>
-    </Modal>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={ssStyles.scrollRow}
+      >
+        {SOCIAL_PLATFORMS.map((p) => (
+          <TouchableOpacity key={p.id} style={ssStyles.cell} onPress={() => handlePlatform(p)}>
+            <View style={[ssStyles.iconCircle, { backgroundColor: p.color }]}>
+              <Ionicons name={p.icon as any} size={22} color="#fff" />
+            </View>
+            <Text style={ssStyles.cellLabel}>{p.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </SmartSheet>
   );
 }
 const ssStyles = StyleSheet.create({
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
-  sheet: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 36, paddingTop: 12 },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#e0e0e0", alignSelf: "center", marginBottom: 12 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18, paddingHorizontal: 20 },
   title: { flex: 1, fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#111", textAlign: "center" },
-  scrollRow: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 4, paddingBottom: 12, gap: 4 },
+  scrollRow: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 16, paddingBottom: 12, gap: 4 },
   cell: { width: 72, alignItems: "center", gap: 7, paddingVertical: 8 },
   iconCircle: { width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center" },
   cellLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#444", textAlign: "center" },
@@ -400,44 +394,37 @@ function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownloa
     download: onDownload, notinterested: onNotInterested, report: onReport,
   };
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={cmStyles.backdrop} activeOpacity={1} onPress={onClose} />
-      <View style={cmStyles.sheet}>
-        <View style={cmStyles.handle} />
-        <View style={cmStyles.previewRow}>
-          <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={34} />
-          <View style={{ flex: 1 }}>
-            <Text style={cmStyles.previewHandle}>@{item.profile.handle}</Text>
-            {!!item.content && <Text style={cmStyles.previewCaption} numberOfLines={1}>{item.content}</Text>}
-          </View>
-          <TouchableOpacity onPress={onClose} hitSlop={10}>
-            <Ionicons name="close" size={22} color="#666" />
-          </TouchableOpacity>
+    <SmartSheet visible={visible} onClose={onClose} backgroundColor="#fff" handleColor="#e0e0e0" peekFraction={0.52}>
+      <View style={cmStyles.previewRow}>
+        <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={34} />
+        <View style={{ flex: 1 }}>
+          <Text style={cmStyles.previewHandle}>@{item.profile.handle}</Text>
+          {!!item.content && <Text style={cmStyles.previewCaption} numberOfLines={1}>{item.content}</Text>}
         </View>
-        <View style={cmStyles.divider} />
-        <View style={cmStyles.grid}>
-          {ACTIONS.map((opt) => (
-            <TouchableOpacity key={opt.id} style={cmStyles.gridItem} onPress={() => { onClose(); setTimeout(handlers[opt.id], 200); }}>
-              <View style={[cmStyles.iconCircle, { backgroundColor: opt.bg }]}>
-                <Ionicons name={opt.icon as any} size={24} color={opt.color} />
-              </View>
-              <Text style={cmStyles.gridLabel}>{opt.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <TouchableOpacity onPress={onClose} hitSlop={10}>
+          <Ionicons name="close" size={22} color="#666" />
+        </TouchableOpacity>
       </View>
-    </Modal>
+      <View style={cmStyles.divider} />
+      <View style={cmStyles.grid}>
+        {ACTIONS.map((opt) => (
+          <TouchableOpacity key={opt.id} style={cmStyles.gridItem} onPress={() => { onClose(); setTimeout(handlers[opt.id], 200); }}>
+            <View style={[cmStyles.iconCircle, { backgroundColor: opt.bg }]}>
+              <Ionicons name={opt.icon as any} size={24} color={opt.color} />
+            </View>
+            <Text style={cmStyles.gridLabel}>{opt.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </SmartSheet>
   );
 }
 const cmStyles = StyleSheet.create({
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
-  sheet: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 36, paddingTop: 12 },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#e0e0e0", alignSelf: "center", marginBottom: 14 },
-  previewRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 12 },
+  previewRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 12, paddingHorizontal: 20 },
   previewHandle: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#111" },
   previewCaption: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#888", marginTop: 2 },
-  divider: { height: 1, backgroundColor: "#f0f0f0", marginBottom: 14 },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 4 },
+  divider: { height: 1, backgroundColor: "#f0f0f0", marginBottom: 14, marginHorizontal: 20 },
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 4, paddingHorizontal: 20 },
   gridItem: { width: "30%", alignItems: "center", gap: 7, paddingVertical: 10 },
   iconCircle: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
   gridLabel: { fontSize: 11, fontFamily: "Inter_500Medium", color: "#333", textAlign: "center" },
