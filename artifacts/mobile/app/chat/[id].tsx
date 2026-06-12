@@ -89,6 +89,8 @@ import { askAi, aiSuggestReply, transcribeAudio, getEdgeFnBase, edgeHeaders, aiT
 import { buildNavigationContext, ACTION_ROUTES_GUIDE, detectVoiceNavCommand, pickNavConfirmation } from "@/lib/platformKnowledge";
 import { playNotificationSound as playMgrSound } from "@/lib/soundManager";
 import { AFUAI_BOT_ID } from "@/lib/afuAiBot";
+import { AFUCHAT_SYSTEM_ID } from "@/lib/afuSystemChat";
+import { SystemNotificationCard, tryParseSysNotif } from "@/components/chat/SystemNotificationCard";
 import { getDailyUsage, recordDailyUsage } from "@/lib/featureUsage";
 import EmojiStickerPicker from "@/components/chat/EmojiStickerPicker";
 import GiftPickerSheet, { DbGift } from "@/components/gifts/GiftPickerSheet";
@@ -1675,6 +1677,7 @@ function ChatScreen() {
   const chatInfoStateRef = useRef(chatInfo);
   chatInfoStateRef.current = chatInfo;
   const isAfuAiDirectChat = chatInfo?.other_id === AFUAI_BOT_ID;
+  const isAfuChatSystemChat = chatInfo?.other_id === AFUCHAT_SYSTEM_ID;
   const isSelfChat = !chatInfo?.is_group && !chatInfo?.is_channel && !!chatInfo?.other_id && chatInfo?.other_id === user?.id;
   const [phonebookName, setPhonebookName] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
@@ -2298,7 +2301,7 @@ function ChatScreen() {
   const checkMessageGating = useCallback(async () => {
     if (!user) return;
     const info = chatInfo;
-    if (!info || info.is_group || info.is_channel || !info.other_id || info.other_id === AFUAI_BOT_ID) {
+    if (!info || info.is_group || info.is_channel || !info.other_id || info.other_id === AFUAI_BOT_ID || info.other_id === AFUCHAT_SYSTEM_ID) {
       setMessageLimited(false);
       return;
     }
@@ -2339,7 +2342,7 @@ function ChatScreen() {
   const checkIfStranger = useCallback(async () => {
     if (!user) return;
     const info = chatInfo;
-    if (!info || info.is_group || info.is_channel || !info.other_id || info.other_id === AFUAI_BOT_ID) {
+    if (!info || info.is_group || info.is_channel || !info.other_id || info.other_id === AFUAI_BOT_ID || info.other_id === AFUCHAT_SYSTEM_ID) {
       setIsStranger(false);
       return;
     }
@@ -5114,6 +5117,11 @@ STRICT RULES:
     const showDate = shouldShowDate(index);
     const spacing = getMessageSpacing(index);
 
+    // Detect @afuchat system notification messages
+    const sysNotifData = item.sender_id === AFUCHAT_SYSTEM_ID
+      ? tryParseSysNotif(item.encrypted_content || "")
+      : null;
+
     return (
       <View style={{ marginTop: showDate ? 0 : spacing }}>
         {showDate && (
@@ -5123,7 +5131,9 @@ STRICT RULES:
             </View>
           </View>
         )}
-        {item._isLensCard ? (
+        {sysNotifData ? (
+          <SystemNotificationCard data={sysNotifData} sentAt={item.sent_at} />
+        ) : item._isLensCard ? (
           <TouchableOpacity
             activeOpacity={1}
             delayLongPress={500}
@@ -5504,7 +5514,16 @@ STRICT RULES:
           </View>
         )}
 
-        {messageLimited ? (
+        {isAfuChatSystemChat ? (
+          <View style={[st.inputFloatOuter, { paddingBottom: 8 }]}>
+            <View style={[st.limitedGlass, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Ionicons name="notifications-outline" size={15} color={BRAND} style={{ marginRight: 8 }} />
+              <Text style={[st.limitedText, { color: colors.textSecondary }]}>
+                Your notifications — follows, likes, orders, and more
+              </Text>
+            </View>
+          </View>
+        ) : messageLimited ? (
           <View style={[st.inputFloatOuter, { paddingBottom: 8 }]}>
             <View style={[st.limitedGlass, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Ionicons name="lock-closed" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
@@ -6868,7 +6887,7 @@ STRICT RULES:
               <View style={{ flex: 1 }}>
                 <Text style={[st.optionsName, { color: colors.text }]} numberOfLines={1}>{headerTitle}</Text>
                 <Text style={[st.optionsSub, { color: colors.textMuted }]}>
-                  {chatInfo?.is_channel ? "Channel" : chatInfo?.is_group ? "Group chat" : chatInfo?.other_id === AFUAI_BOT_ID ? "AI Assistant" : isSelfChat ? "Your private notes" : "Private chat"}
+                  {chatInfo?.is_channel ? "Channel" : chatInfo?.is_group ? "Group chat" : isAfuChatSystemChat ? "Notifications" : chatInfo?.other_id === AFUAI_BOT_ID ? "AI Assistant" : isSelfChat ? "Your private notes" : "Private chat"}
                 </Text>
               </View>
             </View>

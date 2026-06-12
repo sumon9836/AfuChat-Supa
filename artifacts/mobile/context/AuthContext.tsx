@@ -32,6 +32,7 @@ import { startOfflineSync } from "@/lib/offlineSync";
 import { clearPushToken, registerSwitchAccount, setCurrentUserId } from "@/lib/pushNotifications";
 import { registerDeviceSession } from "@/lib/deviceSession";
 import { ensureAfuAiChat } from "@/lib/afuAiBot";
+import { ensureAfuSystemChat } from "@/lib/afuSystemChat";
 
 type Profile = {
   id: string;
@@ -465,6 +466,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
         .then(({ data }) => {
           ensureAfuAiChat(newSession!.user.id, data?.display_name).catch(() => {});
+          ensureAfuSystemChat(newSession!.user.id).catch(() => {});
         });
 
       startOfflineSync();
@@ -547,6 +549,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single()
             .then(({ data }) => {
               ensureAfuAiChat(session.user.id, data?.display_name).catch(() => {});
+              ensureAfuSystemChat(session.user.id).catch(() => {});
             })
             .catch(() => {});
         } else {
@@ -734,6 +737,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .single()
               .then(({ data }) => {
                 ensureAfuAiChat(newSession.user.id, data?.display_name).catch(() => {});
+                ensureAfuSystemChat(newSession.user.id).catch(() => {});
               })
               .catch(() => {});
           })

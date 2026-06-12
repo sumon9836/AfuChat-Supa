@@ -51,6 +51,7 @@ import { isOnline } from "@/lib/offlineStore";
 import { getLocalConversations, saveConversations, deleteLocalConversation, pruneConversations } from "@/lib/storage/localConversations";
 import { getPreloadedConversations, hasPreloadedConversations, invalidateConversationsPreload } from "@/lib/conversationsPreload";
 import { AFUAI_CONV_ID, AFUAI_BOT_ID, getAIChatSnapshot } from "@/lib/aiChatStore";
+import { ensureAfuSystemChat } from "@/lib/afuSystemChat";
 import { useSuperApp } from "@/lib/superapp/MiniAppRuntime";
 import { addOnlineListener, preloadConversationMessages } from "@/lib/offlineSync";
 import { wasChatRecentlyVisited, clearChatVisited, getActiveChatId } from "@/lib/chatVisited";
@@ -1708,7 +1709,11 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
               </TouchableOpacity>
               <View style={{ position: "relative" }}>
                 <TouchableOpacity
-                  onPress={() => router.push("/(tabs)/notifications" as any)}
+                  onPress={async () => {
+                    if (!user?.id) return;
+                    const chatId = await ensureAfuSystemChat(user.id);
+                    if (chatId) router.push(`/chat/${chatId}` as any);
+                  }}
                   hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                   style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.backgroundSecondary, alignItems: "center", justifyContent: "center" }}
                   activeOpacity={0.7}
