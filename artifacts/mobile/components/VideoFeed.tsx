@@ -607,7 +607,7 @@ const VideoItem = React.memo(
             <View style={styles.infoAudioRow}>
               <Ionicons name="musical-notes" size={11} color="rgba(255,255,255,0.45)" />
               <Text style={styles.infoAudioText} numberOfLines={1}>
-                {item.audio_name ?? `Original audio · ${item.profile.display_name}`}
+                {item.audio_name ?? "Original audio"}
               </Text>
             </View>
           )}
@@ -654,25 +654,27 @@ const VideoItem = React.memo(
             </View>
           </View>
 
-          {/* Right: like · share · bookmark · comment */}
+          {/* Right: like · comment · bookmark · share — all same size, all solid white */}
           <View style={styles.barActions}>
             {/* Like */}
             <ReAnimated.View style={heartAnimStyle}>
               <TouchableOpacity onPress={handleLikeTap} activeOpacity={0.7} style={styles.barAction}>
                 <Ionicons
                   name={item.liked ? "heart" : "heart-outline"}
-                  size={22}
+                  size={24}
                   color={item.liked ? "#FF2D55" : "#fff"}
                 />
                 <Text style={styles.barActionLabel}>{fmt(item.likeCount)}</Text>
               </TouchableOpacity>
             </ReAnimated.View>
-            {/* Share / More */}
-            <TouchableOpacity onPress={() => onMore(item)} activeOpacity={0.7} style={styles.barAction}>
-              <Ionicons name="arrow-redo-outline" size={22} color="#fff" />
-              <Text style={styles.barActionLabel}>
-                {fmt(item.view_count > 0 ? Math.round(item.view_count * 0.04) : 0)}
-              </Text>
+            {/* Comment */}
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: "/video/[id]", params: { id: item.id } })}
+              activeOpacity={0.7}
+              style={styles.barAction}
+            >
+              <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
+              <Text style={styles.barActionLabel}>{fmt(item.replyCount)}</Text>
             </TouchableOpacity>
             {/* Bookmark */}
             <TouchableOpacity
@@ -682,21 +684,13 @@ const VideoItem = React.memo(
             >
               <Ionicons
                 name={item.bookmarked ? "bookmark" : "bookmark-outline"}
-                size={22}
+                size={24}
                 color={item.bookmarked ? "#FFD60A" : "#fff"}
               />
-              <Text style={styles.barActionLabel}>
-                {fmt(item.likeCount > 0 ? Math.round(item.likeCount * 0.23) : 0)}
-              </Text>
             </TouchableOpacity>
-            {/* Comment */}
-            <TouchableOpacity
-              onPress={() => router.push({ pathname: "/video/[id]", params: { id: item.id } })}
-              activeOpacity={0.7}
-              style={styles.barAction}
-            >
-              <Ionicons name="chatbubble-ellipses-outline" size={22} color="#fff" />
-              <Text style={styles.barActionLabel}>{fmt(item.replyCount)}</Text>
+            {/* Share */}
+            <TouchableOpacity onPress={() => onMore(item)} activeOpacity={0.7} style={styles.barAction}>
+              <Ionicons name="paper-plane-outline" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
