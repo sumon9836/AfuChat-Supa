@@ -826,44 +826,42 @@ const VideoItem = React.memo(function VideoItem({
 
       {/* ── WeChat-style horizontal bottom action bar ─────────────────────── */}
       <View style={vStyles.bottomBar}>
-        {/* Left: avatar · @handle · display name · follow */}
+        {/* Left: avatar · @handle · slim Follow button below handle (no display name) */}
         <View style={vStyles.bottomBarLeft}>
           <TouchableOpacity onPress={() => router.push(`/@${item.profile.handle}` as any)} activeOpacity={0.85}>
             <View style={[vStyles.avatarRing, { borderColor: accent }]}>
               <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={36} />
             </View>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push(`/@${item.profile.handle}` as any)}
-            activeOpacity={0.85}
-            style={{ flex: 1, minWidth: 0 }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
-              <Text style={vStyles.barHandle} numberOfLines={1}>@{item.profile.handle}</Text>
-              <VerifiedBadge
-                isVerified={item.profile.is_verified}
-                isOrganizationVerified={item.profile.is_organization_verified}
-                size={12}
-              />
-            </View>
-            {!!item.profile.display_name && (
-              <Text style={vStyles.barName} numberOfLines={1}>{item.profile.display_name}</Text>
-            )}
-          </TouchableOpacity>
-          {!isSelf && (
+          <View style={{ flex: 1, minWidth: 0 }}>
             <TouchableOpacity
-              onPress={() => onFollow(item.author_id, isFollowing)}
-              style={[vStyles.followBtn, isFollowing && vStyles.followBtnActive]}
-              activeOpacity={0.8}
+              onPress={() => router.push(`/@${item.profile.handle}` as any)}
+              activeOpacity={0.85}
             >
-              <Text style={[vStyles.followBtnText, isFollowing && vStyles.followBtnTextActive]}>
-                {isFollowing ? "Following" : "Follow"}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                <Text style={vStyles.barHandle} numberOfLines={1}>@{item.profile.handle}</Text>
+                <VerifiedBadge
+                  isVerified={item.profile.is_verified}
+                  isOrganizationVerified={item.profile.is_organization_verified}
+                  size={12}
+                />
+              </View>
             </TouchableOpacity>
-          )}
+            {!isSelf && (
+              <TouchableOpacity
+                onPress={() => onFollow(item.author_id, isFollowing)}
+                style={[vStyles.followBtn, isFollowing && vStyles.followBtnActive]}
+                activeOpacity={0.8}
+              >
+                <Text style={[vStyles.followBtnText, isFollowing && vStyles.followBtnTextActive]}>
+                  {isFollowing ? "Following" : "Follow"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        {/* Right: like · comment · bookmark · share */}
+        {/* Right: like · comment · bookmark · share — all size 24, all solid white */}
         <View style={vStyles.bottomBarRight}>
           <TouchableOpacity onPress={handleLike} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
             <Animated.View style={{ transform: [{ scale: heartScale }] }}>
@@ -872,14 +870,14 @@ const VideoItem = React.memo(function VideoItem({
             <Text style={vStyles.barActionLabel}>{formatCount(item.likeCount)}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onOpenComments(item.id)} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
-            <Ionicons name="chatbubble-ellipses" size={22} color="#fff" />
+            <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
             <Text style={vStyles.barActionLabel}>{formatCount(item.replyCount)}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
-            <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={22} color={item.bookmarked ? "#1f95ff" : "#fff"} />
+            <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={24} color={item.bookmarked ? "#FFD60A" : "#fff"} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onShare(item)} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
-            <Ionicons name="paper-plane-outline" size={22} color="#fff" />
+            <Ionicons name="paper-plane-outline" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -917,10 +915,10 @@ const vStyles = StyleSheet.create({
   avatarRing: { borderWidth: 2, borderRadius: 22, padding: 1 },
   barHandle: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold", ...VS_SHADOW },
   barName: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
-  followBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1.5, borderColor: "#fff" },
-  followBtnActive: { borderColor: "rgba(255,255,255,0.3)", backgroundColor: "rgba(255,255,255,0.07)" },
-  followBtnText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
-  followBtnTextActive: { color: "rgba(255,255,255,0.5)" },
+  followBtn: { alignSelf: "flex-start", marginTop: 3, paddingHorizontal: 10, paddingVertical: 2, borderRadius: 99, borderWidth: 1, borderColor: "#fff" },
+  followBtnActive: { borderColor: "rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.07)" },
+  followBtnText: { color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  followBtnTextActive: { color: "rgba(255,255,255,0.45)" },
   barAction: { alignItems: "center", gap: 3 },
   barActionLabel: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold", ...VS_SHADOW },
   // ── Progress bar ──────────────────────────────────────────────────────────
