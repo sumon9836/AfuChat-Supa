@@ -66,6 +66,8 @@ export default function ViewStoryScreen() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const storyVideoPlayer = useVideoPlayer(null, (p) => { p.loop = false; p.muted = false; });
+  const storyVideoRef = useRef<VideoView>(null);
+  const [inPip, setInPip] = useState(false);
   const videoFinishedRef = React.useRef(false);
 
   // Viewers sheet
@@ -436,10 +438,14 @@ export default function ViewStoryScreen() {
       {/* ── Media ─────────────────────────────────────────────────────────── */}
       {isVideoStory ? (
         <VideoView
+          ref={storyVideoRef}
           player={storyVideoPlayer}
           style={styles.media}
           contentFit="contain"
           nativeControls={false}
+          allowsPictureInPicture={Platform.OS !== "web"}
+          onPictureInPictureStart={() => setInPip(true)}
+          onPictureInPictureStop={() => setInPip(false)}
         />
       ) : (
         <Image source={{ uri: story.media_url }} style={styles.media} resizeMode="contain" />
@@ -488,6 +494,15 @@ export default function ViewStoryScreen() {
           </View>
           <Text style={styles.storyTime}>{timeLabel}</Text>
         </View>
+        {Platform.OS !== "web" && isVideoStory && (
+          <TouchableOpacity
+            style={styles.topBtn}
+            onPress={() => inPip ? storyVideoRef.current?.stopPictureInPicture() : storyVideoRef.current?.startPictureInPicture()}
+            activeOpacity={0.8}
+          >
+            <Ionicons name={inPip ? "contract" : "expand"} size={20} color={inPip ? "#1f95ff" : "#fff"} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.topBtn} onPress={openShareSheet} activeOpacity={0.8}>
           <Ionicons name="share-social-outline" size={20} color="#fff" />
         </TouchableOpacity>

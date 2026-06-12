@@ -138,7 +138,7 @@
           "audioPermission": "AfuChat uses your audio library to let you save and share audio files."
         }
       ],
-      "expo-video",
+      ["expo-video", { "supportsPictureInPicture": true }],
       [
         "expo-build-properties",
         {

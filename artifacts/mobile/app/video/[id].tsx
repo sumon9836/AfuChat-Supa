@@ -449,6 +449,8 @@ const VideoItem = React.memo(function VideoItem({
   const insets = useSafeAreaInsets();
   const player = useVideoPlayer(null, (p) => { p.loop = true; p.muted = false; });
   const webVideoRef = useRef<HTMLVideoElement | null>(null);
+  const videoViewRef = useRef<VideoView>(null);
+  const [inPip, setInPip] = useState(false);
   const [paused, setPaused] = useState(false);
   const [buffering, setBuffering] = useState(false);
   const [showBuffering, setShowBuffering] = useState(false);
@@ -685,10 +687,14 @@ const VideoItem = React.memo(function VideoItem({
     <View style={StyleSheet.absoluteFill}>
       {shouldMountVideo ? (
         <VideoView
+          ref={videoViewRef}
           player={player}
           style={StyleSheet.absoluteFill}
           contentFit="contain"
           nativeControls={false}
+          allowsPictureInPicture={Platform.OS !== "web"}
+          onPictureInPictureStart={() => setInPip(true)}
+          onPictureInPictureStop={() => setInPip(false)}
         />
       ) : <View style={[StyleSheet.absoluteFill, { backgroundColor: "#000" }]} />}
 
@@ -829,6 +835,21 @@ const VideoItem = React.memo(function VideoItem({
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* Picture-in-Picture (native only) */}
+        {Platform.OS !== "web" && (
+          <View style={vStyles.actionItem}>
+            <TouchableOpacity
+              onPress={() => inPip ? videoViewRef.current?.stopPictureInPicture() : videoViewRef.current?.startPictureInPicture()}
+              hitSlop={8}
+              activeOpacity={0.75}
+            >
+              <View style={[vStyles.actionBtnCircle, inPip && { backgroundColor: "rgba(31,149,255,0.25)" }]}>
+                <Ionicons name={inPip ? "contract" : "expand"} size={22} color={inPip ? "#1f95ff" : "#fff"} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* More */}
         <View style={vStyles.actionItem}>
