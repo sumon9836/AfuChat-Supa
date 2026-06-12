@@ -29,7 +29,12 @@ import {
   ActivityIndicator,
   Animated,
   FlatList,
+  Linking,
+  Modal,
+  PanResponder,
   Platform,
+  ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -37,6 +42,7 @@ import {
   ViewToken,
   useWindowDimensions,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { Image as ExpoImage } from "expo-image";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { LinearGradient } from "@/components/ui/SafeGradient";
@@ -48,12 +54,12 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAppAccent } from "@/context/AppAccentContext";
+import { useTheme } from "@/hooks/useTheme";
 import { notifyPostLike, notifyNewFollow } from "@/lib/notifyUser";
 import { VideoFeedSkeleton } from "@/components/ui/Skeleton";
 import { useResolvedVideoSource } from "@/hooks/useResolvedVideoSource";
 import { getPreferredVideoHeight, isWifi } from "@/lib/networkQuality";
 import { getCachedVideoUri, cacheVideo, markVideoWatched } from "@/lib/videoCache";
-import { shareVideo } from "@/lib/share";
 import {
   computeFeedScore,
   diversifyFeed,
@@ -201,7 +207,7 @@ type VideoItemProps = {
   onFollow: (authorId: string) => void;
   onView: (postId: string) => void;
   onBookmark: (postId: string, bookmarked: boolean) => void;
-  onShare: (item: VideoPost) => void;
+  onMore: (item: VideoPost) => void;
   onToggleMute: () => void;
   onVideoEnd: () => void;
   currentUserId?: string;
@@ -220,7 +226,7 @@ const VideoItem = React.memo(
     onFollow,
     onView,
     onBookmark,
-    onShare,
+    onMore,
     onToggleMute,
     onVideoEnd,
     currentUserId,
@@ -591,10 +597,10 @@ const VideoItem = React.memo(
               <Text style={styles.railLabel}>{fmt(item.likeCount > 0 ? Math.round(item.likeCount * 0.23) : 0)}</Text>
             </View>
 
-            {/* Share */}
+            {/* Share / More */}
             <View style={styles.railAction}>
               <TouchableOpacity
-                onPress={() => onShare(item)}
+                onPress={() => onMore(item)}
                 hitSlop={12}
                 activeOpacity={0.7}
               >
@@ -699,6 +705,228 @@ const VideoItem = React.memo(
     prev.item.following === next.item.following &&
     prev.item.view_count === next.item.view_count,
 );
+
+// ─── VideoMoreSheet ───────────────────────────────────────────────────────────
+// TikTok-style "Send to / More actions" bottom sheet.
+// • No X button — swipe down to dismiss only
+// • No author details
+// • No cancel button
+// • Horizontal scroll rows with small gray icons
+// • Light theme = app cream (#F5F0E8)
+
+type MoreSheetProps = {
+  visible: boolean;
+  item: VideoPost | null;
+  onClose: () => void;
+  onNotInterested: (postId: string) => void;
+};
+
+function VideoMoreSheet({ visible, item, onClose, onNotInterested }: MoreSheetProps) {
+  const { isDark } = useTheme();
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  // Reset position when sheet opens
+  useEffect(() => {
+    if (visible) translateY.setValue(0);
+  }, [visible]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 6 && Math.abs(gs.dx) < Math.abs(gs.dy),
+      onPanResponderMove: (_, gs) => {
+        if (gs.dy > 0) translateY.setValue(gs.dy);
+      },
+      onPanResponderRelease: (_, gs) => {
+        const nd = Platform.OS !== "web";
+        if (gs.dy > 72 || gs.vy > 0.65) {
+          Animated.timing(translateY, { toValue: 520, duration: 190, useNativeDriver: nd }).start(() => {
+            translateY.setValue(0);
+            onClose();
+          });
+        } else {
+          Animated.spring(translateY, { toValue: 0, useNativeDriver: nd, damping: 18, stiffness: 220 }).start();
+        }
+      },
+    })
+  ).current;
+
+  if (!item) return null;
+
+  // ── theme tokens ──────────────────────────────────────────────────────────
+  const sheetBg   = isDark ? "#1C1C1E"  : "#F5F0E8";
+  const iconBg    = isDark ? "#2A2A2D"  : "#E8E2D6";
+  const iconColor = isDark ? "#8A8A8E"  : "#6B6259";
+  const labelClr  = isDark ? "#8A8A8E"  : "#6B6259";
+  const handleClr = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.14)";
+  const sepClr    = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
+
+  const videoUrl = `https://afuchat.com/video/${item.id}`;
+
+  async function doNativeShare() {
+    onClose();
+    setTimeout(() => {
+      Share.share({
+        message: `${item.profile.display_name} on AfuChat: ${videoUrl}`,
+        url: videoUrl,
+        title: `${item.profile.display_name} on AfuChat`,
+      }).catch(() => {});
+    }, 280);
+  }
+
+  async function doCopy() {
+    Clipboard.setStringAsync(videoUrl).catch(() => {});
+    onClose();
+  }
+
+  async function openUrl(url: string) {
+    onClose();
+    const canOpen = await Linking.canOpenURL(url).catch(() => false);
+    if (canOpen) Linking.openURL(url).catch(() => {});
+    else doNativeShare();
+  }
+
+  // Row 1: Share platforms (horizontal scroll)
+  const SHARE_ROW = [
+    { id: "repost",    label: "Repost",     icon: "repeat-outline",                 onPress: doNativeShare },
+    { id: "copy",      label: "Copy link",  icon: "link-outline",                   onPress: doCopy },
+    { id: "whatsapp",  label: "WhatsApp",   icon: "logo-whatsapp",                  onPress: () => openUrl(`https://wa.me/?text=${encodeURIComponent(videoUrl)}`) },
+    { id: "telegram",  label: "Telegram",   icon: "paper-plane-outline",            onPress: () => openUrl(`https://t.me/share/url?url=${encodeURIComponent(videoUrl)}`) },
+    { id: "sms",       label: "SMS",        icon: "chatbubble-outline",             onPress: () => openUrl(`sms:?body=${encodeURIComponent(videoUrl)}`) },
+    { id: "more",      label: "More",       icon: "ellipsis-horizontal-circle-outline", onPress: doNativeShare },
+  ] as const;
+
+  // Row 2: Extra actions
+  const ACTION_ROW = [
+    { id: "notinterested", label: "Not interested", icon: "heart-dislike-outline", onPress: () => { onNotInterested(item.id); onClose(); } },
+    { id: "report",        label: "Report",         icon: "flag-outline",          onPress: onClose },
+    { id: "download",      label: "Save",           icon: "download-outline",      onPress: onClose },
+    { id: "story",         label: "Add to Story",   icon: "add-circle-outline",    onPress: onClose },
+    { id: "cast",          label: "Cast",           icon: "tv-outline",            onPress: onClose },
+  ] as const;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      {/* Tappable backdrop */}
+      <TouchableOpacity
+        style={msStyles.backdrop}
+        activeOpacity={1}
+        onPress={() => {
+          Animated.timing(translateY, { toValue: 520, duration: 190, useNativeDriver: Platform.OS !== "web" }).start(() => {
+            translateY.setValue(0);
+            onClose();
+          });
+        }}
+      />
+
+      {/* Sheet */}
+      <Animated.View
+        style={[msStyles.sheet, { backgroundColor: sheetBg, transform: [{ translateY }] }]}
+        {...panResponder.panHandlers}
+      >
+        {/* Drag handle */}
+        <View style={[msStyles.handle, { backgroundColor: handleClr }]} />
+
+        {/* Row 1 — Share platforms */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={msStyles.rowContent}
+          scrollEventThrottle={16}
+        >
+          {SHARE_ROW.map((a) => (
+            <TouchableOpacity key={a.id} style={msStyles.cell} onPress={a.onPress} activeOpacity={0.65}>
+              <View style={[msStyles.iconCircle, { backgroundColor: iconBg }]}>
+                <Ionicons name={a.icon as any} size={19} color={iconColor} />
+              </View>
+              <Text style={[msStyles.cellLabel, { color: labelClr }]} numberOfLines={1}>{a.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Thin divider */}
+        <View style={[msStyles.sep, { backgroundColor: sepClr }]} />
+
+        {/* Row 2 — Actions */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={msStyles.rowContent}
+          scrollEventThrottle={16}
+        >
+          {ACTION_ROW.map((a) => (
+            <TouchableOpacity key={a.id} style={msStyles.cell} onPress={a.onPress} activeOpacity={0.65}>
+              <View style={[msStyles.iconCircle, { backgroundColor: iconBg }]}>
+                <Ionicons name={a.icon as any} size={19} color={iconColor} />
+              </View>
+              <Text style={[msStyles.cellLabel, { color: labelClr }]} numberOfLines={1}>{a.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </Animated.View>
+    </Modal>
+  );
+}
+
+const msStyles = StyleSheet.create({
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.42)",
+  },
+  sheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingBottom: Platform.OS === "ios" ? 28 : 16,
+    overflow: "hidden",
+  },
+  handle: {
+    width: 34,
+    height: 3.5,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginTop: 9,
+    marginBottom: 12,
+  },
+  rowContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    flexDirection: "row",
+    gap: 4,
+  },
+  cell: {
+    width: 66,
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 2,
+  },
+  iconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cellLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+  },
+  sep: {
+    height: 0.5,
+    marginHorizontal: 14,
+    marginVertical: 6,
+  },
+});
 
 // ─── VideoFeed ────────────────────────────────────────────────────────────────
 
@@ -1083,12 +1311,13 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
     [user],
   );
 
-  const handleShare = useCallback(
-    (item: VideoPost) => {
-      shareVideo({ postId: item.id, authorName: item.profile.display_name, caption: item.content }).catch(() => {});
-    },
-    [],
-  );
+  const [moreItem, setMoreItem] = useState<VideoPost | null>(null);
+
+  const handleMore = useCallback((item: VideoPost) => setMoreItem(item), []);
+
+  const handleNotInterested = useCallback((postId: string) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }, []);
 
   const handleToggleMute = useCallback(() => setGlobalMuted((m) => !m), []);
 
@@ -1125,13 +1354,13 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
         onFollow={handleFollow}
         onView={handleView}
         onBookmark={handleBookmark}
-        onShare={handleShare}
+        onMore={handleMore}
         onToggleMute={handleToggleMute}
         onVideoEnd={handleVideoEnd}
         currentUserId={user?.id}
       />
     ),
-    [SCREEN_W, ITEM_H, VIDEO_H, globalMuted, handleLike, handleFollow, handleView, handleBookmark, handleShare, handleToggleMute, handleVideoEnd, user?.id],
+    [SCREEN_W, ITEM_H, VIDEO_H, globalMuted, handleLike, handleFollow, handleView, handleBookmark, handleMore, handleToggleMute, handleVideoEnd, user?.id],
   );
 
   const onEndReached = useCallback(() => {
@@ -1219,6 +1448,14 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
 
       {/* TikTok header overlaid on top */}
       <TikTokHeader tab={tab} onTabChange={setTab} top={TAB_TOP} />
+
+      {/* TikTok-style more-options sheet */}
+      <VideoMoreSheet
+        visible={!!moreItem}
+        item={moreItem}
+        onClose={() => setMoreItem(null)}
+        onNotInterested={handleNotInterested}
+      />
     </View>
   );
 }
