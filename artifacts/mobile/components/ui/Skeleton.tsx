@@ -452,76 +452,131 @@ export function MeTabSkeleton() {
 
 export function VideoFeedSkeleton() {
   return (
-    <View style={{ flex: 1, backgroundColor: "#000" }}>
-      {[0, 1].map((i) => (
-        <View
-          key={i}
-          style={{
-            position: "absolute",
-            top: 0, left: 0, right: 0, bottom: 0,
-            justifyContent: "flex-end",
-            padding: 16,
-            opacity: i === 0 ? 1 : 0,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <Skeleton width={40} height={40} borderRadius={20} forceDark />
-            <View style={{ gap: 5 }}>
-              <Skeleton width={120} height={14} forceDark />
-              <Skeleton width={80} height={11} forceDark />
-            </View>
-          </View>
-          <Skeleton width="85%" height={14} forceDark style={{ marginBottom: 6 }} />
-          <Skeleton width="65%" height={14} forceDark style={{ marginBottom: 20 }} />
-          <View style={{ position: "absolute", right: 14, bottom: 110, gap: 20, alignItems: "center" }}>
-            {[48, 48, 48, 48].map((s, j) => (
-              <View key={j} style={{ alignItems: "center", gap: 4 }}>
-                <Skeleton width={s} height={s} borderRadius={24} forceDark />
-                <Skeleton width={30} height={11} forceDark />
-              </View>
-            ))}
-          </View>
+    <View style={{ flex: 1, backgroundColor: "#000", flexDirection: "column" }}>
+
+      {/* ── Video area (fills remaining space) ── */}
+      <View style={{ flex: 1, backgroundColor: "#000" }} />
+
+      {/* ── Caption strip (56 px, matches CAPTION_H in VideoFeed) ── */}
+      <View style={{
+        height: 56,
+        backgroundColor: "#000",
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        justifyContent: "center",
+        gap: 6,
+        borderTopWidth: 0.5,
+        borderTopColor: "rgba(255,255,255,0.06)",
+      }}>
+        <Skeleton width="72%" height={13} forceDark />
+        <Skeleton width="50%" height={11} forceDark />
+      </View>
+
+      {/* ── Bottom action bar (72 px, matches BOTTOM_BAR_H in VideoFeed) ── */}
+      <View style={{
+        height: 72,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        backgroundColor: "#000",
+        gap: 10,
+        borderTopWidth: 0.5,
+        borderTopColor: "rgba(255,255,255,0.08)",
+      }}>
+
+        {/* Left: avatar ring + stacked (handle | slim follow pill) */}
+        <View style={{ borderWidth: 1.5, borderColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 1 }}>
+          <Skeleton width={34} height={34} borderRadius={17} forceDark />
         </View>
-      ))}
+        <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+          <Skeleton width={90} height={13} forceDark />
+          <Skeleton width={56} height={18} borderRadius={99} forceDark />
+        </View>
+
+        {/* Right: 4 equal icons — heart+label, comment+label, bookmark, share */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 20 }}>
+          {/* heart (with count) */}
+          <View style={{ alignItems: "center", gap: 3 }}>
+            <Skeleton width={24} height={24} borderRadius={12} forceDark />
+            <Skeleton width={22} height={10} forceDark />
+          </View>
+          {/* comment (with count) */}
+          <View style={{ alignItems: "center", gap: 3 }}>
+            <Skeleton width={24} height={24} borderRadius={12} forceDark />
+            <Skeleton width={18} height={10} forceDark />
+          </View>
+          {/* bookmark (no count) */}
+          <Skeleton width={24} height={24} borderRadius={12} forceDark />
+          {/* share (no count) */}
+          <Skeleton width={24} height={24} borderRadius={12} forceDark />
+        </View>
+
+      </View>
     </View>
   );
 }
 
 export function ShortsFeedSkeleton({ dark = true }: { dark?: boolean }) {
   const { colors } = useTheme();
-  const bg = dark ? "#0a0a0a" : colors.background;
+  const bg = dark ? "#000" : colors.background;
   return (
-    <View style={{ flex: 1, backgroundColor: bg }}>
-      {/* Video area placeholder */}
-      <View style={{ flex: 1, justifyContent: "flex-end", paddingHorizontal: 16, paddingBottom: 16 }}>
-        <Skeleton width="78%" height={13} forceDark={dark} style={{ marginBottom: 6 }} />
-        <Skeleton width="55%" height={13} forceDark={dark} />
+    <View style={{ flex: 1, backgroundColor: bg, flexDirection: "column" }}>
+
+      {/* ── Video area ── */}
+      <View style={{ flex: 1, backgroundColor: bg }} />
+
+      {/* ── Caption strip (56 px) ── */}
+      <View style={{
+        height: 56,
+        backgroundColor: bg,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        justifyContent: "center",
+        gap: 6,
+        borderTopWidth: 0.5,
+        borderTopColor: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+      }}>
+        <Skeleton width="72%" height={13} forceDark={dark} />
+        <Skeleton width="50%" height={11} forceDark={dark} />
       </View>
 
-      {/* WeChat-style bottom action bar skeleton */}
+      {/* ── Bottom action bar (72 px) ── */}
       <View style={{
-        height: 64,
+        height: 72,
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 12,
-        backgroundColor: dark ? "#0d0d0d" : colors.card,
-        borderTopWidth: 0.5,
-        borderTopColor: dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+        paddingVertical: 10,
+        backgroundColor: dark ? "#000" : colors.card,
         gap: 10,
+        borderTopWidth: 0.5,
+        borderTopColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
       }}>
-        {/* Left: avatar + handle + follow */}
-        <Skeleton width={38} height={38} borderRadius={19} forceDark={dark} />
-        <View style={{ flex: 1, gap: 5 }}>
-          <Skeleton width={100} height={13} forceDark={dark} />
-          <Skeleton width={68} height={10} forceDark={dark} />
+
+        {/* Left: avatar + handle + slim follow pill */}
+        <View style={{ borderWidth: 1.5, borderColor: dark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)", borderRadius: 20, padding: 1 }}>
+          <Skeleton width={34} height={34} borderRadius={17} forceDark={dark} />
         </View>
-        <Skeleton width={60} height={26} borderRadius={13} forceDark={dark} />
-        {/* Right: action icons */}
-        <View style={{ flexDirection: "row", gap: 18, alignItems: "center" }}>
-          {[24, 22, 22, 22].map((s, i) => (
-            <Skeleton key={i} width={s} height={s} borderRadius={s / 2} forceDark={dark} />
-          ))}
+        <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+          <Skeleton width={90} height={13} forceDark={dark} />
+          <Skeleton width={56} height={18} borderRadius={99} forceDark={dark} />
         </View>
+
+        {/* Right: heart+label · comment+label · bookmark · share */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 20 }}>
+          <View style={{ alignItems: "center", gap: 3 }}>
+            <Skeleton width={24} height={24} borderRadius={12} forceDark={dark} />
+            <Skeleton width={22} height={10} forceDark={dark} />
+          </View>
+          <View style={{ alignItems: "center", gap: 3 }}>
+            <Skeleton width={24} height={24} borderRadius={12} forceDark={dark} />
+            <Skeleton width={18} height={10} forceDark={dark} />
+          </View>
+          <Skeleton width={24} height={24} borderRadius={12} forceDark={dark} />
+          <Skeleton width={24} height={24} borderRadius={12} forceDark={dark} />
+        </View>
+
       </View>
     </View>
   );
