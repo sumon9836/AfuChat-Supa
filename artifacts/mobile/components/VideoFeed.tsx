@@ -100,7 +100,8 @@ const ReAnimated       = (_raVF?.default ?? require("react-native").Animated)   
 
 const PAGE_SIZE      = 20;
 const FOR_YOU_POOL   = 200;
-const BOTTOM_BAR_H   = 64;  // fixed action bar height between video and tab nav
+const BOTTOM_BAR_H   = 72;  // fixed action bar height between video and tab nav
+const CAPTION_H      = 56;  // caption strip between video and action bar
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -576,34 +577,6 @@ const VideoItem = React.memo(
             />
           </TouchableOpacity>
 
-          {/* Bottom gradient — makes caption text legible over video */}
-          <BottomGradient />
-
-          {/* ── CAPTION OVERLAY (absolute, bottom-left over video) ──────────── */}
-          <View style={[styles.infoSection, { pointerEvents: "box-none" }]}>
-            {item.content ? (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => captionLong && setCaptionExpanded((e) => !e)}
-              >
-                <Text style={styles.infoCaption} numberOfLines={captionExpanded ? undefined : 2}>
-                  {item.content}
-                </Text>
-                {captionLong && !captionExpanded && (
-                  <Text style={styles.infoCaptionMore}>...more</Text>
-                )}
-              </TouchableOpacity>
-            ) : null}
-
-            {/* Audio name */}
-            <View style={styles.infoAudioRow}>
-              <Ionicons name="musical-notes" size={11} color="rgba(255,255,255,0.6)" />
-              <Text style={styles.infoAudioText} numberOfLines={1}>
-                {item.audio_name ?? `Original audio · ${item.profile.display_name}`}
-              </Text>
-            </View>
-          </View>
-
           {/* Progress bar at very bottom of video section */}
           <View style={[styles.progressTrack, { pointerEvents: "none" }]}>
             <ReAnimated.View style={[styles.progressFill, progressBarStyle]} />
@@ -615,10 +588,35 @@ const VideoItem = React.memo(
           )}
         </View>
 
-        {/* ── BOTTOM ACTION BAR (WeChat style) ─────────────────────────────── */}
+        {/* ── CAPTION STRIP (between video and action bar) ──────────────────── */}
+        <View style={styles.captionStrip}>
+          {item.content ? (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => captionLong && setCaptionExpanded((e) => !e)}
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              <Text style={styles.infoCaption} numberOfLines={captionExpanded ? undefined : 2}>
+                {item.content}
+              </Text>
+              {captionLong && !captionExpanded && (
+                <Text style={styles.infoCaptionMore}>...more</Text>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.infoAudioRow}>
+              <Ionicons name="musical-notes" size={11} color="rgba(255,255,255,0.45)" />
+              <Text style={styles.infoAudioText} numberOfLines={1}>
+                {item.audio_name ?? `Original audio · ${item.profile.display_name}`}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* ── BOTTOM ACTION BAR ─────────────────────────────────────────────── */}
         <View style={styles.bottomBar}>
 
-          {/* Left: avatar · @handle · Follow */}
+          {/* Left: avatar · @handle (stacked) · Follow/Following below */}
           <View style={styles.barLeft}>
             <TouchableOpacity
               onPress={() => router.push(`/@${item.profile.handle}` as any)}
@@ -628,29 +626,32 @@ const VideoItem = React.memo(
                 <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={34} />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push(`/@${item.profile.handle}` as any)}
-              activeOpacity={0.85}
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
-                <Text style={styles.barHandle} numberOfLines={1}>@{item.profile.handle}</Text>
-                <VerifiedBadge
-                  isVerified={item.profile.is_verified}
-                  isOrganizationVerified={item.profile.is_organization_verified}
-                  size={12}
-                />
-              </View>
-            </TouchableOpacity>
-            {!isOwn && !item.following && (
+            <View style={{ flex: 1, minWidth: 0 }}>
               <TouchableOpacity
-                onPress={() => onFollow(item.author_id)}
-                style={styles.barFollowBtn}
-                activeOpacity={0.8}
+                onPress={() => router.push(`/@${item.profile.handle}` as any)}
+                activeOpacity={0.85}
               >
-                <Text style={styles.barFollowBtnText}>Follow</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                  <Text style={styles.barHandle} numberOfLines={1}>@{item.profile.handle}</Text>
+                  <VerifiedBadge
+                    isVerified={item.profile.is_verified}
+                    isOrganizationVerified={item.profile.is_organization_verified}
+                    size={12}
+                  />
+                </View>
               </TouchableOpacity>
-            )}
+              {!isOwn && (
+                <TouchableOpacity
+                  onPress={() => !item.following && onFollow(item.author_id)}
+                  style={[styles.barFollowBtn, item.following && styles.barFollowBtnActive]}
+                  activeOpacity={item.following ? 1 : 0.8}
+                >
+                  <Text style={styles.barFollowBtnText}>
+                    {item.following ? "Following" : "+ Follow"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Right: like · share · bookmark · comment */}
@@ -952,7 +953,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
 
   const ITEM_H  = SCREEN_H - tabBarHeight;
-  const VIDEO_H = ITEM_H - BOTTOM_BAR_H;
+  const VIDEO_H = ITEM_H - BOTTOM_BAR_H - CAPTION_H;
 
   const [tab, setTab] = useState<FeedTab>("for_you");
   const [posts, setPosts] = useState<VideoPost[]>([]);
@@ -1726,21 +1727,27 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   barFollowBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    alignSelf: "flex-start",
+    marginTop: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
     borderRadius: 99,
-    borderWidth: 1.2,
-    borderColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
+  },
+  barFollowBtnActive: {
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.06)",
   },
   barFollowBtnText: {
     color: "#fff",
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Inter_600SemiBold",
   },
   barActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 18,
+    gap: 20,
   },
   barAction: {
     alignItems: "center",
@@ -1811,36 +1818,15 @@ const styles = StyleSheet.create({
     pointerEvents: "none",
   } as any,
 
-  // ── Caption overlay — absolute, bottom-left of the video section ──
-  infoSection: {
-    position: "absolute",
-    bottom: 14,
-    left: 14,
-    right: 14,
-    gap: 4,
-  },
-  infoAuthorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 2,
-  },
-  infoHandle: {
-    color: "#fff",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-  },
-  infoFollowBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 5,
-    borderRadius: 99,
-    borderWidth: 1.2,
-    borderColor: "rgba(255,255,255,0.5)",
-  },
-  infoFollowBtnText: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
+  // ── Caption strip — between video and action bar ──
+  captionStrip: {
+    height: CAPTION_H,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: "#000",
+    justifyContent: "center",
+    borderTopWidth: 0.5,
+    borderTopColor: "rgba(255,255,255,0.06)",
   },
   infoCaption: {
     color: "rgba(255,255,255,0.88)",
