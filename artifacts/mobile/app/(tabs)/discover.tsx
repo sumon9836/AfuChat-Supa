@@ -142,6 +142,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
   const [menuVisible, setMenuVisible] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareablePost, setShareablePost] = useState<ShareablePost | null>(null);
+  const [imgDotIdx, setImgDotIdx] = useState(0);
   const isOwnPost = currentUser?.id === item.author_id;
 
   const heartScale = useRef(new Animated.Value(1)).current;
@@ -458,52 +459,46 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
             </View>
           )}
 
-          {/* ── Images ── */}
+          {/* ── Images carousel ── */}
           {allImages.length > 0 && item.post_type !== "video" && item.post_type !== "article" && (
-            <View style={styles.images}>
-              {/* First image — padded, rounded */}
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={(e) => { e.stopPropagation(); onImagePress?.(allImages, 0); }}
-                style={{ marginLeft: CONTENT_INDENT, marginRight: 16 }}
+            <View style={[styles.images, { marginLeft: CONTENT_INDENT }]}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                style={{ width: singleImgW, borderRadius: 12, overflow: "hidden" }}
+                onScrollBeginDrag={() => { horizontalScrollActive.value = true; }}
+                onScrollEndDrag={() => { horizontalScrollActive.value = false; }}
+                onMomentumScrollEnd={(e) => {
+                  horizontalScrollActive.value = false;
+                  const idx = Math.round(e.nativeEvent.contentOffset.x / singleImgW);
+                  setImgDotIdx(Math.max(0, Math.min(idx, allImages.length - 1)));
+                }}
+                scrollEventThrottle={16}
               >
-                <ExpoImage
-                  source={{ uri: allImages[0] }}
-                  style={{ width: singleImgW, height: Math.round(singleImgW * 0.62), borderRadius: 12 }}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                  priority="high"
-                  transition={150}
-                />
-              </TouchableOpacity>
-              {/* Remaining images — horizontal scroll with consistent padding */}
+                {allImages.map((uri, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    activeOpacity={0.9}
+                    onPress={(e) => { e.stopPropagation(); onImagePress?.(allImages, i); }}
+                  >
+                    <ExpoImage
+                      source={{ uri }}
+                      style={{ width: singleImgW, height: Math.round(singleImgW * 0.62) }}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      priority={i === 0 ? "high" : "normal"}
+                      transition={150}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
               {allImages.length > 1 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={{ marginTop: 6 }}
-                  contentContainerStyle={{ gap: 6, paddingLeft: CONTENT_INDENT, paddingRight: 16 }}
-                  onScrollBeginDrag={() => { horizontalScrollActive.value = true; }}
-                  onScrollEndDrag={() => { horizontalScrollActive.value = false; }}
-                  onMomentumScrollEnd={() => { horizontalScrollActive.value = false; }}
-                >
-                  {allImages.slice(1).map((uri, i) => (
-                    <TouchableOpacity
-                      key={i + 1}
-                      activeOpacity={0.9}
-                      onPress={(e) => { e.stopPropagation(); onImagePress?.(allImages, i + 1); }}
-                    >
-                      <ExpoImage
-                        source={{ uri }}
-                        style={{ width: multiImgW, height: Math.round(multiImgW * 0.75), borderRadius: 10 }}
-                        contentFit="cover"
-                        cachePolicy="memory-disk"
-                        priority="normal"
-                        transition={150}
-                      />
-                    </TouchableOpacity>
+                <View style={styles.carouselDots}>
+                  {allImages.map((_, i) => (
+                    <View key={i} style={[styles.carouselDot, i === imgDotIdx && styles.carouselDotActive]} />
                   ))}
-                </ScrollView>
+                </View>
               )}
             </View>
           )}
@@ -2321,6 +2316,9 @@ const styles = StyleSheet.create({
   translatedBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 66, paddingRight: 16, marginBottom: 8 },
   translatedText: { fontSize: 11, fontFamily: "Inter_400Regular" },
   images: { marginBottom: 8 },
+  carouselDots: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 5, marginTop: 7 },
+  carouselDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(0,0,0,0.18)" },
+  carouselDotActive: { backgroundColor: "#1f95ff", width: 18, borderRadius: 3 },
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
