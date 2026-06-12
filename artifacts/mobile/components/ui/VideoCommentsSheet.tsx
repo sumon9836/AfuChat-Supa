@@ -1103,75 +1103,9 @@ export function VideoCommentsSheet({
   // ─── Mobile: shared inner sheet content ────────────────────────────────────
   const borderTopStyle = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)";
 
-  const innerSheet = (
-    <>
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
-      <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: borderTopStyle, pointerEvents: "none" } as any} />
-      <View {...sheetPan.panHandlers} style={[cStyles.handle, { backgroundColor: handleClr }]} />
-
-      <View style={cStyles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={[cStyles.title, { color: titleClr }]}>
-            Comments{replies.length > 0 && <Text style={{ color: titleCntClr, fontFamily: "Inter_400Regular", fontSize: 14 }}> {formatCount(replies.length)}</Text>}
-          </Text>
-        </View>
-        <View style={cStyles.sortRow}>
-          {(["recent", "top"] as const).map((mode) => (
-            <TouchableOpacity key={mode} onPress={() => setSortMode(mode)} activeOpacity={0.7}
-              style={[cStyles.sortTab, sortMode === mode && { backgroundColor: accent + "22", borderColor: accent + "55" }]}>
-              <Text style={[cStyles.sortTabText, { color: sortMode === mode ? accent : sortTabTxt }]}>
-                {mode === "recent" ? "Recent" : "Top"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TouchableOpacity onPress={onClose} hitSlop={12}>
-          <Ionicons name="close" size={22} color={closeBtnClr} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ height: 0.5, backgroundColor: separatorClr }} />
-
-      {loading ? (
-        <View style={{ padding: 32, alignItems: "center" }}>
-          <ActivityIndicator color={accent} />
-        </View>
-      ) : sortedTree.length === 0 ? (
-        <View style={cStyles.emptyBox}>
-          <Ionicons name="chatbubble-outline" size={32} color={emptyIconClr} />
-          <Text style={[cStyles.emptyText, { color: emptyTxtClr }]}>No comments yet</Text>
-          <Text style={[cStyles.emptySub, { color: emptySubClr }]}>Be the first to comment</Text>
-        </View>
-      ) : (
-        <FlatList
-          ref={listRef}
-          data={sortedTree}
-          keyExtractor={(r) => r.id}
-          style={{ flexShrink: 1, minHeight: 80, maxHeight: listMaxH }}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
-          showsVerticalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={(e) => { listScrollYRef.current = e.nativeEvent.contentOffset.y; }}
-          onScrollBeginDrag={() => {
-            if (!isFullSheetRef.current) snapToFullRef.current();
-          }}
-          onScrollEndDrag={(e) => {
-            const { contentOffset, velocity } = e.nativeEvent;
-            if (contentOffset.y <= 1 && (velocity?.y ?? 0) > 0.4) {
-              snapToPeekRef.current();
-            }
-          }}
-          renderItem={({ item: r }) => (
-            <VideoReplyItem
-              reply={r} depth={0} onReplyTo={handleReplyTo}
-              isCreator={r.author_id === postAuthorId}
-              isNew={newCommentIds.has(r.id)} accent={accent}
-              likedSet={likedIds} onLike={handleReplyLike} isDark={isDark}
-            />
-          )}
-        />
-      )}
-
+  // The bottom input area (always pinned at bottom of sheet)
+  const bottomInputArea = (
+    <View style={{ backgroundColor: sheetBg }}>
       {replyingTo && (
         <View style={[cStyles.replyingTo, { borderTopColor: borderTopClr }]}>
           <Text style={[cStyles.replyingToText, { color: replyToTxt }]}>
@@ -1213,7 +1147,7 @@ export function VideoCommentsSheet({
       </View>
 
       {user ? (
-        <View style={[cStyles.inputRow, { borderTopColor: borderTopClr }]}>
+        <View style={[cStyles.inputRow, { borderTopColor: borderTopClr, paddingBottom: Math.max(insets.bottom, 16) }]}>
           <Avatar uri={profile?.avatar_url} name={profile?.display_name || "You"} size={32} />
 
           {recordState === "recording" ? (
@@ -1277,7 +1211,7 @@ export function VideoCommentsSheet({
         </View>
       ) : (
         <TouchableOpacity
-          style={{ paddingVertical: 14, alignItems: "center" }}
+          style={{ paddingVertical: 14, alignItems: "center", paddingBottom: Math.max(insets.bottom + 14, 20) }}
           onPress={() => { onClose(); router.push("/(auth)/login"); }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, borderWidth: 1, borderColor: accent + "50", backgroundColor: accent + "18" }}>
@@ -1286,6 +1220,86 @@ export function VideoCommentsSheet({
           </View>
         </TouchableOpacity>
       )}
+    </View>
+  );
+
+  const innerSheet = (
+    <>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
+      <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: borderTopStyle, pointerEvents: "none" } as any} />
+
+      {/* Drag handle — only the handle area is a pan target */}
+      <View {...sheetPan.panHandlers} style={[cStyles.handle, { backgroundColor: handleClr }]} />
+
+      {/* Header */}
+      <View style={cStyles.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={[cStyles.title, { color: titleClr }]}>
+            Comments{replies.length > 0 && <Text style={{ color: titleCntClr, fontFamily: "Inter_400Regular", fontSize: 14 }}> {formatCount(replies.length)}</Text>}
+          </Text>
+        </View>
+        <View style={cStyles.sortRow}>
+          {(["recent", "top"] as const).map((mode) => (
+            <TouchableOpacity key={mode} onPress={() => setSortMode(mode)} activeOpacity={0.7}
+              style={[cStyles.sortTab, sortMode === mode && { backgroundColor: accent + "22", borderColor: accent + "55" }]}>
+              <Text style={[cStyles.sortTabText, { color: sortMode === mode ? accent : sortTabTxt }]}>
+                {mode === "recent" ? "Recent" : "Top"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity onPress={onClose} hitSlop={12}>
+          <Ionicons name="close" size={22} color={closeBtnClr} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ height: 0.5, backgroundColor: separatorClr }} />
+
+      {/* Scrollable comment list — flex:1 fills all remaining vertical space */}
+      <View style={{ flex: 1 }}>
+        {loading ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
+            <ActivityIndicator color={accent} />
+          </View>
+        ) : sortedTree.length === 0 ? (
+          <View style={[cStyles.emptyBox, { flex: 1, justifyContent: "center" }]}>
+            <Ionicons name="chatbubble-outline" size={32} color={emptyIconClr} />
+            <Text style={[cStyles.emptyText, { color: emptyTxtClr }]}>No comments yet</Text>
+            <Text style={[cStyles.emptySub, { color: emptySubClr }]}>Be the first to comment</Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={sortedTree}
+            keyExtractor={(r) => r.id}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
+            showsVerticalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onScroll={(e) => { listScrollYRef.current = e.nativeEvent.contentOffset.y; }}
+            onScrollBeginDrag={() => {
+              if (!isFullSheetRef.current) snapToFullRef.current();
+            }}
+            onScrollEndDrag={(e) => {
+              const { contentOffset, velocity } = e.nativeEvent;
+              if (contentOffset.y <= 1 && (velocity?.y ?? 0) > 0.4) {
+                snapToPeekRef.current();
+              }
+            }}
+            renderItem={({ item: r }) => (
+              <VideoReplyItem
+                reply={r} depth={0} onReplyTo={handleReplyTo}
+                isCreator={r.author_id === postAuthorId}
+                isNew={newCommentIds.has(r.id)} accent={accent}
+                likedSet={likedIds} onLike={handleReplyLike} isDark={isDark}
+              />
+            )}
+          />
+        )}
+      </View>
+
+      {/* Input area — always pinned at bottom, never scrolls */}
+      {bottomInputArea}
     </>
   );
 
@@ -1293,32 +1307,37 @@ export function VideoCommentsSheet({
   if (inline) {
     if (!visible) return null;
     return (
-      <Pressable onPress={() => {}} style={[cStyles.container, { flex: 1, paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View style={[cStyles.container, { flex: 1 }]}>
         {innerSheet}
-      </Pressable>
+      </View>
     );
   }
 
-  // ─── Modal mode: original bottom sheet ──────────────────────────────────────
+  // ─── Modal mode: proper bottom sheet — covers tab bar, input always at bottom ─
+  const sheetH = kbHeight > 0 ? screenDimH - kbHeight - 20 : undefined;
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={dismissSheet} statusBarTranslucent>
-      <View style={cStyles.kavFull}>
-        <Pressable style={cStyles.overlay} onPress={dismissSheet}>
-          <Animated.View style={[
-            { transform: [{ translateY: sheetTranslateY }] },
-            kbHeight > 0
-              ? { maxHeight: screenDimH - kbHeight - 20 }
-              : { maxHeight: animSheetH } as any,
-          ]}>
-          <Pressable onPress={() => {}} style={[cStyles.container, {
-            paddingBottom: Math.max(insets.bottom, 16),
-            marginBottom: kbHeight,
-            flex: 1,
-          }]}>
+      {/* Full-screen overlay including tab bar area */}
+      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" }}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={dismissSheet} />
+
+        {/* Animated sheet — height controlled by snap anim or keyboard */}
+        <Animated.View
+          style={[
+            cStyles.container,
+            {
+              transform: [{ translateY: sheetTranslateY }],
+              height: sheetH ?? (animSheetH as any),
+              // Don't clip shadow by overflow:hidden on Android
+              overflow: "hidden",
+            },
+          ]}
+        >
+          <Pressable onPress={() => {}} style={{ flex: 1 }}>
             {innerSheet}
           </Pressable>
-          </Animated.View>
-        </Pressable>
+        </Animated.View>
       </View>
     </Modal>
   );
