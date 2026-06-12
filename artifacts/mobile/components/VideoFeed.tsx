@@ -53,6 +53,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar } from "@/components/ui/Avatar";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { useAppAccent } from "@/context/AppAccentContext";
 import { useTheme } from "@/hooks/useTheme";
 import { notifyPostLike, notifyNewFollow } from "@/lib/notifyUser";
@@ -112,7 +113,7 @@ export type VideoPost = {
   audio_name: string | null;
   created_at: string;
   view_count: number;
-  profile: { display_name: string; handle: string; avatar_url: string | null };
+  profile: { display_name: string; handle: string; avatar_url: string | null; is_verified: boolean; is_organization_verified: boolean };
   liked: boolean;
   bookmarked: boolean;
   likeCount: number;
@@ -647,11 +648,16 @@ const VideoItem = React.memo(
             <TouchableOpacity
               onPress={() => router.push(`/@${item.profile.handle}` as any)}
               activeOpacity={0.85}
-              style={{ flex: 1 }}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 4 }}
             >
-              <Text style={styles.infoHandle} numberOfLines={1}>
+              <Text style={[styles.infoHandle, { flexShrink: 1 }]} numberOfLines={1}>
                 @{item.profile.handle}
               </Text>
+              <VerifiedBadge
+                isVerified={item.profile.is_verified}
+                isOrganizationVerified={item.profile.is_organization_verified}
+                size={14}
+              />
             </TouchableOpacity>
             {!isOwn && !item.following && (
               <TouchableOpacity
@@ -985,7 +991,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
           const { data: raw } = await supabase
             .from("posts")
             .select(`id, author_id, content, video_url, image_url, audio_name, created_at, view_count,
-                     profiles!posts_author_id_fkey(display_name, handle, avatar_url)`)
+                     profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified)`)
             .eq("post_type", "video")
             .eq("visibility", "public")
             .not("video_url", "is", null)
@@ -1061,8 +1067,8 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
               interestMatches,
               isFollowing: followedSet.has(p.author_id),
               authorInteractionCount: myLikeSet.has(p.id) ? 3 : 0,
-              isVerified: false,
-              isOrgVerified: false,
+              isVerified: !!p.profiles?.is_verified,
+              isOrgVerified: !!p.profiles?.is_organization_verified,
               hasImages: !!p.image_url,
               sameCountry: false,
               authorPostCountInFeed: authorPageCount[p.author_id] || 1,
@@ -1086,6 +1092,8 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
                 display_name: p.profiles?.display_name || "User",
                 handle: p.profiles?.handle || "user",
                 avatar_url: p.profiles?.avatar_url || null,
+                is_verified: !!p.profiles?.is_verified,
+                is_organization_verified: !!p.profiles?.is_organization_verified,
               },
               liked: myLikeSet.has(p.id),
               bookmarked: myBookmarkSet.has(p.id),
@@ -1146,7 +1154,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
           let query = supabase
             .from("posts")
             .select(`id, author_id, content, video_url, image_url, audio_name, created_at, view_count,
-                     profiles!posts_author_id_fkey(display_name, handle, avatar_url)`)
+                     profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified)`)
             .eq("post_type", "video")
             .in("author_id", followingIds)
             .or("visibility.eq.public,visibility.eq.followers,visibility.is.null")
@@ -1198,6 +1206,8 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
               display_name: p.profiles?.display_name || "User",
               handle: p.profiles?.handle || "user",
               avatar_url: p.profiles?.avatar_url || null,
+              is_verified: !!p.profiles?.is_verified,
+              is_organization_verified: !!p.profiles?.is_organization_verified,
             },
             liked: myLikeSet.has(p.id), bookmarked: myBookmarkSet.has(p.id),
             likeCount: likeMap[p.id] || 0, replyCount: replyMap[p.id] || 0,

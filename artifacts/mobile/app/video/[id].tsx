@@ -52,6 +52,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar } from "@/components/ui/Avatar";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { useAppAccent } from "@/context/AppAccentContext";
 import { useTheme } from "@/hooks/useTheme";
 import { notifyPostLike, notifyPostReply } from "@/lib/notifyUser";
@@ -105,7 +106,7 @@ type VideoPost = {
   id: string; author_id: string; content: string; video_url: string;
   image_url: string | null; created_at: string; view_count: number;
   audio_name: string | null;
-  profile: { display_name: string; handle: string; avatar_url: string | null };
+  profile: { display_name: string; handle: string; avatar_url: string | null; is_verified: boolean; is_organization_verified: boolean };
   liked: boolean; bookmarked: boolean; likeCount: number; replyCount: number;
 };
 
@@ -774,7 +775,14 @@ const VideoItem = React.memo(function VideoItem({
           onPress={() => router.push(`/@${item.profile.handle}` as any)}
           style={vStyles.authorRow} activeOpacity={0.85}
         >
-          <Text style={vStyles.authorHandle}>@{item.profile.handle}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text style={vStyles.authorHandle}>@{item.profile.handle}</Text>
+            <VerifiedBadge
+              isVerified={item.profile.is_verified}
+              isOrganizationVerified={item.profile.is_organization_verified}
+              size={14}
+            />
+          </View>
           {!!item.profile.display_name && (
             <Text style={vStyles.authorName}>{item.profile.display_name}</Text>
           )}
@@ -1095,7 +1103,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
     let query = supabase
       .from("posts")
-      .select(`id, author_id, content, video_url, image_url, created_at, audio_name, profiles!posts_author_id_fkey(display_name, handle, avatar_url)`)
+      .select(`id, author_id, content, video_url, image_url, created_at, audio_name, profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified)`)
       .not("video_url", "is", null)
       .or("post_type.eq.video,post_type.is.null")
       .order("created_at", { ascending: false })
@@ -1147,7 +1155,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         id: p.id, author_id: p.author_id, content: p.content || "",
         video_url: p.video_url, image_url: p.image_url || null, created_at: p.created_at,
         view_count: viewMap[p.id] || 0, audio_name: p.audio_name || null,
-        profile: { display_name: p.profiles?.display_name || "User", handle: p.profiles?.handle || "user", avatar_url: p.profiles?.avatar_url || null },
+        profile: { display_name: p.profiles?.display_name || "User", handle: p.profiles?.handle || "user", avatar_url: p.profiles?.avatar_url || null, is_verified: !!p.profiles?.is_verified, is_organization_verified: !!p.profiles?.is_organization_verified },
         liked: myLikeSet.has(p.id), bookmarked: myBookmarkSet.has(p.id),
         likeCount: likeMap[p.id] || 0, replyCount: replyMap[p.id] || 0,
       }));
@@ -1239,14 +1247,14 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
           } else if (existingIdx === -1) {
             const { data: tRow } = await supabase
               .from("posts")
-              .select(`id, author_id, content, video_url, image_url, created_at, audio_name, profiles!posts_author_id_fkey(display_name, handle, avatar_url)`)
+              .select(`id, author_id, content, video_url, image_url, created_at, audio_name, profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified)`)
               .eq("id", id).not("video_url", "is", null).maybeSingle();
             if (tRow) {
               newVideos = [{
                 id: tRow.id, author_id: tRow.author_id, content: tRow.content || "",
                 video_url: tRow.video_url, image_url: tRow.image_url || null, created_at: tRow.created_at,
                 view_count: 0, audio_name: tRow.audio_name || null,
-                profile: { display_name: (tRow.profiles as any)?.display_name || "User", handle: (tRow.profiles as any)?.handle || "user", avatar_url: (tRow.profiles as any)?.avatar_url || null },
+                profile: { display_name: (tRow.profiles as any)?.display_name || "User", handle: (tRow.profiles as any)?.handle || "user", avatar_url: (tRow.profiles as any)?.avatar_url || null, is_verified: !!(tRow.profiles as any)?.is_verified, is_organization_verified: !!(tRow.profiles as any)?.is_organization_verified },
                 liked: false, bookmarked: false, likeCount: 0, replyCount: 0,
               }, ...newVideos];
             }
