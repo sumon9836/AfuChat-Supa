@@ -1254,8 +1254,8 @@ export function VideoCommentsSheet({
       <View style={[StyleSheet.absoluteFill, { backgroundColor: sheetBg, borderTopLeftRadius: 20, borderTopRightRadius: 20 }]} />
       <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: borderTopStyle, pointerEvents: "none" } as any} />
 
-      {/* Drag handle — only the handle area is a pan target */}
-      <View {...sheetPan.panHandlers} style={[cStyles.handle, { backgroundColor: handleClr }]} />
+      {/* Drag handle — visual only, no pan gesture */}
+      <View style={[cStyles.handle, { backgroundColor: handleClr }]} />
 
       {/* Header */}
       <View style={cStyles.header}>
@@ -1301,15 +1301,6 @@ export function VideoCommentsSheet({
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             onScroll={(e) => { listScrollYRef.current = e.nativeEvent.contentOffset.y; }}
-            onScrollBeginDrag={() => {
-              if (!isFullSheetRef.current) snapToFullRef.current();
-            }}
-            onScrollEndDrag={(e) => {
-              const { contentOffset, velocity } = e.nativeEvent;
-              if (contentOffset.y <= 1 && (velocity?.y ?? 0) > 0.4) {
-                snapToPeekRef.current();
-              }
-            }}
             renderItem={({ item: r }) => (
               <VideoReplyItem
                 reply={r} depth={0} onReplyTo={handleReplyTo}
@@ -1337,24 +1328,23 @@ export function VideoCommentsSheet({
     );
   }
 
-  // ─── Modal mode: proper bottom sheet — covers tab bar, input always at bottom ─
-  const sheetH = kbHeight > 0 ? screenDimH - kbHeight - 20 : undefined;
+  // ─── Modal mode: stable bottom sheet — fixed height, no expansion gesture ────
+  const stableH = kbHeight > 0 ? screenDimH - kbHeight - 20 : screenDimH * 0.65;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={dismissSheet} statusBarTranslucent>
       {/* Full-screen overlay including tab bar area */}
       <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" }}>
-        {/* Backdrop: tap it → instant close. Swipe gesture uses dismissSheet for animation. */}
+        {/* Backdrop: tap to close */}
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-        {/* Outer: native-driver slide-in/out — transform only */}
+        {/* Slide-in/out entrance animation only — no height changes */}
         <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
-          {/* Inner: JS-driver height snap (height can't use native driver) */}
-          <Animated.View
+          <View
             style={[
               cStyles.container,
               {
-                height: sheetH ?? (animSheetH as any),
+                height: stableH,
                 overflow: "hidden",
               },
             ]}
@@ -1362,7 +1352,7 @@ export function VideoCommentsSheet({
             <Pressable onPress={() => {}} style={{ flex: 1 }}>
               {innerSheet}
             </Pressable>
-          </Animated.View>
+          </View>
         </Animated.View>
       </View>
     </Modal>
