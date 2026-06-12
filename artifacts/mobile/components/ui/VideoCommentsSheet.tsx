@@ -40,6 +40,7 @@ if (Platform.OS !== "web") {
 import * as ImagePicker from "expo-image-picker";
 
 import { supabase } from "@/lib/supabase";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { useAppAccent } from "@/context/AppAccentContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -126,6 +127,31 @@ function genWaveHeights(seed: string): number[] {
     const v = Math.abs(Math.sin(n * 0.0013 + i * 0.71) * Math.cos(i * 0.43 + n * 0.007));
     return 0.15 + v * 0.85;
   });
+}
+
+// ─── CommentSkeleton ──────────────────────────────────────────────────────────
+
+function CommentSkeleton({ isDark }: { isDark: boolean }) {
+  return (
+    <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 12 }}>
+      {[0.85, 0.65, 0.75, 0.55, 0.70].map((w, i) => (
+        <View key={i} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+          <Skeleton width={36} height={36} borderRadius={18} forceDark={isDark} />
+          <View style={{ flex: 1, gap: 6, paddingTop: 2 }}>
+            <Skeleton width="40%" height={11} borderRadius={6} forceDark={isDark} />
+            <Skeleton width={`${Math.round(w * 100)}%`} height={14} borderRadius={6} forceDark={isDark} />
+            {i % 2 === 0 && (
+              <Skeleton width="60%" height={14} borderRadius={6} forceDark={isDark} />
+            )}
+            <View style={{ flexDirection: "row", gap: 14, marginTop: 2 }}>
+              <Skeleton width={36} height={10} borderRadius={5} forceDark={isDark} />
+              <Skeleton width={36} height={10} borderRadius={5} forceDark={isDark} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
 }
 
 // ─── WaveformBars ─────────────────────────────────────────────────────────────
@@ -1258,9 +1284,7 @@ export function VideoCommentsSheet({
       {/* Scrollable comment list — flex:1 fills all remaining vertical space */}
       <View style={{ flex: 1 }}>
         {loading ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
-            <ActivityIndicator color={accent} />
-          </View>
+          <CommentSkeleton isDark={isDark} />
         ) : sortedTree.length === 0 ? (
           <View style={[cStyles.emptyBox, { flex: 1, justifyContent: "center" }]}>
             <Ionicons name="chatbubble-outline" size={32} color={emptyIconClr} />
@@ -1322,21 +1346,22 @@ export function VideoCommentsSheet({
       <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" }}>
         <Pressable style={StyleSheet.absoluteFill} onPress={dismissSheet} />
 
-        {/* Animated sheet — height controlled by snap anim or keyboard */}
-        <Animated.View
-          style={[
-            cStyles.container,
-            {
-              transform: [{ translateY: sheetTranslateY }],
-              height: sheetH ?? (animSheetH as any),
-              // Don't clip shadow by overflow:hidden on Android
-              overflow: "hidden",
-            },
-          ]}
-        >
-          <Pressable onPress={() => {}} style={{ flex: 1 }}>
-            {innerSheet}
-          </Pressable>
+        {/* Outer: native-driver slide-in/out — transform only */}
+        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
+          {/* Inner: JS-driver height snap (height can't use native driver) */}
+          <Animated.View
+            style={[
+              cStyles.container,
+              {
+                height: sheetH ?? (animSheetH as any),
+                overflow: "hidden",
+              },
+            ]}
+          >
+            <Pressable onPress={() => {}} style={{ flex: 1 }}>
+              {innerSheet}
+            </Pressable>
+          </Animated.View>
         </Animated.View>
       </View>
     </Modal>
