@@ -126,6 +126,14 @@ export type FeedTab = "for_you" | "following";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function shuffleArr<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function fmt(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
@@ -962,6 +970,8 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   const activeIndexRef    = useRef(0);
   const tabRef            = useRef<FeedTab>("for_you");
   const remainderRef      = useRef<VideoPost[]>([]);
+  const loopPoolRef       = useRef<VideoPost[]>([]);   // full For You pool for endless cycling
+  const followPoolRef     = useRef<VideoPost[]>([]);   // first page of Following for loop-back
 
   useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
   useEffect(() => { postsLenRef.current = posts.length; }, [posts.length]);
@@ -1108,8 +1118,9 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
 
           markVideosSeen(page.map((v) => v.id)).catch(() => {});
 
-          setHasMore(diversified.length > PAGE_SIZE * 3);
-          hasMoreRef.current = diversified.length > PAGE_SIZE * 3;
+          loopPoolRef.current = diversified;                     // store full pool for endless looping
+          setHasMore(true);                                      // always has more (we loop)
+          hasMoreRef.current = true;
           remainderRef.current = diversified.slice(PAGE_SIZE * 3);
           cursorRef.current = page[page.length - 1]?.created_at ?? null;
           setPosts(page);
@@ -1117,22 +1128,26 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
           return;
         }
 
-        // ── Load-more from remainder (For You) ─────────────────────────────
+        // ── Load-more from remainder (For You) — loops forever ────────────
         if (currentTab === "for_you" && cursor) {
           const remainder = remainderRef.current;
           if (remainder.length > 0) {
             const next = remainder.slice(0, PAGE_SIZE);
             remainderRef.current = remainder.slice(PAGE_SIZE);
-            setHasMore(remainderRef.current.length > 0);
-            hasMoreRef.current = remainderRef.current.length > 0;
             setPosts((prev) => {
               const seen = new Set(prev.map((p) => p.id));
               return [...prev, ...next.filter((p) => !seen.has(p.id))];
             });
-          } else {
-            setHasMore(false);
-            hasMoreRef.current = false;
+          } else if (loopPoolRef.current.length > 0) {
+            // Pool exhausted — reshuffle and loop back seamlessly
+            const reshuffled = shuffleArr([...loopPoolRef.current]);
+            const next = reshuffled.slice(0, PAGE_SIZE);
+            remainderRef.current = reshuffled.slice(PAGE_SIZE);
+            setPosts((prev) => [...prev, ...next]);
           }
+          // Always keep hasMore = true so the feed never stops
+          setHasMore(true);
+          hasMoreRef.current = true;
           loadingMoreRef.current = false;
           setLoadingMore(false);
           return;
@@ -1161,13 +1176,22 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
             .order("created_at", { ascending: false })
             .limit(PAGE_SIZE);
 
-          if (cursor) query = (query as any).lt("created_at", cursor);
+          const realCursor = cursor === "loop" ? null : cursor;
+          if (realCursor) query = (query as any).lt("created_at", realCursor);
 
           const { data } = await query;
 
           if (!data || data.length === 0) {
-            setHasMore(false); hasMoreRef.current = false;
-            if (!cursor) setPosts([]);
+            if (cursor && followPoolRef.current.length > 0) {
+              // Hit the end — loop back seamlessly using the first page
+              cursorRef.current = null;
+              const loop = shuffleArr([...followPoolRef.current]);
+              setPosts((prev) => [...prev, ...loop]);
+              setHasMore(true); hasMoreRef.current = true;
+            } else {
+              if (!cursor) setPosts([]);
+              setHasMore(false); hasMoreRef.current = false;
+            }
             loadingMoreRef.current = false; setLoadingMore(false); setLoading(false);
             return;
           }
@@ -1215,11 +1239,13 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
 
           const more = data.length === PAGE_SIZE;
           cursorRef.current = data[data.length - 1]?.created_at ?? null;
-          setHasMore(more); hasMoreRef.current = more;
+          // Always hasMore=true so we can loop; actual end is handled above
+          setHasMore(true); hasMoreRef.current = true;
 
           if (cursor) {
             setPosts((prev) => { const s = new Set(prev.map((p) => p.id)); return [...prev, ...enriched.filter((p) => !s.has(p.id))]; });
           } else {
+            followPoolRef.current = enriched;  // store first page for endless loop-back
             setPosts(enriched);
           }
 
@@ -1233,8 +1259,10 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   );
 
   useEffect(() => {
-    remainderRef.current = [];
-    cursorRef.current = null;
+    remainderRef.current  = [];
+    loopPoolRef.current   = [];
+    followPoolRef.current = [];
+    cursorRef.current     = null;
     setPosts([]);
     setActiveIndex(0);
     activeIndexRef.current = 0;
@@ -1373,8 +1401,10 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   );
 
   const onEndReached = useCallback(() => {
-    if (!loadingMoreRef.current && hasMore && cursorRef.current) fetchVideos(cursorRef.current);
-  }, [hasMore, fetchVideos]);
+    if (!loadingMoreRef.current && hasMoreRef.current) {
+      fetchVideos(cursorRef.current ?? "loop");
+    }
+  }, [fetchVideos]);
 
   // ── Header tab positions ──────────────────────────────────────────────────
 
@@ -1443,16 +1473,10 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
         updateCellsBatchingPeriod={50}
         removeClippedSubviews={false}
         onEndReached={onEndReached}
-        onEndReachedThreshold={2}
+        onEndReachedThreshold={4}
         style={{ flex: 1, backgroundColor: "#000" }}
         contentContainerStyle={{ backgroundColor: "#000" }}
-        ListFooterComponent={
-          loadingMore ? (
-            <View style={[styles.center, { height: ITEM_H, backgroundColor: "#000" }]}>
-              <ActivityIndicator size="large" color="rgba(255,255,255,0.4)" />
-            </View>
-          ) : null
-        }
+        ListFooterComponent={null}
       />
 
       {/* TikTok header overlaid on top */}
@@ -1469,7 +1493,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
   );
 }
 
-// ─── TikTok-style header ──────────────────────────────────────────────────────
+// ─── TikTok-style header with animated sliding underline ──────────────────────
 
 function TikTokHeader({
   tab,
@@ -1480,6 +1504,32 @@ function TikTokHeader({
   onTabChange: (t: FeedTab) => void;
   top: number;
 }) {
+  const underlineX   = useRef(new Animated.Value(0)).current;
+  const tabLayouts   = useRef<{ x: number; w: number }[]>([{ x: 0, w: 0 }, { x: 0, w: 0 }]);
+  const nd           = Platform.OS !== "web";
+
+  const TABS: { key: FeedTab; label: string }[] = [
+    { key: "following", label: "Following" },
+    { key: "for_you",   label: "For You"   },
+  ];
+
+  function slideToTab(t: FeedTab) {
+    const idx = TABS.findIndex((tb) => tb.key === t);
+    const layout = tabLayouts.current[idx];
+    if (!layout) return;
+    const target = layout.x + layout.w / 2 - 11; // centre the 22px underline bar
+    Animated.spring(underlineX, {
+      toValue: target,
+      useNativeDriver: nd,
+      damping: 22,
+      stiffness: 280,
+      mass: 0.8,
+    }).start();
+  }
+
+  // Slide on mount and whenever tab changes
+  useEffect(() => { slideToTab(tab); }, [tab]);
+
   return (
     <View style={[styles.header, { top } as any]}>
       {/* LIVE pill */}
@@ -1488,21 +1538,40 @@ function TikTokHeader({
         <Text style={styles.liveText}>LIVE</Text>
       </TouchableOpacity>
 
-      {/* Tabs */}
+      {/* Tabs + animated underline */}
       <View style={styles.headerTabs}>
-        <TouchableOpacity onPress={() => onTabChange("following")} style={styles.headerTab} activeOpacity={0.85}>
-          <Text style={[styles.headerTabText, tab === "following" && styles.headerTabTextActive]}>
-            Following
-          </Text>
-          {tab === "following" && <View style={styles.headerTabUnderline} />}
-        </TouchableOpacity>
+        {TABS.map((t, idx) => (
+          <TouchableOpacity
+            key={t.key}
+            onPress={() => { onTabChange(t.key); slideToTab(t.key); }}
+            style={styles.headerTab}
+            activeOpacity={0.85}
+            onLayout={(e) => {
+              tabLayouts.current[idx] = {
+                x: e.nativeEvent.layout.x,
+                w: e.nativeEvent.layout.width,
+              };
+              if (t.key === tab) slideToTab(tab);
+            }}
+          >
+            <Text style={[styles.headerTabText, tab === t.key && styles.headerTabTextActive]}>
+              {t.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
 
-        <TouchableOpacity onPress={() => onTabChange("for_you")} style={styles.headerTab} activeOpacity={0.85}>
-          <Text style={[styles.headerTabText, tab === "for_you" && styles.headerTabTextActive]}>
-            For You
-          </Text>
-          {tab === "for_you" && <View style={styles.headerTabUnderline} />}
-        </TouchableOpacity>
+        {/* Single sliding underline bar */}
+        <Animated.View
+          style={[
+            styles.headerTabUnderline,
+            {
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              transform: [{ translateX: underlineX }],
+            },
+          ]}
+        />
       </View>
 
       {/* Search */}
@@ -1635,6 +1704,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: "#000",
     gap: 10,
+    borderTopWidth: 0.5,
+    borderTopColor: "rgba(255,255,255,0.08)",
   },
   barLeft: {
     flex: 1,

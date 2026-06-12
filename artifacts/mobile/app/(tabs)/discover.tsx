@@ -265,8 +265,8 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
           {/* X/Twitter-style thread connector line */}
           {item.showThreadLine && (
             <View
-              pointerEvents="none"
               style={{
+                pointerEvents: "none",
                 position: "absolute",
                 left: isDesktop ? 38 : 35,
                 top: isDesktop ? 70 : 64,

@@ -260,7 +260,7 @@ function MobileSheet({ visible, onClose, children, backgroundColor, maxHeight = 
         {...panResponder.panHandlers}
       >
         {/* Subtle top border glow */}
-        <View style={ms.sheetBorder} pointerEvents="none" />
+        <View style={[ms.sheetBorder, { pointerEvents: "none" } as any]} />
 
         {/* Drag handle */}
         <View style={ms.handleArea}>
