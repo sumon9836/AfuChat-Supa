@@ -85,7 +85,7 @@
           ]
         }
       ],
-      "versionCode": 230
+      "versionCode": 231
     },
     "plugins": [
       [
@@ -138,7 +138,12 @@
           "audioPermission": "AfuChat uses your audio library to let you save and share audio files."
         }
       ],
-      ["expo-video", { "supportsPictureInPicture": true }],
+      [
+        "expo-video",
+        {
+          "supportsPictureInPicture": true
+        }
+      ],
       [
         "expo-build-properties",
         {
