@@ -492,24 +492,36 @@ export function ShortsFeedSkeleton({ dark = true }: { dark?: boolean }) {
   const bg = dark ? "#0a0a0a" : colors.background;
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
-      <View style={{ flex: 1, justifyContent: "flex-end", paddingHorizontal: 16, paddingBottom: 90 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
-          <Skeleton width={44} height={44} borderRadius={22} forceDark={dark} />
-          <View style={{ gap: 6 }}>
-            <Skeleton width={120} height={14} forceDark={dark} />
-            <Skeleton width={80} height={11} forceDark={dark} />
-          </View>
-        </View>
+      {/* Video area placeholder */}
+      <View style={{ flex: 1, justifyContent: "flex-end", paddingHorizontal: 16, paddingBottom: 16 }}>
         <Skeleton width="78%" height={13} forceDark={dark} style={{ marginBottom: 6 }} />
-        <Skeleton width="58%" height={13} forceDark={dark} style={{ marginBottom: 4 }} />
+        <Skeleton width="55%" height={13} forceDark={dark} />
       </View>
-      <View style={{ position: "absolute", right: 14, bottom: 110, gap: 22, alignItems: "center" }}>
-        {[44, 44, 44, 44].map((s, i) => (
-          <View key={i} style={{ alignItems: "center", gap: 5 }}>
-            <Skeleton width={s} height={s} borderRadius={22} forceDark={dark} />
-            <Skeleton width={28} height={10} forceDark={dark} />
-          </View>
-        ))}
+
+      {/* WeChat-style bottom action bar skeleton */}
+      <View style={{
+        height: 64,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+        backgroundColor: dark ? "#0d0d0d" : colors.card,
+        borderTopWidth: 0.5,
+        borderTopColor: dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+        gap: 10,
+      }}>
+        {/* Left: avatar + handle + follow */}
+        <Skeleton width={38} height={38} borderRadius={19} forceDark={dark} />
+        <View style={{ flex: 1, gap: 5 }}>
+          <Skeleton width={100} height={13} forceDark={dark} />
+          <Skeleton width={68} height={10} forceDark={dark} />
+        </View>
+        <Skeleton width={60} height={26} borderRadius={13} forceDark={dark} />
+        {/* Right: action icons */}
+        <View style={{ flexDirection: "row", gap: 18, alignItems: "center" }}>
+          {[24, 22, 22, 22].map((s, i) => (
+            <Skeleton key={i} width={s} height={s} borderRadius={s / 2} forceDark={dark} />
+          ))}
+        </View>
       </View>
     </View>
   );

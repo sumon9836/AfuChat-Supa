@@ -432,6 +432,8 @@ const cmStyles = StyleSheet.create({
 
 // ─── VideoItem ────────────────────────────────────────────────────────────────
 
+const BOTTOM_BAR_H = 64; // height of the WeChat-style horizontal action bar
+
 const VideoItem = React.memo(function VideoItem({
   item, isActive, isNearActive, screenH, screenW, isFollowing, isSelf,
   onLike, onBookmark, onOpenComments, onShare, onFollow, onRecordView, onOpenMenu,
@@ -466,7 +468,7 @@ const VideoItem = React.memo(function VideoItem({
   const heartScale = useRef(new Animated.Value(1)).current;
   const doubleTapOpacity = useRef(new Animated.Value(0)).current;
   const doubleTapScale = useRef(new Animated.Value(0.3)).current;
-  const videoAreaAnim = useRef(new Animated.Value(screenH)).current;
+  const videoAreaAnim = useRef(new Animated.Value(screenH - BOTTOM_BAR_H)).current;
   const overlayOpacity = useRef(new Animated.Value(1)).current;
   const viewRecorded = useRef(false);
   const offlineSaved = useRef(false);
@@ -502,7 +504,7 @@ const VideoItem = React.memo(function VideoItem({
 
   // Squeeze video up when comments open (TikTok/Shorts style)
   useEffect(() => {
-    const targetH = commentsOpen ? (squeezedH || screenH * 0.38) : screenH;
+    const targetH = commentsOpen ? (squeezedH || screenH * 0.38) : (screenH - BOTTOM_BAR_H);
     Animated.parallel([
       Animated.timing(videoAreaAnim, { toValue: targetH, duration: 320, useNativeDriver: false }),
       Animated.timing(overlayOpacity, { toValue: commentsOpen ? 0 : 1, duration: commentsOpen ? 180 : 300, useNativeDriver: true }),
@@ -726,7 +728,7 @@ const VideoItem = React.memo(function VideoItem({
 
   return (
     <View style={[vStyles.item, { width: screenW, height: screenH }]}>
-      {/* Animated container — squeezes up when comments open (TikTok/Shorts style) */}
+      {/* Video area — squeezes up when comments open (TikTok/Shorts style) */}
       <Animated.View style={{
         width: screenW, height: videoAreaAnim, overflow: "hidden",
         borderBottomLeftRadius: commentsOpen ? 20 : 0,
@@ -734,7 +736,6 @@ const VideoItem = React.memo(function VideoItem({
       }}>
         {videoElement}
 
-        {/* Overlays — pointerEvents="none" so touches pass through to TapHandler */}
         {/* Poster thumbnail: persists until first frame renders, eliminates black flash on swipe */}
         {item.image_url && !videoStarted && (
           <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}>
@@ -768,27 +769,10 @@ const VideoItem = React.memo(function VideoItem({
         </Animated.View>
 
         {/* Gradient — bottom only */}
-        <GradientOverlay position="bottom" height={460} />
+        <GradientOverlay position="bottom" height={300} />
 
-        {/* Bottom info — fades when comments open */}
-        <Animated.View style={[vStyles.bottomArea, { bottom: insets.bottom + 60 + navOffset, opacity: overlayOpacity, pointerEvents: commentsOpen ? "none" : "box-none" } as any]}>
-          <TouchableOpacity
-            onPress={() => router.push(`/@${item.profile.handle}` as any)}
-            style={vStyles.authorRow} activeOpacity={0.85}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Text style={vStyles.authorHandle}>@{item.profile.handle}</Text>
-              <VerifiedBadge
-                isVerified={item.profile.is_verified}
-                isOrganizationVerified={item.profile.is_organization_verified}
-                size={14}
-              />
-            </View>
-            {!!item.profile.display_name && (
-              <Text style={vStyles.authorName}>{item.profile.display_name}</Text>
-            )}
-          </TouchableOpacity>
-
+        {/* Caption overlay — fades when comments open */}
+        <Animated.View style={[vStyles.captionOverlay, { opacity: overlayOpacity, pointerEvents: commentsOpen ? "none" : "box-none" } as any]}>
           {!!item.content && (
             <TouchableOpacity
               activeOpacity={showExpand ? 0.75 : 1}
@@ -809,87 +793,9 @@ const VideoItem = React.memo(function VideoItem({
           )}
         </Animated.View>
 
-        {/* Right action rail — fades when comments open */}
-        <Animated.View style={[vStyles.rightCol, { bottom: insets.bottom + 30 + navOffset, opacity: overlayOpacity, pointerEvents: commentsOpen ? "none" : "box-none" } as any]}>
-
-          {/* Author avatar + follow badge at top */}
-          <View style={vStyles.avatarAction}>
-            <TouchableOpacity
-              onPress={() => router.push(`/@${item.profile.handle}` as any)}
-              activeOpacity={0.85}
-            >
-              <View style={[vStyles.avatarRing, { borderColor: accent }]}>
-                <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={44} />
-              </View>
-            </TouchableOpacity>
-            {!isSelf && !isFollowing && (
-              <TouchableOpacity
-                onPress={() => onFollow(item.author_id, isFollowing)}
-                style={vStyles.followBadge}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="add" size={12} color="#fff" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Like */}
-          <View style={vStyles.actionItem}>
-            <Animated.View style={{ transform: [{ scale: heartScale }] }}>
-              <TouchableOpacity onPress={handleLike} hitSlop={10} activeOpacity={0.75}>
-                <Ionicons name={item.liked ? "heart" : "heart-outline"} size={32} color={item.liked ? "#FF3B30" : "#fff"} />
-              </TouchableOpacity>
-            </Animated.View>
-            <Text style={vStyles.actionLabel}>{formatCount(item.likeCount)}</Text>
-          </View>
-
-          {/* Comment */}
-          <View style={vStyles.actionItem}>
-            <TouchableOpacity onPress={() => onOpenComments(item.id)} hitSlop={10} activeOpacity={0.75}>
-              <Ionicons name="chatbubble-ellipses" size={30} color="#fff" />
-            </TouchableOpacity>
-            <Text style={vStyles.actionLabel}>{formatCount(item.replyCount)}</Text>
-          </View>
-
-          {/* Bookmark */}
-          <View style={vStyles.actionItem}>
-            <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={10} activeOpacity={0.75}>
-              <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={30} color={item.bookmarked ? "#1f95ff" : "#fff"} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Share */}
-          <View style={vStyles.actionItem}>
-            <TouchableOpacity onPress={() => onShare(item)} hitSlop={10} activeOpacity={0.75}>
-              <Ionicons name="paper-plane-outline" size={28} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
-          {/* PiP (native only) */}
-          {Platform.OS !== "web" && (
-            <View style={vStyles.actionItem}>
-              <TouchableOpacity
-                onPress={() => inPip ? videoViewRef.current?.stopPictureInPicture() : videoViewRef.current?.startPictureInPicture()}
-                hitSlop={10}
-                activeOpacity={0.75}
-              >
-                <Ionicons name={inPip ? "contract" : "expand"} size={24} color={inPip ? "#1f95ff" : "#fff"} />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* More */}
-          <View style={vStyles.actionItem}>
-            <TouchableOpacity onPress={() => onOpenMenu(item)} hitSlop={10} activeOpacity={0.75}>
-              <Ionicons name="ellipsis-vertical" size={22} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        {/* Progress bar — fades when comments open */}
+        {/* Progress bar at very bottom of video area */}
         <Animated.View style={{
-          position: "absolute", left: 0, right: 0,
-          bottom: Math.max(insets.bottom, 0) + navOffset,
+          position: "absolute", left: 0, right: 0, bottom: 0,
           height: 2.5, backgroundColor: "rgba(255,255,255,0.2)",
           justifyContent: "center", opacity: overlayOpacity,
         }}>
@@ -905,6 +811,66 @@ const VideoItem = React.memo(function VideoItem({
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
+
+      {/* ── WeChat-style horizontal bottom action bar ─────────────────────── */}
+      <View style={vStyles.bottomBar}>
+        {/* Left: avatar · @handle · display name · follow */}
+        <View style={vStyles.bottomBarLeft}>
+          <TouchableOpacity onPress={() => router.push(`/@${item.profile.handle}` as any)} activeOpacity={0.85}>
+            <View style={[vStyles.avatarRing, { borderColor: accent }]}>
+              <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={36} />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push(`/@${item.profile.handle}` as any)}
+            activeOpacity={0.85}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+              <Text style={vStyles.barHandle} numberOfLines={1}>@{item.profile.handle}</Text>
+              <VerifiedBadge
+                isVerified={item.profile.is_verified}
+                isOrganizationVerified={item.profile.is_organization_verified}
+                size={12}
+              />
+            </View>
+            {!!item.profile.display_name && (
+              <Text style={vStyles.barName} numberOfLines={1}>{item.profile.display_name}</Text>
+            )}
+          </TouchableOpacity>
+          {!isSelf && (
+            <TouchableOpacity
+              onPress={() => onFollow(item.author_id, isFollowing)}
+              style={[vStyles.followBtn, isFollowing && vStyles.followBtnActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={[vStyles.followBtnText, isFollowing && vStyles.followBtnTextActive]}>
+                {isFollowing ? "Following" : "Follow"}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Right: like · comment · bookmark · share */}
+        <View style={vStyles.bottomBarRight}>
+          <TouchableOpacity onPress={handleLike} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
+            <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+              <Ionicons name={item.liked ? "heart" : "heart-outline"} size={24} color={item.liked ? "#FF3B30" : "#fff"} />
+            </Animated.View>
+            <Text style={vStyles.barActionLabel}>{formatCount(item.likeCount)}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onOpenComments(item.id)} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
+            <Ionicons name="chatbubble-ellipses" size={22} color="#fff" />
+            <Text style={vStyles.barActionLabel}>{formatCount(item.replyCount)}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onBookmark(item.id, item.bookmarked)} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
+            <Ionicons name={item.bookmarked ? "bookmark" : "bookmark-outline"} size={22} color={item.bookmarked ? "#1f95ff" : "#fff"} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onShare(item)} hitSlop={8} activeOpacity={0.75} style={vStyles.barAction}>
+            <Ionicons name="paper-plane-outline" size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }); // React.memo
@@ -917,25 +883,35 @@ const vStyles = StyleSheet.create({
   item: { backgroundColor: "#000", overflow: "hidden" },
   centerOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   pauseCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(0,0,0,0.4)", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },
-  gradientBase: { position: "absolute", left: 0, right: 0 },
-  bottomArea: { position: "absolute", left: 16, right: 80 },
-  authorRow: { marginBottom: 6 },
-  authorHandle: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold", ...VS_SHADOW },
-  authorName: { color: "rgba(255,255,255,0.65)", fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 2, ...VS_SHADOW },
+  captionOverlay: { position: "absolute", left: 16, right: 16, bottom: 14 },
   captionWrap: { marginTop: 2 },
   caption: { color: "rgba(255,255,255,0.93)", fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21, ...VS_SHADOW },
   captionMore: { marginTop: 2, fontSize: 14, lineHeight: 20 },
   captionEllipsis: { color: "rgba(255,255,255,0.55)", fontFamily: "Inter_400Regular" },
   captionMoreLink: { color: "#fff", fontFamily: "Inter_700Bold" },
-  viewRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  viewText: { color: "rgba(255,255,255,0.45)", fontSize: 11, fontFamily: "Inter_400Regular" },
-  rightCol: { position: "absolute", right: 10, alignItems: "center", gap: 20 },
-  avatarAction: { alignItems: "center" },
-  avatarRing: { borderWidth: 2.5, borderRadius: 27, padding: 1.5 },
-  followBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: "#FF3B30", alignItems: "center", justifyContent: "center", marginTop: -12, zIndex: 2, borderWidth: 1.5, borderColor: "#000" },
-  actionItem: { alignItems: "center", gap: 4 },
-  actionLabel: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold", ...VS_SHADOW },
-  progressBar: { position: "absolute", left: 0, right: 0, height: 2.5, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center" },
+  // ── WeChat-style horizontal bottom action bar ──────────────────────────────
+  bottomBar: {
+    height: BOTTOM_BAR_H,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0d0d0d",
+    paddingHorizontal: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(255,255,255,0.14)",
+    gap: 8,
+  },
+  bottomBarLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, overflow: "hidden" },
+  bottomBarRight: { flexDirection: "row", alignItems: "center", gap: 18 },
+  avatarRing: { borderWidth: 2, borderRadius: 22, padding: 1 },
+  barHandle: { color: "#fff", fontSize: 13, fontFamily: "Inter_700Bold", ...VS_SHADOW },
+  barName: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
+  followBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1.5, borderColor: "#fff" },
+  followBtnActive: { borderColor: "rgba(255,255,255,0.3)", backgroundColor: "rgba(255,255,255,0.07)" },
+  followBtnText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  followBtnTextActive: { color: "rgba(255,255,255,0.5)" },
+  barAction: { alignItems: "center", gap: 3 },
+  barActionLabel: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold", ...VS_SHADOW },
+  // ── Progress bar ──────────────────────────────────────────────────────────
   progressFill: { position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: "#fff", borderRadius: 2 },
   progressThumb: { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "#fff", top: -4.75, marginLeft: -6, elevation: 4 },
 });
