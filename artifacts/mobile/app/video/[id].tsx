@@ -813,13 +813,13 @@ const VideoItem = React.memo(function VideoItem({
               <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={44} />
             </View>
           </TouchableOpacity>
-          {!isSelf && (
+          {!isSelf && !isFollowing && (
             <TouchableOpacity
               onPress={() => onFollow(item.author_id, isFollowing)}
-              style={[vStyles.followBadge, isFollowing && { backgroundColor: "#888" }]}
+              style={vStyles.followBadge}
               activeOpacity={0.8}
             >
-              <Ionicons name={isFollowing ? "checkmark" : "add"} size={12} color="#fff" />
+              <Ionicons name="add" size={12} color="#fff" />
             </TouchableOpacity>
           )}
         </View>

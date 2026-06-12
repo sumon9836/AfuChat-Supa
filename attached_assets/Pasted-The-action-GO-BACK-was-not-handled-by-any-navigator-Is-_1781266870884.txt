@@ -1,0 +1,53 @@
+The action 'GO_BACK' was not handled by any navigator.
+
+Is there any screen to go back to?
+
+This is a development-only warning and won't be shown in production.
+Component Stack
+4
+
+Show
+ContextNavigatornode_modules/.pnpm/expo-router@55.0.16_e51ba40fecd09d9c69257484988d97cf/node_modules/expo-router/build/ExpoRoot.js:141:7
+ExpoRootnode_modules/.pnpm/expo-router@55.0.16_e51ba40fecd09d9c69257484988d97cf/node_modules/expo-router/build/ExpoRoot.js:90:12
+Appnode_modules/.pnpm/expo-router@55.0.16_e51ba40fecd09d9c69257484988d97cf/node_modules/expo-router/build/qualified-entry.js:21:7
+WithDevToolsnode_modules/.pnpm/expo@55.0.26_@babel+core@7.29.0_@expo+dom-webview@55.0.6_@expo+metro-runtime@55.0.11_ex_6df6111da1f0038d055b146975b35bb6/node_modules/expo/src/launch/withDevTools.web.tsx:11:9
+Call Stack
+35Source Map
+
+Show all
+This call stack is not symbolicated. Some features are unavailable such as viewing the function name or tapping to open files.
+Object.addLoghttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:1027:32
+consoleErrorMiddlewarehttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:847:16
+console.errorhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:786:29
+Proxy.<anonymous>https://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/__replco/static/devtools/injected.js:37:27
+console.errorhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:124435:7
+Proxy.<anonymous>https://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/__replco/static/devtools/injected.js:37:27
+onUnhandledActionhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:65417:15
+<unknown>https://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:62207:32
+latestCallbackhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:56915:26
+Object.dispatchhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:62733:30
+<unknown>https://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:56633:53
+<unknown>https://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:62821:19
+Array.<anonymous>https://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:62811:15
+Object.<anonymous>https://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:56633:27
+Object.latestCallback [as dispatch]https://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:56915:26
+Object.runhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:82321:25
+<unknown>https://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:82210:73
+Object.react_stack_bottom_framehttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:21931:20
+runWithFiberInDEVhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:9219:70
+commitHookEffectListMounthttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:15222:159
+commitHookPassiveMountEffectshttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:15259:58
+commitPassiveMountOnFiberhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16273:27
+recursivelyTraversePassiveMountEffectshttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16256:9
+commitPassiveMountOnFiberhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16330:11
+recursivelyTraversePassiveMountEffectshttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16256:9
+commitPassiveMountOnFiberhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16272:11
+recursivelyTraversePassiveMountEffectshttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16256:9
+commitPassiveMountOnFiberhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16272:11
+recursivelyTraversePassiveMountEffectshttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16256:9
+commitPassiveMountOnFiberhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16330:11
+recursivelyTraversePassiveMountEffectshttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16256:9
+commitPassiveMountOnFiberhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16277:11
+recursivelyTraversePassiveMountEffectshttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16256:9
+commitPassiveMountOnFiberhttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16272:11
+recursivelyTraversePassiveMountEffectshttps://8037cc10-26f8-40cb-b6ea-bbf1d94f3978-00-1uurthuynwvz8.janeway.replit.dev/artifacts/mobile/node_modules/expo-router/entry.bundle:16256:9
