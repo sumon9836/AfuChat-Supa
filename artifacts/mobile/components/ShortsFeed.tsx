@@ -355,81 +355,80 @@ function ShortCard({
           />
         )}
 
-        {/* TikTok-style right-side action rail, overlaid on the video */}
-        <View style={[styles.fullRail, { bottom: bottomInset + 90, pointerEvents: "box-none" }]}>
-          <Pressable
-            onPress={() => router.push(`/@${item.profile.handle}` as any)}
-            style={styles.fullAvatarWrap}
-          >
-            <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={44} />
-            {showFollowBtn ? (
-              <View style={styles.fullFollowBadge}>
-                <Ionicons name="add" size={14} color="#fff" />
-              </View>
-            ) : null}
-          </Pressable>
-
-          <Animated.View style={{ transform: [{ scale: heartScale }] }}>
-            <Pressable onPress={handleLike} style={styles.fullActionBtn} hitSlop={6}>
-              <Ionicons
-                name={item.liked ? "heart" : "heart-outline"}
-                size={32}
-                color={item.liked ? "#FF3B30" : "#fff"}
-              />
-              <Text style={styles.fullActionLabel}>{formatCount(item.likeCount)}</Text>
-            </Pressable>
-          </Animated.View>
-
-          <Pressable
-            onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } } as any)}
-            style={styles.fullActionBtn}
-            hitSlop={6}
-          >
-            <Ionicons name="chatbubble-ellipses" size={30} color="#fff" />
-            <Text style={styles.fullActionLabel}>{formatCount(item.replyCount)}</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => onBookmark(item.id, item.bookmarked)}
-            style={styles.fullActionBtn}
-            hitSlop={6}
-          >
-            <Ionicons
-              name={item.bookmarked ? "bookmark" : "bookmark-outline"}
-              size={28}
-              color={item.bookmarked ? "#FFD60A" : "#fff"}
-            />
-          </Pressable>
-
-          <Pressable
-            onPress={() => sharePost({
-              postId: item.id,
-              authorName: item.profile.display_name,
-              content: item.content,
-            })}
-            style={styles.fullActionBtn}
-            hitSlop={6}
-          >
-            <Ionicons name="arrow-redo" size={30} color="#fff" />
-          </Pressable>
-        </View>
-
-        {/* Bottom-left: author + caption + audio source */}
-        <View style={[styles.fullBottomInfo, { bottom: bottomInset + 14, pointerEvents: "box-none" }]}>
-          <Pressable
-            onPress={() => router.push(`/@${item.profile.handle}` as any)}
-            style={styles.fullAuthorRow}
-          >
-            <Text style={styles.fullHandle} numberOfLines={1}>@{item.profile.handle}</Text>
-          </Pressable>
-          {item.content ? (
+        {/* Caption above bottom bar */}
+        {item.content ? (
+          <View style={[styles.fullCaptionAbove, { bottom: bottomInset + 66, pointerEvents: "none" }]}>
             <Text style={styles.fullCaption} numberOfLines={2}>{item.content}</Text>
-          ) : null}
-          <View style={styles.fullAudioRow}>
-            <Ionicons name="musical-notes" size={12} color="#fff" />
-            <Text style={styles.fullAudioText} numberOfLines={1}>
-              Original audio · {item.profile.display_name}
-            </Text>
+          </View>
+        ) : null}
+
+        {/* Bottom bar: author info (left) + horizontal action buttons (right) */}
+        <View style={[styles.fullBottomBar, { bottom: bottomInset + 10, pointerEvents: "box-none" }]}>
+          {/* Author: avatar + handle + follow button */}
+          <Pressable
+            onPress={() => router.push(`/@${item.profile.handle}` as any)}
+            style={styles.fullAuthorBlock}
+          >
+            <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={40} />
+            <View style={styles.fullAuthorText}>
+              <Text style={styles.fullHandle} numberOfLines={1}>@{item.profile.handle}</Text>
+              {showFollowBtn ? (
+                <Pressable
+                  onPress={() => onFollow(item.author_id)}
+                  style={styles.fullFollowSlim}
+                  hitSlop={4}
+                >
+                  <Text style={styles.fullFollowSlimText}>Follow</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </Pressable>
+
+          {/* Horizontal action buttons — all same size, all white */}
+          <View style={styles.fullActionsRow}>
+            <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+              <Pressable onPress={handleLike} style={styles.fullActionItem} hitSlop={6}>
+                <Ionicons
+                  name={item.liked ? "heart" : "heart-outline"}
+                  size={26}
+                  color={item.liked ? "#FF3B30" : "#fff"}
+                />
+                <Text style={styles.fullActionLabel}>{formatCount(item.likeCount)}</Text>
+              </Pressable>
+            </Animated.View>
+
+            <Pressable
+              onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } } as any)}
+              style={styles.fullActionItem}
+              hitSlop={6}
+            >
+              <Ionicons name="chatbubble-ellipses" size={26} color="#fff" />
+              <Text style={styles.fullActionLabel}>{formatCount(item.replyCount)}</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => onBookmark(item.id, item.bookmarked)}
+              style={styles.fullActionItem}
+              hitSlop={6}
+            >
+              <Ionicons
+                name={item.bookmarked ? "bookmark" : "bookmark-outline"}
+                size={26}
+                color={item.bookmarked ? "#FFD60A" : "#fff"}
+              />
+            </Pressable>
+
+            <Pressable
+              onPress={() => sharePost({
+                postId: item.id,
+                authorName: item.profile.display_name,
+                content: item.content,
+              })}
+              style={styles.fullActionItem}
+              hitSlop={6}
+            >
+              <Ionicons name="paper-plane-outline" size={26} color="#fff" />
+            </Pressable>
           </View>
         </View>
 
@@ -1075,59 +1074,10 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
   },
-  fullRail: {
-    position: "absolute",
-    right: 10,
-    alignItems: "center",
-    gap: 18,
-  },
-  fullAvatarWrap: {
-    position: "relative",
-    marginBottom: 4,
-  },
-  fullFollowBadge: {
-    position: "absolute",
-    bottom: -6,
-    left: "50%",
-    marginLeft: -10,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#FF3B30",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#000",
-  },
-  fullActionBtn: {
-    alignItems: "center",
-    gap: 2,
-    minWidth: 48,
-  },
-  fullActionLabel: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    ...Platform.select({
-      web: { textShadow: "0 1px 2px rgba(0,0,0,0.6)" } as any,
-      default: { textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
-    }),
-  },
-  fullBottomInfo: {
+  fullCaptionAbove: {
     position: "absolute",
     left: 14,
-    right: 80,
-    gap: 6,
-  },
-  fullAuthorRow: { flexDirection: "row", alignItems: "center" },
-  fullHandle: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    ...Platform.select({
-      web: { textShadow: "0 1px 3px rgba(0,0,0,0.6)" } as any,
-      default: { textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
-    }),
+    right: 14,
   },
   fullCaption: {
     color: "#fff",
@@ -1139,17 +1089,68 @@ const styles = StyleSheet.create({
       default: { textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
     }),
   },
-  fullAudioRow: {
+  /* Bottom bar: row spanning full width */
+  fullBottomBar: {
+    position: "absolute",
+    left: 10,
+    right: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginTop: 4,
+    justifyContent: "space-between",
   },
-  fullAudioText: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
+  /* Left: avatar + handle column */
+  fullAuthorBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     flex: 1,
+    minWidth: 0,
+  },
+  fullAuthorText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  fullHandle: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+    ...Platform.select({
+      web: { textShadow: "0 1px 3px rgba(0,0,0,0.6)" } as any,
+      default: { textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+    }),
+  },
+  /* Slim Follow button replaces display name */
+  fullFollowSlim: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#fff",
+  },
+  fullFollowSlimText: {
+    color: "#fff",
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+  },
+  /* Right: horizontal action buttons row */
+  fullActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  fullActionItem: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 44,
+    height: 44,
+    gap: 2,
+  },
+  fullActionLabel: {
+    color: "#fff",
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
     ...Platform.select({
       web: { textShadow: "0 1px 2px rgba(0,0,0,0.6)" } as any,
       default: { textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
