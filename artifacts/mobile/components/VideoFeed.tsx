@@ -530,9 +530,6 @@ const VideoItem = React.memo(
             </View>
           )}
 
-          {/* Top gradient for header readability */}
-          <TopGradient />
-
           {/* ── Right action rail ────────────────────────────────────────── */}
           <View style={[styles.rightRail, { pointerEvents: "box-none" }]}>
 
@@ -559,12 +556,14 @@ const VideoItem = React.memo(
             {/* Like */}
             <View style={styles.railAction}>
               <ReAnimated.View style={heartAnimStyle}>
-                <TouchableOpacity onPress={handleLikeTap} hitSlop={12} activeOpacity={0.7}>
-                  <Ionicons
-                    name={item.liked ? "heart" : "heart-outline"}
-                    size={36}
-                    color={item.liked ? "#FF2D55" : "#fff"}
-                  />
+                <TouchableOpacity onPress={handleLikeTap} activeOpacity={0.7}>
+                  <View style={[styles.railIconCircle, item.liked && { backgroundColor: "rgba(255,45,85,0.35)" }]}>
+                    <Ionicons
+                      name={item.liked ? "heart" : "heart-outline"}
+                      size={26}
+                      color={item.liked ? "#FF2D55" : "#fff"}
+                    />
+                  </View>
                 </TouchableOpacity>
               </ReAnimated.View>
               <Text style={styles.railLabel}>{fmt(item.likeCount)}</Text>
@@ -574,10 +573,11 @@ const VideoItem = React.memo(
             <View style={styles.railAction}>
               <TouchableOpacity
                 onPress={() => router.push({ pathname: "/video/[id]", params: { id: item.id } })}
-                hitSlop={12}
                 activeOpacity={0.7}
               >
-                <Ionicons name="chatbubble-ellipses" size={33} color="#fff" />
+                <View style={styles.railIconCircle}>
+                  <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
+                </View>
               </TouchableOpacity>
               <Text style={styles.railLabel}>{fmt(item.replyCount)}</Text>
             </View>
@@ -586,14 +586,15 @@ const VideoItem = React.memo(
             <View style={styles.railAction}>
               <TouchableOpacity
                 onPress={() => onBookmark(item.id, item.bookmarked)}
-                hitSlop={12}
                 activeOpacity={0.7}
               >
-                <Ionicons
-                  name={item.bookmarked ? "bookmark" : "bookmark-outline"}
-                  size={32}
-                  color={item.bookmarked ? "#FFD60A" : "#fff"}
-                />
+                <View style={[styles.railIconCircle, item.bookmarked && { backgroundColor: "rgba(255,214,10,0.3)" }]}>
+                  <Ionicons
+                    name={item.bookmarked ? "bookmark" : "bookmark-outline"}
+                    size={24}
+                    color={item.bookmarked ? "#FFD60A" : "#fff"}
+                  />
+                </View>
               </TouchableOpacity>
               <Text style={styles.railLabel}>{fmt(item.likeCount > 0 ? Math.round(item.likeCount * 0.23) : 0)}</Text>
             </View>
@@ -602,10 +603,11 @@ const VideoItem = React.memo(
             <View style={styles.railAction}>
               <TouchableOpacity
                 onPress={() => onMore(item)}
-                hitSlop={12}
                 activeOpacity={0.7}
               >
-                <Ionicons name="arrow-redo" size={32} color="#fff" />
+                <View style={styles.railIconCircle}>
+                  <Ionicons name="arrow-redo" size={24} color="#fff" />
+                </View>
               </TouchableOpacity>
               <Text style={styles.railLabel}>{fmt(item.view_count > 0 ? Math.round(item.view_count * 0.04) : 0)}</Text>
             </View>
@@ -626,7 +628,7 @@ const VideoItem = React.memo(
             <Ionicons
               name={globalMuted ? "volume-mute" : "volume-high"}
               size={17}
-              color="rgba(255,255,255,0.75)"
+              color="rgba(255,255,255,0.85)"
             />
           </TouchableOpacity>
 
@@ -1612,10 +1614,10 @@ const styles = StyleSheet.create({
   // ── Right action rail ──
   rightRail: {
     position: "absolute",
-    right: 8,
-    bottom: 18,
+    right: 12,
+    bottom: 24,
     alignItems: "center",
-    gap: 18,
+    gap: 14,
   },
   avatarWrap: {
     alignItems: "center",
@@ -1639,7 +1641,15 @@ const styles = StyleSheet.create({
   },
   railAction: {
     alignItems: "center",
-    gap: 3,
+    gap: 5,
+  },
+  railIconCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(0,0,0,0.42)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   railLabel: {
     color: "#fff",
