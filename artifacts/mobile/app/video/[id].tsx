@@ -211,12 +211,12 @@ function TapHandler({
 // ─── Web video player ─────────────────────────────────────────────────────────
 
 function WebVideoPlayer({
-  src, poster, active, paused, preloadOnly,
-  onTogglePause, onDoubleTap, onLongPress,
+  src, poster, active, paused, preloadOnly, muted,
+  onTogglePause, onDoubleTap, onLongPress, onUnmute,
   onProgress, onBuffering, onFirstPlay, externalRef,
 }: {
-  src: string; poster?: string | null; active: boolean; paused: boolean; preloadOnly: boolean;
-  onTogglePause: () => void; onDoubleTap?: () => void; onLongPress?: () => void;
+  src: string; poster?: string | null; active: boolean; paused: boolean; preloadOnly: boolean; muted: boolean;
+  onTogglePause: () => void; onDoubleTap?: () => void; onLongPress?: () => void; onUnmute?: () => void;
   onProgress: (posMs: number, durMs: number) => void; onBuffering: (b: boolean) => void;
   onFirstPlay?: () => void;
   externalRef?: React.MutableRefObject<HTMLVideoElement | null>;
@@ -236,7 +236,14 @@ function WebVideoPlayer({
   useEffect(() => {
     const el = innerRef.current;
     if (!el) return;
+    el.muted = muted;
+  }, [muted]);
+
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
     if (active && !paused && !preloadOnly) {
+      el.muted = muted;
       el.play().catch(() => {});
     } else {
       el.pause();
@@ -301,6 +308,7 @@ function WebVideoPlayer({
         poster={poster || undefined}
         playsInline
         loop
+        muted
         preload="auto"
         onTimeUpdate={(e: any) => {
           const v = e.currentTarget as HTMLVideoElement;
@@ -321,6 +329,30 @@ function WebVideoPlayer({
         onPointerCancel={handlePointerUp}
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, cursor: preloadOnly ? "default" : "pointer", touchAction: "pan-y" }}
       />
+      {/* Unmute button — shown when video is muted (browser autoplay policy requires starting muted) */}
+      {muted && active && !preloadOnly && (
+        // @ts-ignore
+        <div
+          onClick={(e: any) => { e.stopPropagation(); onUnmute?.(); }}
+          style={{
+            position: "absolute", bottom: 72, right: 16,
+            display: "flex", alignItems: "center", gap: 6,
+            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)",
+            borderRadius: 20, padding: "6px 14px 6px 10px",
+            cursor: "pointer", userSelect: "none", zIndex: 20,
+            border: "1px solid rgba(255,255,255,0.15)",
+          }}
+        >
+          {/* @ts-ignore */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <line x1="23" y1="9" x2="17" y2="15"/>
+            <line x1="17" y1="9" x2="23" y2="15"/>
+          </svg>
+          {/* @ts-ignore */}
+          <span style={{ color: "#fff", fontSize: 13, fontWeight: 600, letterSpacing: 0.2 }}>Tap to unmute</span>
+        </div>
+      )}
     </>
   );
 }
@@ -384,7 +416,7 @@ function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownloa
 }) {
   if (!visible || !item) return null;
   const ACTIONS: { id: string; label: string; icon: string; bg: string; color: string }[] = [
-    { id: "pip",           label: "Mini player",      icon: "phone-portrait-outline", bg: "#1C1C1E",                          color: "#fff"  },
+    ...(Platform.OS !== "web" ? [{ id: "pip", label: "Mini player", icon: "phone-portrait-outline", bg: "#1C1C1E", color: "#fff" }] : []),
     { id: "autoscroll",    label: autoScroll ? "Auto-play: On" : "Auto-play: Off", icon: autoScroll ? "play-forward" : "play-forward-outline", bg: autoScroll ? "#34C759" : "#8E8E93", color: "#fff" },
     { id: "repost",        label: "Repost",           icon: "repeat",                 bg: "#FF9500",                          color: "#fff"  },
     { id: "share",         label: "Share to",         icon: "share-social",           bg: "#007AFF",                          color: "#fff"  },
@@ -461,6 +493,7 @@ const VideoItem = React.memo(function VideoItem({
   const videoEndFiredRef = useRef(false);
   const [inPip, setInPip] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [webMuted, setWebMuted] = useState(Platform.OS === "web");
   const [buffering, setBuffering] = useState(false);
   const [showBuffering, setShowBuffering] = useState(false);
   const [videoStarted, setVideoStarted] = useState(false);
@@ -554,6 +587,7 @@ const VideoItem = React.memo(function VideoItem({
       setVideoStarted(false);
       setShowBuffering(false);
       setVideoError(false);
+      if (Platform.OS === "web") setWebMuted(true);
       if (bufferingTimerRef.current) { clearTimeout(bufferingTimerRef.current); bufferingTimerRef.current = null; }
       // Do NOT call unloadAsync() here — it fires on first mount too (isActive=false
       // while preloading) and permanently breaks the underlying AVPlayer before it
@@ -694,6 +728,7 @@ const VideoItem = React.memo(function VideoItem({
       {shouldMountVideo ? (
         <WebVideoPlayer
           src={playbackUri} poster={item.image_url} active={isActive && tabFocused} paused={paused} preloadOnly={preloadOnly}
+          muted={webMuted} onUnmute={() => setWebMuted(false)}
           onTogglePause={() => setPaused((p) => !p)} onDoubleTap={triggerDoubleTapLike}
           onLongPress={() => onOpenMenu(item, () => {})}
           onProgress={(pos, dur) => {
