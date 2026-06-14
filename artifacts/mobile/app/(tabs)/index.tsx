@@ -51,7 +51,6 @@ import { isOnline } from "@/lib/offlineStore";
 import { getLocalConversations, saveConversations, deleteLocalConversation, pruneConversations } from "@/lib/storage/localConversations";
 import { getPreloadedConversations, hasPreloadedConversations, invalidateConversationsPreload } from "@/lib/conversationsPreload";
 import { AFUAI_CONV_ID, AFUAI_BOT_ID, getAIChatSnapshot } from "@/lib/aiChatStore";
-import { ensureAfuSystemChat } from "@/lib/afuSystemChat";
 import { useSuperApp } from "@/lib/superapp/MiniAppRuntime";
 import { addOnlineListener, preloadConversationMessages } from "@/lib/offlineSync";
 import { wasChatRecentlyVisited, clearChatVisited, getActiveChatId } from "@/lib/chatVisited";
@@ -78,7 +77,6 @@ import {
 } from "@/lib/storyViewedStore";
 import { usePhonebookNames } from "@/hooks/usePhonebookNames";
 import { useContextMenu, ContextMenu } from "@/components/desktop/ContextMenu";
-import { useUnreadNotifCount } from "@/hooks/useUnreadNotifCount";
 import { setTotalUnread } from "@/lib/chatUnreadEvents";
 
 type StoryUser = {
@@ -708,7 +706,6 @@ async function findOrCreateNotesChatId(userId: string): Promise<string | null> {
 export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boolean; onOpenChat?: (item: ChatItem, chatId: string) => void } = {}) {
   const { colors, isDark } = useTheme();
   const { user, profile, linkedAccounts, switchAccount, loading: authLoading } = useAuth();
-  const unreadNotifs = useUnreadNotifCount(user?.id);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { isDesktop } = useIsDesktop();
@@ -1698,37 +1695,14 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
               </Text>
             </TouchableOpacity>
           ) : !panelMode ? (
-            <>
-              <TouchableOpacity
-                onPress={() => router.push("/chat-search" as any)}
-                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.backgroundSecondary, alignItems: "center", justifyContent: "center" }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="search-outline" size={20} color={colors.text} />
-              </TouchableOpacity>
-              <View style={{ position: "relative" }}>
-                <TouchableOpacity
-                  onPress={async () => {
-                    if (!user?.id) return;
-                    const chatId = await ensureAfuSystemChat(user.id);
-                    if (chatId) router.push(`/chat/${chatId}` as any);
-                  }}
-                  hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.backgroundSecondary, alignItems: "center", justifyContent: "center" }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="notifications-outline" size={20} color={colors.text} />
-                </TouchableOpacity>
-                {unreadNotifs > 0 && (
-                  <View style={[styles.notifBadge, { backgroundColor: "#FF3B30" }]}>
-                    <Text style={styles.notifBadgeText} numberOfLines={1}>
-                      {unreadNotifs > 99 ? "99+" : String(unreadNotifs)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </>
+            <TouchableOpacity
+              onPress={() => router.push("/chat-search" as any)}
+              hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+              style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.backgroundSecondary, alignItems: "center", justifyContent: "center" }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="search-outline" size={20} color={colors.text} />
+            </TouchableOpacity>
           ) : null}
         </View>
       </View>
