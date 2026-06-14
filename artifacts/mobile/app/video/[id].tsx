@@ -1361,6 +1361,20 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     }
   }, []);
 
+  // On web there is no FlatList, so onListLayout never fires.
+  // Chrome (Android) dynamically resizes the viewport when its address bar
+  // appears/disappears, changing SCREEN_H. Without this sync, the web scroll
+  // wrapper div shrinks but VideoItem keeps the old larger screenH, pushing
+  // the bottomBar past the wrapper's overflow:hidden boundary and clipping it.
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const h = SCREEN_H - tabOffset;
+    if (h > 0 && Math.abs(h - listHeightRef.current) > 2) {
+      listHeightRef.current = h;
+      setListHeight(h);
+    }
+  }, [SCREEN_H, tabOffset]);
+
   const getItemLayout = useCallback((_: any, index: number) => ({
     length: listHeight, offset: listHeight * index, index,
   }), [listHeight]);
@@ -1555,9 +1569,12 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   function handleWebScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;
     const scrollTop = el.scrollTop;
+    // Use listHeight (the measured slot height) rather than raw SCREEN_H so
+    // the index stays correct even during Chrome's address-bar resize events.
+    const slotH = listHeightRef.current || SCREEN_H;
     // Immediately update active index so the current video pauses the instant
     // the next snap point is crossed — no perceptible delay for the user.
-    const index = Math.round(scrollTop / SCREEN_H);
+    const index = Math.round(scrollTop / slotH);
     if (index !== activeIndexRef.current) {
       setActiveIndex(index);
       activeIndexRef.current = index;
@@ -1567,7 +1584,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     // scroll event during a fast swipe.
     if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
     scrollSettleRef.current = setTimeout(() => {
-      const idx = Math.round(el.scrollTop / SCREEN_H);
+      const idx = Math.round(el.scrollTop / slotH);
       if (idx >= videosLenRef.current - 3 && !loadingMoreRef.current && hasMoreRef.current && cursorRef.current) {
         fetchVideos(videoTabRef.current, cursorRef.current).catch(() => { loadingMoreRef.current = false; setLoadingMore(false); });
       }
@@ -1716,7 +1733,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
           id="vf-web-scroll"
           onScroll={handleWebScroll}
           style={{
-            height: SCREEN_H, width: SCREEN_W,
+            height: listHeight, width: SCREEN_W,
             overflowY: "scroll", scrollSnapType: "y mandatory",
             scrollbarWidth: "none", backgroundColor: "#000",
             touchAction: "pan-y",
@@ -1726,7 +1743,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
             <div
               key={item.id}
               style={{
-                height: SCREEN_H, width: SCREEN_W,
+                height: listHeight, width: SCREEN_W,
                 scrollSnapAlign: "start",
                 scrollSnapStop: "always",
                 flexShrink: 0, overflow: "hidden", position: "relative",
