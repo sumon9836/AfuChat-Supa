@@ -108,6 +108,41 @@ function stripMdPreview(s: string): string {
     .trim();
 }
 
+function decodeSysNotifPreview(raw: string): string | null {
+  if (!raw.startsWith("{")) return null;
+  try {
+    const p = JSON.parse(raw);
+    if (!p?._sys_notif) return null;
+    const type: string = p.type || "";
+    const actor: string = p.actor_name || p.actor_handle || "Someone";
+    switch (type) {
+      case "new_follower":         return `👤 ${actor} started following you`;
+      case "new_like":             return `❤️ ${actor} liked your post`;
+      case "new_reply":            return `💬 ${actor} replied to your post`;
+      case "new_mention":          return `💬 ${actor} mentioned you`;
+      case "gift":                 return `🎁 ${actor} sent you a gift`;
+      case "missed_call":          return `📞 Missed call from ${actor}`;
+      case "order_placed":         return `🛍️ New order from ${actor}`;
+      case "order_shipped":        return `📦 Your order has shipped`;
+      case "escrow_released":      return `💰 Payment released to your wallet`;
+      case "dispute_raised":       return `⚠️ Dispute opened by ${actor}`;
+      case "refund_issued":        return `✅ Refund issued to your wallet`;
+      case "shop_review":          return `⭐ ${actor} left you a review`;
+      case "acoin_received":       return `💰 ${p.body || "AC received"}`;
+      case "acoin_sent":           return `💸 ${p.body || "AC sent"}`;
+      case "live_started":         return `🔴 ${actor} is live now`;
+      case "channel_post":         return `📢 New post from ${actor}`;
+      case "subscription_activated": return `⭐ Premium subscription activated`;
+      case "seller_approved":      return `✅ Seller account approved`;
+      case "verification_approved":return `✅ Your account is now verified`;
+      case "system_welcome":       return `👋 Welcome to AfuChat!`;
+      default:                     return p.title || p.body || "Notification";
+    }
+  } catch {
+    return null;
+  }
+}
+
 function buildMsgPreview(encrypted_content: string | null, attachment_type: string | null): string {
   const raw = encrypted_content || "";
   if (attachment_type === "story_reply") {
@@ -122,6 +157,8 @@ function buildMsgPreview(encrypted_content: string | null, attachment_type: stri
   if (attachment_type === "video") return "🎥 Video";
   if (attachment_type === "audio") return "🎤 Voice message";
   if (attachment_type === "file") return raw ? `📎 ${stripMdPreview(raw)}` : "📎 File";
+  const sysPreview = decodeSysNotifPreview(raw);
+  if (sysPreview) return sysPreview;
   return stripMdPreview(raw);
 }
 

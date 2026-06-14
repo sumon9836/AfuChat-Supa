@@ -219,6 +219,9 @@ if (Platform.OS === "android" && !("RN$Bridgeless" in global) && UIManager.setLa
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 const REACTION_EMOJIS_ADVANCED = ["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "👏", "😍", "🤔", "😭", "🥳", "💯", "🎉", "😎", "✨"];
+const NOTIF_FILTER_SOCIAL   = new Set(["new_follower","new_like","new_reply","new_mention","gift","missed_call","live_started","channel_post"]);
+const NOTIF_FILTER_SHOP     = new Set(["order_placed","order_shipped","escrow_released","dispute_raised","refund_issued","shop_review"]);
+const NOTIF_FILTER_PAYMENTS = new Set(["acoin_received","acoin_sent","subscription_activated","seller_approved","seller_rejected","verification_approved","verification_update"]);
 const BRAND_FALLBACK = Colors.brand;
 const MIC_CANCEL_THRESHOLD = -100;
 const MIC_LOCK_THRESHOLD = -80;
@@ -1686,6 +1689,7 @@ function ChatScreen() {
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [isAfuAiTyping, setIsAfuAiTyping] = useState(false);
   const [showAfuAiMenu, setShowAfuAiMenu] = useState(false);
+  const [notifFilter, setNotifFilter] = useState<"all"|"social"|"shop"|"payments"|"other">("all");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -5122,6 +5126,17 @@ STRICT RULES:
       ? tryParseSysNotif(item.encrypted_content || "")
       : null;
 
+    // Apply notification filter
+    if (sysNotifData && notifFilter !== "all") {
+      const t = sysNotifData.type;
+      const pass =
+        (notifFilter === "social"   && NOTIF_FILTER_SOCIAL.has(t))   ||
+        (notifFilter === "shop"     && NOTIF_FILTER_SHOP.has(t))     ||
+        (notifFilter === "payments" && NOTIF_FILTER_PAYMENTS.has(t)) ||
+        (notifFilter === "other"    && !NOTIF_FILTER_SOCIAL.has(t) && !NOTIF_FILTER_SHOP.has(t) && !NOTIF_FILTER_PAYMENTS.has(t));
+      if (!pass) return null;
+    }
+
     return (
       <View style={{ marginTop: showDate ? 0 : spacing }}>
         {showDate && (
@@ -5173,7 +5188,7 @@ STRICT RULES:
         )}
       </View>
     );
-  }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup]);
+  }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup, notifFilter, isAfuChatSystemChat]);
 
   // Single source of truth for the bottom offset.
   // The floatingInputContainer is position:absolute so it cannot rely on
@@ -5516,11 +5531,39 @@ STRICT RULES:
 
         {isAfuChatSystemChat ? (
           <View style={[st.inputFloatOuter, { paddingBottom: 8 }]}>
-            <View style={[st.limitedGlass, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Ionicons name="notifications-outline" size={15} color={BRAND} style={{ marginRight: 8 }} />
-              <Text style={[st.limitedText, { color: colors.textSecondary }]}>
-                Your notifications — follows, likes, orders, and more
-              </Text>
+            <View style={[st.notifFilterBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {([
+                { key: "all",      label: "All",      icon: "notifications" },
+                { key: "social",   label: "Social",   icon: "heart" },
+                { key: "shop",     label: "Shop",     icon: "bag-handle" },
+                { key: "payments", label: "Payments", icon: "wallet" },
+              ] as const).map((f) => {
+                const active = notifFilter === f.key;
+                return (
+                  <TouchableOpacity
+                    key={f.key}
+                    onPress={() => setNotifFilter(f.key)}
+                    style={[
+                      st.notifFilterChip,
+                      active
+                        ? { backgroundColor: BRAND, borderColor: BRAND }
+                        : { backgroundColor: "transparent", borderColor: colors.border },
+                    ]}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  >
+                    <Ionicons
+                      name={f.icon as any}
+                      size={12}
+                      color={active ? "#fff" : colors.textMuted}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text style={[st.notifFilterChipText, { color: active ? "#fff" : colors.textMuted }]}>
+                      {f.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         ) : messageLimited ? (
@@ -7543,6 +7586,29 @@ const st = StyleSheet.create({
     borderRadius: 26,
     borderWidth: 0.5,
     marginHorizontal: 8,
+  },
+  notifFilterBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 26,
+    borderWidth: 0.5,
+    marginHorizontal: 8,
+  },
+  notifFilterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  notifFilterChipText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
   },
 
   strangerBanner: {

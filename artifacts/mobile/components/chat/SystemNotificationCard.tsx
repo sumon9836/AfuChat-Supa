@@ -138,7 +138,7 @@ function relTime(iso: string): string {
 // ─── Body text builder ────────────────────────────────────────────────────────
 
 function buildBodyParts(data: SysNotifData): { bold: string; rest: string } | null {
-  const name = data.actor_name || data.actor_handle || "";
+  const name = data.actor_name || data.actor_handle || "Someone";
   const d = data.data || {};
 
   switch (data.type) {
