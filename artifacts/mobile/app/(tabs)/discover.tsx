@@ -65,6 +65,7 @@ import { VideoCommentsSheet } from "@/components/ui/VideoCommentsSheet";
 import { UserRecsCard } from "@/components/discover/UserRecsCard";
 import { DismissSheet, type DismissReason } from "@/components/discover/DismissSheet";
 import { SuggestedUsers } from "@/components/ui/SuggestedUsers";
+import { LinearGradient } from "@/components/ui/SafeGradient";
 
 type PostItem = {
   id: string;
@@ -128,8 +129,163 @@ function BookmarkButton({ bookmarked, onPress }: { bookmarked: boolean; onPress:
   );
 }
 
+// ─── PostImages: Advanced multi-layout image display ─────────────────────────
+function PostImages({
+  images,
+  onPress,
+  onDoubleTap,
+  effectiveW,
+}: {
+  images: string[];
+  onPress: (index: number) => void;
+  onDoubleTap: () => void;
+  effectiveW: number;
+}) {
+  const { isDark } = useTheme();
+  const CORNER = 14;
+  const GAP = 3;
+  const SIDE = 8;
+  const IMG_W = effectiveW - SIDE * 2;
+  const BG = isDark ? "#1c1c1e" : "#e9e9e9";
+
+  const heartOpacity = useRef(new Animated.Value(0)).current;
+  const heartScale   = useRef(new Animated.Value(0.3)).current;
+  const lastTapMs    = useRef(0);
+  const tapTimer     = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function flashHeart() {
+    heartOpacity.setValue(0);
+    heartScale.setValue(0.3);
+    Animated.parallel([
+      Animated.timing(heartOpacity, { toValue: 1, duration: 120, useNativeDriver: true }),
+      Animated.spring(heartScale,   { toValue: 1, speed: 50, bounciness: 14, useNativeDriver: true }),
+    ]).start(() => {
+      setTimeout(() => {
+        Animated.timing(heartOpacity, { toValue: 0, duration: 380, useNativeDriver: true }).start();
+      }, 500);
+    });
+    onDoubleTap();
+  }
+
+  function handleTap(idx: number) {
+    const now = Date.now();
+    if (now - lastTapMs.current < 320) {
+      if (tapTimer.current) { clearTimeout(tapTimer.current); tapTimer.current = null; }
+      lastTapMs.current = 0;
+      flashHeart();
+    } else {
+      lastTapMs.current = now;
+      tapTimer.current = setTimeout(() => { tapTimer.current = null; onPress(idx); }, 320);
+    }
+  }
+
+  // ── 1 image: full width, 4:3, gradient + double-tap heart ──────────────────
+  if (images.length === 1) {
+    const h = Math.round(IMG_W * 0.75);
+    return (
+      <View style={{ marginHorizontal: SIDE, marginBottom: 10 }}>
+        <TouchableOpacity
+          activeOpacity={0.95}
+          onPress={() => handleTap(0)}
+          style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG }}
+        >
+          <ExpoImage
+            source={{ uri: images[0] }}
+            style={{ width: IMG_W, height: h }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            priority="high"
+            transition={320}
+          />
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.28)"]}
+            style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: Math.round(h * 0.42) }}
+            pointerEvents="none"
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={{ position: "absolute", alignSelf: "center", top: h / 2 - 44, opacity: heartOpacity, transform: [{ scale: heartScale }] }}
+          >
+            <Ionicons name="heart" size={88} color="#FF3B30" />
+          </Animated.View>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // ── 2 images: side by side ─────────────────────────────────────────────────
+  if (images.length === 2) {
+    const cellW = (IMG_W - GAP) / 2;
+    const cellH = Math.round(cellW * 0.82);
+    return (
+      <View style={{ marginHorizontal: SIDE, marginBottom: 10, flexDirection: "row", gap: GAP }}>
+        {images.map((uri, i) => (
+          <TouchableOpacity
+            key={i}
+            activeOpacity={0.93}
+            onPress={() => onPress(i)}
+            style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG }}
+          >
+            <ExpoImage source={{ uri }} style={{ width: cellW, height: cellH }} contentFit="cover" cachePolicy="memory-disk" priority={i === 0 ? "high" : "normal"} transition={320} />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  }
+
+  // ── 3 images: big left (portrait) + 2 stacked right ───────────────────────
+  if (images.length === 3) {
+    const leftW  = Math.round(IMG_W * 0.58);
+    const rightW = IMG_W - leftW - GAP;
+    const totalH = Math.round(leftW * 1.15);
+    const rightH = Math.round((totalH - GAP) / 2);
+    return (
+      <View style={{ marginHorizontal: SIDE, marginBottom: 10, flexDirection: "row", gap: GAP }}>
+        <TouchableOpacity activeOpacity={0.93} onPress={() => onPress(0)} style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG }}>
+          <ExpoImage source={{ uri: images[0] }} style={{ width: leftW, height: totalH }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={320} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, gap: GAP }}>
+          {[1, 2].map((i) => (
+            <TouchableOpacity key={i} activeOpacity={0.93} onPress={() => onPress(i)} style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG }}>
+              <ExpoImage source={{ uri: images[i] }} style={{ width: rightW, height: rightH }} contentFit="cover" cachePolicy="memory-disk" priority="normal" transition={320} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  // ── 4+ images: 2×2 grid, last cell shows "+N more" ────────────────────────
+  const cellW    = (IMG_W - GAP) / 2;
+  const cellH    = Math.round(cellW * 0.72);
+  const overflow = images.length - 4;
+  return (
+    <View style={{ marginHorizontal: SIDE, marginBottom: 10, gap: GAP }}>
+      {([0, 2] as const).map((rowStart) => (
+        <View key={rowStart} style={{ flexDirection: "row", gap: GAP }}>
+          {[0, 1].map((col) => {
+            const idx        = rowStart + col;
+            if (idx >= 4) return null;
+            const isOverflow = idx === 3 && overflow > 0;
+            return (
+              <TouchableOpacity key={idx} activeOpacity={0.93} onPress={() => onPress(idx)} style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG }}>
+                <ExpoImage source={{ uri: images[idx] }} style={{ width: cellW, height: cellH }} contentFit="cover" cachePolicy="memory-disk" priority={rowStart === 0 ? "high" : "normal"} transition={320} />
+                {isOverflow && (
+                  <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.52)", alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ color: "#fff", fontSize: 24, fontFamily: "Inter_700Bold" }}>+{overflow}</Text>
+                    <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontFamily: "Inter_500Medium", marginTop: 2 }}>more</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBookmark, onToggleFollow, onImagePress, onRequireAuth, colWidth, onOpenComments, onDismiss, onMuteAuthor }: { item: PostItem; onToggleLike: (postId: string) => void; onToggleBookmark: (postId: string) => void; onToggleFollow: (authorId: string) => void; onImagePress?: (images: string[], index: number) => void; onRequireAuth?: () => void; colWidth?: number; onOpenComments: (postId: string, authorId: string) => void; onDismiss?: (postId: string) => void; onMuteAuthor?: (authorId: string, handle: string) => void }) {
-  const { horizontalScrollActive } = React.useContext(TabSwipeContext);
   const { colors } = useTheme();
   const { preferredLang } = useLanguage();
   const { width: screenW } = useWindowDimensions();
@@ -142,7 +298,6 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
   const [menuVisible, setMenuVisible] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareablePost, setShareablePost] = useState<ShareablePost | null>(null);
-  const [imgDotIdx, setImgDotIdx] = useState(0);
   const isOwnPost = currentUser?.id === item.author_id;
 
   const heartScale = useRef(new Animated.Value(1)).current;
@@ -173,11 +328,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
 
   const allImages = item.images.length > 0 ? item.images : item.image_url ? [item.image_url] : [];
   const effectiveW = colWidth ?? screenW;
-  // Left indent: 16 card padding + 40 avatar + 10 gap = 66px (Twitter-style alignment under author name)
   const CONTENT_INDENT = 66;
-  const singleImgW = effectiveW - CONTENT_INDENT - 16;
-  const multiImgW = (effectiveW - CONTENT_INDENT - 28) / 2;
-  const imgW = allImages.length === 1 ? singleImgW : multiImgW;
 
   useEffect(() => {
     if (!preferredLang || !item.content?.trim()) { setDisplayContent(item.content); setIsTranslated(false); return; }
@@ -459,50 +610,17 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
             </View>
           )}
 
-          {/* ── Images carousel ── */}
+          {/* ── Images ── */}
           {allImages.length > 0 && item.post_type !== "video" && item.post_type !== "article" && (
-            <View style={[styles.images, { marginLeft: CONTENT_INDENT }]}>
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                style={{ width: singleImgW, borderRadius: 12, overflow: "hidden" }}
-                onScrollBeginDrag={() => { horizontalScrollActive.value = true; }}
-                onScrollEndDrag={() => { horizontalScrollActive.value = false; }}
-                onMomentumScrollEnd={(e) => {
-                  horizontalScrollActive.value = false;
-                  const idx = Math.round(e.nativeEvent.contentOffset.x / singleImgW);
-                  setImgDotIdx(Math.max(0, Math.min(idx, allImages.length - 1)));
-                }}
-                scrollEventThrottle={16}
-              >
-                {allImages.map((uri, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    activeOpacity={0.9}
-                    onPress={(e) => { e.stopPropagation(); onImagePress?.(allImages, i); }}
-                  >
-                    <View style={{ width: singleImgW, height: Math.round(singleImgW * 0.78), backgroundColor: "#0a0a0a", justifyContent: "center", alignItems: "center" }}>
-                      <ExpoImage
-                        source={{ uri }}
-                        style={{ width: singleImgW, height: Math.round(singleImgW * 0.78) }}
-                        contentFit="contain"
-                        cachePolicy="memory-disk"
-                        priority={i === 0 ? "high" : "normal"}
-                        transition={200}
-                      />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-              {allImages.length > 1 && (
-                <View style={styles.carouselDots}>
-                  {allImages.map((_, i) => (
-                    <View key={i} style={[styles.carouselDot, i === imgDotIdx && styles.carouselDotActive]} />
-                  ))}
-                </View>
-              )}
-            </View>
+            <PostImages
+              images={allImages}
+              onPress={(i) => { onImagePress?.(allImages, i); }}
+              onDoubleTap={() => {
+                if (!currentUser) { onRequireAuth?.(); return; }
+                if (!item.liked) { animateHeart(); onToggleLike(item.id); }
+              }}
+              effectiveW={effectiveW}
+            />
           )}
 
           {/* ── Footer ── */}
