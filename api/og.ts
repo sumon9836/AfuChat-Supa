@@ -66,13 +66,15 @@ function buildOgTags(opts: {
   image: string;
   url: string;
   type?: string;
+  videoUrl?: string;
+  embedUrl?: string;
 }): string {
-  const { title, description, image, url, type = "article" } = opts;
+  const { title, description, image, url, type = "article", videoUrl, embedUrl } = opts;
   const t = esc(title);
   const d = esc(description);
   const i = esc(image);
   const u = esc(url);
-  return [
+  const tags = [
     `<title>${t}</title>`,
     `<meta name="description" content="${d}" />`,
     `<meta property="og:type" content="${type}" />`,
@@ -83,12 +85,33 @@ function buildOgTags(opts: {
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
     `<meta property="og:url" content="${u}" />`,
-    `<meta name="twitter:card" content="summary_large_image" />`,
+  ];
+  if (videoUrl) {
+    const v = esc(videoUrl);
+    tags.push(
+      `<meta property="og:video" content="${v}" />`,
+      `<meta property="og:video:secure_url" content="${v}" />`,
+      `<meta property="og:video:type" content="video/mp4" />`,
+      `<meta property="og:video:width" content="720" />`,
+      `<meta property="og:video:height" content="1280" />`,
+    );
+  }
+  tags.push(
+    `<meta name="twitter:card" content="${embedUrl ? "player" : "summary_large_image"}" />`,
     `<meta name="twitter:site" content="@afuchat" />`,
     `<meta name="twitter:title" content="${t}" />`,
     `<meta name="twitter:description" content="${d}" />`,
     `<meta name="twitter:image" content="${i}" />`,
-  ].join("\n    ");
+  );
+  if (embedUrl) {
+    const e = esc(embedUrl);
+    tags.push(
+      `<meta name="twitter:player" content="${e}" />`,
+      `<meta name="twitter:player:width" content="360" />`,
+      `<meta name="twitter:player:height" content="640" />`,
+    );
+  }
+  return tags.join("\n    ");
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -102,7 +125,7 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     if (type === "video") {
       const post = await sbFetch(
-        `posts?id=eq.${postId}&post_type=eq.video&select=id,content,image_url,created_at,profiles!posts_author_id_fkey(display_name,handle)&limit=1`
+        `posts?id=eq.${postId}&post_type=eq.video&select=id,content,video_url,image_url,video_thumbnail_url,created_at,profiles!posts_author_id_fkey(display_name,handle)&limit=1`
       );
       if (post) {
         const author =
@@ -110,9 +133,11 @@ export default async function handler(req: Request): Promise<Response> {
         const snippet = trunc(post.content || "", 160) || "Watch this video on AfuChat.";
         const title = `${author} · Video on ${SITE_NAME}`;
         const description = snippet;
-        const image = post.image_url || DEFAULT_OG_IMAGE;
+        const image = post.video_thumbnail_url || post.image_url || DEFAULT_OG_IMAGE;
         const pageUrl = `${SITE_URL}/video/${rawId}`;
-        ogTags = buildOgTags({ title, description, image, url: pageUrl, type: "video.other" });
+        const embedUrl = `${SITE_URL}/video/${rawId}/embed`;
+        const videoUrl: string | undefined = post.video_url || undefined;
+        ogTags = buildOgTags({ title, description, image, url: pageUrl, type: "video.other", videoUrl, embedUrl });
       }
     } else {
       const post = await sbFetch(

@@ -9,6 +9,10 @@
       "destination": "/api/og?type=post&id=:id"
     },
     {
+      "source": "/video/:id/embed",
+      "destination": "/api/embed?id=:id"
+    },
+    {
       "source": "/video/:id",
       "destination": "/api/og?type=video&id=:id"
     },
@@ -37,7 +41,24 @@
       ]
     },
     {
-      "source": "/(.*)",
+      "source": "/video/:id/embed",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "ALLOWALL"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors *"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/((?!video/[^/]+/embed).*)",
       "headers": [
         {
           "key": "X-Content-Type-Options",
