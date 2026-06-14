@@ -1678,6 +1678,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       isNearActive={Math.abs(index - activeIndex) <= 2}
       isFollowing={followingSet.has(item.author_id)}
       isSelf={user?.id === item.author_id}
+      commentsOpen={commentPostId === item.id}
       {...videoItemProps}
     />
   // eslint-disable-next-line react-hooks/exhaustive-deps

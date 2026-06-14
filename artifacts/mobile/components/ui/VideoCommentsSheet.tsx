@@ -410,28 +410,31 @@ function VideoReplyItem({
             </>
           )}
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 18, marginTop: 8, marginBottom: 2 }}>
-            <TouchableOpacity onPress={handleLike} activeOpacity={0.7} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Animated.View style={{ transform: [{ scale: likeScale }] }}>
-                <Ionicons name={liked ? "heart" : "heart-outline"} size={14} color={liked ? "#FF2D55" : ri_textMuted} />
-              </Animated.View>
-              <Text style={{ color: liked ? "#FF2D55" : ri_textMuted, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>
-                {localLikes > 0 ? localLikes : "Like"}
-              </Text>
-            </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 8, marginBottom: 2 }}>
             <TouchableOpacity onPress={() => onReplyTo(r)} activeOpacity={0.7} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Ionicons name="arrow-undo-outline" size={13} color={ri_textMuted} />
               <Text style={{ color: ri_textMuted, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>Reply</Text>
             </TouchableOpacity>
             {hasChildren && (
               <TouchableOpacity onPress={() => setCollapsed((c) => !c)} activeOpacity={0.7} style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
                 <Ionicons name={collapsed ? "chevron-down" : "chevron-up"} size={12} color={threadColor} />
                 <Text style={{ color: threadColor, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>
-                  {collapsed ? `${r.children!.length} ${r.children!.length === 1 ? "reply" : "replies"}` : "Hide replies"}
+                  {collapsed ? `View ${r.children!.length} ${r.children!.length === 1 ? "reply" : "replies"}` : "Hide replies"}
                 </Text>
               </TouchableOpacity>
             )}
           </View>
+        </View>
+        <View style={{ alignItems: "center", paddingTop: 4, paddingLeft: 4, minWidth: 40 }}>
+          <TouchableOpacity onPress={handleLike} activeOpacity={0.7}>
+            <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+              <Ionicons name={liked ? "heart" : "heart-outline"} size={18} color={liked ? "#FF2D55" : ri_textMuted} />
+            </Animated.View>
+          </TouchableOpacity>
+          {localLikes > 0 && (
+            <Text style={{ color: liked ? "#FF2D55" : ri_textMuted, fontSize: 10, fontFamily: "Inter_600SemiBold", marginTop: 2 }}>
+              {localLikes}
+            </Text>
+          )}
         </View>
       </View>
       {isTop && !hasChildren && (
@@ -639,6 +642,7 @@ export function VideoCommentsSheet({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [attachedImage, setAttachedImage] = useState<{ uri: string; width: number; height: number } | null>(null);
+  const [showEmojiPanel, setShowEmojiPanel] = useState(false);
 
   const listRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
@@ -646,8 +650,8 @@ export function VideoCommentsSheet({
 
   useEffect(() => {
     if (Platform.OS === "web") return;
-    const showEvent = "keyboardDidShow";
-    const hideEvent = "keyboardDidHide";
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
     const show = Keyboard.addListener(showEvent, (e) => setKbHeight(e.endCoordinates.height));
     const hide = Keyboard.addListener(hideEvent, () => setKbHeight(0));
     return () => { show.remove(); hide.remove(); };
@@ -705,6 +709,7 @@ export function VideoCommentsSheet({
     setReplies([]); setLoading(true); setText(""); setReplyingTo(null); setNewCommentIds(new Set());
     discardRecording();
     setAttachedImage(null);
+    setShowEmojiPanel(false);
     loadReplies();
   }, [visible, postId, loadReplies]);
 
@@ -1007,20 +1012,25 @@ export function VideoCommentsSheet({
             <View style={cStyles.header}>
               <View style={{ flex: 1 }}>
                 <Text style={[cStyles.title, { color: titleClr }]}>
-                  Comments{replies.length > 0 && <Text style={{ color: titleCntClr, fontFamily: "Inter_400Regular", fontSize: 14 }}> {formatCount(replies.length)}</Text>}
+                  {replies.length > 0 ? `${formatCount(replies.length)} ` : ""}Comments
                 </Text>
               </View>
-              <View style={cStyles.sortRow}>
-                {(["recent", "top"] as const).map((mode) => (
-                  <TouchableOpacity key={mode} onPress={() => setSortMode(mode)} activeOpacity={0.7}
-                    style={[cStyles.sortTab, sortMode === mode && { backgroundColor: accent + "22", borderColor: accent + "55" }]}>
-                    <Text style={[cStyles.sortTabText, { color: sortMode === mode ? accent : sortTabTxt }]}>
-                      {mode === "recent" ? "Recent" : "Top"}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <TouchableOpacity onPress={onClose} hitSlop={12}>
+              <TouchableOpacity
+                onPress={() => setSortMode((m) => m === "recent" ? "top" : "recent")}
+                hitSlop={10}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: "row", alignItems: "center", gap: 4,
+                  paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16,
+                  backgroundColor: sortMode === "top" ? accent + "22" : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"),
+                }}
+              >
+                <Ionicons name="funnel-outline" size={13} color={sortMode === "top" ? accent : sortTabTxt} />
+                <Text style={{ color: sortMode === "top" ? accent : sortTabTxt, fontSize: 12, fontFamily: "Inter_600SemiBold" }}>
+                  {sortMode === "recent" ? "Recent" : "Top"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onClose} hitSlop={12} style={{ paddingLeft: 6 }}>
                 <Ionicons name="close" size={22} color={closeBtnClr} />
               </TouchableOpacity>
             </View>
@@ -1164,80 +1174,89 @@ export function VideoCommentsSheet({
         />
       )}
 
-      <View style={[cStyles.emojiBar, { borderTopColor: borderTopClr }]}>
-        {QUICK_EMOJIS.map((e) => (
-          <TouchableOpacity key={e} onPress={() => setText((t) => t + e)} style={cStyles.emojiBtn} activeOpacity={0.6}>
-            <Text style={cStyles.emojiText}>{e}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {showEmojiPanel && (
+        <View style={[cStyles.emojiBar, { borderTopColor: borderTopClr }]}>
+          {QUICK_EMOJIS.map((e) => (
+            <TouchableOpacity key={e} onPress={() => { setText((t) => t + e); setShowEmojiPanel(false); }} style={cStyles.emojiBtn} activeOpacity={0.6}>
+              <Text style={cStyles.emojiText}>{e}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {user ? (
-        <View style={[cStyles.inputRow, { borderTopColor: borderTopClr, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={[cStyles.inputRow, { borderTopColor: borderTopClr, paddingBottom: kbHeight > 0 ? 4 : Math.max(insets.bottom, 16) }]}>
           <Avatar uri={profile?.avatar_url} name={profile?.display_name || "You"} size={32} />
 
-          {recordState === "recording" ? (
-            <RecordingBar elapsed={recordElapsed} onStop={() => stopRecording()} accent={accent} />
-          ) : (
-            <View style={{ flex: 1, position: "relative" }}>
-              <TextInput
-                ref={inputRef}
-                style={[cStyles.input, { backgroundColor: inputBg, color: inputTxt }]}
-                placeholder={recordState === "recorded" ? "Add a caption… (optional)" : "Add a comment…"}
-                placeholderTextColor={inputPH}
-                value={text}
-                onChangeText={setText}
-                multiline
-                maxLength={500}
-              />
-              {text.length > 400 && (
-                <Text style={[cStyles.charCounter, { color: charLeft < 20 ? "#FF453A" : inputPH }]}>
-                  {charLeft}
-                </Text>
-              )}
-            </View>
-          )}
+          <View style={[cStyles.inputPill, { backgroundColor: inputBg }]}>
+            {recordState === "recording" ? (
+              <RecordingBar elapsed={recordElapsed} onStop={() => stopRecording()} accent={accent} />
+            ) : (
+              <>
+                <TextInput
+                  ref={inputRef}
+                  style={[cStyles.input, { color: inputTxt }]}
+                  placeholder={recordState === "recorded" ? "Add a caption… (optional)" : "Add a comment…"}
+                  placeholderTextColor={inputPH}
+                  value={text}
+                  onChangeText={setText}
+                  multiline
+                  maxLength={500}
+                />
+                {text.length > 400 && (
+                  <Text style={[cStyles.charCounter, { color: charLeft < 20 ? "#FF453A" : inputPH }]}>
+                    {charLeft}
+                  </Text>
+                )}
+              </>
+            )}
+          </View>
 
-          {recordState !== "recording" && (
-            <View style={cStyles.attachRow}>
+          {canSend ? (
+            <Animated.View style={{ transform: [{ scale: sendScale }] }}>
+              <TouchableOpacity
+                onPress={sendReply}
+                disabled={!canSend}
+                style={[cStyles.sendBtn, { backgroundColor: accent }]}
+              >
+                {sending
+                  ? <ActivityIndicator size={14} color="#fff" />
+                  : <Ionicons name="arrow-up" size={16} color="#fff" />
+                }
+              </TouchableOpacity>
+            </Animated.View>
+          ) : recordState !== "recording" ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
               <TouchableOpacity
                 onPress={pickImage}
-                activeOpacity={0.7}
-                style={[cStyles.attachBtn, attachedImage && { backgroundColor: accent + "30" }]}
                 hitSlop={6}
+                activeOpacity={0.7}
+                style={[cStyles.actionIconBtn, attachedImage && { backgroundColor: accent + "30" }]}
               >
-                <Ionicons name="image-outline" size={20} color={attachedImage ? accent : attachIconCl} />
+                <Ionicons name="image-outline" size={22} color={attachedImage ? accent : attachIconCl} />
               </TouchableOpacity>
-
-              {recordState === "idle" && Platform.OS !== "web" && (
-                <TouchableOpacity
-                  onPress={startRecording}
-                  activeOpacity={0.7}
-                  style={cStyles.attachBtn}
-                  hitSlop={6}
-                >
-                  <Ionicons name="mic-outline" size={20} color={attachIconCl} />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                onPress={() => setShowEmojiPanel((p) => !p)}
+                hitSlop={6}
+                activeOpacity={0.7}
+                style={[cStyles.actionIconBtn, showEmojiPanel && { backgroundColor: accent + "25" }]}
+              >
+                <Ionicons name={showEmojiPanel ? "happy" : "happy-outline"} size={22} color={showEmojiPanel ? accent : attachIconCl} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => { setText((t) => t + "@"); setTimeout(() => inputRef.current?.focus(), 50); }}
+                hitSlop={6}
+                activeOpacity={0.7}
+                style={cStyles.actionIconBtn}
+              >
+                <Text style={{ color: attachIconCl, fontSize: 18, fontFamily: "Inter_700Bold", lineHeight: 22 }}>@</Text>
+              </TouchableOpacity>
             </View>
-          )}
-
-          <Animated.View style={{ transform: [{ scale: sendScale }] }}>
-            <TouchableOpacity
-              onPress={sendReply}
-              disabled={!canSend}
-              style={[cStyles.sendBtn, { backgroundColor: canSend ? accent : sendDisabled }]}
-            >
-              {sending
-                ? <ActivityIndicator size={14} color="#fff" />
-                : <Ionicons name="arrow-up" size={16} color="#fff" />
-              }
-            </TouchableOpacity>
-          </Animated.View>
+          ) : null}
         </View>
       ) : (
         <TouchableOpacity
-          style={{ paddingVertical: 14, alignItems: "center", paddingBottom: Math.max(insets.bottom + 14, 20) }}
+          style={{ paddingVertical: 14, alignItems: "center", paddingBottom: kbHeight > 0 ? 8 : Math.max(insets.bottom + 14, 20) }}
           onPress={() => { onClose(); router.push("/(auth)/login"); }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, borderWidth: 1, borderColor: accent + "50", backgroundColor: accent + "18" }}>
@@ -1261,20 +1280,25 @@ export function VideoCommentsSheet({
       <View style={cStyles.header}>
         <View style={{ flex: 1 }}>
           <Text style={[cStyles.title, { color: titleClr }]}>
-            Comments{replies.length > 0 && <Text style={{ color: titleCntClr, fontFamily: "Inter_400Regular", fontSize: 14 }}> {formatCount(replies.length)}</Text>}
+            {replies.length > 0 ? `${formatCount(replies.length)} ` : ""}Comments
           </Text>
         </View>
-        <View style={cStyles.sortRow}>
-          {(["recent", "top"] as const).map((mode) => (
-            <TouchableOpacity key={mode} onPress={() => setSortMode(mode)} activeOpacity={0.7}
-              style={[cStyles.sortTab, sortMode === mode && { backgroundColor: accent + "22", borderColor: accent + "55" }]}>
-              <Text style={[cStyles.sortTabText, { color: sortMode === mode ? accent : sortTabTxt }]}>
-                {mode === "recent" ? "Recent" : "Top"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TouchableOpacity onPress={onClose} hitSlop={12}>
+        <TouchableOpacity
+          onPress={() => setSortMode((m) => m === "recent" ? "top" : "recent")}
+          hitSlop={10}
+          activeOpacity={0.7}
+          style={{
+            flexDirection: "row", alignItems: "center", gap: 4,
+            paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16,
+            backgroundColor: sortMode === "top" ? accent + "22" : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"),
+          }}
+        >
+          <Ionicons name="funnel-outline" size={13} color={sortMode === "top" ? accent : sortTabTxt} />
+          <Text style={{ color: sortMode === "top" ? accent : sortTabTxt, fontSize: 12, fontFamily: "Inter_600SemiBold" }}>
+            {sortMode === "recent" ? "Recent" : "Top"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onClose} hitSlop={12} style={{ paddingLeft: 6 }}>
           <Ionicons name="close" size={22} color={closeBtnClr} />
         </TouchableOpacity>
       </View>
@@ -1329,7 +1353,7 @@ export function VideoCommentsSheet({
   }
 
   // ─── Modal mode: stable bottom sheet — fixed height, no expansion gesture ────
-  const stableH = kbHeight > 0 ? screenDimH - kbHeight - 20 : screenDimH * 0.65;
+  const stableH = kbHeight > 0 ? screenDimH - kbHeight - 8 : screenDimH * 0.65;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={dismissSheet} statusBarTranslucent>
@@ -1390,11 +1414,12 @@ const cStyles = StyleSheet.create({
   emojiBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, gap: 2 },
   emojiBtn: { flex: 1, alignItems: "center", paddingVertical: 6 },
   emojiText: { fontSize: 20 },
-  inputRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  input: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 14, maxHeight: 100, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20 },
-  sendBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  charCounter: { position: "absolute", right: 14, bottom: 10, fontSize: 10, fontFamily: "Inter_500Medium" },
-  attachRow: { flexDirection: "row", alignItems: "center", gap: 2 },
+  inputRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  inputPill: { flex: 1, flexDirection: "row", alignItems: "center", borderRadius: 22, paddingHorizontal: 14, paddingVertical: 6, gap: 4 },
+  input: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 14, maxHeight: 100, paddingVertical: 4 },
+  sendBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
+  charCounter: { position: "absolute", right: 4, bottom: 6, fontSize: 10, fontFamily: "Inter_500Medium" },
+  actionIconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   attachBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   imagePreviewBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 8 },
   imageThumbWrap: { position: "relative" },
