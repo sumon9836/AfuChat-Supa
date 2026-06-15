@@ -21,11 +21,12 @@ import { addToHistory, clearHistory, getSearchHistory } from "@/lib/searchStore"
 import { useSuperApp } from "@/lib/superapp/SuperAppContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type SearchTab = "all" | "people" | "posts" | "videos" | "channels" | "events" | "jobs" | "gifts" | "market";
+type SearchTab = "all" | "people" | "posts" | "videos" | "channels" | "groups" | "events" | "jobs" | "gifts" | "market";
 type PersonResult  = { id:string; handle:string; display_name:string; avatar_url:string|null; bio:string|null; is_verified:boolean; current_grade:string; xp?:number; kind:"profile" };
 type PostResult    = { id:string; content:string; author_handle:string; author_name:string; author_avatar:string|null; view_count:number; created_at:string };
 type VideoResult   = { id:string; content:string; video_url:string; image_url:string|null; author_handle:string; author_name:string; author_avatar:string|null; view_count:number; created_at:string };
 type ChannelResult = { id:string; name:string; description:string|null; avatar_url:string|null; subscriber_count:number; owner_handle:string|null };
+type GroupResult   = { id:string; name:string; description:string|null; avatar_url:string|null; member_count:number };
 type EventResult   = { id:string; title:string; emoji:string; price:number; event_date:string; category:string|null; creator_handle:string };
 type GiftResult    = { id:string; name:string; emoji:string; base_xp_cost:number; rarity:string; description:string|null };
 type MarketResult  = { id:string; kind:"product"|"freelance"|"community"; title:string; emoji:string|null; price:number; badge:string; route:string };
@@ -36,13 +37,14 @@ type AllResults = {
   posts: PostResult[];
   videos: VideoResult[];
   channels: ChannelResult[];
+  groups: GroupResult[];
   events: EventResult[];
   gifts: GiftResult[];
   market: MarketResult[];
   jobs: JobResult[];
 };
 
-const EMPTY: AllResults = { people:[], posts:[], videos:[], channels:[], events:[], gifts:[], market:[], jobs:[] };
+const EMPTY: AllResults = { people:[], posts:[], videos:[], channels:[], groups:[], events:[], gifts:[], market:[], jobs:[] };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TABS: { id: SearchTab; label: string; icon: string }[] = [
@@ -51,6 +53,7 @@ const TABS: { id: SearchTab; label: string; icon: string }[] = [
   { id: "posts",    label: "Posts",    icon: "document-text" },
   { id: "videos",   label: "Videos",   icon: "play-circle" },
   { id: "channels", label: "Channels", icon: "megaphone" },
+  { id: "groups",   label: "Groups",   icon: "people-circle" },
   { id: "events",   label: "Events",   icon: "calendar" },
   { id: "jobs",     label: "Jobs",     icon: "briefcase" },
   { id: "gifts",    label: "Gifts",    icon: "gift" },
@@ -164,7 +167,7 @@ export default function AfuSearchApp() {
     const all = currentTab === "all";
 
     try {
-      const [peopleRes, postsRes, videosRes, channelsRes, eventsRes, giftsRes, jobsRes] = await Promise.all([
+      const [peopleRes, postsRes, videosRes, channelsRes, groupsRes, eventsRes, giftsRes, jobsRes] = await Promise.all([
         (all || currentTab === "people")
           ? supabase.from("profiles").select("id,handle,display_name,avatar_url,bio,is_verified,current_grade,xp")
               .or(`handle.ilike.${pat},display_name.ilike.${pat},bio.ilike.${pat}`)
@@ -187,6 +190,13 @@ export default function AfuSearchApp() {
         (all || currentTab === "channels")
           ? supabase.from("channels").select("id,name,description,avatar_url,subscriber_count,owner_id,profiles!channels_owner_id_fkey(handle)")
               .or(`name.ilike.${pat},description.ilike.${pat}`).order("subscriber_count", { ascending: false }).limit(all ? 4 : 20)
+          : Promise.resolve({ data: [] }),
+
+        (all || currentTab === "groups")
+          ? supabase.from("chats").select("id,name,description,avatar_url,member_count")
+              .eq("is_group", true).eq("is_channel", false).eq("is_public", true)
+              .or(`name.ilike.${pat},description.ilike.${pat}`)
+              .order("member_count", { ascending: false }).limit(all ? 4 : 20)
           : Promise.resolve({ data: [] }),
 
         (all || currentTab === "events")
@@ -248,6 +258,10 @@ export default function AfuSearchApp() {
         id: ch.id, name: ch.name, description: ch.description || null, avatar_url: ch.avatar_url || null,
         subscriber_count: ch.subscriber_count || 0, owner_handle: (ch.profiles as any)?.handle || null,
       }));
+      const groups: GroupResult[] = ((groupsRes.data || []) as any[]).map((g: any) => ({
+        id: g.id, name: g.name, description: g.description || null,
+        avatar_url: g.avatar_url || null, member_count: g.member_count || 0,
+      }));
       const events: EventResult[] = ((eventsRes.data || []) as any[]).map((e: any) => ({
         id: e.id, title: e.title, emoji: e.emoji || "🎟️", price: e.price || 0,
         event_date: e.event_date, category: e.category || null, creator_handle: (e.profiles as any)?.handle || "",
@@ -259,7 +273,7 @@ export default function AfuSearchApp() {
       });
 
       if (id !== searchIdRef.current) return;
-      setResults({ people, posts, videos, channels, events, gifts, market: marketItems, jobs });
+      setResults({ people, posts, videos, channels, groups, events, gifts, market: marketItems, jobs });
       if (trimmed.length > 0) addToHistory(trimmed).then(setHistory).catch(() => {});
     } catch {}
     if (id === searchIdRef.current) setLoading(false);
@@ -290,7 +304,7 @@ export default function AfuSearchApp() {
 
   // ── Result counts ──────────────────────────────────────────────────────────
   const totalCount = results.people.length + results.posts.length + results.videos.length +
-    results.channels.length + results.events.length + results.gifts.length + results.market.length + results.jobs.length;
+    results.channels.length + results.groups.length + results.events.length + results.gifts.length + results.market.length + results.jobs.length;
 
   const currentList = (() => {
     switch (tab) {
@@ -298,13 +312,14 @@ export default function AfuSearchApp() {
       case "posts":    return results.posts;
       case "videos":   return results.videos;
       case "channels": return results.channels;
+      case "groups":   return results.groups;
       case "events":   return results.events;
       case "jobs":     return results.jobs;
       case "gifts":    return results.gifts;
       case "market":   return results.market;
       default: return [
         ...results.people, ...results.posts, ...results.videos,
-        ...results.channels, ...results.events, ...results.jobs,
+        ...results.channels, ...results.groups, ...results.events, ...results.jobs,
         ...results.gifts, ...results.market,
       ];
     }
@@ -379,6 +394,25 @@ export default function AfuSearchApp() {
         <View style={s.rowBody}>
           <Text style={[s.name, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
           <Text style={[s.handle, { color: colors.textMuted }]}>{fmtNum(item.subscriber_count)} subscribers</Text>
+          {item.description ? <Text style={[s.bio, { color: colors.textSecondary }]} numberOfLines={1}>{item.description}</Text> : null}
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+      </TouchableOpacity>
+    );
+  }
+
+  function renderGroup(item: GroupResult) {
+    return (
+      <TouchableOpacity key={item.id} style={[s.row, { borderBottomColor: colors.border }]}
+        onPress={() => navigateOutside("/group/[id]", { id: item.id })}>
+        {item.avatar_url
+          ? <Image source={{ uri: item.avatar_url }} style={[s.avatar, { borderRadius: 22 }]} />
+          : <AvatarFallback name={item.name} size={44} color="#22C55E" />}
+        <View style={s.rowBody}>
+          <Text style={[s.name, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
+          <Text style={[s.handle, { color: colors.textMuted }]}>
+            {item.member_count > 0 ? `${fmtNum(item.member_count)} members` : "Public Group"}
+          </Text>
           {item.description ? <Text style={[s.bio, { color: colors.textSecondary }]} numberOfLines={1}>{item.description}</Text> : null}
         </View>
         <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -474,6 +508,7 @@ export default function AfuSearchApp() {
     if ("video_url" in item) return renderVideo(item);
     if ("author_handle" in item) return renderPost(item);
     if ("subscriber_count" in item) return renderChannel(item);
+    if ("member_count" in item) return renderGroup(item);
     if ("event_date" in item) return renderEvent(item);
     if ("base_xp_cost" in item) return renderGift(item);
     if ("badge" in item) return renderMarket(item);

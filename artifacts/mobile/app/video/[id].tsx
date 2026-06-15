@@ -372,7 +372,7 @@ function SocialShareSheet({ visible, onClose, url, title }: { visible: boolean; 
     else await Share.share({ message: `${title} ${url}`, url, title });
   }
   return (
-    <SmartSheet visible={visible} onClose={onClose} backgroundColor="#fff" handleColor="#e0e0e0" peekFraction={0.36}>
+    <SmartSheet visible={visible} onClose={onClose} peekFraction={0.36}>
       <View style={ssStyles.header}>
         <Ionicons name="search-outline" size={20} color="#bbb" />
         <Text style={ssStyles.title}>Send to</Text>
@@ -432,7 +432,7 @@ function VideoContextMenu({ visible, item, onClose, onShare, onRepost, onDownloa
     notinterested: onNotInterested, report: onReport,
   };
   return (
-    <SmartSheet visible={visible} onClose={onClose} backgroundColor="#fff" handleColor="#e0e0e0" peekFraction={0.70}>
+    <SmartSheet visible={visible} onClose={onClose} peekFraction={0.70}>
       <View style={cmStyles.previewRow}>
         <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={34} />
         <View style={{ flex: 1 }}>

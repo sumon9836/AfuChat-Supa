@@ -847,4 +847,128 @@ document.querySelectorAll('.fade').forEach(el => obs.observe(el));
 </html>`);
 });
 
+// ─── Group / Channel Join Page ───────────────────────────────────────────────
+// Handles afuchat.com/join/:id links shared from group info screens.
+// Fetches group metadata from Supabase and serves a branded OG-rich page
+// with a deep link button ("Open in AfuChat") plus a Play Store fallback.
+
+router.get("/join/:id", async (req, res) => {
+  const { id } = req.params;
+
+  // Validate UUID to prevent injection
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return res.redirect("/");
+  }
+
+  let groupName = "Group Chat";
+  let groupDesc = "Join this group on AfuChat — the social super app.";
+  let groupAvatar = "";
+  let memberCount = 0;
+  let isPublic = true;
+  let found = false;
+
+  try {
+    const { data } = await supabase
+      .from("chats")
+      .select("id,name,description,avatar_url,member_count,is_public,is_group,is_channel")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (data) {
+      found = true;
+      groupName = data.name ?? "Group Chat";
+      groupDesc = data.description ?? `Join "${groupName}" on AfuChat.`;
+      groupAvatar = data.avatar_url ?? "";
+      memberCount = data.member_count ?? 0;
+      isPublic = data.is_public !== false;
+    }
+  } catch {}
+
+  if (!found) {
+    return res.redirect("/");
+  }
+
+  const deepLink = `afuchat://join/${id}`;
+  const pageUrl = `${URL_}/join/${id}`;
+  const avatarHtml = groupAvatar
+    ? `<img src="${groupAvatar}" alt="${groupName}" class="group-avatar">`
+    : `<div class="group-avatar-fallback">${groupName.charAt(0).toUpperCase()}</div>`;
+
+  const memberText = memberCount > 0 ? `${memberCount.toLocaleString()} member${memberCount !== 1 ? "s" : ""}` : "Public Group";
+
+  res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Join "${groupName}" on AfuChat</title>
+<meta name="description" content="${groupDesc}"/>
+<meta name="robots" content="${isPublic ? "index, follow" : "noindex"}"/>
+<link rel="canonical" href="${pageUrl}"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="AfuChat"/>
+<meta property="og:title" content='Join "${groupName}" on AfuChat'/>
+<meta property="og:description" content="${groupDesc}"/>
+<meta property="og:url" content="${pageUrl}"/>
+${groupAvatar ? `<meta property="og:image" content="${groupAvatar}"/>` : `<meta property="og:image" content="${URL_}/og-default.png"/>`}
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:site" content="@afuchat"/>
+<meta name="twitter:title" content='Join "${groupName}" on AfuChat'/>
+<meta name="twitter:description" content="${groupDesc}"/>
+${groupAvatar ? `<meta name="twitter:image" content="${groupAvatar}"/>` : ""}
+<meta name="theme-color" content="${BRAND}"/>
+<link rel="icon" type="image/png" href="/logo.png"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  .card { background: #fff; border-radius: 24px; padding: 40px 32px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 8px 48px rgba(0,0,0,0.12); }
+  .logo { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 32px; letter-spacing: -0.3px; }
+  .logo span { color: ${BRAND}; }
+  .group-avatar { width: 88px; height: 88px; border-radius: 44px; object-fit: cover; margin: 0 auto 16px; display: block; border: 3px solid #f0f0f0; }
+  .group-avatar-fallback { width: 88px; height: 88px; border-radius: 44px; background: ${BRAND}22; color: ${BRAND}; font-size: 36px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; border: 3px solid ${BRAND}33; }
+  .group-name { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; line-height: 1.2; }
+  .group-desc { font-size: 14px; color: #666; margin-bottom: 10px; line-height: 1.5; }
+  .member-badge { display: inline-flex; align-items: center; gap: 5px; background: ${BRAND}12; color: ${BRAND}; border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 600; margin-bottom: 28px; }
+  .btn-primary { display: block; background: ${BRAND}; color: #fff; border-radius: 14px; padding: 16px 24px; font-size: 16px; font-weight: 700; text-decoration: none; margin-bottom: 12px; transition: opacity 0.15s; letter-spacing: 0.2px; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-secondary { display: block; background: #1a1a1a; color: #fff; border-radius: 14px; padding: 14px 24px; font-size: 14px; font-weight: 600; text-decoration: none; margin-bottom: 24px; transition: opacity 0.15s; }
+  .btn-secondary:hover { opacity: 0.82; }
+  .footer-note { font-size: 12px; color: #aaa; line-height: 1.6; }
+  .footer-note a { color: ${BRAND}; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">Afu<span>Chat</span></div>
+  ${avatarHtml}
+  <h1 class="group-name">${groupName}</h1>
+  ${groupDesc !== `Join "${groupName}" on AfuChat.` ? `<p class="group-desc">${groupDesc}</p>` : ""}
+  <div class="member-badge">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+    ${memberText}
+  </div>
+  <a href="${deepLink}" class="btn-primary" id="openBtn">Open in AfuChat</a>
+  <a href="${GP_URL}" class="btn-secondary">Get AfuChat on Android</a>
+  <p class="footer-note">Don't have AfuChat yet? <a href="${GP_URL}">Download free on Android</a>.<br>AfuChat — The Social Super App.</p>
+</div>
+<script>
+  // Auto-attempt deep link; show fallback if app not installed
+  document.getElementById("openBtn").addEventListener("click", function(e) {
+    e.preventDefault();
+    const start = Date.now();
+    window.location.href = "${deepLink}";
+    setTimeout(function() {
+      if (Date.now() - start < 2000) {
+        window.location.href = "${GP_URL}";
+      }
+    }, 1500);
+  });
+</script>
+</body>
+</html>`);
+});
+
+// ─── Profile / Referral Link ─────────────────────────────────────────────────
+
 export default router;

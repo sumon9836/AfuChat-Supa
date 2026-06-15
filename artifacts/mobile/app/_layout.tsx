@@ -17,7 +17,7 @@ initCrashReporter();
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Linking, Platform, StyleSheet, Text, TextInput, View } from "react-native";
-import { Stack, usePathname } from "expo-router";
+import { Stack, usePathname, router } from "expo-router";
 import { setCurrentPage, resolvePageInfo } from "@/lib/pageTracker";
 import { StatusBar } from "expo-status-bar";
 import * as Font from "expo-font";
@@ -197,11 +197,14 @@ export default function RootLayout() {
   const fontsReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
-    Linking.getInitialURL()
-      .then(handleIncomingUrl)
-      .catch(() => {});
-
-    const sub = Linking.addEventListener("url", ({ url }) => handleIncomingUrl(url));
+    async function handleUrl(url: string | null) {
+      const action = await handleIncomingUrl(url);
+      if (action?.type === "join_group") {
+        router.push(`/group/${action.groupId}` as any);
+      }
+    }
+    Linking.getInitialURL().then(handleUrl).catch(() => {});
+    const sub = Linking.addEventListener("url", ({ url }) => handleUrl(url));
     return () => sub.remove();
   }, []);
 

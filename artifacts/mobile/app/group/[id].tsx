@@ -31,6 +31,7 @@ import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { showAlert } from "@/lib/alert";
 import { isOnline } from "@/lib/offlineStore";
 import * as Haptics from "@/lib/haptics";
+import { notifySystemMessage } from "@/lib/notifyUser";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -335,7 +336,7 @@ export default function GroupManageScreen() {
 
   async function shareInviteLink() {
     const name = group?.name ?? "group";
-    const link = `https://afuchat.app/join/${id}`;
+    const link = `https://afuchat.com/join/${id}`;
     try {
       await Share.share({
         message: `Join "${name}" on AfuChat:\n${link}`,
@@ -468,14 +469,56 @@ export default function GroupManageScreen() {
   }
 
   async function confirmAddMembers() {
-    if (addSelected.size === 0 || !isOnline()) return;
+    if (addSelected.size === 0 || !isOnline() || !user) return;
     setAddSaving(true);
-    const newMembers = Array.from(addSelected).map((uid) => ({
+
+    const selectedIds = Array.from(addSelected);
+    const newMembers = selectedIds.map((uid) => ({
       chat_id: id,
       user_id: uid,
       is_admin: false,
     }));
-    await supabase.from("chat_members").insert(newMembers);
+
+    const { error: insertErr } = await supabase.from("chat_members").insert(newMembers);
+
+    if (!insertErr) {
+      // Resolve adder's display name from the members list or user metadata
+      const adderName =
+        members.find((m) => m.user_id === user.id)?.profile.display_name ||
+        (user as any).user_metadata?.display_name ||
+        "Someone";
+
+      // Resolve added members' display names
+      const addedProfiles = addCandidates.filter((c) => addSelected.has(c.id));
+      const addedNames = addedProfiles.map((p) => p.display_name);
+      const namesList = addedNames.length <= 3
+        ? addedNames.join(", ")
+        : `${addedNames.slice(0, 2).join(", ")} and ${addedNames.length - 2} others`;
+
+      const groupName = group?.name ?? "the group";
+
+      // Post a system message in the group chat
+      const systemContent = `👋 ${adderName} added ${namesList} to the group`;
+      await supabase.from("messages").insert({
+        chat_id: id,
+        sender_id: user.id,
+        content: systemContent,
+        metadata: { system_action: "members_added", added_by: user.id, added_ids: selectedIds },
+      }).single();
+
+      // Send push notification to each added user
+      await Promise.allSettled(
+        selectedIds.map((uid) =>
+          notifySystemMessage({
+            userId: uid,
+            title: `You were added to "${groupName}"`,
+            body: `${adderName} added you to this group. Tap to see it.`,
+            url: `/group/${id}`,
+          })
+        )
+      );
+    }
+
     setShowAddSheet(false);
     await loadGroup();
     setAddSaving(false);

@@ -25,6 +25,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/hooks/useTheme";
 
 type Props = {
   visible: boolean;
@@ -41,9 +42,12 @@ export function SmartSheet({
   onClose,
   children,
   peekFraction = 0.58,
-  backgroundColor = "#ffffff",
-  handleColor = "rgba(0,0,0,0.2)",
+  backgroundColor,
+  handleColor,
 }: Props) {
+  const { colors, isDark } = useTheme();
+  const resolvedBg = backgroundColor ?? colors.surface;
+  const resolvedHandle = handleColor ?? (isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)");
   const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -225,12 +229,12 @@ export function SmartSheet({
 
       {/* The sheet itself — panHandlers on the whole view */}
       <Animated.View
-        style={[styles.sheet, { height: sheetH, backgroundColor }]}
+        style={[styles.sheet, { height: sheetH, backgroundColor: resolvedBg }]}
         {...panResponder.panHandlers}
       >
         {/* Drag handle indicator */}
         <View style={styles.handleBar}>
-          <View style={[styles.handle, { backgroundColor: handleColor }]} />
+          <View style={[styles.handle, { backgroundColor: resolvedHandle }]} />
         </View>
 
         {/* Scrollable content area */}
