@@ -47,7 +47,7 @@ import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import OfflineBanner from "@/components/ui/OfflineBanner";
 import { HomeBanner } from "@/components/ui/HomeBanner";
 import { SuggestedUsers } from "@/components/ui/SuggestedUsers";
-import { isOnline } from "@/lib/offlineStore";
+import { isOnline, onConnectivityChange } from "@/lib/offlineStore";
 import { getLocalConversations, saveConversations, deleteLocalConversation, pruneConversations } from "@/lib/storage/localConversations";
 import { getPreloadedConversations, hasPreloadedConversations, invalidateConversationsPreload } from "@/lib/conversationsPreload";
 import { AFUAI_CONV_ID, AFUAI_BOT_ID, getAIChatSnapshot } from "@/lib/aiChatStore";
@@ -814,6 +814,11 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
   const [typingChatIds, setTypingChatIds] = useState<Record<string, boolean>>({});
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const realtimeReconcileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // When the device goes offline the realtime channel may replay buffered
+  // INSERT events on reconnect, causing every chat to appear unread. We
+  // suppress the +1 increment until loadChats() has finished reconciling
+  // the correct unread counts from Supabase.
+  const suppressUnreadIncrementRef = useRef(false);
   const { prefs: chatPrefs } = useChatPreferences();
   const { features: advancedFeatures } = useAdvancedFeatures();
   const { width: windowWidth } = useWindowDimensions();
@@ -1234,6 +1239,8 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
     });
 
     setChats(finalItems);
+    // Reconciliation complete — allow realtime events to increment unread again.
+    suppressUnreadIncrementRef.current = false;
     // Discard the in-memory preload — SQLite is now fresh so next app launch
     // will re-read it cleanly via preloadConversations().
     invalidateConversationsPreload();
@@ -1465,6 +1472,15 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
     return addOnlineListener(() => loadChats());
   }, [user, loadChats]);
 
+  // Suppress realtime unread increments while offline / reconnecting so that
+  // replayed buffered messages don't mark every chat as unread. The flag is
+  // cleared by loadChats() after it has reconciled correct counts from Supabase.
+  useEffect(() => {
+    return onConnectivityChange((online) => {
+      if (!online) suppressUnreadIncrementRef.current = true;
+    });
+  }, []);
+
 
   const chatIdsKey = chats.map((c) => c.id).sort().join(",");
 
@@ -1503,10 +1519,14 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                   last_message: preview,
                   last_message_at: msg.sent_at,
                   last_message_is_mine: isFromMe,
-                  // Increment unread only when the message is from someone else
-                  // and this chat isn't the one currently open.
+                  // Increment unread only when the message is from someone else,
+                  // this chat isn't the one currently open, and we are not in
+                  // the suppression window (offline / reconnecting). Realtime
+                  // replays buffered messages on reconnect which would otherwise
+                  // mark every chat unread; loadChats() clears the suppression
+                  // after it reconciles the correct counts from Supabase.
                   unread_count:
-                    !isFromMe && msg.chat_id !== activeChatId && !wasChatRecentlyVisited(msg.chat_id)
+                    !isFromMe && msg.chat_id !== activeChatId && !wasChatRecentlyVisited(msg.chat_id) && !suppressUnreadIncrementRef.current
                       ? c.unread_count + 1
                       : c.unread_count,
                 };

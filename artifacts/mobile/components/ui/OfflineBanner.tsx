@@ -25,13 +25,13 @@ export default function OfflineBanner() {
         Animated.timing(slideAnim, {
           toValue: 1,
           duration: 200,
-          useNativeDriver: Platform.OS !== "web",
+          useNativeDriver: false,
         }).start();
         reconnectTimer.current = setTimeout(() => {
           Animated.timing(slideAnim, {
             toValue: 0,
             duration: 300,
-            useNativeDriver: Platform.OS !== "web",
+            useNativeDriver: false,
           }).start(() => setStatus("online"));
         }, 2200);
       } else {
@@ -39,7 +39,7 @@ export default function OfflineBanner() {
         Animated.timing(slideAnim, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: Platform.OS !== "web",
+          useNativeDriver: false,
         }).start();
       }
     });
