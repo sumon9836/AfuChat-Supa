@@ -6994,6 +6994,53 @@ STRICT RULES:
         >
           <View style={{ flex: 1 }}>
             <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowChatOptions(false)} />
+
+            {/* ── Filter pill — floats above the sheet, wired to its top edge ─── */}
+            <View style={[
+              st.notifFilterBar,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                marginHorizontal: 16,
+                marginBottom: -12,
+                paddingHorizontal: 8,
+                paddingVertical: 8,
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                borderBottomWidth: 0,
+                zIndex: 10,
+                ...Platform.select({
+                  web: { boxShadow: "0 -4px 16px rgba(0,0,0,0.10)" } as any,
+                  default: { shadowColor: "#000", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 8 },
+                }),
+              },
+            ]}>
+              {([
+                { key: "all",      label: "All",      icon: "notifications" },
+                { key: "social",   label: "Social",   icon: "heart" },
+                { key: "shop",     label: "Shop",     icon: "bag-handle" },
+                { key: "payments", label: "Payments", icon: "wallet" },
+              ] as const).map((f) => {
+                const active = notifFilter === f.key;
+                return (
+                  <TouchableOpacity
+                    key={f.key}
+                    onPress={() => setNotifFilter(f.key)}
+                    style={[
+                      st.notifFilterChip,
+                      active
+                        ? { backgroundColor: BRAND, borderColor: BRAND }
+                        : { backgroundColor: "transparent", borderColor: colors.border },
+                    ]}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name={f.icon as any} size={12} color={active ? "#fff" : colors.textMuted} style={{ marginRight: 4 }} />
+                    <Text style={[st.notifFilterChipText, { color: active ? "#fff" : colors.textMuted }]}>{f.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
             <View style={[st.notifModal, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 8 }]}>
               <View style={[st.notifModalHeader, { borderBottomColor: colors.border }]}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -7007,30 +7054,7 @@ STRICT RULES:
                 </TouchableOpacity>
               </View>
 
-              <Text style={[st.optionsSection, { color: colors.textMuted, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6, marginTop: 0 }]}>FILTER</Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 20, marginBottom: 12 }}>
-                {([
-                  { key: "all",      label: "All",      icon: "notifications" },
-                  { key: "social",   label: "Social",   icon: "heart" },
-                  { key: "shop",     label: "Shop",     icon: "bag-handle" },
-                  { key: "payments", label: "Payments", icon: "wallet" },
-                ] as const).map((f) => {
-                  const active = notifFilter === f.key;
-                  return (
-                    <TouchableOpacity
-                      key={f.key}
-                      onPress={() => { setNotifFilter(f.key); }}
-                      style={[st.notifFilterChip, active ? { backgroundColor: BRAND, borderColor: BRAND } : { backgroundColor: "transparent", borderColor: colors.border }]}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name={f.icon as any} size={12} color={active ? "#fff" : colors.textMuted} style={{ marginRight: 4 }} />
-                      <Text style={[st.notifFilterChipText, { color: active ? "#fff" : colors.textMuted }]}>{f.label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={[st.optionsSection, { color: colors.textMuted, paddingHorizontal: 20, paddingBottom: 6, marginTop: 0 }]}>ACTIONS</Text>
+              <Text style={[st.optionsSection, { color: colors.textMuted, paddingHorizontal: 20, paddingBottom: 6, marginTop: 8 }]}>ACTIONS</Text>
 
               <TouchableOpacity
                 style={[st.optionsRow, { borderBottomColor: colors.border }]}
