@@ -90,7 +90,7 @@ import { buildNavigationContext, ACTION_ROUTES_GUIDE, detectVoiceNavCommand, pic
 import { playNotificationSound as playMgrSound } from "@/lib/soundManager";
 import { AFUAI_BOT_ID } from "@/lib/afuAiBot";
 import { AFUCHAT_SYSTEM_ID } from "@/lib/afuSystemChat";
-import { SystemNotificationCard, tryParseSysNotif } from "@/components/chat/SystemNotificationCard";
+import { SystemNotificationCard, GroupedSystemNotificationCard, tryParseSysNotif, type GroupedSysNotifData } from "@/components/chat/SystemNotificationCard";
 import { getDailyUsage, recordDailyUsage } from "@/lib/featureUsage";
 import EmojiStickerPicker from "@/components/chat/EmojiStickerPicker";
 import GiftPickerSheet, { DbGift } from "@/components/gifts/GiftPickerSheet";
@@ -222,6 +222,7 @@ const REACTION_EMOJIS_ADVANCED = ["👍", "❤️", "😂", "😮", "😢", "�
 const NOTIF_FILTER_SOCIAL   = new Set(["new_follower","new_like","new_reply","new_mention","gift","missed_call","live_started","channel_post"]);
 const NOTIF_FILTER_SHOP     = new Set(["order_placed","order_shipped","escrow_released","dispute_raised","refund_issued","shop_review"]);
 const NOTIF_FILTER_PAYMENTS = new Set(["acoin_received","acoin_sent","subscription_activated","seller_approved","seller_rejected","verification_approved","verification_update"]);
+const GROUPABLE_NOTIF_TYPES = new Set(["new_like","new_reply","new_mention","new_follower"]);
 const BRAND_FALLBACK = Colors.brand;
 const MIC_CANCEL_THRESHOLD = -100;
 const MIC_LOCK_THRESHOLD = -80;
@@ -2349,6 +2350,113 @@ function ChatScreen() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, [isAfuChatSystemChat, user?.id, messages.length]);
+
+  // ── Group same-post like/reply/mention/follower notifications ────────────────
+  // Returns Map<msgId, {isRepresentative, groupData?}> for O(1) lookup in renderMessage.
+  const groupedNotifMap = useMemo(() => {
+    const result = new Map<string, { isRepresentative: boolean; groupData?: GroupedSysNotifData }>();
+    if (!isAfuChatSystemChat || messages.length === 0) return result;
+
+    // Inline enrichment — mirrors the logic in renderMessage
+    function enrichOne(msg: Message) {
+      let notif = tryParseSysNotif(msg.encrypted_content || "");
+      if (!notif && msg.sender_id === AFUCHAT_SYSTEM_ID) {
+        try {
+          const raw = JSON.parse(msg.encrypted_content || "{}");
+          if (raw?.type && typeof raw.type === "string") {
+            const sentMs = new Date(msg.sent_at).getTime();
+            const notifRow =
+              notifRowsMap.get(msg.sent_at) ||
+              notifRowsMap.get(msg.sent_at.replace(/\.\d+Z?$/, "")) ||
+              (() => {
+                for (const [, r] of notifRowsMap) {
+                  if (r.type === raw.type && Math.abs(new Date(r.created_at).getTime() - sentMs) < 3000) return r;
+                }
+                return null;
+              })();
+            notif = {
+              _sys_notif: true as const,
+              type: (notifRow?.type || raw.type) as string,
+              title: notifRow?.title || raw.title || "",
+              body: notifRow?.body || raw.body || "",
+              actor_id: notifRow?.actor_id,
+              actor_name: notifRow?.actor_name,
+              actor_handle: notifRow?.actor_handle,
+              actor_avatar: notifRow?.actor_avatar,
+              entity_id: notifRow?.entity_id,
+              entity_type: notifRow?.entity_type,
+              post_id: notifRow?.entity_type === "post" ? notifRow?.entity_id : (raw.data?.postId ?? undefined),
+              data: { ...(notifRow?.data || {}), ...(raw.data || {}) },
+              created_at: msg.sent_at,
+              notif_id: notifRow?.id,
+            };
+          }
+        } catch {}
+      }
+      return notif;
+    }
+
+    type GroupEntry = {
+      representativeId: string;
+      repNotif: ReturnType<typeof enrichOne>;
+      actors: GroupedSysNotifData["actors"];
+      actorKeys: Set<string>;
+      totalCount: number;
+    };
+    const groups = new Map<string, GroupEntry>();
+    const msgGroupKey = new Map<string, string>();
+
+    // messages[0] = newest; first occurrence of a group key = representative
+    for (const msg of messages) {
+      if (msg.sender_id !== AFUCHAT_SYSTEM_ID) continue;
+      const notif = enrichOne(msg);
+      if (!notif || !GROUPABLE_NOTIF_TYPES.has(notif.type)) continue;
+
+      const groupKey = notif.type === "new_follower"
+        ? "new_follower"
+        : notif.post_id ? `${notif.type}:${notif.post_id}` : null;
+      if (!groupKey) continue;
+
+      msgGroupKey.set(msg.id, groupKey);
+
+      const actorKey = notif.actor_id || notif.actor_name || "";
+      const actor = { id: notif.actor_id, name: notif.actor_name, handle: notif.actor_handle, avatar: notif.actor_avatar };
+
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          representativeId: msg.id,
+          repNotif: notif,
+          actors: [actor],
+          actorKeys: new Set(actorKey ? [actorKey] : []),
+          totalCount: 1,
+        });
+      } else {
+        const g = groups.get(groupKey)!;
+        g.totalCount++;
+        if (actorKey && !g.actorKeys.has(actorKey) && g.actors.length < 3) {
+          g.actors.push(actor);
+          g.actorKeys.add(actorKey);
+        }
+      }
+    }
+
+    for (const [msgId, groupKey] of msgGroupKey) {
+      const g = groups.get(groupKey)!;
+      if (g.totalCount < 2) continue; // single → render normally
+      const isRep = g.representativeId === msgId;
+      result.set(msgId, {
+        isRepresentative: isRep,
+        groupData: isRep && g.repNotif ? {
+          ...g.repNotif,
+          _grouped: true as const,
+          actors: g.actors,
+          totalCount: g.totalCount,
+        } : undefined,
+      });
+    }
+
+    return result;
+  }, [isAfuChatSystemChat, messages, notifRowsMap]);
 
   const checkMessageGating = useCallback(async () => {
     if (!user) return;
@@ -5210,6 +5318,37 @@ STRICT RULES:
       } catch {}
     }
 
+    // ── Notification grouping ───────────────────────────────────────────────────
+    if (item.sender_id === AFUCHAT_SYSTEM_ID) {
+      const groupEntry = groupedNotifMap.get(item.id);
+      if (groupEntry) {
+        if (!groupEntry.isRepresentative) return null; // absorbed into representative
+        if (groupEntry.groupData) {
+          const t = groupEntry.groupData.type;
+          if (notifFilter !== "all") {
+            const pass =
+              (notifFilter === "social"   && NOTIF_FILTER_SOCIAL.has(t))   ||
+              (notifFilter === "shop"     && NOTIF_FILTER_SHOP.has(t))     ||
+              (notifFilter === "payments" && NOTIF_FILTER_PAYMENTS.has(t)) ||
+              (notifFilter === "other"    && !NOTIF_FILTER_SOCIAL.has(t) && !NOTIF_FILTER_SHOP.has(t) && !NOTIF_FILTER_PAYMENTS.has(t));
+            if (!pass) return null;
+          }
+          return (
+            <View style={{ marginTop: showDate ? 0 : spacing }}>
+              {showDate && (
+                <View style={st.dateBadge}>
+                  <View style={[st.datePill, { backgroundColor: colors.surface }]}>
+                    <Text style={[st.dateBadgeText, { color: colors.textMuted }]}>{formatDateHeader(item.sent_at)}</Text>
+                  </View>
+                </View>
+              )}
+              <GroupedSystemNotificationCard data={groupEntry.groupData} sentAt={item.sent_at} />
+            </View>
+          );
+        }
+      }
+    }
+
     // Apply notification filter
     if (sysNotifData && notifFilter !== "all") {
       const t = sysNotifData.type;
@@ -5272,7 +5411,7 @@ STRICT RULES:
         )}
       </View>
     );
-  }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup, notifFilter, isAfuChatSystemChat, notifRowsMap]);
+  }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup, notifFilter, isAfuChatSystemChat, notifRowsMap, groupedNotifMap]);
 
   // Single source of truth for the bottom offset.
   // The floatingInputContainer is position:absolute so it cannot rely on

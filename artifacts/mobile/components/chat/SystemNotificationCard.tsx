@@ -49,6 +49,12 @@ export type SysNotifData = {
   created_at?: string;
 };
 
+export type GroupedSysNotifData = SysNotifData & {
+  _grouped: true;
+  actors: Array<{ id?: string; name?: string; handle?: string; avatar?: string }>;
+  totalCount: number;
+};
+
 function tryParseSysNotif(raw: string): SysNotifData | null {
   if (!raw || !raw.startsWith("{")) return null;
   try {
@@ -399,6 +405,63 @@ const avs = StyleSheet.create({
   },
 });
 
+// ─── Stacked avatar group (for grouped notifications) ─────────────────────────
+
+function GroupedAvatarStack({ actors, badgeIcon, badgeBg, cardBg }: {
+  actors: GroupedSysNotifData["actors"];
+  badgeIcon: string;
+  badgeBg: string;
+  cardBg: string;
+}) {
+  const AVATAR_SIZE = 26;
+  const OVERLAP = 8;
+  const shown = actors.slice(0, 3);
+  const stackW = AVATAR_SIZE + (shown.length - 1) * (AVATAR_SIZE - OVERLAP);
+
+  return (
+    <View style={{ width: 46, height: 46, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ position: "relative", width: stackW, height: AVATAR_SIZE }}>
+        {shown.map((a, i) => {
+          const initials = ((a.name || a.handle || "?")
+            .split(" ").map((w: string) => w[0] || "").join("").toUpperCase().slice(0, 2));
+          return (
+            <View
+              key={i}
+              style={{
+                position: "absolute",
+                left: i * (AVATAR_SIZE - OVERLAP),
+                zIndex: shown.length - i,
+                width: AVATAR_SIZE,
+                height: AVATAR_SIZE,
+                borderRadius: AVATAR_SIZE / 2,
+                borderWidth: 1.5,
+                borderColor: cardBg,
+                overflow: "hidden",
+              }}
+            >
+              {a.avatar ? (
+                <ExpoImage
+                  source={{ uri: a.avatar }}
+                  style={{ width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2 }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                />
+              ) : (
+                <View style={{ flex: 1, backgroundColor: badgeBg + "33", alignItems: "center", justifyContent: "center" }}>
+                  <Text style={{ fontFamily: "Inter_700Bold", color: badgeBg, fontSize: AVATAR_SIZE * 0.32 }}>{initials}</Text>
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
+      <View style={[avs.badge, { backgroundColor: badgeBg, position: "absolute", bottom: 0, right: 0 }]}>
+        <Ionicons name={badgeIcon as any} size={9} color="#fff" />
+      </View>
+    </View>
+  );
+}
+
 // ─── Brand avatar (for system/payment messages) ───────────────────────────────
 
 function BrandAvatar({ icon, color, size = 46 }: { icon: string; color: string; size?: number }) {
@@ -438,6 +501,174 @@ const lbs = StyleSheet.create({
   dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: "#fff" },
   text: { color: "#fff", fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
 });
+
+// ─── Grouped body text suffix builder ────────────────────────────────────────
+
+function buildGroupedBodySuffix(
+  actors: GroupedSysNotifData["actors"],
+  totalCount: number,
+  type: string
+): string {
+  const rest = Math.max(0, totalCount - actors.length);
+  const others = actors.slice(1).map((a) => a.name || a.handle || "Someone");
+
+  let suffix = "";
+  if (others.length === 1 && rest === 0) {
+    suffix = ` and ${others[0]}`;
+  } else if (others.length === 2 && rest === 0) {
+    suffix = `, ${others[0]} and ${others[1]}`;
+  } else if (others.length > 0 && rest > 0) {
+    suffix = `, ${others.join(", ")} and ${rest} other${rest > 1 ? "s" : ""}`;
+  } else if (rest === 1) {
+    suffix = ` and 1 other`;
+  } else if (rest > 1) {
+    suffix = ` and ${rest} others`;
+  }
+
+  const verb = (() => {
+    switch (type) {
+      case "new_like":     return " liked your post";
+      case "new_reply":    return " replied to your post";
+      case "new_mention":  return " mentioned you";
+      case "new_follower": return " started following you";
+      default:             return "";
+    }
+  })();
+
+  return suffix + verb;
+}
+
+// ─── Grouped notification card ────────────────────────────────────────────────
+
+export function GroupedSystemNotificationCard({ data, sentAt }: { data: GroupedSysNotifData; sentAt: string }) {
+  const { colors, isDark } = useTheme();
+  const cfg = getTypeConfig(data.type);
+  const { read, markRead } = useNotifRead(data.notif_id);
+  const postThumb = usePostThumbnail(data.post_id, data.post_thumbnail);
+  const postContent = usePostContent(data.post_id, data.type);
+  const actions = buildActions(data);
+  const primaryRoute = cfg.primaryRoute?.(data);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(8)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 280, delay: 40, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 280, delay: 40, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  const handleCardPress = useCallback(() => {
+    markRead();
+    if (primaryRoute) { try { router.push(primaryRoute as any); } catch {} }
+  }, [primaryRoute, markRead]);
+
+  const cardBg   = isDark ? "rgba(26,26,30,0.98)" : "rgba(255,255,255,0.99)";
+  const borderCol = isDark ? "rgba(52,52,58,0.7)"  : "rgba(216,216,224,0.8)";
+  const firstActor = data.actors[0];
+
+  return (
+    <Animated.View style={[sn.wrapper, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <TouchableOpacity
+        activeOpacity={primaryRoute ? 0.7 : 1}
+        onPress={handleCardPress}
+        style={[sn.card, { backgroundColor: cardBg, borderColor: borderCol }]}
+      >
+        <View style={[sn.accentStripe, { backgroundColor: cfg.accent }]} />
+        {!read && <View style={[sn.unreadDot, { backgroundColor: cfg.accent }]} />}
+
+        <View style={sn.mainRow}>
+          {/* Stacked avatars */}
+          <View style={sn.avatarCol}>
+            <GroupedAvatarStack
+              actors={data.actors}
+              badgeIcon={cfg.badgeIcon}
+              badgeBg={cfg.badgeBg}
+              cardBg={cardBg}
+            />
+          </View>
+
+          {/* Text column */}
+          <View style={sn.textCol}>
+            {/* Count pill */}
+            <View style={[gn.countPill, { backgroundColor: cfg.accent + "1A" }]}>
+              <Ionicons name={cfg.badgeIcon as any} size={10} color={cfg.accent} />
+              <Text style={[gn.countText, { color: cfg.accent }]}>{data.totalCount}</Text>
+            </View>
+
+            {/* Body — first actor name bold, rest normal */}
+            <Text style={[sn.bodyText, { color: colors.text }]} numberOfLines={3}>
+              <Text style={sn.boldName}>
+                {firstActor?.name || firstActor?.handle || "Someone"}
+              </Text>
+              <Text style={{ color: colors.textSecondary || colors.textMuted }}>
+                {buildGroupedBodySuffix(data.actors, data.totalCount, data.type)}
+              </Text>
+            </Text>
+
+            {/* Post content preview */}
+            {postContent ? (
+              <View style={[sn.postPreviewBox, { borderLeftColor: cfg.accent + "60" }]}>
+                <Text style={[sn.postPreviewText, { color: colors.textMuted }]} numberOfLines={2}>
+                  {postContent}
+                </Text>
+              </View>
+            ) : null}
+
+            <Text style={[sn.time, { color: colors.textMuted }]}>{relTime(sentAt)}</Text>
+          </View>
+
+          {/* Post thumbnail */}
+          {postThumb ? (
+            <ExpoImage
+              source={{ uri: postThumb }}
+              style={sn.postThumb}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          ) : null}
+        </View>
+
+        {/* Action buttons */}
+        {actions.length > 0 && (
+          <View style={sn.actionsRow}>
+            {actions.map((a, i) => (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  sn.actionBtn,
+                  a.primary
+                    ? { backgroundColor: cfg.accent, borderColor: cfg.accent }
+                    : { backgroundColor: "transparent", borderColor: borderCol },
+                ]}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  markRead();
+                  try { router.push(a.route as any); } catch {}
+                }}
+                activeOpacity={0.75}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
+                <Ionicons
+                  name={a.icon as any}
+                  size={12}
+                  color={a.primary ? "#fff" : colors.textSecondary || colors.textMuted}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={[sn.actionBtnText, { color: a.primary ? "#fff" : colors.textSecondary || colors.textMuted }]}
+                  numberOfLines={1}
+                >
+                  {a.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
 
 // ─── Main card ────────────────────────────────────────────────────────────────
 
@@ -739,5 +970,22 @@ const sn = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     lineHeight: 17,
     fontStyle: "italic",
+  },
+});
+
+const gn = StyleSheet.create({
+  countPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    gap: 3,
+    marginBottom: 2,
+  },
+  countText: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
   },
 });
