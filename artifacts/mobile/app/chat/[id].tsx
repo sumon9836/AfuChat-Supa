@@ -2272,8 +2272,14 @@ function ChatScreen() {
                 })),
                 { onConflict: "message_id,user_id" }
               ).then(() => {});
-              if (chatPrefs.read_receipts && chatInfoStateRef.current?.other_id !== AFUCHAT_SYSTEM_ID) {
-                typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: toMark.map((m: any) => m.id), chat_id: id, read_at: now } });
+              // Always broadcast "delivered" so the sender gets double-grey ticks.
+              // Only broadcast "read" if the user has read receipts enabled (privacy).
+              if (chatInfoStateRef.current?.other_id !== AFUCHAT_SYSTEM_ID) {
+                const msgIds = toMark.map((m: any) => m.id);
+                typingChannelRef.current?.send({ type: "broadcast", event: "delivered", payload: { reader_id: user.id, message_ids: msgIds, chat_id: id, delivered_at: now } });
+                if (chatPrefs.read_receipts) {
+                  typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: msgIds, chat_id: id, read_at: now } });
+                }
               }
             }
           });
@@ -2675,6 +2681,9 @@ function ChatScreen() {
           if (user) {
             const _rtNow = new Date().toISOString();
             supabase.from("message_status").upsert({ message_id: newMsg.id, user_id: user.id, delivered_at: _rtNow, ...(chatPrefs.read_receipts ? { read_at: _rtNow } : {}) }, { onConflict: "message_id,user_id" }).then(() => {});
+            // Always tell the sender we received it (double-grey) —
+            // only tell them we read it if read receipts are enabled (double-blue).
+            typingChannelRef.current?.send({ type: "broadcast", event: "delivered", payload: { reader_id: user.id, message_ids: [newMsg.id], chat_id: id, delivered_at: _rtNow } });
             if (chatPrefs.read_receipts) {
               typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: [newMsg.id], chat_id: id, read_at: _rtNow } });
             }
@@ -2753,6 +2762,21 @@ function ChatScreen() {
       }
     };
 
+    const handleDeliveredEvent = (payload: any) => {
+      const { reader_id, message_ids, delivered_at: rawDeliveredAt } = (payload.payload || {}) as { reader_id: string; message_ids: string[]; delivered_at?: string };
+      if (!reader_id || reader_id === user?.id || !Array.isArray(message_ids)) return;
+      const deliveredSet = new Set(message_ids);
+      const deliveredAt = rawDeliveredAt || new Date().toISOString();
+      setMessages((prev) =>
+        prev.map((m) =>
+          // Only upgrade "sent" → "delivered"; never downgrade from "read"
+          m.sender_id === user?.id && deliveredSet.has(m.id) && m.status === "sent"
+            ? { ...m, status: "delivered" as const, delivered_at: deliveredAt }
+            : m
+        )
+      );
+    };
+
     const handleReadEvent = (payload: any) => {
       const { reader_id, message_ids, read_at: rawReadAt } = (payload.payload || {}) as { reader_id: string; message_ids: string[]; read_at?: string };
       if (!reader_id || reader_id === user?.id || !Array.isArray(message_ids)) return;
@@ -2777,6 +2801,10 @@ function ChatScreen() {
           if ((payload.payload?.chat_id ?? id) !== id) return;
           handleTypingEvent(payload);
         })
+        .on("broadcast", { event: "delivered" }, (payload: any) => {
+          if ((payload.payload?.chat_id ?? id) !== id) return;
+          handleDeliveredEvent(payload);
+        })
         .on("broadcast", { event: "read" }, (payload: any) => {
           if ((payload.payload?.chat_id ?? id) !== id) return;
           handleReadEvent(payload);
@@ -2789,6 +2817,7 @@ function ChatScreen() {
       receiveChannel = supabase.channel(`typing:${id}`, { config: { broadcast: { self: false } } });
       receiveChannel
         .on("broadcast", { event: "typing" }, handleTypingEvent)
+        .on("broadcast", { event: "delivered" }, handleDeliveredEvent)
         .on("broadcast", { event: "read" }, handleReadEvent)
         .subscribe();
       typingChannelRef.current = receiveChannel;
@@ -2803,6 +2832,51 @@ function ChatScreen() {
       typingMapRef.current.clear();
     };
   }, [user, id, chatInfo?.other_id, chatInfo?.is_group, chatInfo?.is_channel]);
+
+  // ── Realtime: message_status DB changes → update sender's tick colour ────────
+  // Handles the "recipient was offline when message was sent, then comes back
+  // online later" case — broadcasts are ephemeral and can't bridge that gap.
+  // We subscribe without a row filter (no IN support in Supabase realtime)
+  // and do a lightweight client-side check inside setMessages.
+  useEffect(() => {
+    if (!user || !id) return;
+    const statusSub = supabase
+      .channel(`msg-status-watch:${id}:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "message_status" },
+        (payload: any) => {
+          const { message_id, user_id: actorId, delivered_at, read_at } = payload.new || {};
+          if (!message_id || actorId === user.id) return; // ignore my own receipts
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== message_id || m.sender_id !== user.id) return m;
+              const nextStatus: Message["status"] = read_at ? "read" : delivered_at ? "delivered" : m.status;
+              if (nextStatus === m.status) return m;
+              return { ...m, status: nextStatus, delivered_at: delivered_at || m.delivered_at, read_at: read_at || m.read_at };
+            })
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "message_status" },
+        (payload: any) => {
+          const { message_id, user_id: actorId, delivered_at, read_at } = payload.new || {};
+          if (!message_id || actorId === user.id) return;
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== message_id || m.sender_id !== user.id) return m;
+              const nextStatus: Message["status"] = read_at ? "read" : delivered_at ? "delivered" : m.status;
+              if (nextStatus === m.status) return m;
+              return { ...m, status: nextStatus, delivered_at: delivered_at || m.delivered_at, read_at: read_at || m.read_at };
+            })
+          );
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(statusSub); };
+  }, [user, id]);
 
   // ── Realtime: online status (1-on-1 chats only) ───────────────────────────
   useEffect(() => {
