@@ -387,13 +387,10 @@ function SmartReplyBar({ messages, myId, input, onSend, colors }: {
       style={{
         opacity: fadeAnim,
         flexDirection: "row",
-        paddingHorizontal: 12,
-        paddingTop: 6,
-        paddingBottom: 2,
-        gap: 8,
-        flexWrap: "wrap",
-        borderTopWidth: show ? 0.5 : 0,
-        borderTopColor: colors.border,
+        paddingHorizontal: 14,
+        paddingTop: 4,
+        paddingBottom: 4,
+        gap: 7,
         pointerEvents: show ? "auto" : "none",
       }}
     >
@@ -401,17 +398,21 @@ function SmartReplyBar({ messages, myId, input, onSend, colors }: {
         <TouchableOpacity
           key={r}
           onPress={() => onSend(r)}
+          activeOpacity={0.7}
           style={{
             backgroundColor: colors.inputBg,
-            borderColor: (colors.accent || BRAND_FALLBACK) + "60",
-            borderWidth: 1,
-            borderRadius: 18,
-            paddingHorizontal: 13,
-            paddingVertical: 7,
+            borderColor: colors.border,
+            borderWidth: 0.5,
+            borderRadius: 20,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            ...Platform.select({
+              web: { boxShadow: "0 2px 10px rgba(0,0,0,0.14)" } as any,
+              default: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4 },
+            }),
           }}
-          activeOpacity={0.7}
         >
-          <Text style={{ color: colors.text, fontSize: 13, fontFamily: "Inter_500Medium" }}>{r}</Text>
+          <Text style={{ color: colors.text, fontSize: 12, fontFamily: "Inter_500Medium" }}>{r}</Text>
         </TouchableOpacity>
       ))}
     </Animated.View>
