@@ -48,6 +48,8 @@ import AlertModal from "@/components/ui/AlertModal";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
 import UpdatePrompt from "@/components/UpdatePrompt";
 import { initActivityTracker } from "@/lib/activityTracker";
+import { startOfflineSync } from "@/lib/offlineSync";
+import { startSyncQueue } from "@/lib/storage/syncQueue";
 import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
 import { DesktopShell } from "@/components/desktop/DesktopShell";
 import { AnimationGuardInit } from "@/components/AnimationGuardInit";
@@ -211,6 +213,15 @@ export default function RootLayout() {
     if (Platform.OS !== "web" && getCachedUserId()) {
       preloadConversations();
     }
+
+    // Start the offline sync engine and action queue auto-drain.
+    // These are idempotent — safe to call multiple times (they guard internally).
+    // • startOfflineSync: drains pending messages and reconnects Supabase Realtime
+    //   when the network comes back.
+    // • startSyncQueue: replays queued offline actions (likes, follows, bookmarks,
+    //   reactions, read receipts) the moment connectivity is restored.
+    startOfflineSync();
+    startSyncQueue();
   }, []);
 
   // On native: keep returning null (native splash covers it) until fonts load.

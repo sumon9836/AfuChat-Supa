@@ -20,6 +20,8 @@ import { useTheme } from "@/hooks/useTheme";
 import OfflineBanner from "@/components/ui/OfflineBanner";
 import { useAuth } from "@/context/AuthContext";
 import { showAlert } from "@/lib/alert";
+import { isOnline } from "@/lib/offlineStore";
+import { showToast } from "@/lib/toast";
 
 const USAGE_KEY = "afu_app_usage";
 const COLS = 4;
@@ -261,6 +263,12 @@ function AppTile({
     if (app.comingSoon) {
       showAlert(`${app.label} — Coming Soon`, "This feature is not available yet. Stay tuned!");
       return;
+    }
+    // Show a soft offline warning for mini apps that require network.
+    // AfuAI (id: "afuai") has local SQLite memory so we allow it through.
+    const needsNetwork = app.miniApp && app.id !== "afuai";
+    if (needsNetwork && !isOnline()) {
+      showToast(`${app.label} requires an internet connection`, { type: "info", icon: "wifi-outline" });
     }
     onTap(app.id);
     if (app.miniApp && Platform.OS !== "web") {

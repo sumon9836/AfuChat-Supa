@@ -27,6 +27,8 @@ import Colors from "@/constants/colors";
 import OfflineBanner from "@/components/ui/OfflineBanner";
 import { PrestigeBadge } from "@/components/ui/PrestigeBadge";
 import { showAlert } from "@/lib/alert";
+import { isOnline } from "@/lib/offlineStore";
+import { showToast } from "@/lib/toast";
 import { TrustpilotReviewCard } from "@/components/TrustpilotReviewPrompt";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -230,6 +232,7 @@ export default function MeScreen() {
     AsyncStorage.getItem(STATS_KEY).then((raw) => {
       if (raw) { try { const { fc, fgc, pc } = JSON.parse(raw); setFollowerCount(fc ?? 0); setFollowingCount(fgc ?? 0); setPostCount(pc ?? 0); } catch {} }
     });
+    if (!isOnline()) return;
     Promise.all([
       supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id),
       supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id),
@@ -237,7 +240,7 @@ export default function MeScreen() {
     ]).then(([{ count: fc }, { count: fgc }, { count: pc }]) => {
       setFollowerCount(fc ?? 0); setFollowingCount(fgc ?? 0); setPostCount(pc ?? 0);
       AsyncStorage.setItem(STATS_KEY, JSON.stringify({ fc, fgc, pc })).catch(() => {});
-    });
+    }).catch(() => {});
   }, [user?.id]);
 
   // ── Live stats via realtime ───────────────────────────────────────────────
@@ -273,23 +276,30 @@ export default function MeScreen() {
       const CACHE_KEY = `notes_chat_id_${user.id}`;
       const NOTES_NAME = `notes:${user.id}`;
       let notesId = await AsyncStorage.getItem(CACHE_KEY).catch(() => null);
-      if (notesId) {
-        const { data: existing } = await supabase.from("chats").select("id, name").eq("id", notesId).eq("name", NOTES_NAME).maybeSingle();
-        if (!existing) notesId = null;
-      }
-      if (!notesId) {
-        const { data: found } = await supabase.from("chats").select("id").eq("name", NOTES_NAME).maybeSingle();
-        if (found) {
-          notesId = found.id;
-        } else {
-          const { data: newChat, error: createErr } = await supabase
-            .from("chats").insert({ is_group: false, is_channel: false, name: NOTES_NAME, created_by: user.id, user_id: user.id }).select("id").single();
-          if (createErr || !newChat) throw new Error(createErr?.message || "Failed to create notes chat");
-          await supabase.from("chat_members").insert({ chat_id: newChat.id, user_id: user.id });
-          notesId = newChat.id;
+
+      if (isOnline()) {
+        if (notesId) {
+          const { data: existing } = await supabase.from("chats").select("id, name").eq("id", notesId).eq("name", NOTES_NAME).maybeSingle();
+          if (!existing) notesId = null;
         }
-        await AsyncStorage.setItem(CACHE_KEY, notesId!).catch(() => {});
+        if (!notesId) {
+          const { data: found } = await supabase.from("chats").select("id").eq("name", NOTES_NAME).maybeSingle();
+          if (found) {
+            notesId = found.id;
+          } else {
+            const { data: newChat, error: createErr } = await supabase
+              .from("chats").insert({ is_group: false, is_channel: false, name: NOTES_NAME, created_by: user.id, user_id: user.id }).select("id").single();
+            if (createErr || !newChat) throw new Error(createErr?.message || "Failed to create notes chat");
+            await supabase.from("chat_members").insert({ chat_id: newChat.id, user_id: user.id });
+            notesId = newChat.id;
+          }
+          await AsyncStorage.setItem(CACHE_KEY, notesId!).catch(() => {});
+        }
+      } else if (!notesId) {
+        showToast("My Notes will be available once you connect to the internet", { type: "info" });
+        return;
       }
+
       router.push({ pathname: "/chat/[id]", params: { id: notesId, otherId: user.id, otherName: "My Notes" } } as any);
     } catch (err: any) {
       showAlert("Error", err.message || "Could not open notes");

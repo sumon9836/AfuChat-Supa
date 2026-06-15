@@ -477,6 +477,7 @@ function StoriesBar({ userId, colors, isDesktop }: { userId: string; colors: any
   const [_viewedTick, setViewedTick] = useState(0);
 
   const loadStories = useCallback(async () => {
+    if (!isOnline()) return;
     const now = new Date().toISOString();
     let storiesData: any[] | null = null;
     try {
