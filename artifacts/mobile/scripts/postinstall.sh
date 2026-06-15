@@ -9,6 +9,12 @@
 
 set -e
 
+# ─── Skip patch if python3 is unavailable (e.g. Replit web env) ─────────────
+if ! command -v python3 &>/dev/null; then
+  echo "[postinstall] python3 not found — skipping WorkletsModule patch (web/dev env)."
+  exit 0
+fi
+
 # ─── Patch: WorkletsModule SoLoader try-catch ───────────────────────────────
 # Patch both bundling variants (experimentalBundling is used by New Architecture builds;
 # legacyBundling is compiled by Old Architecture / fallback builds).
