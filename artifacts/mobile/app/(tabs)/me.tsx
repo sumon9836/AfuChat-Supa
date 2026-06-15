@@ -492,6 +492,7 @@ export default function MeScreen() {
           <MenuCard colors={colors}>
             <MenuItem icon="grid-outline" iconColor={Colors.brand} label="My Posts" value={`${fmtCount(postCount)} posts`} onPress={() => router.push("/my-posts")} showSeparator colors={colors} />
             <MenuItem icon="bookmark-outline" iconColor={colors.icon} label="Saved Posts" onPress={() => router.push("/saved-posts" as any)} showSeparator colors={colors} />
+            <MenuItem icon="time-outline" iconColor="#00BCD4" label="Watch History" onPress={() => router.push("/watch-history" as any)} showSeparator colors={colors} />
             <MenuItem icon="bar-chart-outline" iconColor={colors.icon} label="Creator Analytics" onPress={() => router.push("/video-analytics" as any)} colors={colors} />
           </MenuCard>
         </View>

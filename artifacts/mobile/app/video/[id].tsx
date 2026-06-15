@@ -61,6 +61,7 @@ import { notifyPostLike, notifyPostReply } from "@/lib/notifyUser";
 import { RichText } from "@/components/ui/RichText";
 import { encodeId, decodeId, isUuid } from "@/lib/shortId";
 import { getCachedVideoUri, cacheVideo, markVideoWatched } from "@/lib/videoCache";
+import { recordWatchHistory } from "@/lib/watchHistory";
 import { onShortsRefresh } from "@/lib/shortsRefresh";
 import { getLocalFeedPost } from "@/lib/storage/localFeed";
 import { showActionToast as globalShowActionToast } from "@/lib/toast";
@@ -615,9 +616,13 @@ const VideoItem = React.memo(function VideoItem({
           title,
           thumbnail: item.image_url ?? null,
         }).catch(() => {
-          // Reset so the next time the user views this video it tries again
           offlineSaved.current = false;
         });
+        recordWatchHistory(item.id, {
+          title,
+          thumbnail: item.image_url ?? null,
+          videoUrl:  item.video_url,
+        }).catch(() => {});
       }
     }
   }, [isActive]);

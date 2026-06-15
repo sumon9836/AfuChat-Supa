@@ -12,6 +12,7 @@ import paymentsRouter from "./payments";
 import dataExportRouter from "./data-export";
 import subscribeRouter from "./subscribe";
 import pushNotificationsRouter from "./push-notifications";
+import watchHistoryRouter from "./watch-history";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(paymentsRouter);
 router.use(dataExportRouter);
 router.use(subscribeRouter);
 router.use(pushNotificationsRouter);
+router.use(watchHistoryRouter);
 
 export default router;

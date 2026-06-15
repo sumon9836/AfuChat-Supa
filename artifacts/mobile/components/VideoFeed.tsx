@@ -61,6 +61,7 @@ import { VideoFeedSkeleton } from "@/components/ui/Skeleton";
 import { useResolvedVideoSource } from "@/hooks/useResolvedVideoSource";
 import { getPreferredVideoHeight, isWifi } from "@/lib/networkQuality";
 import { getCachedVideoUri, cacheVideo, markVideoWatched } from "@/lib/videoCache";
+import { recordWatchHistory } from "@/lib/watchHistory";
 import {
   computeFeedScore,
   diversifyFeed,
@@ -354,10 +355,16 @@ const VideoItem = React.memo(
         }
         if (!watchSaved.current) {
           watchSaved.current = true;
+          const _wTitle = `${item.profile.display_name}${item.content ? `: ${item.content.slice(0, 60)}` : ""}`;
           markVideoWatched(item.id, item.video_url, {
-            title: `${item.profile.display_name}${item.content ? `: ${item.content.slice(0, 60)}` : ""}`,
+            title: _wTitle,
             thumbnail: item.image_url,
           }).catch(() => { watchSaved.current = false; });
+          recordWatchHistory(item.id, {
+            title:     _wTitle,
+            thumbnail: item.image_url ?? null,
+            videoUrl:  item.video_url,
+          }).catch(() => {});
         }
       }
     }, [isActive]);
