@@ -572,6 +572,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const cached = await getCachedProfile();
             if (cached) setProfile(cached as Profile);
 
+            // Set a synthetic user IMMEDIATELY so the app routes to home without
+            // waiting for a network round-trip. The real session replaces it once
+            // the background token refresh completes (TOKEN_REFRESHED fires).
+            const syntheticUser = {
+              id: primaryAccount.userId,
+              email: primaryAccount.email,
+              app_metadata: {},
+              user_metadata: {},
+              aud: "authenticated",
+              created_at: "",
+            } as User;
+            setUser(syntheticUser);
+            // Release loading NOW — home renders before refresh completes.
+            setLoading(false);
+
             if (isOnline()) {
               // Pass refresh token explicitly — Supabase's AsyncStorage may have
               // been cleared by a prior involuntary SIGNED_OUT, so relying on
@@ -580,34 +595,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .refreshSession({ refresh_token: primaryAccount.refreshToken })
                 .then(({ error }) => {
                   if (error) {
-                    // Refresh token is genuinely dead (revoked, rotated, session wiped).
-                    // Remove the stale SecureStore entry and clear MMKV so the user is
-                    // routed to the welcome/login screen on the next navigation tick
-                    // rather than silently stuck in a broken half-logged-in state.
-                    removeStoredAccount(primaryAccount.userId).catch(() => {});
-                    clearCachedUserId();
-                    clearProfileCache();
-                    setProfile(null);
-                    setSubscription(null);
-                    setUser(null);
-                    setSession(null);
-                    setLoading(false);
+                    // Token is dead but we do NOT log the user out. They keep
+                    // the synthetic session and can read cached data. On next
+                    // foreground the reconnect effect will retry. A user who has
+                    // ever logged in must NEVER be involuntarily signed out.
                   }
+                  // On success: TOKEN_REFRESHED fires and replaces the synthetic
+                  // session with a real one — no further action needed here.
                 })
                 .catch(() => {});
             } else {
-              const syntheticUser = {
-                id: primaryAccount.userId,
-                email: primaryAccount.email,
-                app_metadata: {},
-                user_metadata: {},
-                aud: "authenticated",
-                created_at: "",
-              } as User;
-              setUser(syntheticUser);
               startOfflineSync();
             }
-            setLoading(false);
           } else {
             const cached = await getCachedProfile();
             if (cached) setProfile(cached as Profile);
@@ -659,42 +658,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isUserSigningOut.current) {
           // Involuntary SIGNED_OUT: Supabase cleared its AsyncStorage session
           // (e.g., access token expired and refresh token was rejected).
-          // Attempt a one-shot restore from SecureStore. If it succeeds, the
-          // TOKEN_REFRESHED event will fire next and keep everything in sync.
-          // If it FAILS (tokens are dead), clean up completely — do NOT loop by
-          // retrying with the same dead token, which previously caused an infinite
-          // SIGNED_OUT → setSession → SIGNED_OUT cycle.
+          // Attempt a silent background restore from SecureStore.
+          // CRITICAL: we do NOT clear any user state here regardless of outcome.
+          // A user who has ever logged in must NEVER be involuntarily signed out.
           getStoredAccounts()
             .then(async (accts) => {
               const stored = accts[0] ?? null;
               if (!stored) return;
 
-              const { error } = await supabase.auth.setSession({
+              await supabase.auth.setSession({
                 access_token: stored.accessToken,
                 refresh_token: stored.refreshToken,
               });
-
-              if (error) {
-                // Tokens are genuinely dead (revoked, rotated away, session wiped).
-                // Remove the stale entry so it is never retried, then sign out cleanly.
-                await removeStoredAccount(stored.userId).catch(() => {});
-                clearCachedUserId();
-                clearProfileCache();
-                // isUserSigningOut must be true so the state-clear branch below runs
-                // on the SIGNED_OUT that setSession failure fires.
-                isUserSigningOut.current = true;
-                await supabase.auth.signOut({ scope: "local" }).catch(() => {});
-                isUserSigningOut.current = false;
-                setProfile(null);
-                setSubscription(null);
-                setSession(null);
-                setUser(null);
-              }
-              // On success: TOKEN_REFRESHED fires, tokens are rotated,
-              // updateAccountTokens keeps SecureStore current.
+              // On success: TOKEN_REFRESHED fires and updates session state.
+              // On failure: user keeps their current (synthetic) session and
+              // cached data — they stay logged in and can continue using the app.
             })
             .catch(() => {});
-          return;
+          return; // Never fall through to state-clearing code below
         }
         // Intentional sign-out — clear everything and stop.
         setProfile(null);

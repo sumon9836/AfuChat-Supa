@@ -37,18 +37,30 @@ export default function IndexScreen() {
       return;
     }
 
-    // Logged in — but if we have a live session and the profile hasn't loaded
-    // yet, wait. Profile is in the dependency array so this will re-fire once
-    // the profile resolves. The timeout below is the safety net for slow networks.
+    // Known returning user (MMKV has their ID): go home INSTANTLY.
+    // Never wait for token refresh or profile fetch — those happen in the
+    // background. A user who has ever logged in must never see the welcome
+    // or onboarding screens while we're busy restoring their session.
+    // Exception: only route to onboarding when a LIVE session + LOADED profile
+    // explicitly confirms it's needed (onboarding_completed === false).
+    if (cachedId) {
+      redirected.current = true;
+      if (hasSession && profileReady && profile?.onboarding_completed === false) {
+        router.replace("/onboarding");
+      } else {
+        router.replace("/(tabs)/chats");
+      }
+      return;
+    }
+
+    // Brand-new sign-in (no cachedId yet): wait for profile before routing
+    // so we can decide onboarding vs. home correctly.
     if (hasSession && !profileReady) return;
 
     redirected.current = true;
-
     if (hasSession && profileReady && !profileOnboarded) {
-      // Profile is complete but onboarding wasn't finished — send them there.
       router.replace("/onboarding");
     } else {
-      // Onboarding done, or offline mode (cached userId, no live session/profile).
       router.replace("/(tabs)/chats");
     }
   }
@@ -110,7 +122,7 @@ export default function IndexScreen() {
       } else if (Platform.OS === "web") {
         router.replace("/landing");
       } else if (getCachedUserId()) {
-        // Previously logged-in user — send to app even if session not yet restored
+        // Known user — always go home, never to welcome/onboarding
         router.replace("/(tabs)/chats");
       } else {
         router.replace("/welcome");
