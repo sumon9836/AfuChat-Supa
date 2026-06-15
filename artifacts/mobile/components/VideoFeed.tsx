@@ -64,14 +64,19 @@ import { getCachedVideoUri, cacheVideo, markVideoWatched } from "@/lib/videoCach
 import { recordWatchHistory } from "@/lib/watchHistory";
 import {
   computeFeedScore,
+  detectTopicsInContent,
   diversifyFeed,
   getLearnedInterestBoosts,
+  getNotInterestedSignals,
   getSeenVideoMap,
+  markNotInterested,
   markVideosSeen,
   matchInterestsWeighted,
   extractHashtags,
+  undoNotInterested,
   type FeedSignals,
 } from "@/lib/feedAlgorithm";
+import { showActionToast } from "@/lib/toast";
 import { useAnimationGuard } from "@/hooks/useAnimationGuard";
 
 // ── Lazy-load Reanimated ──────────────────────────────────────────────────────
@@ -727,7 +732,7 @@ type MoreSheetProps = {
   visible: boolean;
   item: VideoPost | null;
   onClose: () => void;
-  onNotInterested: (postId: string) => void;
+  onNotInterested: (item: VideoPost) => void;
 };
 
 function VideoMoreSheet({ visible, item, onClose, onNotInterested }: MoreSheetProps) {
@@ -807,7 +812,7 @@ function VideoMoreSheet({ visible, item, onClose, onNotInterested }: MoreSheetPr
 
   // Row 2: Extra actions
   const ACTION_ROW = [
-    { id: "notinterested", label: "Not interested", icon: "heart-dislike-outline", onPress: () => { onNotInterested(item.id); onClose(); } },
+    { id: "notinterested", label: "Not interested", icon: "heart-dislike-outline", onPress: () => { onNotInterested(item); onClose(); } },
     { id: "report",        label: "Report",         icon: "flag-outline",          onPress: onClose },
     { id: "download",      label: "Save",           icon: "download-outline",      onPress: onClose },
     { id: "story",         label: "Add to Story",   icon: "add-circle-outline",    onPress: onClose },
@@ -1060,9 +1065,10 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
           const myBookmarkSet = new Set((myBookmarks || []).map((b: any) => b.post_id as string));
           const followedSet = new Set((myFollows || []).map((f: any) => f.following_id as string));
 
-          const [learnedWeights, seenVideoMap] = await Promise.all([
+          const [learnedWeights, seenVideoMap, notInterestedSignals] = await Promise.all([
             getLearnedInterestBoosts(),
             getSeenVideoMap(),
+            getNotInterestedSignals(),
           ]);
 
           const authorPageCount: Record<string, number> = {};
@@ -1079,6 +1085,8 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
             const hashtags = extractHashtags(p.content || "");
             const engagementRate = lc / Math.max(vc, 1);
             const completionProxy = Math.min(lc / Math.max(vc, 0.5), 1);
+            const postTopics = detectTopicsInContent(p.content || "");
+            const notInterestedTopicCount = postTopics.filter((t) => notInterestedSignals.topics.has(t)).length;
             const signals: FeedSignals = {
               likeCount: lc,
               replyCount: rc,
@@ -1098,6 +1106,8 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
               engagementRate,
               hashtagCount: hashtags.length,
               completionProxy,
+              notInterestedAuthorId: notInterestedSignals.authorIds.has(p.author_id),
+              notInterestedTopicCount,
             };
             return {
               id: p.id,
@@ -1361,8 +1371,18 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
 
   const handleMore = useCallback((item: VideoPost) => setMoreItem(item), []);
 
-  const handleNotInterested = useCallback((postId: string) => {
-    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  const handleNotInterested = useCallback(async (item: VideoPost) => {
+    setPosts((prev) => prev.filter((p) => p.id !== item.id));
+    const marked = await markNotInterested(item.author_id, item.content || "");
+    showActionToast(
+      "We\u2019ll show less of this",
+      "Undo",
+      async () => {
+        await undoNotInterested(marked.authorId, marked.topics);
+        setPosts((prev) => (prev.some((p) => p.id === item.id) ? prev : [item, ...prev]));
+      },
+      { type: "info", icon: "eye-off-outline" },
+    );
   }, []);
 
   const handleToggleMute = useCallback(() => setGlobalMuted((m) => !m), []);

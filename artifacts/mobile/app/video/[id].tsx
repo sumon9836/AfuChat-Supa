@@ -74,11 +74,15 @@ import { ChatBubbleSkeleton, ShortsFeedSkeleton } from "@/components/ui/Skeleton
 import SignInPromptModal from "@/components/ui/SignInPromptModal";
 import {
   computeFeedScore,
+  detectTopicsInContent,
   getLearnedInterestBoosts,
+  getNotInterestedSignals,
+  markNotInterested,
   matchInterestsWeighted,
   diversifyFeed,
   getSeenVideoMap,
   markVideosSeen,
+  undoNotInterested,
   weightedSample,
   extractHashtags,
   type FeedSignals,
@@ -1235,9 +1239,10 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       for (const v of mapped) sessionSeenRef.current.add(v.id);
 
       // ── Rank by quality algorithm ───────────────────────────────────────────
-      const [learnedWeights, seenVideoMap] = await Promise.all([
+      const [learnedWeights, seenVideoMap, notInterestedSignals] = await Promise.all([
         getLearnedInterestBoosts(),
         getSeenVideoMap(),
+        getNotInterestedSignals(),
       ]);
       const now = Date.now();
 
@@ -1255,6 +1260,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
           const hashtags = extractHashtags(v.content);
           const engagementRate = v.likeCount / Math.max(v.view_count, 1);
           const completionProxy = Math.min(v.likeCount / Math.max(v.view_count, 0.5), 1);
+          const postTopics = detectTopicsInContent(v.content || "");
+          const notInterestedTopicCount = postTopics.filter((t) => notInterestedSignals.topics.has(t)).length;
           const signals: FeedSignals = {
             likeCount: v.likeCount,
             replyCount: v.replyCount,
@@ -1274,6 +1281,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
             engagementRate,
             hashtagCount: hashtags.length,
             completionProxy,
+            notInterestedAuthorId: notInterestedSignals.authorIds.has(v.author_id),
+            notInterestedTopicCount,
           };
           const score = computeFeedScore(signals);
           return { id: v.id, author_id: v.author_id, score, postType: "video" as const, video: v };
@@ -1622,12 +1631,16 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   }
 
   function handleCopyLink(item: VideoPost) { Clipboard.setStringAsync(getVideoUrl(item)); showToast("Link copied"); }
-  function handleNotInterested(item: VideoPost) {
+  async function handleNotInterested(item: VideoPost) {
     setVideos((prev) => prev.filter((v) => v.id !== item.id));
+    const marked = await markNotInterested(item.author_id, item.content || "");
     globalShowActionToast(
-      "Removed from feed",
+      "We\u2019ll show less of this",
       "Undo",
-      () => setVideos((prev) => prev.some((v) => v.id === item.id) ? prev : [item, ...prev]),
+      async () => {
+        await undoNotInterested(marked.authorId, marked.topics);
+        setVideos((prev) => (prev.some((v) => v.id === item.id) ? prev : [item, ...prev]));
+      },
       { type: "info", icon: "eye-off-outline" },
     );
   }

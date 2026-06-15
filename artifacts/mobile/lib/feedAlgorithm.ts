@@ -1,10 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const INTERACTION_WEIGHTS_KEY = "feed_interaction_weights_v1";
-const SEEN_FEED_POSTS_KEY = "seen_feed_post_ids_v2";
-const SEEN_VIDEO_IDS_KEY = "seen_video_ids_v2";
-const DECAY_FACTOR = 0.97;
-const MAX_WEIGHT = 120;
+const INTERACTION_WEIGHTS_KEY     = "feed_interaction_weights_v1";
+const SEEN_FEED_POSTS_KEY         = "seen_feed_post_ids_v2";
+const SEEN_VIDEO_IDS_KEY          = "seen_video_ids_v2";
+const NOT_INTERESTED_AUTHORS_KEY  = "not_interested_authors_v1";
+const NOT_INTERESTED_TOPICS_KEY   = "not_interested_topics_v1";
+const DECAY_FACTOR   = 0.97;
+const MAX_WEIGHT     = 120;
 const SEEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const INTEREST_KEYWORDS: Record<string, string[]> = {
@@ -86,6 +88,93 @@ export async function markVideosSeen(ids: string[]): Promise<void> {
   await _writeSeenMap(SEEN_VIDEO_IDS_KEY, map);
 }
 
+// ─── Not-Interested signals (permanent — no expiry) ──────────────────────────
+// Explicitly dismissed content tanks to the bottom of the feed.
+// Signals are stored indefinitely; the user can undo within the toast window,
+// or reset everything via Settings › Preferences › Reset Feed.
+
+async function _readStringSet(key: string): Promise<Set<string>> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? new Set(JSON.parse(raw)) : new Set<string>();
+  } catch { return new Set<string>(); }
+}
+
+async function _writeStringSet(key: string, set: Set<string>): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify([...set]));
+  } catch {}
+}
+
+export async function getNotInterestedSignals(): Promise<{
+  authorIds: Set<string>;
+  topics: Set<string>;
+}> {
+  const [authorIds, topics] = await Promise.all([
+    _readStringSet(NOT_INTERESTED_AUTHORS_KEY),
+    _readStringSet(NOT_INTERESTED_TOPICS_KEY),
+  ]);
+  return { authorIds, topics };
+}
+
+/** Returns which interest categories are present in the content string. */
+export function detectTopicsInContent(content: string): string[] {
+  const lower = (content || "").toLowerCase();
+  return Object.entries(INTEREST_KEYWORDS)
+    .filter(([, kws]) => kws.some((kw) => lower.includes(kw)))
+    .map(([cat]) => cat);
+}
+
+/**
+ * Persistently marks an author + their content categories as not-interesting.
+ * Returns `{ authorId, topics }` so the caller can pass to `undoNotInterested`.
+ */
+export async function markNotInterested(
+  authorId: string,
+  content: string,
+): Promise<{ authorId: string; topics: string[] }> {
+  const detectedTopics = detectTopicsInContent(content);
+  const [authorIds, topicSet] = await Promise.all([
+    _readStringSet(NOT_INTERESTED_AUTHORS_KEY),
+    _readStringSet(NOT_INTERESTED_TOPICS_KEY),
+  ]);
+  authorIds.add(authorId);
+  detectedTopics.forEach((t) => topicSet.add(t));
+  await Promise.all([
+    _writeStringSet(NOT_INTERESTED_AUTHORS_KEY, authorIds),
+    _writeStringSet(NOT_INTERESTED_TOPICS_KEY, topicSet),
+  ]);
+  return { authorId, topics: detectedTopics };
+}
+
+/**
+ * Reverses a `markNotInterested` call.
+ * Pass the exact return value from `markNotInterested` to undo cleanly.
+ */
+export async function undoNotInterested(
+  authorId: string,
+  topics: string[],
+): Promise<void> {
+  const [authorIds, topicSet] = await Promise.all([
+    _readStringSet(NOT_INTERESTED_AUTHORS_KEY),
+    _readStringSet(NOT_INTERESTED_TOPICS_KEY),
+  ]);
+  authorIds.delete(authorId);
+  topics.forEach((t) => topicSet.delete(t));
+  await Promise.all([
+    _writeStringSet(NOT_INTERESTED_AUTHORS_KEY, authorIds),
+    _writeStringSet(NOT_INTERESTED_TOPICS_KEY, topicSet),
+  ]);
+}
+
+/** Wipes all not-interested signals — used by Settings › Reset Feed. */
+export async function resetNotInterestedSignals(): Promise<void> {
+  await Promise.all([
+    AsyncStorage.removeItem(NOT_INTERESTED_AUTHORS_KEY),
+    AsyncStorage.removeItem(NOT_INTERESTED_TOPICS_KEY),
+  ]);
+}
+
 // ─── Interest matching ────────────────────────────────────────────────────────
 
 export function matchInterests(content: string, userInterests: string[]): number {
@@ -148,10 +237,12 @@ export type FeedSignals = {
   contentLength: number;
   postType?: string;
   isSeen?: boolean;
-  seenAt?: number;           // unix timestamp when last seen — enables tiered decay penalty
-  engagementRate?: number;   // likeCount / max(viewCount, 1) — high ratio = high quality
-  hashtagCount?: number;     // #hashtag count in content — signals curated/discoverable content
-  completionProxy?: number;  // avg watch depth proxy: likeCount / max(viewCount, 0.5) capped 0–1
+  seenAt?: number;                  // unix timestamp when last seen — enables tiered decay penalty
+  engagementRate?: number;          // likeCount / max(viewCount, 1) — high ratio = high quality
+  hashtagCount?: number;            // #hashtag count in content — signals curated/discoverable content
+  completionProxy?: number;         // avg watch depth proxy: likeCount / max(viewCount, 0.5) capped 0–1
+  notInterestedAuthorId?: boolean;  // true if user explicitly said "not interested" in this author
+  notInterestedTopicCount?: number; // how many of this post's topics match a not-interested category
 };
 
 // ─── Hashtag extractor ────────────────────────────────────────────────────────
@@ -249,6 +340,14 @@ export function computeFeedScore(signals: FeedSignals): number {
     seenPenalty = -35; // fallback for callers using old boolean API
   }
 
+  // ── Not-Interested: explicit user feedback — permanent strong demotion ───
+  // Author penalty is severe enough that the post will almost never surface,
+  // but avoids −∞ so the scoring pipeline never breaks on tiny catalogues.
+  // Topic penalty compounds per-category so niche interests are respected.
+  const notInterestedPenalty =
+    (signals.notInterestedAuthorId ? -150 : 0) +
+    ((signals.notInterestedTopicCount ?? 0) * -40);
+
   // ── Random jitter: large enough to surface unexpected gems ───────────────
   const randomJitter = Math.random() * 15;
 
@@ -256,7 +355,7 @@ export function computeFeedScore(signals: FeedSignals): number {
     freshnessScore + trendingScore + burstScore + engagementScore +
     engagementRateScore + completionScore + hashtagScore +
     interestScore + affinityScore + qualityScore +
-    diversityPenalty + seenPenalty + randomJitter
+    diversityPenalty + seenPenalty + notInterestedPenalty + randomJitter
   );
 }
 
