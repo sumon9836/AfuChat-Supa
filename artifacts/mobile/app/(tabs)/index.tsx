@@ -1134,6 +1134,40 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
       return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
     });
 
+    // ── Deduplicate DMs: one chat per other_id ────────────────────────────────
+    // The list is already newest-first, so the FIRST occurrence of each other_id
+    // is the canonical (most recent) chat. Stale duplicates are filtered out and
+    // the user is silently removed from their chat_members so they never resurface.
+    {
+      const seenOtherIds = new Set<string>();
+      const staleIds: string[] = [];
+      const dedupedItems: ChatItem[] = [];
+      for (const item of regularItems) {
+        // Groups, channels, and self-chat are never duplicated — pass through.
+        if (item.is_group || item.is_channel || !item.other_id || item.other_id === user.id) {
+          dedupedItems.push(item);
+          continue;
+        }
+        if (seenOtherIds.has(item.other_id)) {
+          staleIds.push(item.id);
+        } else {
+          seenOtherIds.add(item.other_id);
+          dedupedItems.push(item);
+        }
+      }
+      regularItems.length = 0;
+      regularItems.push(...dedupedItems);
+
+      // Silently leave stale duplicate chats so they can't come back
+      if (staleIds.length > 0) {
+        Promise.all(
+          staleIds.map((chatId) =>
+            supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", user.id)
+          )
+        ).catch(() => {});
+      }
+    }
+
     // ── Fetch subscribed broadcast channels ──────────────────────────────────
     const { data: subRows } = await supabase
       .from("channel_subscriptions")
