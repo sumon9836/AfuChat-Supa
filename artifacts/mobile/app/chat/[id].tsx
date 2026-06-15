@@ -1725,6 +1725,10 @@ function ChatScreen() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchCursor, setSearchCursor] = useState(0);
+  const searchInputRef = useRef<any>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [editHistoryMsg, setEditHistoryMsg] = useState<Message | null>(null);
   const [editHistoryItems, setEditHistoryItems] = useState<{ id: string; previous_content: string; edited_at: string }[]>([]);
@@ -5221,6 +5225,33 @@ STRICT RULES:
     [messages, lensCardMsg]
   );
 
+  // ── In-chat search: indices into listData (inverted list, 0 = newest) ───────
+  const searchMatchIndices: number[] = useMemo(() => {
+    if (!searchActive || !searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase().trim();
+    const hits: number[] = [];
+    listData.forEach((msg, idx) => {
+      const text = (msg.encrypted_content || "").toLowerCase();
+      if (text.includes(q)) hits.push(idx);
+    });
+    return hits;
+  }, [searchActive, searchQuery, listData]);
+
+  // Scroll to focused match and drive highlightedMsgId whenever cursor moves.
+  useEffect(() => {
+    if (!searchActive || searchMatchIndices.length === 0) {
+      if (!searchActive) setHighlightedMsgId(null);
+      return;
+    }
+    const idx = searchMatchIndices[searchCursor] ?? searchMatchIndices[0];
+    const msg = listData[idx];
+    if (!msg) return;
+    setHighlightedMsgId(msg.id);
+    try {
+      flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
+    } catch {}
+  }, [searchActive, searchCursor, searchMatchIndices]);
+
   function shouldShowTail(index: number): boolean {
     const current = listData[index];
     // Replied messages always show a tail regardless of group position
@@ -5519,6 +5550,52 @@ STRICT RULES:
         </View>
       </View>
 
+      {/* ── In-chat search bar ─────────────────────────────────────────────── */}
+      {searchActive && (
+        <View style={[st.searchBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Ionicons name="search-outline" size={16} color={colors.textMuted} />
+          <TextInput
+            ref={searchInputRef}
+            style={[st.searchInput, { color: colors.text }]}
+            placeholder="Search messages…"
+            placeholderTextColor={colors.textMuted}
+            value={searchQuery}
+            onChangeText={(t) => { setSearchQuery(t); setSearchCursor(0); }}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <Text style={[st.searchCount, { color: colors.textMuted }]}>
+              {searchMatchIndices.length > 0
+                ? `${searchCursor + 1} / ${searchMatchIndices.length}`
+                : "No results"}
+            </Text>
+          )}
+          <TouchableOpacity
+            hitSlop={8}
+            disabled={searchMatchIndices.length === 0}
+            onPress={() => setSearchCursor((c) => (c - 1 + searchMatchIndices.length) % searchMatchIndices.length)}
+          >
+            <Ionicons name="chevron-up" size={20}
+              color={searchMatchIndices.length > 0 ? colors.text : colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            hitSlop={8}
+            disabled={searchMatchIndices.length === 0}
+            onPress={() => setSearchCursor((c) => (c + 1) % searchMatchIndices.length)}
+          >
+            <Ionicons name="chevron-down" size={20}
+              color={searchMatchIndices.length > 0 ? colors.text : colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            hitSlop={8}
+            onPress={() => { setSearchActive(false); setSearchQuery(""); setSearchCursor(0); setHighlightedMsgId(null); }}
+          >
+            <Ionicons name="close" size={22} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* ── Stranger message-request banner ── */}
       {isStranger && chatInfo?.other_id && (
         <View style={[st.strangerBanner, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -5633,7 +5710,7 @@ STRICT RULES:
               ref={flatListRef}
               data={listData}
               keyExtractor={(m) => m.id}
-              extraData={[highlightedMsgId, lensCardMsg?.id]}
+              extraData={[highlightedMsgId, lensCardMsg?.id, searchActive, searchMatchIndices.length, searchCursor]}
               renderItem={renderMessage}
               inverted
               contentContainerStyle={[st.listContent, { paddingTop: floatingInputHeight + effectiveBottom + 16 }]}
@@ -7321,6 +7398,16 @@ STRICT RULES:
           />
           <View style={[st.ddCard, { backgroundColor: colors.surface, top: insets.top + 54 }]}>
             <ScrollView bounces={false} showsVerticalScrollIndicator={false} style={{ maxHeight: 520 }}>
+              {/* Search */}
+              <DdRow colors={colors} icon="search-outline" label="Search"
+                onPress={() => {
+                  setShowChatOptions(false);
+                  setSearchActive(true);
+                  setSearchQuery("");
+                  setSearchCursor(0);
+                  setTimeout(() => searchInputRef.current?.focus(), 250);
+                }} />
+              <DdDivider colors={colors} />
               {/* Info */}
               {(chatInfo?.is_group || chatInfo?.is_channel) && (
                 <DdRow colors={colors} icon="people-outline"
@@ -8107,4 +8194,27 @@ const st = StyleSheet.create({
   ddSubText: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
   ddSubGroup: { borderTopWidth: StyleSheet.hairlineWidth },
   ddDivider: { height: StyleSheet.hairlineWidth },
+
+  // ── In-chat search bar ────────────────────────────────────────────────────
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    height: 38,
+    paddingVertical: 0,
+  },
+  searchCount: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    minWidth: 70,
+    textAlign: "center",
+  },
 });
