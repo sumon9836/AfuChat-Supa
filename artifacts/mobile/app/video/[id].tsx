@@ -773,7 +773,7 @@ const VideoItem = React.memo(function VideoItem({
       <TapHandler
         onTap={handleTap}
         onDoubleTap={triggerDoubleTapLike}
-        onLongPress={() => onOpenMenu(item, () => { videoViewRef.current?.startPictureInPicture?.(); })}
+        onLongPress={() => onOpenMenu(item, () => { try { videoViewRef.current?.startPictureInPicture?.(); } catch {} })}
       />
     </View>
   );

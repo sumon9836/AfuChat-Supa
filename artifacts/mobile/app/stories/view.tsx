@@ -497,7 +497,7 @@ export default function ViewStoryScreen() {
         {Platform.OS !== "web" && isVideoStory && (
           <TouchableOpacity
             style={styles.topBtn}
-            onPress={() => inPip ? storyVideoRef.current?.stopPictureInPicture() : storyVideoRef.current?.startPictureInPicture()}
+            onPress={() => { try { inPip ? storyVideoRef.current?.stopPictureInPicture() : storyVideoRef.current?.startPictureInPicture(); } catch {} }}
             activeOpacity={0.8}
           >
             <Ionicons name={inPip ? "contract" : "expand"} size={20} color={inPip ? "#1f95ff" : "#fff"} />
