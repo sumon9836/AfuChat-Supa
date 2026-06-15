@@ -1767,6 +1767,7 @@ function ChatScreen() {
     return () => { onShow.remove(); onHide.remove(); };
   }, []);
   const [showChatOptions, setShowChatOptions] = useState(false);
+  const [notifRowsMap, setNotifRowsMap] = useState<Map<string, any>>(new Map());
   const [muteUntil, setMuteUntil] = useState<string | null | undefined>(undefined);
   const [showMutePicker, setShowMutePicker] = useState(false);
   // null = muted forever; ISO string = muted until that time; undefined = not loaded / not muted
@@ -2311,6 +2312,30 @@ function ChatScreen() {
       }
     };
   }, []);
+
+  // ── Fetch notifications table rows to enrich raw push-payload messages ───────
+  useEffect(() => {
+    if (!isAfuChatSystemChat || !user) return;
+    let cancelled = false;
+    supabase
+      .from("notifications")
+      .select("id, type, actor_id, actor_name, actor_handle, actor_avatar, entity_id, entity_type, data, title, body, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(300)
+      .then(({ data: rows }) => {
+        if (cancelled || !rows) return;
+        const map = new Map<string, any>();
+        for (const r of rows) {
+          map.set(r.created_at, r);
+          const trunc = r.created_at.replace(/\.\d+Z?$/, "");
+          if (!map.has(trunc)) map.set(trunc, r);
+        }
+        setNotifRowsMap(map);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isAfuChatSystemChat, user?.id, messages.length]);
 
   const checkMessageGating = useCallback(async () => {
     if (!user) return;
@@ -5131,10 +5156,46 @@ STRICT RULES:
     const showDate = shouldShowDate(index);
     const spacing = getMessageSpacing(index);
 
-    // Detect @afuchat system notification messages
-    const sysNotifData = item.sender_id === AFUCHAT_SYSTEM_ID
+    // Detect @afuchat system notification messages (rich _sys_notif OR raw push-payload)
+    let sysNotifData = item.sender_id === AFUCHAT_SYSTEM_ID
       ? tryParseSysNotif(item.encrypted_content || "")
       : null;
+
+    // Enrich raw push-payload messages ({"type":"new_like","body":"","data":{}}) with
+    // actor details and entity info from the notifications table
+    if (!sysNotifData && item.sender_id === AFUCHAT_SYSTEM_ID) {
+      try {
+        const raw = JSON.parse(item.encrypted_content || "{}");
+        if (raw?.type && typeof raw.type === "string") {
+          const notifRow =
+            notifRowsMap.get(item.sent_at) ||
+            notifRowsMap.get(item.sent_at.replace(/\.\d+Z?$/, "")) ||
+            (() => {
+              const sentMs = new Date(item.sent_at).getTime();
+              for (const [, r] of notifRowsMap) {
+                if (r.type === raw.type && Math.abs(new Date(r.created_at).getTime() - sentMs) < 3000) return r;
+              }
+              return null;
+            })();
+          sysNotifData = {
+            _sys_notif: true as const,
+            type: (notifRow?.type || raw.type) as string,
+            title: notifRow?.title || raw.title || "",
+            body: notifRow?.body || raw.body || "",
+            actor_id: notifRow?.actor_id,
+            actor_name: notifRow?.actor_name,
+            actor_handle: notifRow?.actor_handle,
+            actor_avatar: notifRow?.actor_avatar,
+            entity_id: notifRow?.entity_id,
+            entity_type: notifRow?.entity_type,
+            post_id: notifRow?.entity_type === "post" ? notifRow?.entity_id : (raw.data?.postId ?? undefined),
+            data: { ...(notifRow?.data || {}), ...(raw.data || {}) },
+            created_at: item.sent_at,
+            notif_id: notifRow?.id,
+          };
+        }
+      } catch {}
+    }
 
     // Apply notification filter
     if (sysNotifData && notifFilter !== "all") {
@@ -5198,7 +5259,7 @@ STRICT RULES:
         )}
       </View>
     );
-  }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup, notifFilter, isAfuChatSystemChat]);
+  }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup, notifFilter, isAfuChatSystemChat, notifRowsMap]);
 
   // Single source of truth for the bottom offset.
   // The floatingInputContainer is position:absolute so it cannot rely on
@@ -6923,8 +6984,106 @@ STRICT RULES:
       />
 
 
-      {/* ── Chat Options Sheet ─────────────────────────────────────────────── */}
-      <SwipeableBottomSheet
+      {/* ── Notifications Options Modal (system notification chat) ─────────── */}
+      {isAfuChatSystemChat && (
+        <Modal
+          visible={showChatOptions}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowChatOptions(false)}
+        >
+          <View style={{ flex: 1 }}>
+            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowChatOptions(false)} />
+            <View style={[st.notifModal, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 8 }]}>
+              <View style={[st.notifModalHeader, { borderBottomColor: colors.border }]}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: BRAND + "18", alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="notifications" size={18} color={BRAND} />
+                  </View>
+                  <Text style={[st.notifModalTitle, { color: colors.text }]}>Notifications</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowChatOptions(false)} hitSlop={12}>
+                  <Ionicons name="close" size={22} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={[st.optionsSection, { color: colors.textMuted, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6, marginTop: 0 }]}>FILTER</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 20, marginBottom: 12 }}>
+                {([
+                  { key: "all",      label: "All",      icon: "notifications" },
+                  { key: "social",   label: "Social",   icon: "heart" },
+                  { key: "shop",     label: "Shop",     icon: "bag-handle" },
+                  { key: "payments", label: "Payments", icon: "wallet" },
+                ] as const).map((f) => {
+                  const active = notifFilter === f.key;
+                  return (
+                    <TouchableOpacity
+                      key={f.key}
+                      onPress={() => { setNotifFilter(f.key); }}
+                      style={[st.notifFilterChip, active ? { backgroundColor: BRAND, borderColor: BRAND } : { backgroundColor: "transparent", borderColor: colors.border }]}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name={f.icon as any} size={12} color={active ? "#fff" : colors.textMuted} style={{ marginRight: 4 }} />
+                      <Text style={[st.notifFilterChipText, { color: active ? "#fff" : colors.textMuted }]}>{f.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={[st.optionsSection, { color: colors.textMuted, paddingHorizontal: 20, paddingBottom: 6, marginTop: 0 }]}>ACTIONS</Text>
+
+              <TouchableOpacity
+                style={[st.optionsRow, { borderBottomColor: colors.border }]}
+                onPress={async () => {
+                  setShowChatOptions(false);
+                  if (!user) return;
+                  await supabase.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false).then(() => {});
+                }}
+              >
+                <View style={[st.optionsIcon, { backgroundColor: "#34C759" }]}>
+                  <Ionicons name="checkmark-done" size={16} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[st.optionsLabel, { color: colors.text }]}>Mark All as Read</Text>
+                  <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>Clear all unread badges</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[st.optionsRow, { borderBottomColor: colors.border }]}
+                onPress={() => { if (isMuted) { handleUnmuteChat(); setShowChatOptions(false); } else { setShowChatOptions(false); setShowMutePicker(true); } }}
+              >
+                <View style={[st.optionsIcon, { backgroundColor: isMuted ? "#8E8E93" : "#007AFF" }]}>
+                  <Ionicons name={isMuted ? "notifications-off" : "notifications"} size={16} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[st.optionsLabel, { color: isMuted ? "#8E8E93" : colors.text }]}>{isMuted ? "Unmute Notifications" : "Mute Notifications"}</Text>
+                  {isMuted && muteLabel() ? <Text style={{ fontSize: 12, color: "#8E8E93", marginTop: 1 }}>{muteLabel()}</Text> : null}
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[st.optionsRow, { borderBottomColor: "transparent", marginBottom: 4 }]}
+                onPress={() => {
+                  setShowChatOptions(false);
+                  showAlert("Clear Notifications", "Remove all notification history? This cannot be undone.", [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Clear", style: "destructive", onPress: () => handleClearChatMessages() },
+                  ]);
+                }}
+              >
+                <View style={[st.optionsIcon, { backgroundColor: "#FF3B30" }]}>
+                  <Ionicons name="trash-outline" size={16} color="#fff" />
+                </View>
+                <Text style={[st.optionsLabel, { color: "#FF3B30" }]}>Clear All Notifications</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* ── Chat Options Sheet (regular chats) ─────────────────────────────── */}
+      {!isAfuChatSystemChat && <SwipeableBottomSheet
         visible={showChatOptions}
         onClose={() => { setShowChatOptions(false); setShowDisappearingPicker(false); }}
         backgroundColor={colors.surface}
@@ -7185,7 +7344,7 @@ STRICT RULES:
 
               <View style={{ height: 16 }} />
 
-      </SwipeableBottomSheet>
+      </SwipeableBottomSheet>}
 
       {forwardMsg && (
         <Modal
@@ -7619,6 +7778,24 @@ const st = StyleSheet.create({
   notifFilterChipText: {
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
+  },
+  notifModal: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 0,
+    overflow: "hidden",
+  },
+  notifModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  notifModalTitle: {
+    fontSize: 17,
+    fontFamily: "Inter_700Bold",
   },
 
   strangerBanner: {

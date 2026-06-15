@@ -306,6 +306,33 @@ function useNotifRead(notifId: string | undefined) {
   return { read, markRead };
 }
 
+// ─── Post content fetcher (short description) ─────────────────────────────────
+
+const POST_PREVIEW_TYPES = new Set(["new_like", "new_reply", "new_mention", "channel_post"]);
+
+function usePostContent(postId: string | undefined, type: string) {
+  const [content, setContent] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!postId || !POST_PREVIEW_TYPES.has(type)) return;
+    let cancelled = false;
+    supabase
+      .from("posts")
+      .select("content")
+      .eq("id", postId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data?.content) return;
+        const text = typeof data.content === "string" ? data.content.trim() : "";
+        if (text) setContent(text.slice(0, 100));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [postId, type]);
+
+  return content;
+}
+
 // ─── Post thumbnail fetcher ───────────────────────────────────────────────────
 
 function usePostThumbnail(postId: string | undefined, provided: string | undefined) {
@@ -427,10 +454,8 @@ export function SystemNotificationCard({ data, sentAt }: Props) {
   const bodyParts = buildBodyParts(data);
   const actions = buildActions(data);
   const { read, markRead } = useNotifRead(data.notif_id);
-  const postThumb = usePostThumbnail(
-    data.post_id,
-    data.post_thumbnail,
-  );
+  const postThumb = usePostThumbnail(data.post_id, data.post_thumbnail);
+  const postContent = usePostContent(data.post_id, data.type);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(8)).current;
@@ -521,6 +546,15 @@ export function SystemNotificationCard({ data, sentAt }: Props) {
             {data.type === "shop_review" && (data.data?.rating || 0) > 0 && (
               <Text style={sn.stars}>{"★".repeat(data.data!.rating)}{"☆".repeat(5 - data.data!.rating)}</Text>
             )}
+
+            {/* Post content preview */}
+            {postContent ? (
+              <View style={[sn.postPreviewBox, { borderLeftColor: cfg.accent + "60" }]}>
+                <Text style={[sn.postPreviewText, { color: colors.textMuted }]} numberOfLines={2}>
+                  {postContent}
+                </Text>
+              </View>
+            ) : null}
 
             {/* Timestamp */}
             <Text style={[sn.time, { color: colors.textMuted }]}>{relTime(sentAt)}</Text>
@@ -694,5 +728,16 @@ const sn = StyleSheet.create({
   actionBtnText: {
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
+  },
+  postPreviewBox: {
+    borderLeftWidth: 2,
+    paddingLeft: 7,
+    marginTop: 3,
+  },
+  postPreviewText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 17,
+    fontStyle: "italic",
   },
 });
