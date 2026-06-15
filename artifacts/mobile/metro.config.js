@@ -28,6 +28,8 @@ config.resolver = {
     /node_modules[\\/]\.pnpm[\\/]react-native-mmkv[^/]*[\\/]node_modules[\\/]react-native-mmkv[\\/](cpp|ios|src).*/,
     // recharts umd dir missing in pnpm virtual store
     /node_modules[\\/]\.pnpm[\\/]recharts[^/]*[\\/]node_modules[\\/]recharts[\\/]umd.*/,
+    // date-fns _lib dir missing in pnpm virtual store — exclude to prevent ENOENT watcher crash
+    /node_modules[\\/]\.pnpm[\\/]date-fns[^/]*[\\/]node_modules[\\/]date-fns[\\/]_lib.*/,
   ],
   // Enable symlink following so Metro resolves pnpm's content-addressed store
   // correctly on Android (pnpm creates symlinks that Metro doesn't follow by default).
