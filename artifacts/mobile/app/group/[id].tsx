@@ -58,7 +58,6 @@ type GroupDetail = {
   is_group: boolean;
   is_channel: boolean;
   is_public: boolean;
-  created_by: string;
 };
 
 type Follower = {
@@ -210,12 +209,12 @@ export default function GroupManageScreen() {
 
   const loadGroup = useCallback(async () => {
     if (!id || !user) return;
-    const [{ data: chatData }, { data: membersData }] = await Promise.all([
+    const [{ data: chatData, error: chatError }, { data: membersData }] = await Promise.all([
       supabase
         .from("chats")
-        .select("id, name, description, avatar_url, is_group, is_channel, is_public, created_by")
+        .select("id, name, description, avatar_url, is_group, is_channel, is_public")
         .eq("id", id)
-        .single(),
+        .maybeSingle(),
       supabase
         .from("chat_members")
         .select(
@@ -224,12 +223,15 @@ export default function GroupManageScreen() {
         .eq("chat_id", id),
     ]);
 
+    if (chatError) {
+      console.warn("[GroupInfo] load error:", chatError.message);
+    }
+
     if (chatData) {
       setGroup({
         ...chatData,
         is_public: (chatData as any).is_public ?? false,
       });
-      setIsCreator(chatData.created_by === user.id);
     }
 
     if (membersData) {
@@ -249,7 +251,9 @@ export default function GroupManageScreen() {
       });
       setMembers(mapped);
       const me = mapped.find((m) => m.user_id === user.id);
-      setIAmAdmin(me?.is_admin ?? false);
+      const amAdmin = me?.is_admin ?? false;
+      setIAmAdmin(amAdmin);
+      setIsCreator(amAdmin);
     }
     setLoading(false);
   }, [id, user]);
@@ -757,7 +761,7 @@ export default function GroupManageScreen() {
                   {member.is_admin && (
                     <View style={[s.adminBadge, { backgroundColor: colors.accent + "18" }]}>
                       <Text style={[s.adminBadgeText, { color: colors.accent }]}>
-                        {isCreator && member.user_id === group.created_by ? "Owner" : "Admin"}
+                        {isCreator && member.user_id === user?.id ? "Owner" : "Admin"}
                       </Text>
                     </View>
                   )}

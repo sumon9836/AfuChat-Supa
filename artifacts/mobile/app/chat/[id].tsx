@@ -1714,6 +1714,7 @@ function ChatScreen() {
   const [miniProfileUserId, setMiniProfileUserId] = useState<string | null>(null);
   const [emojiKeyboardHeight, setEmojiKeyboardHeight] = useState(280);
   const [reminderMsg, setReminderMsg] = useState<Message | null>(null);
+  const [iAmChatAdmin, setIAmChatAdmin] = useState(false);
 
   // Load chatInfo from local SQLite cache immediately so the header renders
   // without any network delay, even if nav params weren't passed.
@@ -1999,12 +2000,14 @@ function ChatScreen() {
     if (!isOnline()) return;
     const { data: chat } = await supabase
       .from("chats")
-      .select(`is_group, is_channel, name, avatar_url, chat_members(user_id, profiles(id, display_name, avatar_url, handle, is_verified, is_organization_verified, last_seen, show_online_status))`)
+      .select(`is_group, is_channel, name, avatar_url, chat_members(user_id, is_admin, profiles(id, display_name, avatar_url, handle, is_verified, is_organization_verified, last_seen, show_online_status))`)
       .eq("id", id)
       .single();
 
     if (chat) {
       const allMembers = (chat.chat_members || []) as any[];
+      const me = allMembers.find((m: any) => m.user_id === user.id);
+      setIAmChatAdmin(!!(me?.is_admin));
       const others = allMembers.filter((m) => m.user_id !== user.id);
       // Self-chat ("My Notes"): when the user is the only member, treat themselves as the other
       const isSelf = others.length === 0;
@@ -5463,6 +5466,10 @@ STRICT RULES:
               </Text>
             ) : !networkOnline ? (
               <Text style={[st.headerSub, { color: "#FF9500" }]}>Waiting for network...</Text>
+            ) : chatInfo?.is_channel ? (
+              <Text style={[st.headerSub, { color: colors.textMuted }]}>
+                {iAmChatAdmin ? "📢 Channel · Admin" : "📢 Channel · View only"}
+              </Text>
             ) : chatInfo?.is_group ? (
               <Text style={[st.headerSub, { color: colors.textMuted }]}>Group chat</Text>
             ) : isAfuChatSystemChat ? (
@@ -5824,6 +5831,13 @@ STRICT RULES:
                 </TouchableOpacity>
               </View>
             </View>
+          </View>
+        ) : chatInfo?.is_channel && !iAmChatAdmin ? (
+          <View style={[st.channelReadOnlyBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+            <Ionicons name="megaphone-outline" size={16} color={colors.textMuted} />
+            <Text style={[st.channelReadOnlyText, { color: colors.textMuted }]}>
+              Only admins can post in this channel
+            </Text>
           </View>
         ) : (
           <>
@@ -8030,6 +8044,19 @@ const st = StyleSheet.create({
     left: 12,
     right: 12,
     bottom: 0,
+  },
+  channelReadOnlyBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  channelReadOnlyText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
   inputFloatOuter: {
     paddingTop: 4,
