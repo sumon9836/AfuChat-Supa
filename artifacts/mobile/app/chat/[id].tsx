@@ -5755,7 +5755,7 @@ STRICT RULES:
 
         {isAfuChatSystemChat ? (
           <View style={[st.inputFloatOuter, { paddingBottom: 8 }]}>
-            <View style={[st.notifFilterBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, paddingHorizontal: 12, paddingVertical: 6 }}>
               {([
                 { key: "all",      label: "All",      icon: "notifications" },
                 { key: "social",   label: "Social",   icon: "heart" },
@@ -5771,7 +5771,14 @@ STRICT RULES:
                       st.notifFilterChip,
                       active
                         ? { backgroundColor: BRAND, borderColor: BRAND }
-                        : { backgroundColor: "transparent", borderColor: colors.border },
+                        : {
+                            backgroundColor: colors.inputBg,
+                            borderColor: colors.border,
+                            ...Platform.select({
+                              web: { boxShadow: "0 2px 8px rgba(0,0,0,0.10)" } as any,
+                              default: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 5, elevation: 3 },
+                            }),
+                          },
                     ]}
                     activeOpacity={0.7}
                     hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
@@ -7196,16 +7203,8 @@ STRICT RULES:
             </Animated.View>
 
             <View style={[st.notifModal, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 8 }]}>
-              <View style={[st.notifModalHeader, { borderBottomColor: colors.border }]}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                  <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: BRAND + "18", alignItems: "center", justifyContent: "center" }}>
-                    <Ionicons name="notifications" size={18} color={BRAND} />
-                  </View>
-                  <Text style={[st.notifModalTitle, { color: colors.text }]}>Notifications</Text>
-                </View>
-                <TouchableOpacity onPress={() => setShowChatOptions(false)} hitSlop={12}>
-                  <Ionicons name="close" size={22} color={colors.textMuted} />
-                </TouchableOpacity>
+              <View style={{ alignItems: "center", paddingTop: 10, paddingBottom: 4 }}>
+                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
               </View>
 
               <Text style={[st.optionsSection, { color: colors.textMuted, paddingHorizontal: 20, paddingBottom: 6, marginTop: 8 }]}>ACTIONS</Text>
