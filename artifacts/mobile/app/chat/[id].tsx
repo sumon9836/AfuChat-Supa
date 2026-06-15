@@ -2139,6 +2139,16 @@ function ChatScreen() {
       });
       clearUnread(chatId).catch(() => {});
 
+      // ── If this is the system notification chat, mark all notifications read ──
+      if (chatInfoStateRef.current?.other_id === AFUCHAT_SYSTEM_ID && user) {
+        supabase
+          .from("notifications")
+          .update({ read: true })
+          .eq("user_id", user.id)
+          .eq("read", false)
+          .then(() => {});
+      }
+
       if (!newestStored) {
         oldestCursorRef.current = data.length > 0 ? data[data.length - 1].sent_at : null;
         setHasMore(data.length >= 50);
@@ -2205,11 +2215,11 @@ function ChatScreen() {
                   message_id: m.id,
                   user_id: user.id,
                   delivered_at: now,
-                  ...(chatPrefs.read_receipts ? { read_at: now } : {}),
+                  ...(chatPrefs.read_receipts || chatInfoStateRef.current?.other_id === AFUCHAT_SYSTEM_ID ? { read_at: now } : {}),
                 })),
                 { onConflict: "message_id,user_id" }
               ).then(() => {});
-              if (chatPrefs.read_receipts) {
+              if (chatPrefs.read_receipts && chatInfoStateRef.current?.other_id !== AFUCHAT_SYSTEM_ID) {
                 typingChannelRef.current?.send({ type: "broadcast", event: "read", payload: { reader_id: user.id, message_ids: toMark.map((m: any) => m.id), chat_id: id, read_at: now } });
               }
             }
