@@ -1589,7 +1589,15 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
         }
       );
     });
-    msgChannel.subscribe();
+    // The status callback fires synchronously when the WebSocket closes —
+    // BEFORE Supabase replays any buffered events. This closes the race window
+    // where NetInfo fires `offline` too late and buffered INSERTs slip through
+    // and falsely mark every chat as unread.
+    msgChannel.subscribe((status: string) => {
+      if (status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        suppressUnreadIncrementRef.current = true;
+      }
+    });
 
     // Also subscribe to chat-level updates (pinning, archiving, name changes)
     // We filter client-side since Supabase realtime doesn't support IN filters
