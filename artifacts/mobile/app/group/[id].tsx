@@ -8,7 +8,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -57,7 +56,6 @@ type GroupDetail = {
   avatar_url: string | null;
   is_group: boolean;
   is_channel: boolean;
-  is_public: boolean;
 };
 
 type Follower = {
@@ -212,7 +210,7 @@ export default function GroupManageScreen() {
     const [{ data: chatData, error: chatError }, { data: membersData }] = await Promise.all([
       supabase
         .from("chats")
-        .select("id, name, description, avatar_url, is_group, is_channel, is_public")
+        .select("id, name, description, avatar_url, is_group, is_channel")
         .eq("id", id)
         .maybeSingle(),
       supabase
@@ -228,10 +226,7 @@ export default function GroupManageScreen() {
     }
 
     if (chatData) {
-      setGroup({
-        ...chatData,
-        is_public: (chatData as any).is_public ?? false,
-      });
+      setGroup(chatData as GroupDetail);
     }
 
     if (membersData) {
@@ -334,19 +329,6 @@ export default function GroupManageScreen() {
     setShowEditModal(false);
     setSaving(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }
-
-  // ── Visibility toggle ───────────────────────────────────────────────────────
-
-  async function togglePublic(val: boolean) {
-    if (!iAmAdmin) return;
-    if (!isOnline()) {
-      showAlert("No internet", "An internet connection is required.");
-      return;
-    }
-    await supabase.from("chats").update({ is_public: val }).eq("id", id);
-    setGroup((prev) => (prev ? { ...prev, is_public: val } : prev));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
   // ── Share invite link ───────────────────────────────────────────────────────
@@ -595,12 +577,6 @@ export default function GroupManageScreen() {
             <Text style={[s.heroSub, { color: colors.textMuted }]}>
               {typeLabel} · {memberCount} {isChannel ? "subscriber" : "member"}{memberCount !== 1 ? "s" : ""}
             </Text>
-            {group.is_public && (
-              <View style={[s.publicBadge, { backgroundColor: colors.accent + "18" }]}>
-                <Ionicons name="earth" size={11} color={colors.accent} />
-                <Text style={[s.publicBadgeText, { color: colors.accent }]}>Public</Text>
-              </View>
-            )}
           </View>
         </View>
 
@@ -663,27 +639,6 @@ export default function GroupManageScreen() {
             <Text style={[s.actionLabel, { color: colors.text }]}>Chat</Text>
           </TouchableOpacity>
         </View>
-
-        {/* ── Visibility (admin only) ─── */}
-        {iAmAdmin && (
-          <View style={[s.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[s.sectionTitle, { color: colors.textSecondary }]}>Visibility</Text>
-            <View style={s.settingRow}>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={[s.settingLabel, { color: colors.text }]}>Public {typeLabel}</Text>
-                <Text style={[s.settingHint, { color: colors.textMuted }]}>
-                  Anyone can discover and join this {typeLabel.toLowerCase()} through search
-                </Text>
-              </View>
-              <Switch
-                value={group.is_public}
-                onValueChange={togglePublic}
-                trackColor={{ false: colors.border, true: colors.accent }}
-                thumbColor="#fff"
-              />
-            </View>
-          </View>
-        )}
 
         {/* ── Members ─── */}
         <View style={{ marginTop: 16 }}>
