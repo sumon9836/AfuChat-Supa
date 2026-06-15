@@ -559,6 +559,8 @@ export function VideoCommentsSheet({
   const imgRmvClr    = isDark ? "rgba(255,255,255,0.4)"     : "rgba(26,18,8,0.4)";
 
   const sheetTranslateY = useRef(new Animated.Value(1000)).current;
+  // Animated keyboard offset — drives ONLY the input bar (no driver restrictions: useNativeDriver: false)
+  const kbAnim = useRef(new Animated.Value(0)).current;
 
   // ── Smart expand / collapse ──────────────────────────────────────────────────
   // animSheetH drives the sheet's visible height (peek ↔ full).
@@ -650,10 +652,21 @@ export function VideoCommentsSheet({
 
   useEffect(() => {
     if (Platform.OS === "web") return;
+    // iOS fires Will* events with exact keyboard animation duration for perfect sync.
+    // Android fires Did* events — we use a fixed 220ms curve that matches the system.
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const show = Keyboard.addListener(showEvent, (e) => setKbHeight(e.endCoordinates.height));
-    const hide = Keyboard.addListener(hideEvent, () => setKbHeight(0));
+    const show = Keyboard.addListener(showEvent, (e) => {
+      const h = e.endCoordinates.height;
+      const dur = Platform.OS === "ios" ? (e.duration ?? 250) : 220;
+      setKbHeight(h);
+      Animated.timing(kbAnim, { toValue: h, duration: dur, useNativeDriver: false }).start();
+    });
+    const hide = Keyboard.addListener(hideEvent, (e) => {
+      const dur = Platform.OS === "ios" ? (e.duration ?? 200) : 180;
+      setKbHeight(0);
+      Animated.timing(kbAnim, { toValue: 0, duration: dur, useNativeDriver: false }).start();
+    });
     return () => { show.remove(); hide.remove(); };
   }, []);
 
@@ -1333,7 +1346,7 @@ export function VideoCommentsSheet({
             data={sortedTree}
             keyExtractor={(r) => r.id}
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 72 + kbHeight }}
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             onScroll={(e) => { listScrollYRef.current = e.nativeEvent.contentOffset.y; }}
@@ -1349,8 +1362,25 @@ export function VideoCommentsSheet({
         )}
       </View>
 
-      {/* Input area — always pinned at bottom, never scrolls */}
-      {bottomInputArea}
+      {/* Input bar — absolutely positioned so ONLY IT moves above the keyboard.
+          The comment list (flex:1 above) stays completely still.
+          kbAnim smoothly tracks keyboard height so the bar glides, not jumps. */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: kbAnim,
+          backgroundColor: sheetBg,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: isDark ? 0.28 : 0.10,
+          shadowRadius: 12,
+          elevation: 12,
+        }}
+      >
+        {bottomInputArea}
+      </Animated.View>
     </>
   );
 
@@ -1364,8 +1394,10 @@ export function VideoCommentsSheet({
     );
   }
 
-  // ─── Modal mode: stable bottom sheet — fixed height, no expansion gesture ────
-  const stableH = kbHeight > 0 ? screenDimH - kbHeight - 8 : screenDimH * 0.65;
+  // ─── Modal mode: stable bottom sheet — fixed height, keyboard-independent ────
+  // The sheet NEVER moves when the keyboard opens. Only the input bar (inside innerSheet,
+  // absolutely positioned with bottom: kbAnim) lifts above the keyboard independently.
+  const sheetH = screenDimH * 0.65;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={dismissSheet} statusBarTranslucent>
@@ -1374,13 +1406,13 @@ export function VideoCommentsSheet({
         {/* Backdrop: tap to close */}
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-        {/* Slide-in/out entrance animation only — no height changes */}
-        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }], marginBottom: kbHeight }}>
+        {/* Entrance / exit slide animation only — sheet never repositions for keyboard */}
+        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
           <View
             style={[
               cStyles.container,
               {
-                height: stableH,
+                height: sheetH,
                 overflow: "hidden",
               },
             ]}
