@@ -77,7 +77,7 @@ import {
   getLearnedInterestBoosts,
   matchInterestsWeighted,
   diversifyFeed,
-  getSeenVideoIds,
+  getSeenVideoMap,
   markVideosSeen,
   weightedSample,
   extractHashtags,
@@ -1155,23 +1155,12 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
     //
     // "Following": stays cursor-based / newest-first (chronological intention).
 
-    const FOR_YOU_POOL = VIDEO_PAGE_SIZE * 4; // always fetch a large initial pool for ranking
+    // Always fetch a large pool for the initial For You load so the ranking
+    // algorithm has enough candidates to produce genuinely varied results.
+    const FOR_YOU_POOL = VIDEO_PAGE_SIZE * 4;
 
-    let rangeStart = 0;
-    let rangeEnd   = 0;
-
-    if (tab === "for_you") {
-      if (!isLoadMore) {
-        // New session / tab switch — pick a fresh random position in the catalogue
-        rangeStart = Math.floor(Math.random() * 30) * VIDEO_PAGE_SIZE;
-        loadRangeRef.current = rangeStart + FOR_YOU_POOL;
-        sessionSeenRef.current = new Set<string>();
-        rangeEnd = rangeStart + FOR_YOU_POOL - 1;
-      } else {
-        rangeStart = loadRangeRef.current;
-        rangeEnd   = rangeStart + VIDEO_PAGE_SIZE - 1;
-        loadRangeRef.current = rangeEnd + 1;
-      }
+    if (tab === "for_you" && !isLoadMore) {
+      sessionSeenRef.current = new Set<string>();
     }
 
     let query = supabase
@@ -1182,14 +1171,21 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       .order("created_at", { ascending: false });
 
     if (tab === "for_you") {
-      // Range-based — covers entire catalogue, no time restriction
-      query = query.range(rangeStart, rangeEnd).or("visibility.eq.public,visibility.is.null");
+      // Limit-based: always fetch the freshest FOR_YOU_POOL videos (no random
+      // range offset — that breaks on small catalogues where the offset exceeds
+      // row count and returns nothing). Variety comes from weighted sampling +
+      // score jitter, not from a database offset.
+      query = (query as any).limit(FOR_YOU_POOL).or("visibility.eq.public,visibility.is.null");
+      if (isLoadMore && cursor) {
+        // Load-more: advance cursor through older videos
+        query = (query as any).lt("created_at", cursor);
+      }
     } else if (tab === "following" && followingIds.length > 0) {
-      query = query.limit(VIDEO_PAGE_SIZE).in("author_id", followingIds).or("visibility.eq.public,visibility.eq.followers,visibility.is.null");
-      if (cursor) query = query.lt("created_at", cursor);
+      query = (query as any).limit(VIDEO_PAGE_SIZE).in("author_id", followingIds).or("visibility.eq.public,visibility.eq.followers,visibility.is.null");
+      if (cursor) query = (query as any).lt("created_at", cursor);
     } else {
-      query = query.limit(VIDEO_PAGE_SIZE).or("visibility.eq.public,visibility.is.null");
-      if (cursor) query = query.lt("created_at", cursor);
+      query = (query as any).limit(VIDEO_PAGE_SIZE).or("visibility.eq.public,visibility.is.null");
+      if (cursor) query = (query as any).lt("created_at", cursor);
     }
 
     const { data, error: qErr } = await query;
@@ -1239,9 +1235,9 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       for (const v of mapped) sessionSeenRef.current.add(v.id);
 
       // ── Rank by quality algorithm ───────────────────────────────────────────
-      const [learnedWeights, seenVideoIds] = await Promise.all([
+      const [learnedWeights, seenVideoMap] = await Promise.all([
         getLearnedInterestBoosts(),
-        getSeenVideoIds(),
+        getSeenVideoMap(),
       ]);
       const now = Date.now();
 
@@ -1255,7 +1251,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         // Full quality algorithm: freshness + velocity + interest + seen-video demotion
         const scored = mapped.map((v) => {
           const interestMatches = matchInterestsWeighted(v.content, [], learnedWeights);
-          const isSeen = seenVideoIds.has(v.id);
+          const seenAt = seenVideoMap.get(v.id);
           const hashtags = extractHashtags(v.content);
           const engagementRate = v.likeCount / Math.max(v.view_count, 1);
           const completionProxy = Math.min(v.likeCount / Math.max(v.view_count, 0.5), 1);
@@ -1274,7 +1270,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
             authorPostCountInFeed: authorPageCount[v.author_id] || 1,
             contentLength: v.content?.length || 0,
             postType: "video",
-            isSeen,
+            seenAt,
             engagementRate,
             hashtagCount: hashtags.length,
             completionProxy,
@@ -1343,11 +1339,14 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       }
     } else {
       if (tab === "for_you" && isLoadMore) {
-        // Catalogue exhausted — wrap to a fresh random position so the feed
-        // continues indefinitely. Clear the session dedup so videos can resurface.
-        loadRangeRef.current = Math.floor(Math.random() * 30) * VIDEO_PAGE_SIZE;
+        // Catalogue exhausted — wrap back to the freshest videos.
+        // Clear session dedup so resurfaced content feels natural.
+        cursorRef.current = null;
         sessionSeenRef.current = new Set<string>();
-        setHasMore(true); // keep infinite scroll alive
+        setHasMore(true); // keep infinite scroll alive — next scroll triggers fresh fetch
+      } else if (tab === "for_you" && !isLoadMore) {
+        // Initial load got nothing — don't wipe videos, keep any existing content.
+        // This can happen when the target video takes a moment to resolve.
       } else {
         setHasMore(false);
         if (!isLoadMore) setVideos([]);

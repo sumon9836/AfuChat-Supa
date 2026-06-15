@@ -71,6 +71,13 @@ export async function getSeenVideoIds(): Promise<Set<string>> {
   return new Set(Object.entries(map).filter(([, ts]) => now - ts < SEEN_EXPIRY_MS).map(([id]) => id));
 }
 
+/** Returns a map of videoId → epoch-ms timestamp of when it was last seen.
+ *  Used for tiered seen-penalty scoring (recently watched gets bigger demotion). */
+export async function getSeenVideoMap(): Promise<Map<string, number>> {
+  const map = await _readSeenMap(SEEN_VIDEO_IDS_KEY);
+  return new Map(Object.entries(map));
+}
+
 export async function markVideosSeen(ids: string[]): Promise<void> {
   if (!ids.length) return;
   const map = await _readSeenMap(SEEN_VIDEO_IDS_KEY);
@@ -141,6 +148,7 @@ export type FeedSignals = {
   contentLength: number;
   postType?: string;
   isSeen?: boolean;
+  seenAt?: number;           // unix timestamp when last seen — enables tiered decay penalty
   engagementRate?: number;   // likeCount / max(viewCount, 1) — high ratio = high quality
   hashtagCount?: number;     // #hashtag count in content — signals curated/discoverable content
   completionProxy?: number;  // avg watch depth proxy: likeCount / max(viewCount, 0.5) capped 0–1
@@ -225,8 +233,21 @@ export function computeFeedScore(signals: FeedSignals): number {
     ? -(signals.authorPostCountInFeed - 2) * 10
     : 0;
 
-  // ── Already seen: strong demotion (not exclusion — keeps feed from going empty) ──
-  const seenPenalty = signals.isSeen ? -45 : 0;
+  // ── Seen-video: tiered time-decay demotion ────────────────────────────────
+  // Videos watched very recently are heavily demoted so the feed feels fresh.
+  // Videos watched days ago come back naturally — no permanent burial.
+  let seenPenalty = 0;
+  if (signals.seenAt != null) {
+    const hoursSinceSeen = (Date.now() - signals.seenAt) / 3600000;
+    if (hoursSinceSeen < 1)   seenPenalty = -65;  // just watched — skip it
+    else if (hoursSinceSeen < 6)   seenPenalty = -50;  // watched today — strong demotion
+    else if (hoursSinceSeen < 24)  seenPenalty = -35;  // watched today — moderate
+    else if (hoursSinceSeen < 72)  seenPenalty = -18;  // watched this week — light
+    else if (hoursSinceSeen < 168) seenPenalty = -6;   // watched recently — very light
+    // > 7 days: penalty = 0 — resurfaces as fresh content
+  } else if (signals.isSeen) {
+    seenPenalty = -35; // fallback for callers using old boolean API
+  }
 
   // ── Random jitter: large enough to surface unexpected gems ───────────────
   const randomJitter = Math.random() * 15;

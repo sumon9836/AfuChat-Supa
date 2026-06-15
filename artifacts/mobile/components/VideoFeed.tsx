@@ -66,7 +66,7 @@ import {
   computeFeedScore,
   diversifyFeed,
   getLearnedInterestBoosts,
-  getSeenVideoIds,
+  getSeenVideoMap,
   markVideosSeen,
   matchInterestsWeighted,
   extractHashtags,
@@ -991,18 +991,33 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
       try {
         // ── For You: wide pool → score → diversify ──────────────────────────
         if (currentTab === "for_you" && !cursor) {
-          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+          const SELECT_COLS = `id, author_id, content, video_url, image_url, audio_name, created_at, view_count,
+                     profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified)`;
 
-          const { data: raw } = await supabase
+          // 6-month window first — broad enough for most platforms
+          const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString();
+          let { data: raw } = await supabase
             .from("posts")
-            .select(`id, author_id, content, video_url, image_url, audio_name, created_at, view_count,
-                     profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified)`)
-            .eq("post_type", "video")
-            .eq("visibility", "public")
+            .select(SELECT_COLS)
+            .or("post_type.eq.video,post_type.is.null")
+            .or("visibility.eq.public,visibility.is.null")
             .not("video_url", "is", null)
-            .gte("created_at", thirtyDaysAgo)
+            .gte("created_at", sixMonthsAgo)
             .order("created_at", { ascending: false })
             .limit(FOR_YOU_POOL);
+
+          // Fallback: if too few videos in window, open the full catalogue
+          if (!raw || raw.length < 5) {
+            const { data: fallback } = await supabase
+              .from("posts")
+              .select(SELECT_COLS)
+              .or("post_type.eq.video,post_type.is.null")
+              .or("visibility.eq.public,visibility.is.null")
+              .not("video_url", "is", null)
+              .order("created_at", { ascending: false })
+              .limit(FOR_YOU_POOL);
+            raw = fallback;
+          }
 
           if (!raw || raw.length === 0) {
             setPosts([]);
@@ -1045,9 +1060,9 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
           const myBookmarkSet = new Set((myBookmarks || []).map((b: any) => b.post_id as string));
           const followedSet = new Set((myFollows || []).map((f: any) => f.following_id as string));
 
-          const [learnedWeights, seenVideoIds] = await Promise.all([
+          const [learnedWeights, seenVideoMap] = await Promise.all([
             getLearnedInterestBoosts(),
-            getSeenVideoIds(),
+            getSeenVideoMap(),
           ]);
 
           const authorPageCount: Record<string, number> = {};
@@ -1060,7 +1075,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
             const rc = replyMap[p.id] || 0;
             const vc = viewMap[p.id] || (p.view_count ?? 0);
             const interestMatches = matchInterestsWeighted(p.content || "", [], learnedWeights);
-            const isSeen = seenVideoIds.has(p.id);
+            const seenAt = seenVideoMap.get(p.id);
             const hashtags = extractHashtags(p.content || "");
             const engagementRate = lc / Math.max(vc, 1);
             const completionProxy = Math.min(lc / Math.max(vc, 0.5), 1);
@@ -1079,7 +1094,7 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
               authorPostCountInFeed: authorPageCount[p.author_id] || 1,
               contentLength: (p.content || "").length,
               postType: "video",
-              isSeen,
+              seenAt,
               engagementRate,
               hashtagCount: hashtags.length,
               completionProxy,
@@ -1111,8 +1126,6 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
 
           const diversified = diversifyFeed(scored);
           const page = diversified.slice(0, PAGE_SIZE * 3);
-
-          markVideosSeen(page.map((v) => v.id)).catch(() => {});
 
           loopPoolRef.current = diversified;                     // store full pool for endless looping
           setHasMore(true);                                      // always has more (we loop)
