@@ -62,7 +62,7 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { showAlert } from "@/lib/alert";
 import { showToast as globalShowToast } from "@/lib/toast";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
-import SwipeableBottomSheet from "@/components/SwipeableBottomSheet";
+
 import { notifyNewMessage, notifyGiftReceived } from "@/lib/notifyUser";
 import {
   queueMessage,
@@ -224,6 +224,14 @@ const NOTIF_FILTER_SHOP     = new Set(["order_placed","order_shipped","escrow_re
 const NOTIF_FILTER_PAYMENTS = new Set(["acoin_received","acoin_sent","subscription_activated","seller_approved","seller_rejected","verification_approved","verification_update"]);
 const GROUPABLE_NOTIF_TYPES = new Set(["new_like","new_reply","new_mention","new_follower"]);
 const BRAND_FALLBACK = Colors.brand;
+const DISAPPEAR_OPTIONS = [
+  { label: "Off",      seconds: 0 },
+  { label: "5 minutes", seconds: 300 },
+  { label: "1 hour",   seconds: 3600 },
+  { label: "24 hours", seconds: 86400 },
+  { label: "7 days",   seconds: 604800 },
+  { label: "4 weeks",  seconds: 2419200 },
+];
 const MIC_CANCEL_THRESHOLD = -100;
 const MIC_LOCK_THRESHOLD = -80;
 const MIC_DIRECTION_DEADZONE = 10;
@@ -471,23 +479,22 @@ function TypingBubble({ names, colors }: { names: string[]; colors: any }) {
 function BottomSheet({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: React.ReactNode }) {
   const { colors } = useTheme();
   const { height: screenHeight } = useWindowDimensions();
-
   const translateY = useRef(new Animated.Value(screenHeight)).current;
 
   useEffect(() => {
     if (visible) {
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, damping: 20 }).start();
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, damping: 22, stiffness: 260 }).start();
     } else {
-      Animated.timing(translateY, { toValue: screenHeight, duration: 250, useNativeDriver: true }).start();
+      Animated.timing(translateY, { toValue: screenHeight, duration: 220, useNativeDriver: true }).start();
     }
   }, [visible, screenHeight]);
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => g.dy > 10,
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 8,
       onPanResponderMove: (_, g) => { if (g.dy > 0) translateY.setValue(g.dy); },
       onPanResponderRelease: (_, g) => {
-        if (g.dy > 100 || g.vy > 0.5) {
+        if (g.dy > 80 || g.vy > 0.4) {
           Animated.timing(translateY, { toValue: screenHeight, duration: 200, useNativeDriver: true }).start(() => onClose());
         } else {
           Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
@@ -499,17 +506,40 @@ function BottomSheet({ visible, onClose, children }: { visible: boolean; onClose
   if (!visible) return null;
 
   return (
-    <View style={StyleSheet.absoluteFill}>
-      <TouchableOpacity style={st.sheetOverlay} activeOpacity={1} onPress={onClose} />
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <Pressable style={[st.sheetOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]} onPress={onClose} />
       <Animated.View
-        style={[st.sheetContent, { backgroundColor: colors.surface, transform: [{ translateY }], maxHeight: screenHeight * 0.7 }]}
+        style={[st.sheetContent, { backgroundColor: colors.surface, transform: [{ translateY }], maxHeight: screenHeight * 0.75 }]}
         {...panResponder.panHandlers}
       >
-        <View style={st.sheetHandle} />
         {children}
       </Animated.View>
     </View>
   );
+}
+
+// ── WhatsApp/Telegram-style dropdown row ──────────────────────────────────────
+function DdRow({ colors, icon, label, sub, onPress, danger, small, chevron, checked }: {
+  colors: any; icon: any; label: string; sub?: string; onPress: () => void;
+  danger?: boolean; small?: boolean; chevron?: boolean; checked?: boolean;
+}) {
+  const fg = danger ? "#FF3B30" : colors.text;
+  const iconColor = danger ? "#FF3B3099" : colors.textMuted;
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.55}
+      style={[st.ddRow, small && { paddingVertical: 9, paddingLeft: 44 }]}>
+      <Ionicons name={icon} size={small ? 15 : 18} color={iconColor} style={{ width: 20 }} />
+      <View style={{ flex: 1 }}>
+        <Text style={[st.ddLabel, { color: fg }, small && { fontSize: 13 }]}>{label}</Text>
+        {sub ? <Text style={[st.ddSubText, { color: colors.textMuted }]}>{sub}</Text> : null}
+      </View>
+      {checked ? <Ionicons name="checkmark" size={14} color={colors.accent} /> : null}
+      {chevron ? <Ionicons name="chevron-down" size={13} color={colors.textMuted} /> : null}
+    </TouchableOpacity>
+  );
+}
+function DdDivider({ colors }: { colors: any }) {
+  return <View style={[st.ddDivider, { backgroundColor: colors.border }]} />;
 }
 
 const AI_EXEC_LABELS: Record<string, string> = {
@@ -7275,200 +7305,78 @@ STRICT RULES:
         </Modal>
       )}
 
-      {/* ── Chat Options Sheet (regular chats) ─────────────────────────────── */}
-      {!isAfuChatSystemChat && <SwipeableBottomSheet
-        visible={showChatOptions}
-        onClose={() => { setShowChatOptions(false); setShowDisappearingPicker(false); }}
-        backgroundColor={colors.surface}
-        maxHeight="78%"
-      >
-            {/* Contact / Chat identity header */}
-            <View style={[st.optionsIdentity, { borderBottomColor: colors.border }]}>
-              <Avatar
-                uri={chatInfo?.is_group || chatInfo?.is_channel ? chatInfo?.avatar_url : chatInfo?.other_avatar}
-                name={headerTitle}
-                size={52}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={[st.optionsName, { color: colors.text }]} numberOfLines={1}>{headerTitle}</Text>
-                <Text style={[st.optionsSub, { color: colors.textMuted }]}>
-                  {chatInfo?.is_channel ? "Channel" : chatInfo?.is_group ? "Group chat" : isAfuChatSystemChat ? "Notifications" : chatInfo?.other_id === AFUAI_BOT_ID ? "AI Assistant" : isSelfChat ? "Your private notes" : "Private chat"}
-                </Text>
-              </View>
-            </View>
-
-            
-
-              {/* ── SECTION: Chat ───────────────────────────────────────── */}
-              <Text style={[st.optionsSection, { color: colors.textMuted }]}>CHAT</Text>
-
-              {advancedFeatures.chat_summary && (
-                <TouchableOpacity
-                  style={[st.optionsRow, { borderBottomColor: colors.border }]}
-                  onPress={handleChatSummaryFull}
-                >
-                  <View style={[st.optionsIcon, { backgroundColor: colors.accent }]}>
-                    <Ionicons name="sparkles" size={16} color="#fff" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[st.optionsLabel, { color: colors.text }]}>Summarize Chat</Text>
-                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>AI summary of recent messages</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                </TouchableOpacity>
-              )}
-
-              {advancedFeatures.chat_export_format && (
-                <TouchableOpacity
-                  style={[st.optionsRow, { borderBottomColor: colors.border }]}
-                  onPress={handleExportChat}
-                >
-                  <View style={[st.optionsIcon, { backgroundColor: "#5856D6" }]}>
-                    <Ionicons name="download-outline" size={16} color="#fff" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[st.optionsLabel, { color: colors.text }]}>Export Chat</Text>
-                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>Save as {(advancedFeatures.chat_export_format || "txt").toUpperCase()}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={[st.optionsRow, { borderBottomColor: colors.border }]}
-                onPress={() => { setShowChatOptions(false); router.push({ pathname: "/saved-posts", params: { tab: "messages" } } as any); }}
-              >
-                <View style={[st.optionsIcon, { backgroundColor: "#FF9500" }]}>
-                  <Ionicons name="star" size={16} color="#fff" />
-                </View>
-                <Text style={[st.optionsLabel, { color: colors.text }]}>Starred Messages</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-              </TouchableOpacity>
-
+      {/* ── Chat Options Dropdown (⋮ menu) — WhatsApp/Telegram style ──── */}
+      {!isAfuChatSystemChat && showChatOptions && (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => { setShowChatOptions(false); setShowMutePicker(false); setShowDisappearingPicker(false); }}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => { setShowChatOptions(false); setShowMutePicker(false); setShowDisappearingPicker(false); }}
+          />
+          <View style={[st.ddCard, { backgroundColor: colors.surface, top: insets.top + 54 }]}>
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false} style={{ maxHeight: 520 }}>
+              {/* Info */}
               {(chatInfo?.is_group || chatInfo?.is_channel) && (
-                <TouchableOpacity
-                  style={[st.optionsRow, { borderBottomColor: colors.border }]}
-                  onPress={() => { setShowChatOptions(false); router.push({ pathname: "/group/[id]", params: { id: id as string } }); }}
-                >
-                  <View style={[st.optionsIcon, { backgroundColor: "#5856D6" }]}>
-                    <Ionicons name="people" size={16} color="#fff" />
-                  </View>
-                  <Text style={[st.optionsLabel, { color: colors.text }]}>
-                    {chatInfo?.is_channel ? "Channel Info" : "Group Info & Members"}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                </TouchableOpacity>
+                <DdRow colors={colors} icon="people-outline"
+                  label={chatInfo?.is_channel ? "Channel Info" : "Group Info & Members"}
+                  onPress={() => { setShowChatOptions(false); router.push({ pathname: "/group/[id]", params: { id: id as string } }); }} />
               )}
-
               {chatInfo?.other_id && !chatInfo.is_group && !chatInfo.is_channel && chatInfo.other_id !== AFUAI_BOT_ID && (
-                <TouchableOpacity
-                  style={[st.optionsRow, { borderBottomColor: colors.border }]}
-                  onPress={() => { setShowChatOptions(false); router.push({ pathname: "/contact/[id]", params: { id: chatInfo.other_id! } }); }}
-                >
-                  <View style={[st.optionsIcon, { backgroundColor: "#34C759" }]}>
-                    <Ionicons name="person" size={16} color="#fff" />
-                  </View>
-                  <Text style={[st.optionsLabel, { color: colors.text }]}>View Profile</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                </TouchableOpacity>
+                <DdRow colors={colors} icon="person-outline" label="Contact Info"
+                  onPress={() => { setShowChatOptions(false); router.push({ pathname: "/contact/[id]", params: { id: chatInfo.other_id! } }); }} />
               )}
-
-              {/* ── SECTION: Privacy ─────────────────────────────────────── */}
-              <Text style={[st.optionsSection, { color: colors.textMuted, marginTop: 8 }]}>PRIVACY</Text>
-
-              {/* Mute — expandable duration picker */}
-              <TouchableOpacity
-                style={[st.optionsRow, { borderBottomColor: colors.border }]}
-                onPress={() => {
-                  if (isMuted) { handleUnmuteChat(); }
-                  else { setShowMutePicker((v) => !v); }
-                }}
-              >
-                <View style={[st.optionsIcon, { backgroundColor: isMuted ? "#8E8E93" : "#007AFF" }]}>
-                  <Ionicons name={isMuted ? "notifications-off" : "notifications"} size={16} color="#fff" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[st.optionsLabel, { color: isMuted ? "#8E8E93" : colors.text }]}>
-                    {isMuted ? "Unmute Notifications" : "Mute Notifications"}
-                  </Text>
-                  {isMuted && muteLabel() ? (
-                    <Text style={{ fontSize: 12, color: "#8E8E93", marginTop: 1 }}>{muteLabel()}</Text>
-                  ) : null}
-                </View>
-                {!isMuted && (
-                  <Ionicons name={showMutePicker ? "chevron-up" : "chevron-down"} size={16} color={colors.textMuted} />
-                )}
-              </TouchableOpacity>
+              <DdRow colors={colors} icon="star-outline" label="Starred Messages"
+                onPress={() => { setShowChatOptions(false); router.push({ pathname: "/saved-posts", params: { tab: "messages" } } as any); }} />
+              {advancedFeatures.chat_summary && (
+                <DdRow colors={colors} icon="sparkles-outline" label="Summarize Chat"
+                  onPress={() => { setShowChatOptions(false); handleChatSummaryFull(); }} />
+              )}
+              {advancedFeatures.chat_export_format && (
+                <DdRow colors={colors} icon="download-outline"
+                  label={`Export Chat (${(advancedFeatures.chat_export_format || "txt").toUpperCase()})`}
+                  onPress={() => { setShowChatOptions(false); handleExportChat(); }} />
+              )}
+              <DdDivider colors={colors} />
+              {/* Mute */}
+              <DdRow colors={colors}
+                icon={isMuted ? "notifications-outline" : "notifications-off-outline"}
+                label={isMuted ? "Unmute" : "Mute Notifications"}
+                sub={isMuted && muteLabel() ? muteLabel()! : undefined}
+                onPress={() => { if (isMuted) { handleUnmuteChat(); setShowChatOptions(false); } else setShowMutePicker((v) => !v); }}
+                chevron={!isMuted}
+              />
               {showMutePicker && !isMuted && (
-                <View style={{ backgroundColor: colors.backgroundSecondary, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                  {([
-                    { label: "For 1 hour",  hours: 1 },
-                    { label: "For 8 hours", hours: 8 },
-                    { label: "For 1 week",  hours: 24 * 7 },
-                    { label: "Always",      hours: null },
-                  ] as { label: string; hours: number | null }[]).map((opt) => (
-                    <TouchableOpacity
-                      key={opt.label}
-                      style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 12, borderBottomColor: colors.border }}
-                      onPress={() => handleMuteChat(opt.hours)}
-                    >
-                      <Ionicons name="notifications-off-outline" size={16} color={colors.textMuted} style={{ marginRight: 12 }} />
-                      <Text style={{ flex: 1, fontSize: 14, color: colors.text, fontFamily: "Inter_400Regular" }}>
-                        {opt.label}
-                      </Text>
-                    </TouchableOpacity>
+                <View style={[st.ddSubGroup, { borderTopColor: colors.border }]}>
+                  {([ { label: "For 1 hour", hours: 1 }, { label: "For 8 hours", hours: 8 }, { label: "For 1 week", hours: 24 * 7 }, { label: "Always", hours: null } ] as { label: string; hours: number | null }[]).map((o) => (
+                    <DdRow key={o.label} colors={colors} icon="time-outline" label={o.label} small
+                      onPress={() => { handleMuteChat(o.hours); setShowMutePicker(false); setShowChatOptions(false); }} />
                   ))}
                 </View>
               )}
-
+              {/* Disappearing messages */}
               {!chatInfo?.is_channel && (() => {
-                const DISAPPEAR_OPTIONS = [
-                  { label: "Off",      seconds: 0 },
-                  { label: "5 minutes", seconds: 300 },
-                  { label: "1 hour",   seconds: 3600 },
-                  { label: "24 hours", seconds: 86400 },
-                  { label: "7 days",   seconds: 604800 },
-                  { label: "4 weeks",  seconds: 2419200 },
-                ];
                 const activeLabel = disappearingEnabled
-                  ? (DISAPPEAR_OPTIONS.find((o) => o.seconds === disappearingTimer)?.label ?? "Custom")
+                  ? (DISAPPEAR_OPTIONS.find((o) => o.seconds === disappearingTimer)?.label ?? "On")
                   : "Off";
                 return (
                   <>
-                    <TouchableOpacity
-                      style={[st.optionsRow, { borderBottomColor: colors.border }]}
-                      onPress={() => setShowDisappearingPicker((v) => !v)}
-                    >
-                      <View style={[st.optionsIcon, { backgroundColor: disappearingEnabled ? BRAND : "#5856D6" }]}>
-                        <Ionicons name="timer-outline" size={16} color="#fff" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[st.optionsLabel, { color: colors.text }]}>Disappearing Messages</Text>
-                        <Text style={{ fontSize: 12, color: disappearingEnabled ? BRAND : colors.textMuted, marginTop: 1 }}>{activeLabel}</Text>
-                      </View>
-                      <Ionicons name={showDisappearingPicker ? "chevron-up" : "chevron-down"} size={16} color={colors.textMuted} />
-                    </TouchableOpacity>
+                    <DdRow colors={colors} icon="timer-outline" label="Disappearing Messages"
+                      sub={activeLabel} onPress={() => setShowDisappearingPicker((v) => !v)} chevron />
                     {showDisappearingPicker && (
-                      <View style={{ backgroundColor: colors.backgroundSecondary, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                        {DISAPPEAR_OPTIONS.map((opt) => {
-                          const isSelected = opt.seconds === 0 ? !disappearingEnabled : (disappearingEnabled && disappearingTimer === opt.seconds);
+                      <View style={[st.ddSubGroup, { borderTopColor: colors.border }]}>
+                        {DISAPPEAR_OPTIONS.map((o) => {
+                          const isSel = o.seconds === 0 ? !disappearingEnabled : (disappearingEnabled && disappearingTimer === o.seconds);
                           return (
-                            <TouchableOpacity
-                              key={opt.seconds}
-                              style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 11, borderBottomColor: colors.border }}
-                              onPress={() => handleDisappearingTimerSelect(opt.seconds)}
-                            >
-                              <Ionicons
-                                name={opt.seconds === 0 ? "close-circle-outline" : "timer-outline"}
-                                size={16}
-                                color={isSelected ? BRAND : colors.textMuted}
-                                style={{ marginRight: 12 }}
-                              />
-                              <Text style={{ flex: 1, fontSize: 14, color: isSelected ? BRAND : colors.text, fontFamily: isSelected ? "Inter_600SemiBold" : "Inter_400Regular" }}>
-                                {opt.label}
-                              </Text>
-                              {isSelected && <Ionicons name="checkmark" size={16} color={BRAND} />}
-                            </TouchableOpacity>
+                            <DdRow key={o.seconds} colors={colors}
+                              icon={o.seconds === 0 ? "close-circle-outline" : "timer-outline"}
+                              label={o.label} small checked={isSel}
+                              onPress={() => { handleDisappearingTimerSelect(o.seconds); setShowDisappearingPicker(false); }} />
                           );
                         })}
                       </View>
@@ -7476,68 +7384,30 @@ STRICT RULES:
                   </>
                 );
               })()}
-
-              {/* ── SECTION: Safety ─────────────────────────────────────── */}
+              {/* Safety */}
               {chatInfo?.other_id && !chatInfo.is_group && !chatInfo.is_channel && chatInfo.other_id !== AFUAI_BOT_ID && (
                 <>
-                  <Text style={[st.optionsSection, { color: colors.textMuted, marginTop: 8 }]}>SAFETY</Text>
-
-                  <TouchableOpacity
-                    style={[st.optionsRow, { borderBottomColor: colors.border }]}
+                  <DdDivider colors={colors} />
+                  <DdRow colors={colors}
+                    icon={isBlocked ? "checkmark-circle-outline" : "ban-outline"}
+                    label={isBlocked ? `Unblock ${headerTitle}` : `Block ${headerTitle}`}
                     onPress={() => { setShowChatOptions(false); handleBlockUser(); }}
-                  >
-                    <View style={[st.optionsIcon, { backgroundColor: isBlocked ? "#34C759" : "#FF3B30" }]}>
-                      <Ionicons name={isBlocked ? "checkmark-circle" : "ban"} size={16} color="#fff" />
-                    </View>
-                    <Text style={[st.optionsLabel, { color: isBlocked ? "#34C759" : "#FF3B30" }]}>
-                      {isBlocked ? `Unblock ${headerTitle}` : `Block ${headerTitle}`}
-                    </Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[st.optionsRow, { borderBottomColor: colors.border }]}
-                    onPress={() => { setShowChatOptions(false); handleReportUser(); }}
-                  >
-                    <View style={[st.optionsIcon, { backgroundColor: "#FF9500" }]}>
-                      <Ionicons name="flag" size={16} color="#fff" />
-                    </View>
-                    <Text style={[st.optionsLabel, { color: "#FF9500" }]}>Report {headerTitle}</Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                  </TouchableOpacity>
+                    danger={!isBlocked} />
+                  <DdRow colors={colors} icon="flag-outline" label={`Report ${headerTitle}`}
+                    onPress={() => { setShowChatOptions(false); handleReportUser(); }} danger />
                 </>
               )}
-
-              {/* ── SECTION: Danger ─────────────────────────────────────── */}
-              <Text style={[st.optionsSection, { color: colors.textMuted, marginTop: 8 }]}>MANAGE</Text>
-
-              <TouchableOpacity
-                style={[st.optionsRow, { borderBottomColor: colors.border }]}
-                onPress={handleClearChatMessages}
-              >
-                <View style={[st.optionsIcon, { backgroundColor: "#FF3B30" }]}>
-                  <Ionicons name="trash-outline" size={16} color="#fff" />
-                </View>
-                <Text style={[st.optionsLabel, { color: "#FF3B30" }]}>Clear Chat</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[st.optionsRow, { borderBottomColor: "transparent" }]}
-                onPress={handleDeleteChat}
-              >
-                <View style={[st.optionsIcon, { backgroundColor: "#FF3B30" }]}>
-                  <Ionicons name={chatInfo?.is_group || chatInfo?.is_channel ? "exit-outline" : "close-circle-outline"} size={16} color="#fff" />
-                </View>
-                <Text style={[st.optionsLabel, { color: "#FF3B30" }]}>
-                  {chatInfo?.is_channel ? "Leave Channel" : chatInfo?.is_group ? "Leave Group" : "Delete Chat"}
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-              </TouchableOpacity>
-
-              <View style={{ height: 16 }} />
-
-      </SwipeableBottomSheet>}
+              <DdDivider colors={colors} />
+              <DdRow colors={colors} icon="trash-outline" label="Clear Chat"
+                onPress={handleClearChatMessages} danger />
+              <DdRow colors={colors}
+                icon={chatInfo?.is_group || chatInfo?.is_channel ? "exit-outline" : "close-circle-outline"}
+                label={chatInfo?.is_channel ? "Leave Channel" : chatInfo?.is_group ? "Leave Group" : "Delete Chat"}
+                onPress={handleDeleteChat} danger />
+            </ScrollView>
+          </View>
+        </Modal>
+      )}
 
       {forwardMsg && (
         <Modal
@@ -8216,4 +8086,25 @@ const st = StyleSheet.create({
   forwardPreviewText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
   forwardChatRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
   forwardChatName: { flex: 1, fontSize: 15, fontFamily: "Inter_500Medium" },
+
+  // ── WhatsApp/Telegram-style ⋮ dropdown ──────────────────────────────
+  ddCard: {
+    position: "absolute",
+    right: 10,
+    width: 252,
+    borderRadius: 10,
+    overflow: "hidden",
+    ...Platform.select({
+      web: { boxShadow: "0 8px 32px rgba(0,0,0,0.22)" } as any,
+      default: { elevation: 24, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.24, shadowRadius: 20 },
+    }),
+  },
+  ddRow: {
+    flexDirection: "row", alignItems: "center", gap: 14,
+    paddingHorizontal: 16, paddingVertical: 13,
+  },
+  ddLabel: { fontSize: 14.5, fontFamily: "Inter_400Regular" },
+  ddSubText: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
+  ddSubGroup: { borderTopWidth: StyleSheet.hairlineWidth },
+  ddDivider: { height: StyleSheet.hairlineWidth },
 });

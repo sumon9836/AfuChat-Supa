@@ -689,46 +689,36 @@ export default function AfuAIApp() {
         keyboardDismissMode="on-drag"
       />
 
-      {/* Input bar */}
-      <View
-        style={[
-          styles.inputRow,
-          {
-            backgroundColor: colors.surface,
-            borderTopColor: colors.border,
-            paddingBottom: Math.max(insets.bottom, 10),
-          },
-        ]}
-      >
-        <TextInput
-          style={[
-            styles.input,
-            { backgroundColor: colors.backgroundSecondary, color: colors.text },
-          ]}
-          placeholder={isOnPage ? `Ask about ${activePage.name}…` : "Ask AfuAI anything…"}
-          placeholderTextColor={colors.textMuted}
-          value={input}
-          onChangeText={setInput}
-          multiline
-          maxLength={2000}
-          returnKeyType="send"
-          blurOnSubmit={false}
-          onSubmitEditing={() => { if (input.trim()) sendMessage(input); }}
-        />
-        <Pressable
-          onPress={() => sendMessage(input)}
-          disabled={!input.trim() || loading}
-          style={[
-            styles.sendBtn,
-            { backgroundColor: input.trim() && !loading ? accent : colors.backgroundSecondary },
-          ]}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={colors.textMuted} />
-          ) : (
-            <Ionicons name="arrow-up" size={18} color={input.trim() ? "#fff" : colors.textMuted} />
-          )}
-        </Pressable>
+      {/* Floating input bar */}
+      <View style={[styles.inputRow, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+        <View style={[styles.inputPill, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+          <TextInput
+            style={[styles.input, { color: colors.text }]}
+            placeholder={isOnPage ? `Ask about ${activePage.name}…` : "Ask AfuAI anything…"}
+            placeholderTextColor={colors.textMuted}
+            value={input}
+            onChangeText={setInput}
+            multiline
+            maxLength={2000}
+            returnKeyType="send"
+            blurOnSubmit={false}
+            onSubmitEditing={() => { if (input.trim()) sendMessage(input); }}
+          />
+          <Pressable
+            onPress={() => sendMessage(input)}
+            disabled={!input.trim() || loading}
+            style={[
+              styles.sendBtn,
+              { backgroundColor: input.trim() && !loading ? accent : "transparent" },
+            ]}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={colors.textMuted} />
+            ) : (
+              <Ionicons name="arrow-up" size={18} color={input.trim() ? "#fff" : colors.textMuted} />
+            )}
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -1024,19 +1014,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 7,
   },
   actionBtnText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
-  inputRow: {
+  inputRow: { paddingHorizontal: 10, paddingTop: 8 },
+  inputPill: {
     flexDirection: "row", alignItems: "flex-end",
-    gap: 10, paddingHorizontal: 12, paddingTop: 10,
-    
+    borderRadius: 26, borderWidth: 0.5,
+    paddingLeft: 14, paddingRight: 6, paddingVertical: 6,
+    gap: 6,
+    ...Platform.select({
+      web: { boxShadow: "0 2px 12px rgba(0,0,0,0.1)" } as any,
+      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+    }),
   },
   input: {
-    flex: 1, borderRadius: 22,
-    paddingHorizontal: 16, paddingVertical: 10,
-    fontSize: 15, fontFamily: "Inter_400Regular",
-    maxHeight: 120,
+    flex: 1, fontSize: 15, fontFamily: "Inter_400Regular",
+    lineHeight: 20, paddingTop: 4, paddingBottom: 4,
+    maxHeight: 120, minHeight: 24,
   },
   sendBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 36, height: 36, borderRadius: 18,
     alignItems: "center", justifyContent: "center",
   },
 });
