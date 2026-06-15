@@ -322,7 +322,7 @@ function VideoReplyItem({
   const indent = Math.min(depth, 4) * 20;
   const [liked, setLiked] = useState(() => likedSet.has(r.id));
   const [localLikes, setLocalLikes] = useState(r.like_count);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => depth === 0 && (r.children?.length ?? 0) > 0);
   const [imgExpanded, setImgExpanded] = useState(false);
   const likeScale = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(isNew ? 24 : 0)).current;
@@ -1177,7 +1177,7 @@ export function VideoCommentsSheet({
       {showEmojiPanel && (
         <View style={[cStyles.emojiBar, { borderTopColor: borderTopClr }]}>
           {QUICK_EMOJIS.map((e) => (
-            <TouchableOpacity key={e} onPress={() => { setText((t) => t + e); setShowEmojiPanel(false); }} style={cStyles.emojiBtn} activeOpacity={0.6}>
+            <TouchableOpacity key={e} onPress={() => { setText((t) => t + e); }} style={cStyles.emojiBtn} activeOpacity={0.6}>
               <Text style={cStyles.emojiText}>{e}</Text>
             </TouchableOpacity>
           ))}
@@ -1225,7 +1225,7 @@ export function VideoCommentsSheet({
                 }
               </TouchableOpacity>
             </Animated.View>
-          ) : recordState !== "recording" ? (
+          ) : recordState === "recording" ? null : (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
               <TouchableOpacity
                 onPress={pickImage}
@@ -1251,8 +1251,20 @@ export function VideoCommentsSheet({
               >
                 <Text style={{ color: attachIconCl, fontSize: 18, fontFamily: "Inter_700Bold", lineHeight: 22 }}>@</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={recordState === "recorded" ? discardRecording : startRecording}
+                hitSlop={6}
+                activeOpacity={0.7}
+                style={[cStyles.actionIconBtn, recordState === "recorded" && { backgroundColor: accent + "30" }]}
+              >
+                <Ionicons
+                  name={recordState === "recorded" ? "mic" : "mic-outline"}
+                  size={22}
+                  color={recordState === "recorded" ? accent : attachIconCl}
+                />
+              </TouchableOpacity>
             </View>
-          ) : null}
+          )}
         </View>
       ) : (
         <TouchableOpacity
@@ -1363,7 +1375,7 @@ export function VideoCommentsSheet({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
         {/* Slide-in/out entrance animation only — no height changes */}
-        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
+        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }], marginBottom: kbHeight }}>
           <View
             style={[
               cStyles.container,
