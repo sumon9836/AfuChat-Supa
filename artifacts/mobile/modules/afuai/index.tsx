@@ -119,11 +119,23 @@ ${ACTION_ROUTES_GUIDE}
 • For any navigation request, provide the matching [ACTION] button — never just describe where to go
 • You can include up to 3 action buttons per response
 
-═══ FORMATTING ═══
-Use rich text for structured answers:
-• **bold** for emphasis, *italic* for secondary, ## Heading, ### Subheading
-• - bullet lists, 1. numbered lists, \`inline code\`
-Keep conversational answers as plain prose. Use formatting only when it genuinely helps.
+═══ RESPONSE LENGTH & STYLE ═══
+• Answer immediately — never open with "Sure!", "Of course!", "Great question!", or filler.
+• For simple/conversational questions: 1–3 short sentences, plain prose. No markdown.
+• For factual, how-to, or multi-part questions: use structured format (see below).
+• Never pad. If the answer fits in one sentence, write one sentence.
+
+═══ FORMATTING (structured responses only) ═══
+Use these sparingly — only when structure genuinely helps comprehension:
+• ## Section Title — use for 2+ distinct topics (e.g. ## How it works / ## Cost)
+• ### Subheading — for sub-points within a section
+• - bullet / 1. numbered — for true lists of 3+ items only
+• **bold** — for the single most important word/phrase per paragraph
+• \`inline code\` — for technical values, commands, or exact strings
+• > Tip: text — for a single important tip or note at the end
+• \`\`\` (fenced block) — for multi-line code only
+
+NEVER use formatting for conversational back-and-forth. Keep sections tight — 2–4 lines max each.
 
 ═══ SPECIAL RESPONSE TAGS (append at end, never mid-text) ═══
 • [SUGGEST:Follow-up question] — up to 3 natural follow-ups (never the same as what was just asked)
@@ -746,38 +758,7 @@ function ThinkingBubble({ colors, accent }: { colors: any; accent: string }) {
   );
 }
 
-function SimpleMarkdown({ text, color }: { text: string; color: string }) {
-  const lines = text.split("\n");
-  return (
-    <View style={{ gap: 2 }}>
-      {lines.map((line, li) => {
-        if (line.startsWith("## "))
-          return <Text key={li} style={[styles.mdH2, { color }]}>{line.slice(3)}</Text>;
-        if (line.startsWith("### "))
-          return <Text key={li} style={[styles.mdH3, { color }]}>{line.slice(4)}</Text>;
-        if (line.startsWith("- ") || line.startsWith("• "))
-          return (
-            <View key={li} style={styles.mdBulletRow}>
-              <Text style={[styles.mdBulletDot, { color }]}>•</Text>
-              <Text style={[styles.mdBody, { color, flex: 1 }]}>{inlineFormat(line.slice(2), color)}</Text>
-            </View>
-          );
-        if (/^\d+\.\s/.test(line)) {
-          const m = line.match(/^(\d+)\.\s(.*)/);
-          if (m)
-            return (
-              <View key={li} style={styles.mdBulletRow}>
-                <Text style={[styles.mdBulletDot, { color }]}>{m[1]}.</Text>
-                <Text style={[styles.mdBody, { color, flex: 1 }]}>{inlineFormat(m[2], color)}</Text>
-              </View>
-            );
-        }
-        if (line.trim() === "") return <View key={li} style={{ height: 4 }} />;
-        return <Text key={li} style={[styles.mdBody, { color }]}>{inlineFormat(line, color)}</Text>;
-      })}
-    </View>
-  );
-}
+// ─── Inline formatter: bold, italic, inline code ──────────────────────────────
 
 function inlineFormat(text: string, color: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
@@ -787,10 +768,188 @@ function inlineFormat(text: string, color: string): React.ReactNode {
     if (part.startsWith("*") && part.endsWith("*"))
       return <Text key={i} style={{ fontFamily: "Inter_400Regular", fontStyle: "italic", color }}>{part.slice(1, -1)}</Text>;
     if (part.startsWith("`") && part.endsWith("`"))
-      return <Text key={i} style={[styles.inlineCode, { color }]}>{part.slice(1, -1)}</Text>;
+      return <Text key={i} style={mdInline.code}>{part.slice(1, -1)}</Text>;
     return <Text key={i} style={{ fontFamily: "Inter_400Regular", color }}>{part}</Text>;
   });
 }
+
+// ─── Block-level rich markdown renderer ──────────────────────────────────────
+
+function SimpleMarkdown({ text, color }: { text: string; color: string }) {
+  const isDark = color === "#fff" || color.startsWith("rgba(255");
+
+  // Collect consecutive code-fence lines into blocks
+  type Block =
+    | { kind: "h2"; text: string }
+    | { kind: "h3"; text: string }
+    | { kind: "bullet"; text: string }
+    | { kind: "numbered"; n: string; text: string }
+    | { kind: "tip"; text: string }
+    | { kind: "code"; lines: string[] }
+    | { kind: "blank" }
+    | { kind: "para"; text: string };
+
+  const blocks: Block[] = [];
+  const rawLines = text.split("\n");
+  let i = 0;
+  while (i < rawLines.length) {
+    const line = rawLines[i];
+
+    // Fenced code block
+    if (line.trimStart().startsWith("```")) {
+      const codeLines: string[] = [];
+      i++;
+      while (i < rawLines.length && !rawLines[i].trimStart().startsWith("```")) {
+        codeLines.push(rawLines[i]);
+        i++;
+      }
+      i++; // consume closing ```
+      blocks.push({ kind: "code", lines: codeLines });
+      continue;
+    }
+
+    if (line.startsWith("## "))   { blocks.push({ kind: "h2", text: line.slice(3).trim() }); i++; continue; }
+    if (line.startsWith("### "))  { blocks.push({ kind: "h3", text: line.slice(4).trim() }); i++; continue; }
+    if (line.startsWith("> "))    { blocks.push({ kind: "tip", text: line.slice(2).trim() }); i++; continue; }
+
+    const bulletMatch = line.match(/^[-•]\s+(.*)/);
+    if (bulletMatch) { blocks.push({ kind: "bullet", text: bulletMatch[1] }); i++; continue; }
+
+    const numberedMatch = line.match(/^(\d+)\.\s+(.*)/);
+    if (numberedMatch) { blocks.push({ kind: "numbered", n: numberedMatch[1], text: numberedMatch[2] }); i++; continue; }
+
+    if (line.trim() === "") { blocks.push({ kind: "blank" }); i++; continue; }
+
+    blocks.push({ kind: "para", text: line });
+    i++;
+  }
+
+  // Collapse consecutive blanks
+  const collapsed: Block[] = [];
+  for (const b of blocks) {
+    if (b.kind === "blank" && collapsed[collapsed.length - 1]?.kind === "blank") continue;
+    collapsed.push(b);
+  }
+
+  const accentColor = "#1f95ff";
+
+  return (
+    <View style={{ gap: 0 }}>
+      {collapsed.map((b, idx) => {
+        const key = idx;
+
+        if (b.kind === "blank") return <View key={key} style={{ height: 6 }} />;
+
+        if (b.kind === "h2") {
+          return (
+            <View key={key} style={[mdStyles.h2Row, idx > 0 && { marginTop: 10 }]}>
+              <View style={[mdStyles.h2Bar, { backgroundColor: accentColor }]} />
+              <Text style={[mdStyles.h2Text, { color }]}>{b.text}</Text>
+            </View>
+          );
+        }
+
+        if (b.kind === "h3") {
+          return (
+            <View key={key} style={[mdStyles.h3Row, idx > 0 && { marginTop: 6 }]}>
+              <Text style={[mdStyles.h3Text, { color }]}>{b.text}</Text>
+            </View>
+          );
+        }
+
+        if (b.kind === "tip") {
+          const tipBg = isDark ? "rgba(31,149,255,0.12)" : "rgba(31,149,255,0.08)";
+          return (
+            <View key={key} style={[mdStyles.tipBox, { backgroundColor: tipBg, borderLeftColor: accentColor }]}>
+              <Ionicons name="information-circle" size={13} color={accentColor} style={{ marginTop: 1 }} />
+              <Text style={[mdStyles.tipText, { color, flex: 1 }]}>{inlineFormat(b.text, color)}</Text>
+            </View>
+          );
+        }
+
+        if (b.kind === "bullet") {
+          return (
+            <View key={key} style={mdStyles.listRow}>
+              <View style={[mdStyles.bulletDot, { backgroundColor: accentColor }]} />
+              <Text style={[mdStyles.listText, { color, flex: 1 }]}>{inlineFormat(b.text, color)}</Text>
+            </View>
+          );
+        }
+
+        if (b.kind === "numbered") {
+          return (
+            <View key={key} style={mdStyles.listRow}>
+              <View style={[mdStyles.numBadge, { backgroundColor: accentColor + "22" }]}>
+                <Text style={[mdStyles.numText, { color: accentColor }]}>{b.n}</Text>
+              </View>
+              <Text style={[mdStyles.listText, { color, flex: 1 }]}>{inlineFormat(b.text, color)}</Text>
+            </View>
+          );
+        }
+
+        if (b.kind === "code") {
+          const codeBg = isDark ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.06)";
+          const codeFg = isDark ? "#a8d8ff" : "#1a3a5c";
+          return (
+            <View key={key} style={[mdStyles.codeBlock, { backgroundColor: codeBg }]}>
+              {b.lines.map((cl, ci) => (
+                <Text key={ci} style={[mdStyles.codeText, { color: codeFg }]}>{cl}</Text>
+              ))}
+            </View>
+          );
+        }
+
+        // para
+        return (
+          <Text key={key} style={[mdStyles.para, { color }]}>
+            {inlineFormat(b.text, color)}
+          </Text>
+        );
+      })}
+    </View>
+  );
+}
+
+const mdInline = StyleSheet.create({
+  code: {
+    fontFamily: "monospace",
+    fontSize: 12.5,
+    backgroundColor: "rgba(31,149,255,0.12)",
+    borderRadius: 3,
+    paddingHorizontal: 4,
+    color: "#1f95ff",
+  },
+});
+
+const mdStyles = StyleSheet.create({
+  para: { fontSize: 14.5, fontFamily: "Inter_400Regular", lineHeight: 21, marginBottom: 2 },
+  h2Row: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 5 },
+  h2Bar: { width: 3, height: 16, borderRadius: 2 },
+  h2Text: { fontSize: 14, fontFamily: "Inter_700Bold", lineHeight: 20, flex: 1 },
+  h3Row: { marginBottom: 3 },
+  h3Text: { fontSize: 13, fontFamily: "Inter_600SemiBold", lineHeight: 18 },
+  tipBox: {
+    flexDirection: "row", alignItems: "flex-start", gap: 6,
+    borderLeftWidth: 2.5, borderRadius: 6,
+    paddingHorizontal: 10, paddingVertical: 7,
+    marginVertical: 3,
+  },
+  tipText: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
+  listRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: 4, paddingLeft: 2 },
+  bulletDot: { width: 5, height: 5, borderRadius: 3, marginTop: 8, flexShrink: 0 },
+  numBadge: {
+    width: 18, height: 18, borderRadius: 9,
+    alignItems: "center", justifyContent: "center",
+    marginTop: 2, flexShrink: 0,
+  },
+  numText: { fontSize: 10, fontFamily: "Inter_700Bold" },
+  listText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  codeBlock: {
+    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+    marginVertical: 4, gap: 1,
+  },
+  codeText: { fontFamily: "monospace", fontSize: 12, lineHeight: 18 },
+});
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 
@@ -879,15 +1038,5 @@ const styles = StyleSheet.create({
   sendBtn: {
     width: 40, height: 40, borderRadius: 20,
     alignItems: "center", justifyContent: "center",
-  },
-  mdH2: { fontSize: 16, fontFamily: "Inter_700Bold", lineHeight: 22, marginTop: 4 },
-  mdH3: { fontSize: 14, fontFamily: "Inter_700Bold", lineHeight: 20, marginTop: 2 },
-  mdBody: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },
-  mdBulletRow: { flexDirection: "row", gap: 6, alignItems: "flex-start" },
-  mdBulletDot: { fontSize: 15, fontFamily: "Inter_400Regular", marginTop: 1, width: 14 },
-  inlineCode: {
-    fontFamily: "monospace",
-    fontSize: 13, backgroundColor: "#00000010",
-    borderRadius: 4, paddingHorizontal: 4,
   },
 });

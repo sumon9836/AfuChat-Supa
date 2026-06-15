@@ -1682,7 +1682,7 @@ function ChatScreen() {
   const chatInfoStateRef = useRef(chatInfo);
   chatInfoStateRef.current = chatInfo;
   const isAfuAiDirectChat = chatInfo?.other_id === AFUAI_BOT_ID;
-  const isAfuChatSystemChat = chatInfo?.other_id === AFUCHAT_SYSTEM_ID;
+  const isAfuChatSystemChat = chatInfo?.other_id === AFUCHAT_SYSTEM_ID && !chatInfo?.is_group && !chatInfo?.is_channel;
   const isSelfChat = !chatInfo?.is_group && !chatInfo?.is_channel && !!chatInfo?.other_id && chatInfo?.other_id === user?.id;
   const [phonebookName, setPhonebookName] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
