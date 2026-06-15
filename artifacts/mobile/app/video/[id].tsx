@@ -1031,6 +1031,14 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
   // Stable ref for user — lets fetchVideos read the current user without
   // having it as a dep, so auth-context refreshes never reset the feed.
   const userRef = useRef(user);
+  // ── Infinite / varied feed state ────────────────────────────────────────────
+  // loadRangeRef: tracks the .range() start position for for_you pagination.
+  // Initialised to a random offset so each session starts from a different
+  // slice of the catalogue — the user never sees the same feed twice.
+  const loadRangeRef = useRef(Math.floor(Math.random() * 30) * VIDEO_PAGE_SIZE);
+  // sessionSeenRef: IDs already shown this session — prevents duplicates when
+  // the range wraps around after exhausting the full catalogue.
+  const sessionSeenRef = useRef(new Set<string>());
   // Stable ref for videos — lets interaction callbacks (like/bookmark) always
   // read the latest videos array without being in every useCallback dep list.
   const videosRef = useRef(videos);
@@ -1131,29 +1139,51 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       }
     }
 
-    // For the "For You" feed on initial load, fetch a larger diverse pool from
-    // the last 30 days so the scoring algorithm can surface viral evergreen
-    // content — not just the newest N posts. On load-more, we fall back to
-    // standard cursor pagination to avoid re-fetching the same window.
-    const FOR_YOU_POOL = isLoadMore ? VIDEO_PAGE_SIZE : VIDEO_PAGE_SIZE * 4;
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    // ── Query building ─────────────────────────────────────────────────────────
+    // "For You": range-based pagination across ALL videos (no time cap).
+    //   - Initial load picks a fresh random start so every session begins at a
+    //     different position in the catalogue — the user never sees the same
+    //     feed twice in a row.
+    //   - Load-more advances the window by VIDEO_PAGE_SIZE each call.
+    //   - When the range passes the end of the DB we wrap to a new random start.
+    //   - hasMore is always true for this tab (infinite scroll, no hard limit).
+    //
+    // "Following": stays cursor-based / newest-first (chronological intention).
+
+    const FOR_YOU_POOL = VIDEO_PAGE_SIZE * 4; // always fetch a large initial pool for ranking
+
+    let rangeStart = 0;
+    let rangeEnd   = 0;
+
+    if (tab === "for_you") {
+      if (!isLoadMore) {
+        // New session / tab switch — pick a fresh random position in the catalogue
+        rangeStart = Math.floor(Math.random() * 30) * VIDEO_PAGE_SIZE;
+        loadRangeRef.current = rangeStart + FOR_YOU_POOL;
+        sessionSeenRef.current = new Set<string>();
+        rangeEnd = rangeStart + FOR_YOU_POOL - 1;
+      } else {
+        rangeStart = loadRangeRef.current;
+        rangeEnd   = rangeStart + VIDEO_PAGE_SIZE - 1;
+        loadRangeRef.current = rangeEnd + 1;
+      }
+    }
 
     let query = supabase
       .from("posts")
       .select(`id, author_id, content, video_url, image_url, created_at, audio_name, profiles!posts_author_id_fkey(display_name, handle, avatar_url, is_verified, is_organization_verified)`)
       .not("video_url", "is", null)
       .or("post_type.eq.video,post_type.is.null")
-      .order("created_at", { ascending: false })
-      .limit(tab === "for_you" && !cursor ? FOR_YOU_POOL : VIDEO_PAGE_SIZE);
+      .order("created_at", { ascending: false });
 
-    if (tab === "for_you" && !cursor) {
-      // Wide discovery window: last 30 days so the algo can rank evergreen content
-      query = query.gte("created_at", thirtyDaysAgo).or("visibility.eq.public,visibility.is.null");
+    if (tab === "for_you") {
+      // Range-based — covers entire catalogue, no time restriction
+      query = query.range(rangeStart, rangeEnd).or("visibility.eq.public,visibility.is.null");
     } else if (tab === "following" && followingIds.length > 0) {
-      query = query.in("author_id", followingIds).or("visibility.eq.public,visibility.eq.followers,visibility.is.null");
+      query = query.limit(VIDEO_PAGE_SIZE).in("author_id", followingIds).or("visibility.eq.public,visibility.eq.followers,visibility.is.null");
       if (cursor) query = query.lt("created_at", cursor);
     } else {
-      query = query.or("visibility.eq.public,visibility.is.null");
+      query = query.limit(VIDEO_PAGE_SIZE).or("visibility.eq.public,visibility.is.null");
       if (cursor) query = query.lt("created_at", cursor);
     }
 
@@ -1188,7 +1218,7 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
       const myBookmarkSet = new Set((myBookmarks || []).map((b: any) => b.post_id));
       const followedSet = new Set((myFollows || []).map((f: any) => f.following_id as string));
 
-      const mapped: VideoPost[] = data.map((p: any) => ({
+      const allMapped: VideoPost[] = data.map((p: any) => ({
         id: p.id, author_id: p.author_id, content: p.content || "",
         video_url: p.video_url, image_url: p.image_url || null, created_at: p.created_at,
         view_count: viewMap[p.id] || 0, audio_name: p.audio_name || null,
@@ -1196,6 +1226,12 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         liked: myLikeSet.has(p.id), bookmarked: myBookmarkSet.has(p.id),
         likeCount: likeMap[p.id] || 0, replyCount: replyMap[p.id] || 0,
       }));
+
+      // Deduplicate against videos already shown this session (matters on wrap-around)
+      const mapped = tab === "for_you"
+        ? allMapped.filter((v) => !sessionSeenRef.current.has(v.id))
+        : allMapped;
+      for (const v of mapped) sessionSeenRef.current.add(v.id);
 
       // ── Rank by quality algorithm ───────────────────────────────────────────
       const [learnedWeights, seenVideoIds] = await Promise.all([
@@ -1267,7 +1303,8 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
 
       let newVideos = diversified;
       cursorRef.current = data[data.length - 1].created_at;
-      setHasMore(data.length === VIDEO_PAGE_SIZE);
+      // "For You" is truly infinite — never stop. "Following" uses natural cursor end.
+      setHasMore(tab === "for_you" ? true : data.length === VIDEO_PAGE_SIZE);
 
       if (isLoadMore) {
         setVideos((prev) => {
@@ -1300,8 +1337,16 @@ export function VideoFeed({ isEmbedded = false }: { isEmbedded?: boolean } = {})
         setVideos(newVideos);
       }
     } else {
-      setHasMore(false);
-      if (!isLoadMore) setVideos([]);
+      if (tab === "for_you" && isLoadMore) {
+        // Catalogue exhausted — wrap to a fresh random position so the feed
+        // continues indefinitely. Clear the session dedup so videos can resurface.
+        loadRangeRef.current = Math.floor(Math.random() * 30) * VIDEO_PAGE_SIZE;
+        sessionSeenRef.current = new Set<string>();
+        setHasMore(true); // keep infinite scroll alive
+      } else {
+        setHasMore(false);
+        if (!isLoadMore) setVideos([]);
+      }
     }
 
     if (isLoadMore) { loadingMoreRef.current = false; setLoadingMore(false); }
