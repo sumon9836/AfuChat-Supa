@@ -5465,6 +5465,8 @@ STRICT RULES:
               <Text style={[st.headerSub, { color: "#FF9500" }]}>Waiting for network...</Text>
             ) : chatInfo?.is_group ? (
               <Text style={[st.headerSub, { color: colors.textMuted }]}>Group chat</Text>
+            ) : isAfuChatSystemChat ? (
+              <Text style={[st.headerSub, { color: "#34C759" }]}>Online</Text>
             ) : (() => {
               const ls = formatLastSeen(chatInfo?.other_last_seen, chatInfo?.other_show_online_status);
               return <Text style={[st.headerSub, { color: ls.isOnline ? "#34C759" : colors.textMuted }]}>{ls.text}</Text>;

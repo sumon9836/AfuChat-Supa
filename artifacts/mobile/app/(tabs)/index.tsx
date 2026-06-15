@@ -35,6 +35,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
+import { AFUCHAT_SYSTEM_ID } from "@/lib/afuSystemChat";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -342,7 +343,7 @@ function ChatRow({
       : (phonebookName || item.other_display_name);
   const avatar = item.kind === "notes" ? null : item.is_group || item.is_channel ? item.avatar_url : item.other_avatar;
   const hasUnread = item.unread_count > 0 && !wasChatRecentlyVisited(item.id);
-  const isOnlineDot = !item.is_group && !item.is_channel && isUserOnline(item.other_last_seen, item.other_show_online);
+  const isOnlineDot = !item.is_group && !item.is_channel && (item.other_id === AFUCHAT_SYSTEM_ID || isUserOnline(item.other_last_seen, item.other_show_online));
 
   return (
     <View {...bind}>
