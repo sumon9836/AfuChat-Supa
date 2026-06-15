@@ -1767,6 +1767,7 @@ function ChatScreen() {
     return () => { onShow.remove(); onHide.remove(); };
   }, []);
   const [showChatOptions, setShowChatOptions] = useState(false);
+  const notifPillAnim = useRef(new Animated.Value(80)).current;
   const [notifRowsMap, setNotifRowsMap] = useState<Map<string, any>>(new Map());
   const [muteUntil, setMuteUntil] = useState<string | null | undefined>(undefined);
   const [showMutePicker, setShowMutePicker] = useState(false);
@@ -1775,6 +1776,18 @@ function ChatScreen() {
   const [disappearingEnabled, setDisappearingEnabled] = useState(false);
   const [disappearingTimer, setDisappearingTimer] = useState(86400); // seconds; 0 = off
   const [showDisappearingPicker, setShowDisappearingPicker] = useState(false);
+  // Animate the filter pill sliding up when the notifications modal opens
+  useEffect(() => {
+    if (showChatOptions && isAfuChatSystemChat) {
+      notifPillAnim.setValue(80);
+      Animated.spring(notifPillAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        speed: 18,
+        bounciness: 5,
+      }).start();
+    }
+  }, [showChatOptions, isAfuChatSystemChat]);
   const [isBlocked, setIsBlocked] = useState(false);
   const [showGiftPicker, setShowGiftPicker] = useState(false);
   const [giftSending, setGiftSending] = useState(false);
@@ -6995,8 +7008,8 @@ STRICT RULES:
           <View style={{ flex: 1 }}>
             <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowChatOptions(false)} />
 
-            {/* ── Filter pill — floats above the sheet, wired to its top edge ─── */}
-            <View style={[
+            {/* ── Filter pill — slides up and docks to the top edge of the sheet ── */}
+            <Animated.View style={[
               st.notifFilterBar,
               {
                 backgroundColor: colors.surface,
@@ -7009,6 +7022,7 @@ STRICT RULES:
                 borderBottomRightRadius: 0,
                 borderBottomWidth: 0,
                 zIndex: 10,
+                transform: [{ translateY: notifPillAnim }],
                 ...Platform.select({
                   web: { boxShadow: "0 -4px 16px rgba(0,0,0,0.10)" } as any,
                   default: { shadowColor: "#000", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 8 },
@@ -7039,7 +7053,7 @@ STRICT RULES:
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </Animated.View>
 
             <View style={[st.notifModal, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 8 }]}>
               <View style={[st.notifModalHeader, { borderBottomColor: colors.border }]}>
