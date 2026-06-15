@@ -274,7 +274,7 @@ const VideoItem = React.memo(
     const { accent } = useAppAccent();
     const player = useVideoPlayer(null, (p) => {
       p.loop = false; // we handle loop manually so we can fire onVideoEnd
-      p.muted = globalMuted || Platform.OS === "web";
+      p.muted = globalMuted;
     });
 
     const [paused, setPaused] = useState(false);
@@ -285,12 +285,23 @@ const VideoItem = React.memo(
     const [captionExpanded, setCaptionExpanded] = useState(false);
     const [duration, setDuration] = useState(0);
 
-    const heartScale   = useSharedValue(1);
-    const dtOpacity    = useSharedValue(0);
-    const dtScale      = useSharedValue(0.3);
-    const progressFill = useSharedValue(0);
+    const heartScale      = useSharedValue(1);
+    const dtOpacity       = useSharedValue(0);
+    const dtScale         = useSharedValue(0.3);
+    const progressFill    = useSharedValue(0);
+    const progressVisible = useSharedValue(0);
 
-    useAnimationGuard(heartScale, dtOpacity, dtScale, progressFill);
+    useAnimationGuard(heartScale, dtOpacity, dtScale, progressFill, progressVisible);
+
+    const progressHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    function showProgressBar() {
+      progressVisible.value = withTiming(1, { duration: 150 });
+      if (progressHideTimer.current) clearTimeout(progressHideTimer.current);
+      progressHideTimer.current = setTimeout(() => {
+        progressVisible.value = withTiming(0, { duration: 300 });
+        progressHideTimer.current = null;
+      }, 2500);
+    }
 
     const bufferingRef     = useRef(false);
     const bufferingTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -456,6 +467,9 @@ const VideoItem = React.memo(
     const progressBarStyle = useAnimatedStyle(() => ({
       width: `${progressFill.value * 100}%` as any,
     }));
+    const progressTrackOpacityStyle = useAnimatedStyle(() => ({
+      opacity: progressVisible.value,
+    }));
 
     // ── Gestures ───────────────────────────────────────────────────────────────
     function triggerLike() { onLike(item.id, item.liked); }
@@ -589,14 +603,23 @@ const VideoItem = React.memo(
             />
           </TouchableOpacity>
 
-          {/* Progress bar at very bottom of video section */}
-          <View style={[styles.progressTrack, { pointerEvents: "none" }]}>
-            <ReAnimated.View style={[styles.progressFill, progressBarStyle]} />
-          </View>
+          {/* Progress bar — hidden by default, revealed on touch / hover */}
+          <ReAnimated.View style={[styles.progressTrack, progressTrackOpacityStyle]}>
+            <TouchableOpacity
+              activeOpacity={1}
+              hitSlop={{ top: 20, bottom: 0, left: 0, right: 0 }}
+              onPressIn={showProgressBar}
+              style={{ flex: 1 }}
+              // @ts-ignore web hover
+              onMouseEnter={showProgressBar}
+            >
+              <ReAnimated.View style={[styles.progressFill, progressBarStyle]} />
+            </TouchableOpacity>
+          </ReAnimated.View>
           {duration > 0 && (
-            <Text style={[styles.durationLabel, { pointerEvents: "none" }]}>
+            <ReAnimated.Text style={[styles.durationLabel, progressTrackOpacityStyle]}>
               {fmtDur(duration)}
-            </Text>
+            </ReAnimated.Text>
           )}
         </View>
 
@@ -1389,12 +1412,20 @@ export default function VideoFeed({ tabBarHeight = 52 }: Props) {
 
   // ── FlatList config ───────────────────────────────────────────────────────
 
+  // On web the first video starts muted so autoplay works. As soon as the user
+  // scrolls to a second video we unmute — they've already indicated engagement.
+  const hasUnmutedOnWebRef = useRef(false);
+
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       if (viewableItems.length > 0 && viewableItems[0].index !== null) {
         const idx = viewableItems[0].index!;
         activeIndexRef.current = idx;
         setActiveIndex(idx);
+        if (Platform.OS === "web" && idx > 0 && !hasUnmutedOnWebRef.current) {
+          hasUnmutedOnWebRef.current = true;
+          setGlobalMuted(false);
+        }
       }
     }
   ).current;
