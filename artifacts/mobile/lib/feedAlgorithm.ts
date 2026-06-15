@@ -167,6 +167,20 @@ export async function undoNotInterested(
   ]);
 }
 
+/** Removes a single author from the not-interested list. */
+export async function removeNotInterestedAuthor(authorId: string): Promise<void> {
+  const set = await _readStringSet(NOT_INTERESTED_AUTHORS_KEY);
+  set.delete(authorId);
+  await _writeStringSet(NOT_INTERESTED_AUTHORS_KEY, set);
+}
+
+/** Removes a single topic from the not-interested list. */
+export async function removeNotInterestedTopic(topic: string): Promise<void> {
+  const set = await _readStringSet(NOT_INTERESTED_TOPICS_KEY);
+  set.delete(topic);
+  await _writeStringSet(NOT_INTERESTED_TOPICS_KEY, set);
+}
+
 /** Wipes all not-interested signals — used by Settings › Reset Feed. */
 export async function resetNotInterestedSignals(): Promise<void> {
   await Promise.all([

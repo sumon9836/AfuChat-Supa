@@ -233,6 +233,13 @@ export default function SettingsScreen() {
           )}
           <GlassMenuSeparator />
           <GlassMenuItem
+            icon="eye-off-outline"
+            label="Not Interested"
+            subtitle="Manage muted authors and suppressed topics"
+            onPress={() => router.push("/settings/not-interested" as any)}
+          />
+          <GlassMenuSeparator />
+          <GlassMenuItem
             icon="flash-outline"
             label="Advanced Features"
             subtitle="Power settings, chat and feed customisation"
