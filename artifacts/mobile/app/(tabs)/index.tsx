@@ -205,6 +205,18 @@ function buildMsgPreview(encrypted_content: string | null, attachment_type: stri
   if (attachment_type === "video") return "🎥 Video";
   if (attachment_type === "audio") return "🎤 Voice message";
   if (attachment_type === "file") return raw ? `📎 ${stripMdPreview(raw)}` : "📎 File";
+  if (attachment_type === "payment") {
+    try {
+      const pay = JSON.parse(raw);
+      const coinLabel = pay.currency === "nexa" ? "Nexa" : "ACoin";
+      const amt = pay.amount != null ? `${pay.amount} ${coinLabel}` : coinLabel;
+      return `💸 ${amt} sent`;
+    } catch { return "💸 Payment"; }
+  }
+  // Red envelope: strip internal UUID from "🧧 Red Envelope [uuid] - note"
+  if (raw.startsWith("🧧")) {
+    return raw.replace(/\[[0-9a-f-]{36}\]\s*-?\s*/i, "").trim() || "🧧 Red Envelope";
+  }
   const sysPreview = decodeSysNotifPreview(raw);
   if (sysPreview) return sysPreview;
   return stripMdPreview(raw);
@@ -333,7 +345,7 @@ function ChatRow({
             { key: "archive", label: item.is_archived ? "Unarchive" : "Archive", icon: item.is_archived ? "archive" : "archive-outline", onSelect: () => onAction?.("toggleArchive", item) },
             { key: "mute", label: isChatMuted ? "Unmute" : "Mute", icon: isChatMuted ? "notifications-outline" : "notifications-off-outline", onSelect: () => onAction?.(isChatMuted ? "unmute" : "mute", item) },
           ],
-          [{ key: "delete", label: "Delete chat", icon: "trash-outline", destructive: true, onSelect: () => onAction?.("delete", item) }],
+          [{ key: "delete", label: item.is_group && !item.is_channel ? "Leave group" : "Delete chat", icon: item.is_group && !item.is_channel ? "exit-outline" : "trash-outline", destructive: true, onSelect: () => onAction?.("delete", item) }],
         ]
   );
   const displayName = item.kind === "notes"
@@ -1359,23 +1371,37 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
         return;
       }
       if (action === "delete") {
+        const isGroup = item.is_group && !item.is_channel;
         const ok = await confirmAlert(
-          "Delete chat?",
-          "This will permanently delete this conversation for everyone.",
-          { confirmText: "Delete", destructive: true },
+          isGroup ? "Leave group?" : "Delete chat?",
+          isGroup
+            ? "You will leave this group. You can be added back by an admin."
+            : "This will permanently delete this conversation for everyone.",
+          { confirmText: isGroup ? "Leave" : "Delete", destructive: true },
         );
         if (!ok) return;
         setChats((prev) => prev.filter((c) => c.id !== item.id));
-        // Remove from local cache immediately so it cannot reappear on next
-        // cold-start or when a new message from the same contact arrives.
         deleteLocalConversation(item.id).catch(() => {});
-        const { error } = await supabase
-          .from("chats")
-          .delete()
-          .eq("id", item.id);
-        if (error) {
-          showAlert("Couldn't delete chat", error.message);
-          loadChats(true);
+        if (isGroup) {
+          // Leave the group — remove only this user's membership
+          const { error } = await supabase
+            .from("chat_members")
+            .delete()
+            .eq("chat_id", item.id)
+            .eq("user_id", user!.id);
+          if (error) {
+            showAlert("Couldn't leave group", error.message);
+            loadChats(true);
+          }
+        } else {
+          const { error } = await supabase
+            .from("chats")
+            .delete()
+            .eq("id", item.id);
+          if (error) {
+            showAlert("Couldn't delete chat", error.message);
+            loadChats(true);
+          }
         }
         return;
       }
@@ -1440,14 +1466,21 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
     );
     if (!ok) return;
     const ids = Array.from(selectedIds);
+    const chatMap = new Map(chats.map((c) => [c.id, c]));
     setChats((prev) => prev.filter((c) => !ids.includes(c.id)));
     exitSelectMode();
-    // Clear from local cache immediately alongside the Supabase deletes.
     await Promise.all([
-      ...ids.map((id) => supabase.from("chats").delete().eq("id", id)),
+      ...ids.map((id) => {
+        const c = chatMap.get(id);
+        if (c?.is_group && !c?.is_channel) {
+          // Leave the group — remove only this user's membership
+          return supabase.from("chat_members").delete().eq("chat_id", id).eq("user_id", user!.id);
+        }
+        return supabase.from("chats").delete().eq("id", id);
+      }),
       ...ids.map((id) => deleteLocalConversation(id)),
     ]);
-  }, [selectedIds, exitSelectMode]);
+  }, [selectedIds, exitSelectMode, chats, user]);
 
   useEffect(() => {
     if (!user) return;
