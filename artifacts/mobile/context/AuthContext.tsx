@@ -565,9 +565,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Use stored account userId as fallback when MMKV was wiped
           const effectiveUserId = cachedUserId ?? primaryAccount?.userId ?? null;
 
-          if (effectiveUserId && primaryAccount) {
-            // Restore MMKV if it was cleared so future startups are instant
-            if (!cachedUserId) setCachedUserId(primaryAccount.userId);
+          if (effectiveUserId) {
+            // ── CRITICAL: use effectiveUserId alone, NOT "effectiveUserId && primaryAccount".
+            // On Android, SecureStore (Keystore-backed) can return null on the very
+            // first read after a device reboot — the Keystore is locked until the
+            // user authenticates, which happens milliseconds before the app opens but
+            // the read may race. If SecureStore fails, primaryAccount is null even
+            // though the user is legitimately logged in. The MMKV userId is a strong
+            // enough signal on its own — always keep the user in the app.
+
+            // Restore MMKV userId if it was wiped (ensures fast startup next time)
+            if (!cachedUserId && effectiveUserId) setCachedUserId(effectiveUserId);
 
             const cached = await getCachedProfile();
             if (cached) setProfile(cached as Profile);
@@ -576,8 +584,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // waiting for a network round-trip. The real session replaces it once
             // the background token refresh completes (TOKEN_REFRESHED fires).
             const syntheticUser = {
-              id: primaryAccount.userId,
-              email: primaryAccount.email,
+              id: effectiveUserId,
+              email: primaryAccount?.email || (cached as any)?.email || "",
               app_metadata: {},
               user_metadata: {},
               aud: "authenticated",
@@ -588,26 +596,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
 
             if (isOnline()) {
-              // Pass refresh token explicitly — Supabase's AsyncStorage may have
-              // been cleared by a prior involuntary SIGNED_OUT, so relying on
-              // supabase.auth.refreshSession() with no args can silently fail.
-              supabase.auth
-                .refreshSession({ refresh_token: primaryAccount.refreshToken })
-                .then(({ error }) => {
-                  if (error) {
-                    // Token is dead but we do NOT log the user out. They keep
-                    // the synthetic session and can read cached data. On next
-                    // foreground the reconnect effect will retry. A user who has
-                    // ever logged in must NEVER be involuntarily signed out.
-                  }
-                  // On success: TOKEN_REFRESHED fires and replaces the synthetic
-                  // session with a real one — no further action needed here.
-                })
-                .catch(() => {});
+              if (primaryAccount) {
+                // Pass refresh token explicitly — Supabase's AsyncStorage may have
+                // been cleared by a prior involuntary SIGNED_OUT, so relying on
+                // supabase.auth.refreshSession() with no args can silently fail.
+                supabase.auth
+                  .refreshSession({ refresh_token: primaryAccount.refreshToken })
+                  .then(({ error }) => {
+                    if (error) {
+                      // Token is dead but we do NOT log the user out. They keep
+                      // the synthetic session and can read cached data. On next
+                      // foreground the reconnect effect will retry. A user who
+                      // has ever logged in must NEVER be involuntarily signed out.
+                    }
+                    // On success: TOKEN_REFRESHED fires and replaces the synthetic
+                    // session with a real one — no further action needed here.
+                  })
+                  .catch(() => {});
+              } else {
+                // SecureStore was temporarily unavailable (Android Keystore race on
+                // fresh reboot). Retry in 3 s — by then the Keystore is accessible.
+                setTimeout(async () => {
+                  try {
+                    const retried = await getStoredAccounts();
+                    const stored = retried[0] ?? null;
+                    if (!stored) return;
+                    // Try to promote the synthetic session to a real one.
+                    await supabase.auth.setSession({
+                      access_token: stored.accessToken,
+                      refresh_token: stored.refreshToken,
+                    });
+                    // On success: TOKEN_REFRESHED fires and updates session state.
+                  } catch {}
+                }, 3000);
+              }
             } else {
               startOfflineSync();
             }
           } else {
+            // Truly no identity anywhere — user has never logged in on this device.
             const cached = await getCachedProfile();
             if (cached) setProfile(cached as Profile);
             setLoading(false);

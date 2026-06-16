@@ -52,6 +52,18 @@ function initNetInfo() {
   } else {
     try {
       const NetInfo = require("@react-native-community/netinfo").default;
+
+      // Fetch initial connectivity state immediately (async) so the very first
+      // call to isOnline() after boot reflects reality rather than the optimistic
+      // "true" default. This matters on cold start when the phone is offline.
+      NetInfo.fetch().then((state: any) => {
+        const initialOnline = state.isConnected === true && state.isInternetReachable !== false;
+        if (initialOnline !== _isOnline) {
+          _isOnline = initialOnline;
+          _listeners.forEach((fn) => fn(initialOnline));
+        }
+      }).catch(() => {});
+
       NetInfo.addEventListener((state: any) => {
         const newOnline = state.isConnected === true && state.isInternetReachable !== false;
         if (newOnline !== _isOnline) {

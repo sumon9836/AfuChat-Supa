@@ -45,6 +45,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashScreenView } from "@/components/ui/SplashScreenView";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import AlertModal from "@/components/ui/AlertModal";
+import OfflineBanner from "@/components/ui/OfflineBanner";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
 import UpdatePrompt from "@/components/UpdatePrompt";
 import { initActivityTracker } from "@/lib/activityTracker";
@@ -256,6 +257,7 @@ export default function RootLayout() {
                       <ChatPreferencesProvider>
                         <MiniAppRuntimeProvider>
                           <DesktopShell>
+                            <OfflineBanner />
                             <Stack
                               screenOptions={{
                                 headerShown: false,

@@ -1,106 +1,127 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Platform, StyleSheet, Text, View } from "react-native";
+import { Animated, Platform, StyleSheet, Text } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { isOnline, onConnectivityChange } from "@/lib/offlineStore";
 
-type BannerStatus = "online" | "offline" | "reconnecting";
-
-const BANNER_HEIGHT = 36;
+type State = "hidden" | "offline" | "reconnected";
 
 export default function OfflineBanner() {
-  const initialOnline = isOnline();
-  const [status, setStatus] = useState<BannerStatus>(initialOnline ? "online" : "offline");
-  const slideAnim = useRef(new Animated.Value(initialOnline ? 0 : 1)).current;
-  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initial = isOnline();
+  const [state, setState] = useState<State>(initial ? "hidden" : "offline");
+  const translateY = useRef(new Animated.Value(initial ? -60 : 0)).current;
+  const opacity = useRef(new Animated.Value(initial ? 0 : 1)).current;
+  const insets = useSafeAreaInsets();
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function slideIn() {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    Animated.parallel([
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 14,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }
+
+  function slideOut(then?: () => void) {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: -60,
+        duration: 260,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 260,
+        useNativeDriver: true,
+      }),
+    ]).start(() => then?.());
+  }
 
   useEffect(() => {
     const unsub = onConnectivityChange((online) => {
-      if (reconnectTimer.current) {
-        clearTimeout(reconnectTimer.current);
-        reconnectTimer.current = null;
-      }
+      if (hideTimer.current) clearTimeout(hideTimer.current);
 
-      if (online) {
-        setStatus("reconnecting");
-        Animated.timing(slideAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: false,
-        }).start();
-        reconnectTimer.current = setTimeout(() => {
-          Animated.timing(slideAnim, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: false,
-          }).start(() => setStatus("online"));
-        }, 2200);
+      if (!online) {
+        setState("offline");
+        slideIn();
       } else {
-        setStatus("offline");
-        Animated.timing(slideAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: false,
-        }).start();
+        setState("reconnected");
+        slideIn();
+        hideTimer.current = setTimeout(() => {
+          slideOut(() => setState("hidden"));
+        }, 2400);
       }
     });
 
     return () => {
       unsub();
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      if (hideTimer.current) clearTimeout(hideTimer.current);
     };
   }, []);
 
-  if (status === "online") return null;
+  if (state === "hidden") return null;
 
-  const isReconnecting = status === "reconnecting";
-  const bgColor = isReconnecting ? "#34C759" : "#FF3B30";
-  const iconName: React.ComponentProps<typeof Ionicons>["name"] = isReconnecting
-    ? "wifi"
-    : "wifi-outline";
-  const label = isReconnecting
-    ? "Back online"
-    : "No internet · Content loaded from device";
-
-  const animatedHeight = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, BANNER_HEIGHT],
-  });
+  const isReconnected = state === "reconnected";
 
   return (
     <Animated.View
-      style={[styles.wrap, { backgroundColor: bgColor, height: animatedHeight }]}
+      pointerEvents="none"
+      style={[
+        st.pill,
+        {
+          top: insets.top + (Platform.OS === "android" ? 10 : 6),
+          opacity,
+          transform: [{ translateY }],
+          backgroundColor: isReconnected
+            ? "rgba(22,163,74,0.93)"
+            : "rgba(20,20,20,0.86)",
+        },
+      ]}
     >
-      <View style={styles.row}>
-        <Ionicons name={iconName} size={13} color="#fff" />
-        <Text style={styles.text} numberOfLines={1}>
-          {label}
-        </Text>
-        {isReconnecting && (
-          <Ionicons name="checkmark-circle" size={13} color="#fff" />
-        )}
-      </View>
+      <Ionicons
+        name={isReconnected ? "checkmark-circle" : "cloud-offline-outline"}
+        size={13}
+        color="#fff"
+      />
+      <Text style={st.label} numberOfLines={1}>
+        {isReconnected
+          ? "Back online"
+          : "Offline · showing cached data"}
+      </Text>
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    width: "100%",
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  row: {
+const st = StyleSheet.create({
+  pill: {
+    position: "absolute",
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    zIndex: 99999,
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
   },
-  text: {
+  label: {
     color: "#fff",
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "Inter_500Medium",
     letterSpacing: 0.1,
-    flexShrink: 1,
   },
 });
