@@ -31,6 +31,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import { T } from "@/constants/theme";
 import { setPageMeta, resetPageMeta } from "@/lib/webMeta";
+import { ProfileSkeleton } from "@/components/ui/Skeleton";
 
 function safeNavigate(path: string, params?: Record<string, string>) {
   try {
@@ -362,14 +363,19 @@ export default function HandleScreen() {
   // profile screen for a logged-in user before session hydrates.
   if (authLoading) return null;
 
-  // Logged-in user — navigate to full contact/profile screen (renders blank while navigating)
+  // Logged-in user — show skeleton while handle→ID resolves, then navigate
   if (session) {
     if (dataReady && (profileNotFound || !isValidHandle)) return (
       <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
         <ProfileNotFoundView handle={cleanHandle} />
       </View>
     );
-    return null;
+    // Show skeleton instead of blank while the DB lookup + navigation fires
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <ProfileSkeleton />
+      </View>
+    );
   }
 
   // Plain /username referral link — render nothing while the redirect fires

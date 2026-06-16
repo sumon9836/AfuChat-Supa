@@ -26,7 +26,7 @@ import { TabSwipeContext } from "@/context/TabSwipeContext";
 import { Image as ExpoImage } from "expo-image";
 import { showAlert } from "@/lib/alert";
 import { useSafeAreaInsets, useSafeAreaInsets as useCardInsets } from "react-native-safe-area-context";
-import { router, useNavigation } from "expo-router";
+import { router, useNavigation, useFocusEffect } from "expo-router";
 import { safeRouter } from "@/lib/navUtils";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "@/lib/haptics";
@@ -266,7 +266,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
       { key: "open",    label: "Open post",                     icon: "open-outline",     onSelect: () => openPost() },
       { key: "like",    label: item.liked ? "Unlike" : "Like",  icon: item.liked ? "heart" : "heart-outline", onSelect: () => { if (!currentUser) { onRequireAuth?.(); return; } onToggleLike(item.id); } },
       { key: "save",    label: item.bookmarked ? "Unsave" : "Save", icon: item.bookmarked ? "bookmark" : "bookmark-outline", onSelect: () => { if (!currentUser) { onRequireAuth?.(); return; } onToggleBookmark(item.id); } },
-      { key: "profile", label: `View @${item.profile.handle}`, icon: "person-outline",   onSelect: () => safeRouter.push(`/@${item.profile.handle}` as any) },
+      { key: "profile", label: `View @${item.profile.handle}`, icon: "person-outline",   onSelect: () => safeRouter.push({ pathname: "/contact/[id]", params: { id: item.author_id, init_name: item.profile.display_name, init_handle: item.profile.handle, init_avatar: item.profile.avatar_url ?? "", init_verified: item.is_verified ? "1" : "0", init_org_verified: item.is_organization_verified ? "1" : "0" } } as any) },
     ],
     [
       { key: "copy",  label: "Copy link", icon: "link-outline",  onSelect: () => { if (typeof window !== "undefined") navigator.clipboard?.writeText(`${window.location.origin}/p/${item.id}`); } },
@@ -397,7 +397,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                onPress={() => safeRouter.push(`/@${item.profile.handle}` as any)}
+                onPress={() => safeRouter.push({ pathname: "/contact/[id]", params: { id: item.author_id, init_name: item.profile.display_name, init_handle: item.profile.handle, init_avatar: item.profile.avatar_url ?? "", init_verified: item.is_verified ? "1" : "0", init_org_verified: item.is_organization_verified ? "1" : "0" } } as any)}
                 activeOpacity={0.8}
               >
                 {(item.is_verified || item.is_organization_verified) ? (
@@ -1890,6 +1890,29 @@ export default function DiscoverScreen() {
   }, [user]);
 
   const onRequireAuth = useCallback(() => setShowSignInPrompt(true), []);
+
+  // Re-sync isFollowing for every post whenever Discover comes back into focus
+  // (handles the "follow from profile page → back to feed" stale-state case).
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", user.id)
+        .then(({ data }) => {
+          if (!data) return;
+          const followed = new Set(data.map((f: any) => f.following_id as string));
+          setPosts((prev) =>
+            prev.map((p) =>
+              p.isFollowing !== followed.has(p.author_id)
+                ? { ...p, isFollowing: followed.has(p.author_id) }
+                : p
+            )
+          );
+        });
+    }, [user?.id])
+  );
 
   // The dedicated Shorts experience now lives at /shorts (which redirects to
   // /video/[id]), so there is only ONE video player implementation app-wide.
