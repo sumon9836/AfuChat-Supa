@@ -3,6 +3,8 @@ import { Animated, Platform, StyleSheet, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { isOnline, onConnectivityChange } from "@/lib/offlineStore";
+import { STATUS } from "@/constants/colors";
+import { T } from "@/constants/theme";
 
 type State = "hidden" | "offline" | "reconnected";
 
@@ -25,7 +27,7 @@ export default function OfflineBanner() {
       }),
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 180,
+        duration: T.motion.fast + 30,
         useNativeDriver: true,
       }),
     ]).start();
@@ -35,12 +37,12 @@ export default function OfflineBanner() {
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: -60,
-        duration: 260,
+        duration: T.motion.slow - 120,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: 0,
-        duration: 260,
+        duration: T.motion.slow - 120,
         useNativeDriver: true,
       }),
     ]).start(() => then?.());
@@ -49,7 +51,6 @@ export default function OfflineBanner() {
   useEffect(() => {
     const unsub = onConnectivityChange((online) => {
       if (hideTimer.current) clearTimeout(hideTimer.current);
-
       if (!online) {
         setState("offline");
         slideIn();
@@ -61,7 +62,6 @@ export default function OfflineBanner() {
         }, 2400);
       }
     });
-
     return () => {
       unsub();
       if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -81,9 +81,8 @@ export default function OfflineBanner() {
           top: insets.top + (Platform.OS === "android" ? 10 : 6),
           opacity,
           transform: [{ translateY }],
-          backgroundColor: isReconnected
-            ? "rgba(22,163,74,0.93)"
-            : "rgba(20,20,20,0.86)",
+          // STATUS tokens — success for reconnected, neutral dark for offline
+          backgroundColor: isReconnected ? STATUS.success : "rgba(20,20,20,0.86)",
         },
       ]}
     >
@@ -93,9 +92,7 @@ export default function OfflineBanner() {
         color="#fff"
       />
       <Text style={st.label} numberOfLines={1}>
-        {isReconnected
-          ? "Back online"
-          : "Offline · showing cached data"}
+        {isReconnected ? "Back online" : "Offline · showing cached data"}
       </Text>
     </Animated.View>
   );
@@ -107,21 +104,21 @@ const st = StyleSheet.create({
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
+    gap: T.space.sm - 2,
+    paddingHorizontal: T.space.lg - 2,
+    paddingVertical: T.space.sm - 2,
+    borderRadius: T.radius.pill,
     zIndex: 99999,
-    elevation: 20,
+    elevation: T.elevation.overlay,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.22,
-    shadowRadius: 8,
+    shadowRadius: T.space.sm,
   },
   label: {
     color: "#fff",
+    ...T.caption,
     fontSize: 12,
-    fontFamily: "Inter_500Medium",
     letterSpacing: 0.1,
   },
 });

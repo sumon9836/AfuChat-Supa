@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View, type ViewStyle } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
+import { T } from "@/constants/theme";
 
 export interface GlassCardProps {
   children?: React.ReactNode;
@@ -31,23 +32,21 @@ export const GlassCard = React.memo(function GlassCard({
   const isDark = forceDark ? true : forceLight ? false : themeDark;
 
   const flat = StyleSheet.flatten(style || {}) as any;
-  const r = flat.borderRadius ?? 16;
+  // Default radius from T.radius — no hardcoded 16
+  const r = flat.borderRadius ?? T.radius.md;
 
+  // Map variant → theme surface colors (no hardcoded #1C1C1E / #FFFFFF)
   const bg =
     variant === "subtle"
       ? colors.backgroundSecondary
       : variant === "strong"
-      ? isDark
-        ? "#1C1C1E"
-        : "#FFFFFF"
+      ? colors.backgroundTertiary
       : colors.surface;
 
   return (
     <View
       style={[
-        {
-          backgroundColor: bg,
-        },
+        { backgroundColor: bg, borderRadius: r },
         style,
         pointerEvents ? ({ pointerEvents } as any) : undefined,
       ]}

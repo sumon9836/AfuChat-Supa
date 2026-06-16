@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
+import { T } from "@/constants/theme";
 import * as Haptics from "@/lib/haptics";
 
 // ─── GlassMenuSection ─────────────────────────────────────────────────────────
@@ -26,12 +27,7 @@ export function GlassMenuSection({ title, children, style }: GlassMenuSectionPro
       {title ? (
         <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>{title}</Text>
       ) : null}
-      <View
-        style={[
-          styles.sectionCard,
-          { backgroundColor: colors.backgroundSecondary },
-        ]}
-      >
+      <View style={[styles.sectionCard, { backgroundColor: colors.backgroundSecondary }]}>
         {children}
       </View>
     </View>
@@ -77,12 +73,11 @@ export const GlassMenuItem = React.memo(function GlassMenuItem({
 }: GlassMenuItemProps) {
   const { colors, isDark } = useTheme();
 
-  // The sectionCard parent already has overflow:"hidden" so the ripple
-  // is naturally clipped to the card's rounded rectangle.
+  // Ripple uses colors.error (not hardcoded #FF3B30) for danger rows
   const ripple = Platform.OS === "android"
     ? {
         color: danger
-          ? "rgba(255,59,48,0.12)"
+          ? colors.errorSubtle
           : isDark
             ? "rgba(255,255,255,0.08)"
             : "rgba(0,0,0,0.06)",
@@ -95,9 +90,8 @@ export const GlassMenuItem = React.memo(function GlassMenuItem({
       android_ripple={ripple}
       style={({ pressed }) => [
         styles.row,
-        disabled && { opacity: 0.45 },
-        // iOS press feedback (Android uses ripple)
-        null,
+        disabled && { opacity: T.states.disabled },
+        pressed && Platform.OS === "ios" && { opacity: T.states.pressed },
       ]}
       onPress={() => {
         if (disabled || loading) return;
@@ -112,19 +106,21 @@ export const GlassMenuItem = React.memo(function GlassMenuItem({
       <View
         style={[
           styles.iconWrap,
-          { backgroundColor: danger ? "#FF3B3015" : colors.backgroundSecondary },
+          // danger bg uses colors.errorSubtle (token) not a hardcoded rgba
+          { backgroundColor: danger ? colors.errorSubtle : colors.backgroundSecondary },
         ]}
       >
         <Ionicons
           name={icon}
           size={18}
-          color={danger ? "#FF3B30" : colors.icon}
+          // danger icon uses colors.error (token) not hardcoded #FF3B30
+          color={danger ? colors.error : colors.icon}
         />
       </View>
 
       <View style={styles.labelWrap}>
         <Text
-          style={[styles.label, { color: danger ? "#FF3B30" : colors.text }]}
+          style={[styles.label, { color: danger ? colors.error : colors.text }]}
           numberOfLines={1}
         >
           {label}
@@ -146,7 +142,7 @@ export const GlassMenuItem = React.memo(function GlassMenuItem({
                 <View
                   style={[
                     styles.badge,
-                    { backgroundColor: badgeColor ?? colors.accent + "22" },
+                    { backgroundColor: badgeColor ? badgeColor + "22" : colors.accent + "22" },
                   ]}
                 >
                   <Text style={[styles.badgeText, { color: badgeColor ?? colors.accent }]}>
@@ -173,38 +169,48 @@ export const GlassMenuItem = React.memo(function GlassMenuItem({
 const styles = StyleSheet.create({
   sectionWrap: { gap: 0 },
   sectionLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 0.7,
-    marginLeft: 20,
-    marginBottom: 6,
-    marginTop: 22,
+    ...T.label,
+    marginLeft: T.space.xl,
+    marginBottom: T.space.sm - 2,
+    marginTop: T.space.xxl - 2,
   },
   sectionCard: { overflow: "hidden" },
 
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    gap: 13,
+    paddingHorizontal: T.space.lg - 2,
+    paddingVertical: T.space.md + 1,
+    gap: T.space.md + 1,
   },
   iconWrap: {
     width: 34,
     height: 34,
-    borderRadius: 9,
+    borderRadius: T.radius.sm,
     alignItems: "center",
     justifyContent: "center",
   },
   labelWrap: { flex: 1, gap: 1 },
-  label: { fontSize: 16, fontFamily: "Inter_400Regular" },
-  subtitle: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  right: { flexDirection: "row", alignItems: "center", gap: 6 },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+  label: {
+    ...T.body,
+    fontSize: 16,
   },
-  badgeText: { fontSize: 10, fontFamily: "Inter_700Bold" },
-  value: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  subtitle: {
+    ...T.caption,
+    fontSize: 12,
+  },
+  right: { flexDirection: "row", alignItems: "center", gap: T.space.sm - 2 },
+  badge: {
+    paddingHorizontal: T.space.sm,
+    paddingVertical: T.space.xs - 2,
+    borderRadius: T.radius.xs,
+  },
+  badgeText: {
+    ...T.micro,
+    fontFamily: "Inter_700Bold",
+  },
+  value: {
+    ...T.caption,
+    fontSize: 14,
+  },
 });

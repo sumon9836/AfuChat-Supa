@@ -13,6 +13,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { dismissToast, registerToastListener, type ToastItem } from "@/lib/toast";
 import { impactAsync, notificationAsync, ImpactFeedbackStyle, NotificationFeedbackType } from "@/lib/haptics";
+import { STATUS } from "@/constants/colors";
+import { T } from "@/constants/theme";
 
 // ─── Type-based defaults ──────────────────────────────────────────────────────
 
@@ -23,14 +25,15 @@ const TYPE_ICON: Record<ToastItem["type"], keyof typeof Ionicons.glyphMap> = {
   warning: "warning",
 };
 
+// All colors sourced from STATUS design tokens — no raw hex values
 const TYPE_COLOR: Record<ToastItem["type"], string> = {
-  error:   "#FF3B30",
-  success: "#30D158",
-  info:    "#0A84FF",
-  warning: "#FF9F0A",
+  error:   STATUS.error,
+  success: STATUS.success,
+  info:    STATUS.info,
+  warning: STATUS.warning,
 };
 
-// ─── Default toast (WhatsApp-style dark pill) ─────────────────────────────────
+// ─── Default toast (dark pill) ────────────────────────────────────────────────
 
 function DefaultToast({
   item,
@@ -49,7 +52,7 @@ function DefaultToast({
   useEffect(() => {
     Animated.parallel([
       Animated.spring(translateY, { toValue: 0, tension: 220, friction: 20, useNativeDriver: ND }),
-      Animated.timing(opacity,    { toValue: 1, duration: 160, useNativeDriver: ND }),
+      Animated.timing(opacity,    { toValue: 1, duration: T.motion.fast, useNativeDriver: ND }),
       Animated.spring(scale,      { toValue: 1, tension: 220, friction: 20, useNativeDriver: ND }),
     ]).start();
   }, []);
@@ -58,13 +61,12 @@ function DefaultToast({
     if (dismissingRef.current) return;
     dismissingRef.current = true;
     Animated.parallel([
-      Animated.timing(translateY, { toValue: 60,  duration: 200, useNativeDriver: ND }),
-      Animated.timing(opacity,    { toValue: 0,   duration: 160, useNativeDriver: ND }),
-      Animated.timing(scale,      { toValue: 0.9, duration: 200, useNativeDriver: ND }),
+      Animated.timing(translateY, { toValue: 60,  duration: T.motion.base,        useNativeDriver: ND }),
+      Animated.timing(opacity,    { toValue: 0,   duration: T.motion.fast + 10,   useNativeDriver: ND }),
+      Animated.timing(scale,      { toValue: 0.9, duration: T.motion.base,        useNativeDriver: ND }),
     ]).start(() => onAnimatedOut(item.id));
   }, [item.id, onAnimatedOut]);
 
-  // Auto-dismiss: start exit animation when the toast's duration elapses.
   useEffect(() => {
     if (!item.duration || item.duration <= 0) return;
     const t = setTimeout(animateOut, item.duration);
@@ -89,7 +91,7 @@ function DefaultToast({
   );
 }
 
-// ─── Action toast (connectivity-style with action button) ─────────────────────
+// ─── Action toast (colored banner) ───────────────────────────────────────────
 
 function ActionToast({
   item,
@@ -102,13 +104,13 @@ function ActionToast({
   const opacity       = useRef(new Animated.Value(0)).current;
   const dismissingRef = useRef(false);
 
-  const icon      = (item.icon ?? TYPE_ICON[item.type]) as keyof typeof Ionicons.glyphMap;
-  const accentBg  = TYPE_COLOR[item.type];
+  const icon     = (item.icon ?? TYPE_ICON[item.type]) as keyof typeof Ionicons.glyphMap;
+  const accentBg = TYPE_COLOR[item.type];
 
   useEffect(() => {
     Animated.parallel([
       Animated.spring(translateY, { toValue: 0, tension: 220, friction: 20, useNativeDriver: ND }),
-      Animated.timing(opacity,    { toValue: 1, duration: 160, useNativeDriver: ND }),
+      Animated.timing(opacity,    { toValue: 1, duration: T.motion.fast, useNativeDriver: ND }),
     ]).start();
   }, []);
 
@@ -116,12 +118,11 @@ function ActionToast({
     if (dismissingRef.current) return;
     dismissingRef.current = true;
     Animated.parallel([
-      Animated.timing(translateY, { toValue: 60, duration: 200, useNativeDriver: ND }),
-      Animated.timing(opacity,    { toValue: 0,  duration: 160, useNativeDriver: ND }),
+      Animated.timing(translateY, { toValue: 60, duration: T.motion.base,      useNativeDriver: ND }),
+      Animated.timing(opacity,    { toValue: 0,  duration: T.motion.fast + 10, useNativeDriver: ND }),
     ]).start(() => onAnimatedOut(item.id));
   }, [item.id, onAnimatedOut]);
 
-  // Auto-dismiss: start exit animation when the toast's duration elapses.
   useEffect(() => {
     if (!item.duration || item.duration <= 0) return;
     const t = setTimeout(animateOut, item.duration);
@@ -162,7 +163,7 @@ function ActionToast({
             onPress={handleAction}
             hitSlop={8}
             style={s.actionBtn}
-            activeOpacity={0.75}
+            activeOpacity={T.states.pressed}
           >
             <Text style={s.actionBtnText}>{item.actionLabel.toUpperCase()}</Text>
           </TouchableOpacity>
@@ -171,8 +172,6 @@ function ActionToast({
     </Animated.View>
   );
 }
-
-// ─── Dismiss-timer progress bar (shows inside action toasts) ─────────────────
 
 // ─── Container ────────────────────────────────────────────────────────────────
 
@@ -184,11 +183,11 @@ export function ToastContainer() {
   useEffect(() => {
     return registerToastListener((incoming) => {
       setToasts((prev) => {
-        const incomingIds  = new Set(incoming.map((t) => t.id));
-        const kept         = prev.filter((t) => incomingIds.has(t.id) || visibleRef.current.has(t.id));
-        const existingIds  = new Set(kept.map((t) => t.id));
-        const brandNew     = incoming.filter((t) => !existingIds.has(t.id));
-        const merged       = [...kept];
+        const incomingIds = new Set(incoming.map((t) => t.id));
+        const kept        = prev.filter((t) => incomingIds.has(t.id) || visibleRef.current.has(t.id));
+        const existingIds = new Set(kept.map((t) => t.id));
+        const brandNew    = incoming.filter((t) => !existingIds.has(t.id));
+        const merged      = [...kept];
         for (const t of brandNew) {
           visibleRef.current.add(t.id);
           merged.push(t);
@@ -211,18 +210,10 @@ export function ToastContainer() {
     >
       {toasts.map((item) =>
         item.variant === "action" ? (
-          <ActionToast
-            key={item.id}
-            item={item}
-            onAnimatedOut={handleAnimatedOut}
-          />
+          <ActionToast key={item.id} item={item} onAnimatedOut={handleAnimatedOut} />
         ) : (
-          <DefaultToast
-            key={item.id}
-            item={item}
-            onAnimatedOut={handleAnimatedOut}
-          />
-        ),
+          <DefaultToast key={item.id} item={item} onAnimatedOut={handleAnimatedOut} />
+        )
       )}
     </View>
   );
@@ -237,16 +228,16 @@ const SHADOW = Platform.select({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
   },
-  android: { elevation: 12 },
+  android: { elevation: T.elevation.modal },
   default: {},
 });
 
 const s = StyleSheet.create({
   container: {
     position: "absolute",
-    left: 16,
-    right: 16,
-    gap: 8,
+    left: T.space.xl,
+    right: T.space.xl,
+    gap: T.space.sm,
     zIndex: 9999,
     alignItems: "center",
   },
@@ -255,10 +246,10 @@ const s = StyleSheet.create({
   pill: {
     alignSelf: "center",
     backgroundColor: "#1C1C1F",
-    borderRadius: 100,
+    borderRadius: T.radius.pill,
     maxWidth: 340,
     minWidth: 120,
-    borderWidth: 0.5,
+    borderWidth: T.border.hairline,
     borderColor: "rgba(255,255,255,0.09)",
     overflow: "hidden",
     ...SHADOW,
@@ -266,56 +257,54 @@ const s = StyleSheet.create({
   pillInner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: T.space.sm,
     paddingVertical: 11,
-    paddingHorizontal: 16,
+    paddingHorizontal: T.space.xl,
   },
   pillIconWrap: {
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: T.radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },
   pillText: {
     color: "#fff",
+    ...T.body,
     fontSize: 14,
-    fontFamily: "Inter_500Medium",
-    lineHeight: 20,
     flexShrink: 1,
   },
 
   // ── Action (colored banner) ────────────────────────────────────────────────
   actionToast: {
     alignSelf: "stretch",
-    borderRadius: 14,
+    borderRadius: T.radius.md,
     overflow: "hidden",
     ...SHADOW,
   },
   actionInner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 13,
-    paddingHorizontal: 14,
+    gap: T.space.md,
+    paddingVertical: T.space.md + 1,
+    paddingHorizontal: T.space.lg - 2,
   },
   actionText: {
     flex: 1,
     color: "#fff",
+    ...T.body,
     fontSize: 14,
-    fontFamily: "Inter_500Medium",
-    lineHeight: 20,
   },
   actionBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: T.space.md,
+    paddingVertical: T.space.sm - 2,
+    borderRadius: T.radius.sm,
     backgroundColor: "rgba(255,255,255,0.20)",
   },
   actionBtnText: {
     color: "#fff",
+    ...T.label,
     fontSize: 12,
-    fontFamily: "Inter_700Bold",
     letterSpacing: 0.5,
   },
 });

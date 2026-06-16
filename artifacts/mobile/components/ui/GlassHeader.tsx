@@ -12,6 +12,7 @@ import { safeRouter } from "@/lib/navUtils";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { T } from "@/constants/theme";
 
 export interface GlassHeaderProps {
   title: string;
@@ -38,9 +39,6 @@ export function GlassHeader({
   const insets = useSafeAreaInsets();
   const { isDesktop } = useIsDesktop();
 
-  // On desktop the top-bar already shows the page title and the sidebar
-  // provides navigation — render nothing so pages don't show a duplicate
-  // mobile-style header chrome.
   if (isDesktop) return null;
 
   function handleBack() {
@@ -48,7 +46,6 @@ export function GlassHeader({
     safeRouter.back();
   }
 
-  // Circular ripple for the back button on Android.
   const backRipple = Platform.OS === "android"
     ? {
         color: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
@@ -69,19 +66,15 @@ export function GlassHeader({
         style,
       ]}
     >
-      <View style={[styles.inner, { paddingBottom: 10 + extraBottom }]}>
+      <View style={[styles.inner, { paddingBottom: T.space.sm + 2 + extraBottom }]}>
 
         {/* Left — back button */}
         <View style={styles.side}>
           {showBack && (
-            // Clip container ensures circular ripple is bounded on Android.
             <View style={styles.backBtnClip}>
               <Pressable
                 android_ripple={backRipple}
-                style={({ pressed }) => [
-                  styles.backBtn,
-                  null,
-                ]}
+                style={styles.backBtn}
                 onPress={handleBack}
                 hitSlop={{ top: 8, left: 8, right: 12, bottom: 8 }}
                 accessibilityRole="button"
@@ -129,13 +122,13 @@ export function GlassHeader({
 const styles = StyleSheet.create({
   container: {
     zIndex: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: T.border.hairline,
   },
   inner: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 4,
-    paddingTop: 6,
+    paddingHorizontal: T.space.xs,
+    paddingTop: T.space.sm - 2,
   },
   side: {
     width: 52,
@@ -150,9 +143,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 1,
   },
-  // Clips the circular ripple on Android to the button boundary.
   backBtnClip: {
-    borderRadius: 22,
+    borderRadius: T.radius.pill,
     overflow: "hidden",
   },
   backBtn: {
@@ -162,19 +154,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontSize: 17,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: -0.2,
+    ...T.title,
   },
   subtitle: {
-    fontSize: 11,
+    ...T.label,
     fontFamily: "Inter_400Regular",
+    letterSpacing: 0,
     marginTop: 1,
   },
   largeTitle: {
-    fontSize: 28,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.5,
+    ...T.h1,
     alignSelf: "flex-start",
   },
 });

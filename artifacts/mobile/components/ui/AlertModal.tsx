@@ -16,6 +16,8 @@ import {
   type AlertButton,
 } from "@/lib/alert";
 import { useTheme } from "@/hooks/useTheme";
+import { T } from "@/constants/theme";
+import { STATUS } from "@/constants/colors";
 
 type AlertState = {
   visible: boolean;
@@ -41,23 +43,21 @@ export default function AlertModal() {
         Animated.spring(scale, {
           toValue: 1,
           useNativeDriver: ND,
-          damping: 20,
-          stiffness: 300,
-          mass: 0.8,
+          ...T.motion.spring.snappy,
         }),
-        Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: ND }),
+        Animated.timing(opacity, { toValue: 1, duration: T.motion.fast, useNativeDriver: ND }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(scale, { toValue: 0.88, duration: 140, useNativeDriver: ND }),
-        Animated.timing(opacity, { toValue: 0, duration: 140, useNativeDriver: ND }),
+        Animated.timing(scale, { toValue: 0.88, duration: T.motion.fast - 20, useNativeDriver: ND }),
+        Animated.timing(opacity, { toValue: 0, duration: T.motion.fast - 20, useNativeDriver: ND }),
       ]).start();
     }
   }, [state.visible]);
 
   const dismiss = useCallback((btn?: AlertButton) => {
     setState((s) => ({ ...s, visible: false }));
-    setTimeout(() => btn?.onPress?.(), 150);
+    setTimeout(() => btn?.onPress?.(), T.motion.base);
   }, []);
 
   const buttons: AlertButton[] =
@@ -68,7 +68,8 @@ export default function AlertModal() {
   const cancelBtn = buttons.find((b) => b.style === "cancel");
   const useVertical = buttons.length > 2;
 
-  const cardBg = isDark ? "#1C1C1E" : "#FAFAFA";
+  // Use theme surface colors — no hardcoded hex
+  const cardBg = isDark ? colors.backgroundTertiary : colors.surface;
   const divider = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.09)";
 
   return (
@@ -112,30 +113,28 @@ export default function AlertModal() {
             {buttons.map((btn, i) => {
               const isDestructive = btn.style === "destructive";
               const isCancel = btn.style === "cancel";
+              // All button colors from design tokens — no raw hex
               const btnColor = isDestructive
-                ? "#FF3B30"
+                ? colors.error
                 : isCancel
                 ? colors.textSecondary
-                : "#007AFF";
+                : colors.accent;
 
               return (
                 <TouchableOpacity
                   key={i}
                   style={[
                     useVertical ? styles.btnVertical : styles.btnHorizontal,
-                    !useVertical &&
-                      i < buttons.length - 1 && {
-                        borderRightWidth: 0.5,
-                        borderRightColor: divider,
-                      },
-                    useVertical &&
-                      i < buttons.length - 1 && {
-                        
-                        borderBottomColor: divider,
-                      },
+                    !useVertical && i < buttons.length - 1 && {
+                      borderRightWidth: T.border.hairline,
+                      borderRightColor: divider,
+                    },
+                    useVertical && i < buttons.length - 1 && {
+                      borderBottomColor: divider,
+                    },
                   ]}
                   onPress={() => dismiss(btn)}
-                  activeOpacity={0.55}
+                  activeOpacity={T.states.pressed}
                 >
                   <Text
                     style={[
@@ -162,42 +161,46 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.48)",
-    padding: 40,
+    padding: T.space.huge - 8,
   },
   card: {
     width: 288,
-    borderRadius: 18,
+    borderRadius: T.radius.lg,
     overflow: "hidden",
     ...Platform.select({
       web: { boxShadow: "0 24px 32px rgba(0,0,0,0.28)" } as any,
-      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 24 }, shadowOpacity: 0.28, shadowRadius: 32, elevation: 24 },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 24 },
+        shadowOpacity: 0.28,
+        shadowRadius: 32,
+        elevation: T.elevation.overlay,
+      },
     }),
   },
   content: {
-    paddingTop: 22,
-    paddingBottom: 18,
-    paddingHorizontal: 20,
+    paddingTop: T.space.xxl,
+    paddingBottom: T.space.lg + 2,
+    paddingHorizontal: T.space.xl,
     alignItems: "center",
     gap: 7,
   },
   title: {
-    fontSize: 17,
+    ...T.title,
     fontFamily: "Inter_700Bold",
     textAlign: "center",
-    letterSpacing: -0.2,
-    lineHeight: 22,
   },
   message: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
+    ...T.caption,
     textAlign: "center",
-    lineHeight: 18,
   },
   btnGroupHorizontal: {
     flexDirection: "row",
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   btnGroupVertical: {
     flexDirection: "column",
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   btnHorizontal: {
     flex: 1,
@@ -209,9 +212,10 @@ const styles = StyleSheet.create({
     height: 50,
     alignItems: "center",
     justifyContent: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   btnText: {
-    fontSize: 16,
+    ...T.body,
     fontFamily: "Inter_400Regular",
   },
 });
