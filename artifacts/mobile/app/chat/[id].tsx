@@ -1749,6 +1749,13 @@ function ChatScreen() {
   const [emojiKeyboardHeight, setEmojiKeyboardHeight] = useState(280);
   const [reminderMsg, setReminderMsg] = useState<Message | null>(null);
   const [iAmChatAdmin, setIAmChatAdmin] = useState(false);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [addMemberSearch, setAddMemberSearch] = useState("");
+  const [addMemberResults, setAddMemberResults] = useState<any[]>([]);
+  const [addMemberSelected, setAddMemberSelected] = useState<Set<string>>(new Set());
+  const [addMemberLoading, setAddMemberLoading] = useState(false);
+  const [addMemberAdding, setAddMemberAdding] = useState(false);
+  const [existingMemberIds, setExistingMemberIds] = useState<Set<string>>(new Set());
 
   // Load chatInfo from local SQLite cache immediately so the header renders
   // without any network delay, even if nav params weren't passed.
@@ -3544,6 +3551,66 @@ function ChatScreen() {
         },
       ]
     );
+  }
+
+  // ── Add Members handlers ──────────────────────────────────────────────────
+
+  async function handleOpenAddMembers() {
+    if (!chatId) return;
+    const { data } = await supabase.from("chat_members").select("user_id").eq("chat_id", chatId);
+    setExistingMemberIds(new Set((data || []).map((m: any) => m.user_id)));
+    setAddMemberSearch("");
+    setAddMemberResults([]);
+    setAddMemberSelected(new Set());
+    setShowAddMembers(true);
+  }
+
+  async function searchUsersToAdd(q: string) {
+    setAddMemberSearch(q);
+    if (!q.trim()) { setAddMemberResults([]); return; }
+    setAddMemberLoading(true);
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, display_name, handle, avatar_url, is_verified")
+        .or(`display_name.ilike.%${q}%,handle.ilike.%${q}%`)
+        .neq("id", user?.id || "")
+        .limit(25);
+      setAddMemberResults((data || []).filter((u: any) => !existingMemberIds.has(u.id)));
+    } finally {
+      setAddMemberLoading(false);
+    }
+  }
+
+  async function handleConfirmAddMembers() {
+    if (!chatId || addMemberSelected.size === 0 || addMemberAdding) return;
+    setAddMemberAdding(true);
+    try {
+      const uids = Array.from(addMemberSelected);
+      const { error } = await supabase.from("chat_members").insert(
+        uids.map(uid => ({ chat_id: chatId, user_id: uid, is_admin: false }))
+      );
+      if (error) throw error;
+      for (const uid of uids) {
+        try {
+          await supabase.from("notifications").insert({
+            user_id: uid,
+            type: "group_invite",
+            actor_id: user?.id,
+            entity_type: "chat",
+            title: "Added to group",
+            body: `You were added to ${chatInfo?.name || "a group"}`,
+            data: { chat_id: chatId },
+          });
+        } catch {}
+      }
+      globalShowToast(`Added ${uids.length} member${uids.length > 1 ? "s" : ""}`, { type: "success", icon: "people" });
+      setShowAddMembers(false);
+    } catch (e: any) {
+      showAlert("Error", e?.message || "Failed to add members. They may already be in the group.");
+    } finally {
+      setAddMemberAdding(false);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -5616,6 +5683,11 @@ STRICT RULES:
           </View>
         </TouchableOpacity>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+          {chatInfo?.is_group && iAmChatAdmin && (
+            <TouchableOpacity style={st.headerAction} hitSlop={8} onPress={handleOpenAddMembers}>
+              <Ionicons name="person-add-outline" size={20} color={colors.text} />
+            </TouchableOpacity>
+          )}
           {chatInfo && (
             <TouchableOpacity style={st.headerAction} hitSlop={8} onPress={() => setShowChatOptions(true)}>
               <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
@@ -7622,6 +7694,141 @@ STRICT RULES:
         </Modal>
       )}
 
+      {/* ── Add Members Modal ───────────────────────────────────────────── */}
+      <Modal
+        visible={showAddMembers}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddMembers(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowAddMembers(false)} />
+          <View style={[st.addMembersSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 8 }]}>
+            {/* Header */}
+            <View style={[st.addMembersHeader, { borderBottomColor: colors.border }]}>
+              <TouchableOpacity onPress={() => setShowAddMembers(false)} hitSlop={10}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+              <Text style={[st.addMembersTitle, { color: colors.text }]}>Add Members</Text>
+              <TouchableOpacity
+                onPress={handleConfirmAddMembers}
+                disabled={addMemberSelected.size === 0 || addMemberAdding}
+                style={[
+                  st.addMembersAddBtn,
+                  {
+                    backgroundColor: addMemberSelected.size > 0 ? BRAND : colors.border,
+                    opacity: addMemberAdding ? 0.6 : 1,
+                  },
+                ]}
+              >
+                {addMemberAdding
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={st.addMembersAddBtnText}>{addMemberSelected.size > 0 ? `Add (${addMemberSelected.size})` : "Add"}</Text>
+                }
+              </TouchableOpacity>
+            </View>
+
+            {/* Search input */}
+            <View style={[st.addMembersSearchWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+              <Ionicons name="search" size={16} color={colors.textMuted} />
+              <TextInput
+                style={[st.addMembersSearchInput, { color: colors.text }]}
+                placeholder="Search by name or @handle"
+                placeholderTextColor={colors.textMuted}
+                value={addMemberSearch}
+                onChangeText={searchUsersToAdd}
+                autoFocus
+                returnKeyType="search"
+              />
+              {addMemberSearch.length > 0 && (
+                <TouchableOpacity onPress={() => searchUsersToAdd("")} hitSlop={8}>
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Selected chips */}
+            {addMemberSelected.size > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.addMembersChips} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}>
+                {addMemberResults.filter(u => addMemberSelected.has(u.id)).map((u: any) => (
+                  <TouchableOpacity
+                    key={u.id}
+                    style={[st.addMembersChip, { backgroundColor: BRAND + "18", borderColor: BRAND + "55" }]}
+                    onPress={() => setAddMemberSelected(prev => { const s = new Set(prev); s.delete(u.id); return s; })}
+                    activeOpacity={0.7}
+                  >
+                    <Avatar uri={u.avatar_url} name={u.display_name} size={20} />
+                    <Text style={[st.addMembersChipText, { color: BRAND }]} numberOfLines={1}>{u.display_name}</Text>
+                    <Ionicons name="close" size={12} color={BRAND} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+
+            {/* Results list */}
+            <FlatList
+              data={addMemberResults}
+              keyExtractor={(u: any) => u.id}
+              style={{ maxHeight: 380 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={
+                <View style={{ alignItems: "center", paddingVertical: 40, gap: 10 }}>
+                  {addMemberLoading
+                    ? <ActivityIndicator color={BRAND} />
+                    : addMemberSearch.length > 0
+                      ? <>
+                          <Ionicons name="search-outline" size={36} color={colors.textMuted} />
+                          <Text style={{ color: colors.textMuted, fontSize: 14, fontFamily: "Inter_400Regular" }}>No users found</Text>
+                        </>
+                      : <>
+                          <Ionicons name="people-outline" size={40} color={colors.textMuted} />
+                          <Text style={{ color: colors.textMuted, fontSize: 14, fontFamily: "Inter_400Regular" }}>Search for people to add</Text>
+                        </>
+                  }
+                </View>
+              }
+              renderItem={({ item: u }: { item: any }) => {
+                const selected = addMemberSelected.has(u.id);
+                return (
+                  <TouchableOpacity
+                    style={[st.addMembersRow, { borderBottomColor: colors.border, backgroundColor: selected ? BRAND + "08" : "transparent" }]}
+                    activeOpacity={0.7}
+                    onPress={() => setAddMemberSelected(prev => {
+                      const s = new Set(prev);
+                      if (s.has(u.id)) s.delete(u.id); else s.add(u.id);
+                      return s;
+                    })}
+                  >
+                    <View style={st.addMembersRowAvatar}>
+                      <Avatar uri={u.avatar_url} name={u.display_name} size={44} />
+                      {selected && (
+                        <View style={[st.addMembersSelectedBadge, { backgroundColor: BRAND }]}>
+                          <Ionicons name="checkmark" size={11} color="#fff" />
+                        </View>
+                      )}
+                    </View>
+                    <View style={{ flex: 1, gap: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <Text style={[st.addMembersRowName, { color: colors.text }]} numberOfLines={1}>{u.display_name}</Text>
+                        {u.is_verified && <VerifiedBadge size={13} />}
+                      </View>
+                      {u.handle ? <Text style={[st.addMembersRowHandle, { color: colors.textMuted }]}>@{u.handle}</Text> : null}
+                    </View>
+                    <View style={[st.addMembersCheckCircle, {
+                      borderColor: selected ? BRAND : colors.border,
+                      backgroundColor: selected ? BRAND : "transparent",
+                    }]}>
+                      {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
+
       {/* ── Edit History Modal ──────────────────────────────────────────── */}
       <Modal
         visible={!!editHistoryMsg}
@@ -8290,5 +8497,116 @@ const st = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     minWidth: 70,
     textAlign: "center",
+  },
+
+  addMembersSheet: {
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    overflow: "hidden",
+    minHeight: 360,
+    maxHeight: "88%",
+  },
+  addMembersHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  addMembersTitle: {
+    fontSize: 17,
+    fontFamily: "Inter_700Bold",
+    flex: 1,
+    textAlign: "center",
+  },
+  addMembersAddBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+    minWidth: 64,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addMembersAddBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  addMembersSearchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 14,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  addMembersSearchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    paddingVertical: 0,
+  },
+  addMembersChips: {
+    maxHeight: 54,
+  },
+  addMembersChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    maxWidth: 140,
+  },
+  addMembersChipText: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    maxWidth: 90,
+  },
+  addMembersRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  addMembersRowAvatar: {
+    position: "relative",
+  },
+  addMembersSelectedBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  addMembersRowName: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    flex: 1,
+  },
+  addMembersRowHandle: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+  },
+  addMembersCheckCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
