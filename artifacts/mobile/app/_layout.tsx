@@ -201,7 +201,7 @@ export default function RootLayout() {
     async function handleUrl(url: string | null) {
       const action = await handleIncomingUrl(url);
       if (action?.type === "join_group") {
-        router.push(`/group/${action.groupId}` as any);
+        router.push({ pathname: "/join/[code]", params: { code: action.code } } as any);
       }
     }
     Linking.getInitialURL().then(handleUrl).catch(() => {});

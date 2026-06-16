@@ -1,5 +1,5 @@
 /**
- * Watch History — client-side library
+ * Watch History -- client-side library
  *
  * Keeps a server-side log of every video the signed-in user has watched.
  * Cross-device: data is stored in Supabase, not just local SQLite.
@@ -27,11 +27,11 @@ export type WatchHistoryEntry = {
   videoUrl:   string | null;
 };
 
-// ─── Record a watch event ─────────────────────────────────────────────────────
+// --- Record a watch event ---
 
 /**
  * Called whenever a video becomes active in the feed.
- * Fire-and-forget — never blocks the UI.
+ * Fire-and-forget -- never blocks the UI.
  */
 export async function recordWatchHistory(
   postId: string,
@@ -46,7 +46,7 @@ export async function recordWatchHistory(
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    // Use the anon client directly — RLS ensures user_id = auth.uid()
+    // Use the anon client directly -- RLS ensures user_id = auth.uid()
     await supabase.from("video_watch_history").upsert(
       {
         user_id:    session.user.id,
@@ -62,11 +62,11 @@ export async function recordWatchHistory(
       { onConflict: "user_id,post_id" },
     );
   } catch {
-    // Silent — never crash the video player over analytics
+    // Silent -- never crash the video player over analytics
   }
 }
 
-// ─── Fetch history ────────────────────────────────────────────────────────────
+// --- Fetch history ---
 
 export async function getWatchHistory(opts?: {
   limit?: number;
@@ -99,7 +99,7 @@ export async function getWatchHistory(opts?: {
   }
 }
 
-// ─── Remove single entry ──────────────────────────────────────────────────────
+// --- Remove single entry ---
 
 export async function removeFromWatchHistory(postId: string): Promise<void> {
   try {
@@ -110,14 +110,14 @@ export async function removeFromWatchHistory(postId: string): Promise<void> {
   } catch {}
 }
 
-// ─── Clear all history + reset algorithm ──────────────────────────────────────
+// --- Clear all history + reset algorithm ---
 
 /**
  * Clears all server-side watch history AND resets the local feed algorithm:
- *  • Deletes all rows from video_watch_history (Supabase)
- *  • Clears seen_video_ids_v2 (feed demotion weights)
- *  • Clears seen_feed_post_ids_v2 (post feed seen tracking)
- *  • Optionally clears feed_interaction_weights_v1 (learned interests)
+ *  - Deletes all rows from video_watch_history (Supabase)
+ *  - Clears seen_video_ids_v2 (feed demotion weights)
+ *  - Clears seen_feed_post_ids_v2 (post feed seen tracking)
+ *  - Optionally clears feed_interaction_weights_v1 (learned interests)
  */
 export async function clearAllWatchHistory(opts?: {
   resetLearnedWeights?: boolean;
@@ -126,13 +126,12 @@ export async function clearAllWatchHistory(opts?: {
     const { error } = await supabase
       .from("video_watch_history")
       .delete()
-      .neq("post_id", "00000000-0000-0000-0000-000000000000"); // delete all rows
+      .neq("post_id", "00000000-0000-0000-0000-000000000000");
 
     if (error) {
       return { ok: false, error: error.message };
     }
 
-    // Reset local algorithm state
     const keysToRemove = [SEEN_VIDEO_IDS_KEY, SEEN_FEED_POSTS_KEY];
     if (opts?.resetLearnedWeights) {
       keysToRemove.push(INTERACTION_WEIGHTS_KEY);
@@ -145,7 +144,7 @@ export async function clearAllWatchHistory(opts?: {
   }
 }
 
-// ─── Algorithm reset only (no server clear) ────────────────────────────────────
+// --- Algorithm reset only (no server clear) ---
 
 export async function resetFeedAlgorithm(): Promise<void> {
   await AsyncStorage.multiRemove([

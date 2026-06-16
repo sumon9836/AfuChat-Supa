@@ -11,6 +11,7 @@ import {
   PanResponder,
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Dimensions,
   Text,
@@ -60,6 +61,7 @@ import { RichText } from "@/components/ui/RichText";
 import Colors from "@/constants/colors";
 import { LinearGradient } from "@/components/ui/SafeGradient";
 import { showAlert } from "@/lib/alert";
+import { generateGroupInviteLink } from "@/lib/groupInvite";
 import { showToast as globalShowToast } from "@/lib/toast";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
@@ -1750,6 +1752,9 @@ function ChatScreen() {
   const [reminderMsg, setReminderMsg] = useState<Message | null>(null);
   const [iAmChatAdmin, setIAmChatAdmin] = useState(false);
   const [showAddMembers, setShowAddMembers] = useState(false);
+  const [showInviteLink, setShowInviteLink] = useState(false);
+  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
+  const inviteCopiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [addMemberSearch, setAddMemberSearch] = useState("");
   const [addMemberResults, setAddMemberResults] = useState<any[]>([]);
   const [addMemberSelected, setAddMemberSelected] = useState<Set<string>>(new Set());
@@ -3551,6 +3556,37 @@ function ChatScreen() {
         },
       ]
     );
+  }
+
+  // ── Invite Link handlers ──────────────────────────────────────────────────
+
+  function getInviteLink(): string {
+    const chatId = isDraft ? realChatId : id;
+    return chatId ? generateGroupInviteLink(chatId as string) : "";
+  }
+
+  async function handleCopyInviteLink() {
+    const link = getInviteLink();
+    if (!link) return;
+    try {
+      await Clipboard.setStringAsync(link);
+      Haptics.selectionAsync();
+      setInviteLinkCopied(true);
+      if (inviteCopiedTimer.current) clearTimeout(inviteCopiedTimer.current);
+      inviteCopiedTimer.current = setTimeout(() => setInviteLinkCopied(false), 2500);
+    } catch {}
+  }
+
+  async function handleShareInviteLink() {
+    const link = getInviteLink();
+    if (!link) return;
+    try {
+      await Share.share({
+        title:   `Join ${chatInfo?.name ?? "our group"} on AfuChat`,
+        message: `Join ${chatInfo?.name ?? "our group"} on AfuChat: ${link}`,
+        url:     link,
+      });
+    } catch {}
   }
 
   // ── Add Members handlers ──────────────────────────────────────────────────
@@ -7560,6 +7596,12 @@ STRICT RULES:
                   label={chatInfo?.is_channel ? "Channel Info" : "Group Info & Members"}
                   onPress={() => { setShowChatOptions(false); router.push({ pathname: "/group/[id]", params: { id: id as string } }); }} />
               )}
+              {/* Invite via link — group admins only */}
+              {(chatInfo?.is_group || chatInfo?.is_channel) && iAmChatAdmin && (
+                <DdRow colors={colors} icon="link-outline"
+                  label="Invite via Link"
+                  onPress={() => { setShowChatOptions(false); setShowInviteLink(true); }} />
+              )}
               {chatInfo?.other_id && !chatInfo.is_group && !chatInfo.is_channel && chatInfo.other_id !== AFUAI_BOT_ID && (
                 <DdRow colors={colors} icon="person-outline" label="Contact Info"
                   onPress={() => { setShowChatOptions(false); router.push({ pathname: "/contact/[id]", params: { id: chatInfo.other_id! } }); }} />
@@ -7825,6 +7867,121 @@ STRICT RULES:
                 );
               }}
             />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Invite Link Sheet ───────────────────────────────────────────── */}
+      <Modal
+        visible={showInviteLink}
+        transparent
+        animationType="slide"
+        onRequestClose={() => { setShowInviteLink(false); setInviteLinkCopied(false); }}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => { setShowInviteLink(false); setInviteLinkCopied(false); }} />
+          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: insets.bottom + 20, paddingHorizontal: 20, paddingTop: 12 }}>
+            {/* Handle bar */}
+            <View style={{ alignItems: "center", marginBottom: 16 }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+            </View>
+
+            {/* Title row */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+              <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: BRAND + "18", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+                <Ionicons name="link" size={18} color={BRAND} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 17, fontFamily: "Inter_700Bold", color: colors.text }}>Invite via Link</Text>
+                <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.textMuted, marginTop: 1 }}>
+                  Anyone with this link can join {chatInfo?.is_channel ? "this channel" : "this group"}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => { setShowInviteLink(false); setInviteLinkCopied(false); }} hitSlop={12}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Divider */}
+            <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 16 }} />
+
+            {/* Link display box */}
+            <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>
+              Invite Link
+            </Text>
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: colors.inputBg ?? colors.background,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: colors.border,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              marginBottom: 16,
+            }}>
+              <Ionicons name="link-outline" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+              <Text style={{ flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", color: colors.textSecondary ?? colors.textMuted }} numberOfLines={1} ellipsizeMode="middle">
+                {getInviteLink()}
+              </Text>
+            </View>
+
+            {/* Action buttons */}
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+              {/* Copy */}
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  paddingVertical: 14,
+                  borderRadius: 14,
+                  backgroundColor: inviteLinkCopied ? "#34C75918" : BRAND + "18",
+                  borderWidth: 1,
+                  borderColor: inviteLinkCopied ? "#34C759" : BRAND + "55",
+                }}
+                onPress={handleCopyInviteLink}
+                activeOpacity={0.75}
+              >
+                <Ionicons
+                  name={inviteLinkCopied ? "checkmark-circle" : "copy-outline"}
+                  size={18}
+                  color={inviteLinkCopied ? "#34C759" : BRAND}
+                />
+                <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: inviteLinkCopied ? "#34C759" : BRAND }}>
+                  {inviteLinkCopied ? "Copied!" : "Copy Link"}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Share */}
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  paddingVertical: 14,
+                  borderRadius: 14,
+                  backgroundColor: BRAND,
+                }}
+                onPress={handleShareInviteLink}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="share-social-outline" size={18} color="#fff" />
+                <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" }}>Share</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Info note */}
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 12, backgroundColor: colors.inputBg ?? colors.background, borderRadius: 12 }}>
+              <Ionicons name="information-circle-outline" size={15} color={colors.textMuted} style={{ marginTop: 1 }} />
+              <Text style={{ flex: 1, fontSize: 12, fontFamily: "Inter_400Regular", color: colors.textMuted, lineHeight: 17 }}>
+                This link is permanent and unique to this {chatInfo?.is_channel ? "channel" : "group"}. Anyone who taps it can join directly without needing approval.
+              </Text>
+            </View>
           </View>
         </View>
       </Modal>

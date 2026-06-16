@@ -4,26 +4,27 @@
  * Parses incoming URLs and dispatches navigation actions or referral signals.
  *
  * Supported URL formats:
- *   https://afuchat.com/join/:id      → join a group/channel
- *   https://afuchat.com/john          → referral code "JOHN"
- *   https://afuchat.com/john?ref=JOHN → referral code "JOHN" (explicit param)
- *   afuchat://john                    → referral code "JOHN"
- *   afuchat://ref/JOHN                → referral code "JOHN" (dedicated path)
- *   afuchat://join/:id                → join a group/channel
+ *   https://afuchat.com/join/:code     -> join a group/channel (UUID or shortId)
+ *   https://afuchat.com/john           -> referral code "JOHN"
+ *   https://afuchat.com/john?ref=JOHN  -> referral code "JOHN" (explicit param)
+ *   afuchat://john                     -> referral code "JOHN"
+ *   afuchat://ref/JOHN                 -> referral code "JOHN" (dedicated path)
+ *   afuchat://join/:code               -> join a group/channel
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { decodeId } from "./shortId";
 
-export const REFERRER_KEY = "referrer_handle";
+export const REFERRER_KEY    = "referrer_handle";
 export const PENDING_JOIN_KEY = "pending_join_group_id";
 
 export type DeepLinkAction =
   | { type: "referral"; code: string }
-  | { type: "join_group"; groupId: string }
+  | { type: "join_group"; groupId: string; code: string }
   | null;
 
 /**
- * These path segments are NOT user handles — they are app routes.
+ * These path segments are NOT user handles -- they are app routes.
  * Any single-segment URL that matches one of these is ignored.
  */
 const SYSTEM_ROUTES = new Set([
@@ -51,12 +52,17 @@ function isUUID(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 }
 
+/** Validate a base-62 shortId code (10-25 alphanumeric chars) */
+function isShortCode(s: string): boolean {
+  return s.length >= 10 && s.length <= 25 && /^[0-9A-Za-z]+$/.test(s);
+}
+
 /**
  * Parse a URL and return a DeepLinkAction if one is identified, or null.
  *
  * Side-effects:
  *  - Persists referral codes to AsyncStorage (REFERRER_KEY).
- *  - Persists pending group-join IDs to AsyncStorage (PENDING_JOIN_KEY)
+ *  - Persists pending group-join codes to AsyncStorage (PENDING_JOIN_KEY)
  *    so the app can navigate after the auth state is ready.
  */
 export async function handleIncomingUrl(url: string | null | undefined): Promise<DeepLinkAction> {
@@ -67,19 +73,30 @@ export async function handleIncomingUrl(url: string | null | undefined): Promise
       ? url.replace("afuchat://", "https://afuchat.com/")
       : url;
 
-    const parsed = new URL(normalised);
+    const parsed   = new URL(normalised);
     const segments = parsed.pathname.split("/").filter(Boolean);
 
-    // 1. /join/:id — group/channel invite link
+    // 1. /join/:code -- group/channel invite link (UUID or shortId)
     if (segments.length === 2 && segments[0] === "join") {
-      const groupId = segments[1];
-      if (isUUID(groupId)) {
-        await AsyncStorage.setItem(PENDING_JOIN_KEY, groupId);
-        return { type: "join_group", groupId };
+      const code = segments[1];
+      let groupId: string | null = null;
+
+      if (isUUID(code)) {
+        groupId = code;
+      } else if (isShortCode(code)) {
+        try {
+          const decoded = decodeId(code);
+          if (isUUID(decoded)) groupId = decoded;
+        } catch {}
+      }
+
+      if (groupId) {
+        await AsyncStorage.setItem(PENDING_JOIN_KEY, code);
+        return { type: "join_group", groupId, code };
       }
     }
 
-    // 2. Explicit ?ref=HANDLE query param — highest priority for referrals
+    // 2. Explicit ?ref=HANDLE query param -- highest priority for referrals
     const refParam = parsed.searchParams.get("ref");
     if (refParam) {
       const code = refParam.trim().toUpperCase();
@@ -109,18 +126,18 @@ export async function handleIncomingUrl(url: string | null | undefined): Promise
       }
     }
   } catch {
-    // Malformed URL — silently ignore
+    // Malformed URL -- silently ignore
   }
 
   return null;
 }
 
-/** Consume a pending group-join ID — returns it and clears the storage entry */
+/** Consume a pending group-join code -- returns it and clears the storage entry */
 export async function consumePendingJoin(): Promise<string | null> {
   try {
-    const id = await AsyncStorage.getItem(PENDING_JOIN_KEY);
-    if (id) await AsyncStorage.removeItem(PENDING_JOIN_KEY);
-    return id;
+    const code = await AsyncStorage.getItem(PENDING_JOIN_KEY);
+    if (code) await AsyncStorage.removeItem(PENDING_JOIN_KEY);
+    return code;
   } catch {
     return null;
   }
