@@ -1921,6 +1921,12 @@ export default function DiscoverScreen() {
             { paddingTop: insets.top + 8, justifyContent: "center" },
           ]}
         >
+          {/* Brand wordmark — absolute left */}
+          <View style={{ position: "absolute", left: 16, bottom: 10, flexDirection: "row", alignItems: "baseline" }}>
+            <Text style={{ fontSize: 18, fontFamily: "Inter_700Bold", color: colors.text }}>Afu</Text>
+            <Text style={{ fontSize: 18, fontFamily: "Inter_700Bold", color: colors.accent }}>Chat</Text>
+          </View>
+
           <View style={styles.tabRow}>
             <TouchableOpacity
               style={[

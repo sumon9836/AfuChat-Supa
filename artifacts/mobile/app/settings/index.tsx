@@ -316,6 +316,17 @@ export default function SettingsScreen() {
           />
         </GlassMenuSection>
 
+        {/* ── Brand footer ─────────────────────────────────────────── */}
+        <View style={styles.brandFooter}>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 0 }}>
+            <Text style={[styles.brandWord, { color: colors.textMuted }]}>Afu</Text>
+            <Text style={[styles.brandWord, { color: accent }]}>Chat</Text>
+          </View>
+          <Text style={[styles.brandTagline, { color: colors.textMuted }]}>
+            Connect · Discover · Create
+          </Text>
+        </View>
+
       </ScrollView>
     </View>
   );
@@ -352,6 +363,23 @@ const styles = StyleSheet.create({
   separator: { height: 0 },
   manageRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 12 },
   manageText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
+
+  brandFooter: {
+    alignItems: "center",
+    paddingTop: 32,
+    paddingBottom: 12,
+    gap: 4,
+  },
+  brandWord: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.4,
+  },
+  brandTagline: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    letterSpacing: 0.3,
+  },
 
   modeRow: { flexDirection: "row", gap: 8, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
   modeBtn: {

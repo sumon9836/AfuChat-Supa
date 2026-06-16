@@ -284,7 +284,7 @@ const bar = StyleSheet.create({
     zIndex: 10,
   },
   badgeText: {
-    color: "#000",
+    color: "#fff",
     fontSize: 9,
     fontFamily: "Inter_700Bold",
     lineHeight: 12,

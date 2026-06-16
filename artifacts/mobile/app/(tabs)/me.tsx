@@ -323,6 +323,29 @@ export default function MeScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <OfflineBanner />
 
+      {/* ── Floating settings gear ── */}
+      {!isDesktop && (
+        <TouchableOpacity
+          onPress={() => router.push("/settings" as any)}
+          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+          activeOpacity={0.7}
+          style={{
+            position: "absolute",
+            top: insets.top + 10,
+            right: 16,
+            zIndex: 10,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: colors.backgroundSecondary,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name="settings-outline" size={19} color={colors.text} />
+        </TouchableOpacity>
+      )}
+
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[s.content, {

@@ -1858,11 +1858,16 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
         <View
           style={{ position: "absolute", left: 0, right: 0, bottom: 12, alignItems: "center", pointerEvents: "none" }}
         >
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {selectMode
-              ? (selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select chats")
-              : "AfuChat"}
-          </Text>
+          {selectMode ? (
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select chats"}
+            </Text>
+          ) : (
+            <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>Afu</Text>
+              <Text style={[styles.headerTitle, { color: colors.accent }]}>Chat</Text>
+            </View>
+          )}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           {selectMode ? (
