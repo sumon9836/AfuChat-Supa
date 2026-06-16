@@ -488,16 +488,16 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                       @{item.profile.handle}
                     </Text>
                     <VerifiedBadge isVerified={item.is_verified} isOrganizationVerified={item.is_organization_verified} size={isDesktop ? 14 : 12} />
-                    {showFollowBtn && (
-                      <TouchableOpacity
-                        style={[styles.followBtn, { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.accent, flexShrink: 0 }]}
-                        onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } onToggleFollow(item.author_id); }}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.followBtnText, { color: colors.accent }]}>Follow</Text>
-                      </TouchableOpacity>
-                    )}
                   </View>
+                  {showFollowBtn && (
+                    <TouchableOpacity
+                      style={[styles.followBtn, { alignSelf: "flex-start", backgroundColor: "transparent", borderWidth: 1, borderColor: colors.accent, marginTop: 2 }]}
+                      onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } onToggleFollow(item.author_id); }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.followBtnText, { color: colors.accent }]}>Follow</Text>
+                    </TouchableOpacity>
+                  )}
                   {item.profile.bio ? (
                     <Text style={[styles.cardBio, { color: colors.textMuted }]} numberOfLines={1}>
                       {item.profile.bio}
