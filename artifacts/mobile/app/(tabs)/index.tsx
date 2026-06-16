@@ -49,12 +49,12 @@ import OfflineBanner from "@/components/ui/OfflineBanner";
 import { HomeBanner } from "@/components/ui/HomeBanner";
 import { SuggestedUsers } from "@/components/ui/SuggestedUsers";
 import { isOnline, onConnectivityChange } from "@/lib/offlineStore";
-import { getLocalConversations, saveConversations, deleteLocalConversation, pruneConversations } from "@/lib/storage/localConversations";
+import { getLocalConversations, saveConversations, deleteLocalConversation, pruneConversations, clearUnread } from "@/lib/storage/localConversations";
 import { getPreloadedConversations, hasPreloadedConversations, invalidateConversationsPreload } from "@/lib/conversationsPreload";
 import { AFUAI_CONV_ID, AFUAI_BOT_ID, getAIChatSnapshot } from "@/lib/aiChatStore";
 import { useSuperApp } from "@/lib/superapp/MiniAppRuntime";
 import { addOnlineListener, preloadConversationMessages } from "@/lib/offlineSync";
-import { wasChatRecentlyVisited, clearChatVisited, getActiveChatId } from "@/lib/chatVisited";
+import { wasChatRecentlyVisited, clearChatVisited, getActiveChatId, markChatVisited } from "@/lib/chatVisited";
 import { showAlert, confirmAlert } from "@/lib/alert";
 import { showToast, showActionToast } from "@/lib/toast";
 import { useChatPreferences } from "@/context/ChatPreferencesContext";
@@ -1966,6 +1966,14 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                             onToggleSelect={() => toggleSelect(item.id)}
                             onPress={async () => {
                               Haptics.selectionAsync();
+                              // Instantly clear unread badge before navigation
+                              if (item.unread_count > 0) {
+                                markChatVisited(item.id);
+                                setChats((prev) =>
+                                  prev.map((c) => c.id === item.id ? { ...c, unread_count: 0 } : c)
+                                );
+                                clearUnread(item.id).catch(() => {});
+                              }
                               if (item.kind === "channel_broadcast" && item.channel_id) {
                                 router.push({ pathname: "/channel/[id]", params: { id: item.channel_id } } as any);
                                 return;
@@ -2066,6 +2074,14 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                             onToggleSelect={() => toggleSelect(item.id)}
                             onPress={async () => {
                               Haptics.selectionAsync();
+                              // Instantly clear unread badge before navigation
+                              if (item.unread_count > 0) {
+                                markChatVisited(item.id);
+                                setChats((prev) =>
+                                  prev.map((c) => c.id === item.id ? { ...c, unread_count: 0 } : c)
+                                );
+                                clearUnread(item.id).catch(() => {});
+                              }
                               if (item.kind === "channel_broadcast" && item.channel_id) {
                                 router.push({ pathname: "/channel/[id]", params: { id: item.channel_id } } as any);
                                 return;
@@ -2150,6 +2166,14 @@ export function ChatsScreen({ panelMode = false, onOpenChat }: { panelMode?: boo
                     onToggleSelect={() => toggleSelect(item.id)}
                     onPress={async () => {
                       Haptics.selectionAsync();
+                      // Instantly clear unread badge before navigation
+                      if (item.unread_count > 0) {
+                        markChatVisited(item.id);
+                        setChats((prev) =>
+                          prev.map((c) => c.id === item.id ? { ...c, unread_count: 0 } : c)
+                        );
+                        clearUnread(item.id).catch(() => {});
+                      }
                       if (item.kind === "channel_broadcast" && item.channel_id) {
                         router.push({ pathname: "/channel/[id]", params: { id: item.channel_id } } as any);
                         return;
