@@ -129,7 +129,7 @@ function BookmarkButton({ bookmarked, onPress }: { bookmarked: boolean; onPress:
   );
 }
 
-// ─── PostImages: Advanced multi-layout image display ─────────────────────────
+// ─── PostImages: swipeable carousel, one image at a time ─────────────────────
 function PostImages({
   images,
   onPress,
@@ -141,12 +141,15 @@ function PostImages({
   onDoubleTap: () => void;
   effectiveW: number;
 }) {
-  const { isDark } = useTheme();
-  const CORNER = 14;
-  const GAP = 3;
-  const SIDE = 8;
-  const IMG_W = effectiveW - SIDE * 2;
-  const BG = isDark ? "#1c1c1e" : "#e9e9e9";
+  const { isDark, colors } = useTheme();
+  const [currentIdx, setCurrentIdx] = React.useState(0);
+
+  const L_PAD  = 50;
+  const R_PAD  = 12;
+  const imgW   = effectiveW - L_PAD - R_PAD;
+  const imgH   = Math.round(imgW * 0.62);
+  const CORNER = 12;
+  const BG     = isDark ? "#1c1c1e" : "#e9e9e9";
 
   const heartOpacity = useRef(new Animated.Value(0)).current;
   const heartScale   = useRef(new Animated.Value(0.3)).current;
@@ -179,110 +182,75 @@ function PostImages({
     }
   }
 
-  // ── 1 image: full width, 4:3, gradient + double-tap heart ──────────────────
-  if (images.length === 1) {
-    const h = Math.round(IMG_W * 0.75);
-    return (
-      <View style={{ marginHorizontal: SIDE, marginBottom: 10 }}>
-        <TouchableOpacity
-          activeOpacity={0.95}
-          onPress={() => handleTap(0)}
-          style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG }}
+  return (
+    <View style={{ marginLeft: L_PAD, marginRight: R_PAD, marginBottom: images.length > 1 ? 4 : 10 }}>
+      {/* ── Carousel strip ── */}
+      <View style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG, width: imgW, height: imgH }}>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          decelerationRate="fast"
+          onMomentumScrollEnd={(e) => {
+            const idx = Math.round(e.nativeEvent.contentOffset.x / imgW);
+            setCurrentIdx(Math.max(0, Math.min(idx, images.length - 1)));
+          }}
         >
-          <ExpoImage
-            source={{ uri: images[0] }}
-            style={{ width: IMG_W, height: h }}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            priority="high"
-            transition={320}
-          />
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.28)"]}
-            style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: Math.round(h * 0.42) }}
-            pointerEvents="none"
-          />
-          <Animated.View
-            pointerEvents="none"
-            style={{ position: "absolute", alignSelf: "center", top: h / 2 - 44, opacity: heartOpacity, transform: [{ scale: heartScale }] }}
-          >
-            <Ionicons name="heart" size={88} color="#FF3B30" />
-          </Animated.View>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // ── 2 images: side by side ─────────────────────────────────────────────────
-  if (images.length === 2) {
-    const cellW = (IMG_W - GAP) / 2;
-    const cellH = Math.round(cellW * 0.82);
-    return (
-      <View style={{ marginHorizontal: SIDE, marginBottom: 10, flexDirection: "row", gap: GAP }}>
-        {images.map((uri, i) => (
-          <TouchableOpacity
-            key={i}
-            activeOpacity={0.93}
-            onPress={() => onPress(i)}
-            style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG }}
-          >
-            <ExpoImage source={{ uri }} style={{ width: cellW, height: cellH }} contentFit="cover" cachePolicy="memory-disk" priority={i === 0 ? "high" : "normal"} transition={320} />
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  }
-
-  // ── 3 images: big left (portrait) + 2 stacked right ───────────────────────
-  if (images.length === 3) {
-    const leftW  = Math.round(IMG_W * 0.58);
-    const rightW = IMG_W - leftW - GAP;
-    const totalH = Math.round(leftW * 1.15);
-    const rightH = Math.round((totalH - GAP) / 2);
-    return (
-      <View style={{ marginHorizontal: SIDE, marginBottom: 10, flexDirection: "row", gap: GAP }}>
-        <TouchableOpacity activeOpacity={0.93} onPress={() => onPress(0)} style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG }}>
-          <ExpoImage source={{ uri: images[0] }} style={{ width: leftW, height: totalH }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={320} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, gap: GAP }}>
-          {[1, 2].map((i) => (
-            <TouchableOpacity key={i} activeOpacity={0.93} onPress={() => onPress(i)} style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG }}>
-              <ExpoImage source={{ uri: images[i] }} style={{ width: rightW, height: rightH }} contentFit="cover" cachePolicy="memory-disk" priority="normal" transition={320} />
+          {images.map((uri, i) => (
+            <TouchableOpacity
+              key={i}
+              activeOpacity={0.95}
+              onPress={() => handleTap(i)}
+              style={{ width: imgW, height: imgH }}
+            >
+              <ExpoImage
+                source={{ uri }}
+                style={{ width: imgW, height: imgH }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                priority={i === 0 ? "high" : "normal"}
+                transition={300}
+              />
             </TouchableOpacity>
           ))}
-        </View>
-      </View>
-    );
-  }
+        </ScrollView>
 
-  // ── 4+ images: 2×2 grid, last cell shows "+N more" ────────────────────────
-  const cellW    = (IMG_W - GAP) / 2;
-  const cellH    = Math.round(cellW * 0.72);
-  const overflow = images.length - 4;
-  return (
-    <View style={{ marginHorizontal: SIDE, marginBottom: 10, gap: GAP }}>
-      {([0, 2] as const).map((rowStart) => (
-        <View key={rowStart} style={{ flexDirection: "row", gap: GAP }}>
-          {[0, 1].map((col) => {
-            const idx        = rowStart + col;
-            if (idx >= 4) return null;
-            const isOverflow = idx === 3 && overflow > 0;
-            return (
-              <TouchableOpacity key={idx} activeOpacity={0.93} onPress={() => onPress(idx)} style={{ borderRadius: CORNER, overflow: "hidden", backgroundColor: BG }}>
-                <ExpoImage source={{ uri: images[idx] }} style={{ width: cellW, height: cellH }} contentFit="cover" cachePolicy="memory-disk" priority={rowStart === 0 ? "high" : "normal"} transition={320} />
-                {isOverflow && (
-                  <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.52)", alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ color: "#fff", fontSize: 24, fontFamily: "Inter_700Bold" }}>+{overflow}</Text>
-                    <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontFamily: "Inter_500Medium", marginTop: 2 }}>more</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
+        {/* Double-tap heart */}
+        <Animated.View
+          pointerEvents="none"
+          style={{ position: "absolute", alignSelf: "center", top: imgH / 2 - 44, opacity: heartOpacity, transform: [{ scale: heartScale }] }}
+        >
+          <Ionicons name="heart" size={88} color="#FF3B30" />
+        </Animated.View>
+
+        {/* Counter badge — top-right */}
+        {images.length > 1 && (
+          <View style={{ position: "absolute", top: 7, right: 8, backgroundColor: "rgba(0,0,0,0.52)", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 }}>
+            <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold" }}>{currentIdx + 1}/{images.length}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* ── Dot indicators ── */}
+      {images.length > 1 && (
+        <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 6, marginBottom: 6 }}>
+          {images.map((_, i) => (
+            <View
+              key={i}
+              style={{
+                width: i === currentIdx ? 16 : 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: i === currentIdx ? colors.accent : (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)"),
+              }}
+            />
+          ))}
         </View>
-      ))}
+      )}
     </View>
   );
+
 }
 
 const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBookmark, onToggleFollow, onImagePress, onRequireAuth, colWidth, onOpenComments, onDismiss, onMuteAuthor }: { item: PostItem; onToggleLike: (postId: string) => void; onToggleBookmark: (postId: string) => void; onToggleFollow: (authorId: string) => void; onImagePress?: (images: string[], index: number) => void; onRequireAuth?: () => void; colWidth?: number; onOpenComments: (postId: string, authorId: string) => void; onDismiss?: (postId: string) => void; onMuteAuthor?: (authorId: string, handle: string) => void }) {
@@ -520,7 +488,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                 onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMenuVisible(true); }}
                 hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
               >
-                <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+                <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
               </TouchableOpacity>
             )}
           </View>
