@@ -615,6 +615,10 @@ export default function AfuReferralApp() {
   const [claimedSteps,  setClaimedSteps]  = useState<Set<number>>(new Set());
   const [claimingStep,  setClaimingStep]  = useState<number | null>(null);
   const [claimSuccess,  setClaimSuccess]  = useState<RewardStep | null>(null);
+  const [enteredCode,   setEnteredCode]   = useState("");
+  const [claimingCode,  setClaimingCode]  = useState(false);
+  const [codeMsg,       setCodeMsg]       = useState<{ ok: boolean; text: string } | null>(null);
+  const [alreadyReferred, setAlreadyReferred] = useState(false);
 
   const referralLink = `https://afuchat.com/${profile?.handle || ""}`;
   const referralCode = (profile?.handle || "").toUpperCase();
@@ -678,6 +682,18 @@ export default function AfuReferralApp() {
 
   useEffect(() => { loadClaimedMilestones(); }, [loadClaimedMilestones]);
 
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("referrals")
+      .select("id")
+      .eq("referred_id", user.id)
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setAlreadyReferred(true); })
+      .catch(() => {});
+  }, [user]);
+
   async function handleClaimMilestone(step: RewardStep) {
     if (!user || claimingStep !== null) return;
     setClaimingStep(step.step);
@@ -723,6 +739,43 @@ export default function AfuReferralApp() {
   async function shareReferral() {
     const msg = `🚀 Join me on AfuChat — Africa's super app!\n\nUse my link: ${referralLink}\n\nYou'll get 1 week of free Platinum when you sign up!`;
     try { await Share.share({ message: msg, url: referralLink, title: "Join AfuChat" }); } catch {}
+  }
+
+  async function handleClaimCode() {
+    const code = enteredCode.trim().toLowerCase();
+    if (!code || !user) return;
+    if (code === (profile?.handle || "").toLowerCase()) {
+      setCodeMsg({ ok: false, text: "You can't use your own referral code." });
+      return;
+    }
+    setClaimingCode(true);
+    setCodeMsg(null);
+    try {
+      const { data, error } = await supabase.rpc("claim_referral_code", { p_referrer_handle: code });
+      if (error) {
+        setCodeMsg({ ok: false, text: "Could not apply code. Please try again." });
+      } else if (data?.ok) {
+        setCodeMsg({ ok: true, text: "Referral applied! You've earned 1 week of free Platinum." });
+        setAlreadyReferred(true);
+        setEnteredCode("");
+        await loadReferrals();
+      } else {
+        const reason = data?.reason ?? "unknown";
+        if (reason === "already_referred") {
+          setCodeMsg({ ok: false, text: "You've already used a referral code." });
+          setAlreadyReferred(true);
+        } else if (reason === "referrer_not_found") {
+          setCodeMsg({ ok: false, text: "Handle not found. Double-check the code." });
+        } else if (reason === "self_referral") {
+          setCodeMsg({ ok: false, text: "You can't use your own referral code." });
+        } else {
+          setCodeMsg({ ok: false, text: `Could not apply: ${reason}` });
+        }
+      }
+    } catch {
+      setCodeMsg({ ok: false, text: "Something went wrong. Please try again." });
+    }
+    setClaimingCode(false);
   }
 
   const progressToNext = nextStep
@@ -840,6 +893,53 @@ export default function AfuReferralApp() {
       <View style={s.section}>
         <InviteContactsSection referralLink={referralLink} accent={accent} colors={colors} />
       </View>
+
+      {/* ── Enter referral code (for existing users) ──────────────────────── */}
+      {!alreadyReferred && (
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.textSecondary }]}>HAVE A REFERRAL CODE?</Text>
+          <View style={[s.shareCard, { backgroundColor: colors.surface, borderColor: colors.border, flexDirection: "column", gap: 10 }]}>
+            <Text style={[{ color: colors.textMuted, fontSize: 13 }]}>
+              Got someone's invite link? Enter their handle to give them credit and claim your Platinum reward.
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput
+                value={enteredCode}
+                onChangeText={v => { setEnteredCode(v); setCodeMsg(null); }}
+                placeholder="their_handle"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[{
+                  flex: 1, height: 42, borderRadius: 10, paddingHorizontal: 12,
+                  backgroundColor: colors.background, borderWidth: 1,
+                  borderColor: colors.border, color: colors.text, fontSize: 14,
+                }]}
+              />
+              <TouchableOpacity
+                onPress={handleClaimCode}
+                disabled={claimingCode || !enteredCode.trim()}
+                activeOpacity={0.8}
+                style={[{
+                  height: 42, paddingHorizontal: 16, borderRadius: 10,
+                  backgroundColor: accent, justifyContent: "center", alignItems: "center",
+                  opacity: claimingCode || !enteredCode.trim() ? 0.5 : 1,
+                }]}
+              >
+                {claimingCode
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>Apply</Text>
+                }
+              </TouchableOpacity>
+            </View>
+            {codeMsg && (
+              <Text style={{ fontSize: 13, color: codeMsg.ok ? "#34C759" : "#FF453A" }}>
+                {codeMsg.ok ? "✓ " : "✗ "}{codeMsg.text}
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* ── Reward steps ─────────────────────────────────────────────────── */}
       <View style={s.section}>

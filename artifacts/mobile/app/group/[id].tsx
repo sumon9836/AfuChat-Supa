@@ -473,15 +473,14 @@ export default function GroupManageScreen() {
     setAddSaving(true);
 
     const selectedIds = Array.from(addSelected);
-    const newMembers = selectedIds.map((uid) => ({
-      chat_id: id,
-      user_id: uid,
-      is_admin: false,
-    }));
 
-    const { error: insertErr } = await supabase.from("chat_members").insert(newMembers);
+    const { data: rpcResult, error: insertErr } = await supabase.rpc("add_group_members", {
+      p_chat_id: id,
+      p_user_ids: selectedIds,
+    });
 
-    if (!insertErr) {
+    const rpcOk = !insertErr && rpcResult?.ok !== false;
+    if (rpcOk) {
       // Resolve adder's display name from the members list or user metadata
       const adderName =
         members.find((m) => m.user_id === user.id)?.profile.display_name ||
