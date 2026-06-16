@@ -430,7 +430,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
             />
           )}
           {/* ── Header ── */}
-          <View style={styles.cardHeader}>
+          <View style={[styles.cardHeader, (!item.org_page_id && !item.profile.bio) && { paddingBottom: 2 }]}>
             {item.org_page_id ? (
               <TouchableOpacity
                 onPress={() => safeRouter.push(`/company/${item.org_slug}` as any)}
@@ -488,6 +488,15 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                       @{item.profile.handle}
                     </Text>
                     <VerifiedBadge isVerified={item.is_verified} isOrganizationVerified={item.is_organization_verified} size={isDesktop ? 14 : 12} />
+                    {showFollowBtn && (
+                      <TouchableOpacity
+                        style={[styles.followBtn, { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.accent, flexShrink: 0 }]}
+                        onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } onToggleFollow(item.author_id); }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.followBtnText, { color: colors.accent }]}>Follow</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                   {item.profile.bio ? (
                     <Text style={[styles.cardBio, { color: colors.textMuted }]} numberOfLines={1}>
@@ -497,15 +506,6 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                 </>
               )}
             </View>
-            {!item.org_page_id && showFollowBtn && (
-              <TouchableOpacity
-                style={[styles.followBtn, { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.accent }]}
-                onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } onToggleFollow(item.author_id); }}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.followBtnText, { color: colors.accent }]}>Follow</Text>
-              </TouchableOpacity>
-            )}
             {item.org_page_id ? (
               <TouchableOpacity
                 style={[styles.followBtn, { backgroundColor: colors.accent + "15", borderWidth: 1, borderColor: colors.accent + "30" }]}
@@ -2415,10 +2415,10 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 4,
+    paddingBottom: 6,
     gap: 10,
   },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "nowrap" },
@@ -2426,8 +2426,8 @@ const styles = StyleSheet.create({
   cardName: { fontSize: 15, fontFamily: "Inter_700Bold", letterSpacing: -0.1 },
   cardMeta: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 0.1 },
   cardBio: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 0.1, marginTop: 2, opacity: 0.6 },
-  followBtn: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 20 },
-  followBtnText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  followBtn: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 9, paddingVertical: 2, borderRadius: 20 },
+  followBtnText: { color: "#fff", fontSize: 11, fontFamily: "Inter_600SemiBold" },
   cardContent: {
     fontSize: 15,
     fontFamily: "Inter_400Regular",
