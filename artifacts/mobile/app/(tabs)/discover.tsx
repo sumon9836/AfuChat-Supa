@@ -604,7 +604,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
           )}
 
           {/* ── Date — sits between content and reaction buttons ── */}
-          <Text style={[styles.cardMeta, { color: colors.textMuted, fontSize: 12, paddingLeft: 58, paddingRight: 12, marginTop: 6, marginBottom: 0 }]}>
+          <Text style={[styles.cardMeta, { color: colors.textMuted, fontSize: 12, paddingLeft: 58, paddingRight: 12, marginTop: 2, marginBottom: 0 }]}>
             {formatPostDate(item.created_at)}
           </Text>
 
@@ -2429,7 +2429,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingLeft: 58,
     paddingRight: 12,
-    paddingTop: 6,
+    paddingTop: 2,
     paddingBottom: 10,
     gap: 0,
   },

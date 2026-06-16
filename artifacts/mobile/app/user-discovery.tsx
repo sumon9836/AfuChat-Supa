@@ -332,6 +332,9 @@ export default function UserDiscoveryScreen() {
         .eq("onboarding_completed", true)
         .eq("is_banned", false)
         .eq("account_deleted", false)
+        .not("avatar_url", "is", null)
+        .not("bio", "is", null)
+        .not("display_name", "is", null)
         .order("follower_count", { ascending: false })
         .limit(60);
 

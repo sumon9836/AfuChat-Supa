@@ -47,6 +47,9 @@ export function UserRecsCard({ seed = 0, onRequireAuth }: Props) {
       const { data } = await supabase
         .from("profiles")
         .select("id, display_name, handle, avatar_url, is_verified, is_organization_verified, follower_count, bio")
+        .not("avatar_url", "is", null)
+        .not("bio", "is", null)
+        .not("display_name", "is", null)
         .order("follower_count", { ascending: false })
         .limit(40);
 

@@ -364,6 +364,9 @@ export function SuggestedUsers({
         .from("profiles")
         .select("id, display_name, handle, avatar_url, xp, is_verified, interests, bio")
         .neq("id", user.id)
+        .not("avatar_url", "is", null)
+        .not("bio", "is", null)
+        .not("display_name", "is", null)
         .order("xp", { ascending: false })
         .limit(POOL_SIZE);
 
@@ -387,7 +390,10 @@ export function SuggestedUsers({
       const { data } = await supabase
         .from("profiles")
         .select("id, display_name, handle, avatar_url, xp, is_verified, interests, bio")
-        .in("id", fofCandidateIds);
+        .in("id", fofCandidateIds)
+        .not("avatar_url", "is", null)
+        .not("bio", "is", null)
+        .not("display_name", "is", null);
       if (!mountedRef.current) return;
       fofProfileData = data || [];
     }
@@ -404,11 +410,13 @@ export function SuggestedUsers({
       const mutualCount = mutualCountMap.get(u.id) || 0;
       const sourceId    = mutualSourceMap.get(u.id);
       const mutualHandle = sourceId ? (handleMap.get(sourceId) || null) : null;
+      const isComplete = !!(u.avatar_url && u.bio && u.display_name);
       const score =
         mutualCount * 18 +
         sharedCount * 12 +
         Math.min((u.xp || 0) / 500, 25) +
-        (u.is_verified ? 8 : 0);
+        (u.is_verified ? 8 : 0) +
+        (isComplete ? 15 : 0);
       return { ...u, interests, sharedCount, mutualCount, mutualHandle, score };
     }
 
@@ -435,6 +443,9 @@ export function SuggestedUsers({
         .from("profiles")
         .select("id, display_name, handle, avatar_url, xp, is_verified, interests, bio")
         .neq("id", user.id)
+        .not("avatar_url", "is", null)
+        .not("bio", "is", null)
+        .not("display_name", "is", null)
         .order("xp", { ascending: false })
         .limit(POOL_SIZE);
 
