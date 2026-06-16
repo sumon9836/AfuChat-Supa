@@ -80,6 +80,196 @@ function getDaysInMonth(month: number, year: number) {
   return new Date(year, month, 0).getDate();
 }
 
+// ─── Profile Completion Card ──────────────────────────────────────────────────
+type CompletionStep = {
+  id: string;
+  label: string;
+  hint: string;
+  done: boolean;
+  icon: string;
+};
+
+function ProfileCompletionCard({
+  steps,
+  colors,
+  accent,
+}: {
+  steps: CompletionStep[];
+  colors: any;
+  accent: string;
+}) {
+  const doneCount  = steps.filter((s) => s.done).length;
+  const total      = steps.length;
+  const pct        = Math.round((doneCount / total) * 100);
+  const allDone    = doneCount === total;
+  const barColor   = allDone ? "#34C759" : accent;
+
+  return (
+    <View style={[compStyles.card, { backgroundColor: colors.surface }]}>
+      {/* Header row */}
+      <View style={compStyles.header}>
+        <View style={compStyles.headerLeft}>
+          <Ionicons
+            name={allDone ? "checkmark-circle" : "stats-chart-outline"}
+            size={16}
+            color={allDone ? "#34C759" : colors.textMuted}
+          />
+          <Text style={[compStyles.title, { color: colors.textMuted }]}>
+            PROFILE COMPLETENESS
+          </Text>
+        </View>
+        <Text style={[compStyles.pct, { color: allDone ? "#34C759" : accent }]}>
+          {pct}%
+        </Text>
+      </View>
+
+      {/* Progress bar */}
+      <View style={[compStyles.trackWrap, { backgroundColor: colors.backgroundTertiary }]}>
+        <View
+          style={[
+            compStyles.fill,
+            {
+              width: `${pct}%` as any,
+              backgroundColor: barColor,
+            },
+          ]}
+        />
+      </View>
+
+      {/* Discovery nudge */}
+      {!allDone && (
+        <Text style={[compStyles.nudge, { color: colors.textMuted }]}>
+          Complete your profile to appear in People You May Know
+        </Text>
+      )}
+
+      {/* Step rows */}
+      <View style={compStyles.steps}>
+        {steps.map((step, idx) => (
+          <View
+            key={step.id}
+            style={[
+              compStyles.stepRow,
+              idx < steps.length - 1 && { borderBottomWidth: 0.5, borderBottomColor: colors.border },
+            ]}
+          >
+            <View
+              style={[
+                compStyles.stepIcon,
+                {
+                  backgroundColor: step.done ? (allDone ? "#34C75918" : accent + "18") : colors.backgroundTertiary,
+                  borderColor: step.done ? (allDone ? "#34C759" : accent) : colors.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name={step.done ? "checkmark" : (step.icon as any)}
+                size={13}
+                color={step.done ? (allDone ? "#34C759" : accent) : colors.textMuted}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[compStyles.stepLabel, { color: step.done ? colors.text : colors.textSecondary }]}>
+                {step.label}
+              </Text>
+              {!step.done && (
+                <Text style={[compStyles.stepHint, { color: colors.textMuted }]}>
+                  {step.hint}
+                </Text>
+              )}
+            </View>
+            {step.done && (
+              <Text style={[compStyles.doneTag, { color: allDone ? "#34C759" : accent }]}>Done</Text>
+            )}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const compStyles = StyleSheet.create({
+  card: {
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: 0,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  title: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  pct: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+  },
+  trackWrap: {
+    marginHorizontal: 16,
+    height: 6,
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  fill: {
+    height: 6,
+    borderRadius: 3,
+  },
+  nudge: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    lineHeight: 17,
+  },
+  steps: {
+    marginTop: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 9,
+  },
+  stepIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepLabel: {
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
+    lineHeight: 18,
+  },
+  stepHint: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    marginTop: 1,
+  },
+  doneTag: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+  },
+});
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 function SectionCard({ title, icon, children, colors }: {
   title: string; icon: string; children: React.ReactNode; colors: any;
@@ -425,6 +615,49 @@ export default function EditProfileScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* ── Profile Completion ── */}
+        <ProfileCompletionCard
+          accent={accent}
+          colors={colors}
+          steps={[
+            {
+              id: "photo",
+              label: "Profile photo",
+              hint: "Add a profile picture so people can recognise you",
+              done: !!currentAvatar,
+              icon: "camera-outline",
+            },
+            {
+              id: "name",
+              label: "Display name",
+              hint: "Set the name others see on your profile",
+              done: !!displayName.trim(),
+              icon: "person-outline",
+            },
+            {
+              id: "bio",
+              label: "Bio",
+              hint: "Write a short description about yourself",
+              done: !!bio.trim(),
+              icon: "document-text-outline",
+            },
+            {
+              id: "interests",
+              label: "Interests (pick at least 3)",
+              hint: "Choose topics to improve your recommendations",
+              done: selectedInterests.size >= 3,
+              icon: "compass-outline",
+            },
+            {
+              id: "country",
+              label: "Country",
+              hint: "Add your location to connect with nearby people",
+              done: !!selectedCountry,
+              icon: "location-outline",
+            },
+          ]}
+        />
 
         {/* ── Identity ── */}
         <SectionCard title="IDENTITY" icon="person-outline" colors={colors}>
