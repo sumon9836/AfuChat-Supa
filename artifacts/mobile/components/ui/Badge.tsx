@@ -1,14 +1,34 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useTheme } from "@/hooks/useTheme";
+import { T } from "@/constants/theme";
 
-type Props = { count: number };
+type Variant = "error" | "accent" | "success" | "warning" | "info";
 
-export function Badge({ count }: Props) {
+type Props = {
+  count: number;
+  variant?: Variant;
+  color?: string;       // override background
+  textColor?: string;   // override text
+};
+
+export function Badge({ count, variant = "error", color, textColor }: Props) {
+  const { colors } = useTheme();
   if (count <= 0) return null;
   const label = count > 99 ? "99+" : String(count);
+
+  const bg = color ?? (
+    variant === "accent"  ? colors.accent   :
+    variant === "success" ? colors.success  :
+    variant === "warning" ? colors.warning  :
+    variant === "info"    ? colors.info     :
+    colors.badgeBg
+  );
+  const fg = textColor ?? colors.badgeText;
+
   return (
-    <View style={[styles.badge, label.length > 2 && styles.wide]}>
-      <Text style={styles.text}>{label}</Text>
+    <View style={[styles.badge, { backgroundColor: bg }, label.length > 2 && styles.wide]}>
+      <Text style={[styles.text, { color: fg }]}>{label}</Text>
     </View>
   );
 }
@@ -17,15 +37,13 @@ const styles = StyleSheet.create({
   badge: {
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
-    backgroundColor: "#FF3B30",
+    borderRadius: T.radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: T.space.xs,
   },
   wide: { borderRadius: 10 },
   text: {
-    color: "#fff",
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
     lineHeight: 13,

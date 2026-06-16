@@ -1,67 +1,156 @@
-const BRAND = "#1f95ff";
-const BRAND_DARK = "#1a7fd4";
-const BRAND_BLUE = "#1677FF";
-const GOLD = "#D4A853";
+// ─── AfuChat Brand Identity ───────────────────────────────────────────────────
+// ONE source of truth for all color decisions.
+// Import `Colors` (default) for raw palette values.
+// Import `useTheme()` for the live, resolved theme object inside components.
+
+const BRAND        = "#1f95ff";   // primary brand — all interactive elements
+const BRAND_DARK   = "#1a7fd4";   // pressed / darker variant of brand
+const BRAND_BLUE   = "#1677FF";   // alternate blue (legacy alias)
+const GOLD         = "#D4A853";   // prestige / premium / ACoin
+
+// ─── Semantic status palette (theme-independent) ──────────────────────────────
+// These never change between light/dark — they carry universal meaning.
+export const STATUS = {
+  success:        "#34C759",   // green  — completed, confirmed, healthy
+  successSubtle:  "#34C75920",
+  warning:        "#FF9F0A",   // amber  — caution, pending, degraded
+  warningSubtle:  "#FF9F0A20",
+  error:          "#FF3B30",   // red    — failure, danger, destructive
+  errorSubtle:    "#FF3B3020",
+  info:           "#5AC8FA",   // sky    — informational, neutral notice
+  infoSubtle:     "#5AC8FA20",
+} as const;
+
+// ─── Theme palettes ───────────────────────────────────────────────────────────
+// Semantic names only — no raw hex strings in component code.
+
+const light = {
+  // ── Typography ──────────────────────────────────────────────────────────────
+  text:              "#000000",
+  textSecondary:     "#5A5040",
+  textMuted:         "#8C7F6A",
+
+  // ── Backgrounds ─────────────────────────────────────────────────────────────
+  background:        "#F5F0E8",   // page / screen
+  backgroundSecondary: "#EDE8DC", // cards, sheets
+  backgroundTertiary:  "#E8E2D6", // inset areas, code blocks
+  surface:           "#F5F0E8",   // elevated surfaces
+
+  // ── Lines ───────────────────────────────────────────────────────────────────
+  border:            "#DDD7C9",
+  separator:         "#DDD7C9",
+
+  // ── Interactive ─────────────────────────────────────────────────────────────
+  accent:            BRAND,
+  tint:              BRAND,
+  tabIconDefault:    "#8C7F6A",
+  tabIconSelected:   BRAND,
+
+  // ── Icons ───────────────────────────────────────────────────────────────────
+  icon:              "#4A4035",
+  iconMuted:         "#8C7F6A",
+
+  // ── Chat bubbles ────────────────────────────────────────────────────────────
+  bubble:            BRAND,
+  bubbleText:        "#FFFFFF",
+  bubbleIncoming:    "#EDE8DC",
+  bubbleIncomingText:"#1A1208",
+
+  // ── Form inputs ─────────────────────────────────────────────────────────────
+  inputBg:           "#EDE8DC",
+
+  // ── Navigation ──────────────────────────────────────────────────────────────
+  header:            "#F5F0E8",
+
+  // ── Badges ──────────────────────────────────────────────────────────────────
+  badgeBg:           STATUS.error,
+  badgeText:         "#FFFFFF",
+
+  // ── Presence ────────────────────────────────────────────────────────────────
+  online:            BRAND,
+  unread:            BRAND,
+  avatar:            "#DDD7C9",
+
+  // ── Semantic status (reflected from STATUS for component convenience) ────────
+  success:           STATUS.success,
+  successSubtle:     STATUS.successSubtle,
+  warning:           STATUS.warning,
+  warningSubtle:     STATUS.warningSubtle,
+  error:             STATUS.error,
+  errorSubtle:       STATUS.errorSubtle,
+  info:              STATUS.info,
+  infoSubtle:        STATUS.infoSubtle,
+} as const;
+
+const dark = {
+  // ── Typography ──────────────────────────────────────────────────────────────
+  text:              "#FFF8F0",
+  textSecondary:     "#AAAAAA",
+  textMuted:         "#717171",
+
+  // ── Backgrounds ─────────────────────────────────────────────────────────────
+  background:        "#0F0F0F",
+  backgroundSecondary: "#1A1A1A",
+  backgroundTertiary:  "#1F1F1F",
+  surface:           "#0F0F0F",
+
+  // ── Lines ───────────────────────────────────────────────────────────────────
+  border:            "#2A2A2A",
+  separator:         "#2A2A2A",
+
+  // ── Interactive ─────────────────────────────────────────────────────────────
+  accent:            BRAND,
+  tint:              BRAND,
+  tabIconDefault:    "#717171",
+  tabIconSelected:   BRAND,
+
+  // ── Icons ───────────────────────────────────────────────────────────────────
+  icon:              "#AEAEB2",
+  iconMuted:         "#636366",
+
+  // ── Chat bubbles ────────────────────────────────────────────────────────────
+  bubble:            BRAND,
+  bubbleText:        "#FFFFFF",
+  bubbleIncoming:    "#272727",
+  bubbleIncomingText:"#F1F1F1",
+
+  // ── Form inputs ─────────────────────────────────────────────────────────────
+  inputBg:           "#252528",
+
+  // ── Navigation ──────────────────────────────────────────────────────────────
+  header:            "#0F0F0F",
+
+  // ── Badges ──────────────────────────────────────────────────────────────────
+  badgeBg:           STATUS.error,
+  badgeText:         "#FFFFFF",
+
+  // ── Presence ────────────────────────────────────────────────────────────────
+  online:            BRAND,
+  unread:            BRAND,
+  avatar:            "#272727",
+
+  // ── Semantic status (reflected from STATUS for component convenience) ────────
+  success:           STATUS.success,
+  successSubtle:     STATUS.successSubtle,
+  warning:           STATUS.warning,
+  warningSubtle:     STATUS.warningSubtle,
+  error:             STATUS.error,
+  errorSubtle:       STATUS.errorSubtle,
+  info:              STATUS.info,
+  infoSubtle:        STATUS.infoSubtle,
+} as const;
 
 export default {
-  brand: BRAND,
-  brandDark: BRAND_DARK,
-  blue: BRAND_BLUE,
-  gold: GOLD,
-  light: {
-    text: "#000000",
-    textSecondary: "#5A5040",
-    textMuted: "#8C7F6A",
-    background: "#F5F0E8",
-    backgroundSecondary: "#EDE8DC",
-    backgroundTertiary: "#E8E2D6",
-    surface: "#F5F0E8",
-    border: "#DDD7C9",
-    separator: "#DDD7C9",
-    tint: BRAND,
-    tabIconDefault: "#8C7F6A",
-    tabIconSelected: BRAND,
-    bubble: "#1f95ff",
-    bubbleText: "#FFFFFF",
-    bubbleIncoming: "#EDE8DC",
-    bubbleIncomingText: "#1A1208",
-    inputBg: "#EDE8DC",
-    header: "#F5F0E8",
-    badgeBg: "#FF3B30",
-    badgeText: "#FFFFFF",
-    avatar: "#DDD7C9",
-    online: BRAND,
-    unread: BRAND,
-    icon: "#4A4035",
-    iconMuted: "#8C7F6A",
-    accent: BRAND,
-  },
-  dark: {
-    text: "#FFF8F0",
-    textSecondary: "#AAAAAA",
-    textMuted: "#717171",
-    background: "#0F0F0F",
-    backgroundSecondary: "#1A1A1A",
-    backgroundTertiary: "#1F1F1F",
-    surface: "#0F0F0F",
-    border: "#2A2A2A",
-    separator: "#2A2A2A",
-    tint: BRAND,
-    tabIconDefault: "#717171",
-    tabIconSelected: BRAND,
-    bubble: "#1f95ff",
-    bubbleText: "#FFFFFF",
-    bubbleIncoming: "#272727",
-    bubbleIncomingText: "#F1F1F1",
-    inputBg: "#252528",
-    header: "#0F0F0F",
-    badgeBg: "#FF3B30",
-    badgeText: "#FFFFFF",
-    avatar: "#272727",
-    online: BRAND,
-    unread: BRAND,
-    icon: "#AEAEB2",
-    iconMuted: "#636366",
-    accent: BRAND,
-  },
+  // ── Raw brand palette ───────────────────────────────────────────────────────
+  brand:      BRAND,
+  brandDark:  BRAND_DARK,
+  blue:       BRAND_BLUE,
+  gold:       GOLD,
+
+  // ── Status (theme-independent) ──────────────────────────────────────────────
+  status:     STATUS,
+
+  // ── Theme palettes ──────────────────────────────────────────────────────────
+  light,
+  dark,
 };
