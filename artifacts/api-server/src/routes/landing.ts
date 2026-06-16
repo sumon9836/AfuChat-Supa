@@ -313,7 +313,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none}
   font-size:12px;font-weight:600;color:var(--t2);
 }
 .feat-phone-area{
-  display:flex;justify-content:center;align-items:flex-end;
+  display:flex;justify-content:flex-start;align-items:flex-end;
   gap:16px;width:100%;
 }
 .feat-phone-area .phone-frame{
