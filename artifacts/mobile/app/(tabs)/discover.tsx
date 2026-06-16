@@ -47,7 +47,7 @@ import { isOnline, onConnectivityChange } from "@/lib/offlineStore";
 import { getLocalFeedPosts, saveFeedPosts, getNewestFeedPostDate, type FeedTab as LocalFeedTab } from "@/lib/storage/localFeed";
 import { getCachedFeedTab, cacheFeedTab, getCachedMoments, cacheMoments } from "@/lib/offlineStore";
 import { notifyPostLike } from "@/lib/notifyUser";
-import { timeAgo as formatRelative } from "@/lib/timeAgo";
+import { timeAgo as formatRelative, formatPostDate } from "@/lib/timeAgo";
 import { sharePost, shareVideo } from "@/lib/share";
 import { matchInterestsWeighted, recordInteraction, getLearnedInterestBoosts, computeFeedScore, diversifyFeed, getSeenPostIds, markPostsSeen, weightedSample, type FeedSignals } from "@/lib/feedAlgorithm";
 import { setHandleId } from "@/lib/profileCache";
@@ -602,7 +602,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
 
           {/* ── Date — sits between content and reaction buttons ── */}
           <Text style={[styles.cardMeta, { color: colors.textMuted, fontSize: 12, paddingLeft: 58, paddingRight: 12, marginTop: 6, marginBottom: 0 }]}>
-            {formatRelative(item.created_at)}
+            {formatPostDate(item.created_at)}
           </Text>
 
           {/* ── Footer ── */}

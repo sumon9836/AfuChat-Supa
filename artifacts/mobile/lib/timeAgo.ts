@@ -1,3 +1,17 @@
+export function formatPostDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 const MINUTE = 60_000;
 const HOUR   = 60 * MINUTE;
 const DAY    = 24 * HOUR;
