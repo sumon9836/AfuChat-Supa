@@ -22,7 +22,7 @@ R2_PUBLIC_BASE_URL = "https://cdn.afuchat.com"
 R2_DEV_PUBLIC_URL = "https://pub-2e81c468eb99436690ca6da9f89191ce.r2.dev"
 R2_S3_ENDPOINT = "https://42e79186125e8ff83e51f15816e074de.r2.cloudflarestorage.com"
 PESAPAL_ENV = "production"
-SUPABASE_SERVICE_ROLE_KEY = "sbp_a1c7bb4b4f1d06e92e160f5ed0eac450bcfdd3b8"
+SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJobnNqcXF0ZHpsa3ZxYXpmY2JnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTY3MDg2OSwiZXhwIjoyMDc3MjQ2ODY5fQ.2EkaV3a2lgTxVVJUtNpIygnaRg6z45qR4OjM4M16qMs"
 
 [workflows]
 runButton = "Project"
