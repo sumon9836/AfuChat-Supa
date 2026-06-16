@@ -478,7 +478,6 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                         {item.org_type?.replace(/\s*\/.*$/, "") || "Company"}
                       </Text>
                     </View>
-                    <Text style={[styles.cardMeta, { color: colors.textMuted }]}>· {formatRelative(item.created_at)}</Text>
                   </View>
                 </>
               ) : (
@@ -489,7 +488,6 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                       @{item.profile.handle}
                     </Text>
                     <VerifiedBadge isVerified={item.is_verified} isOrganizationVerified={item.is_organization_verified} size={isDesktop ? 14 : 12} />
-                    <Text style={[styles.cardMeta, { color: colors.textMuted }]}>· {formatRelative(item.created_at)}</Text>
                   </View>
                   {item.profile.bio ? (
                     <Text style={[styles.cardBio, { color: colors.textMuted }]} numberOfLines={1}>
@@ -622,6 +620,11 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               effectiveW={effectiveW}
             />
           )}
+
+          {/* ── Date — sits between content and reaction buttons ── */}
+          <Text style={[styles.cardMeta, { color: colors.textMuted, fontSize: 12, paddingLeft: 58, paddingRight: 12, marginTop: 6, marginBottom: 0 }]}>
+            {formatRelative(item.created_at)}
+          </Text>
 
           {/* ── Footer ── */}
           <View style={styles.cardFooter}>
