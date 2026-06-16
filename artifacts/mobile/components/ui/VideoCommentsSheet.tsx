@@ -1372,11 +1372,16 @@ export function VideoCommentsSheet({
           right: 0,
           bottom: kbAnim,
           backgroundColor: sheetBg,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: isDark ? 0.28 : 0.10,
-          shadowRadius: 12,
-          elevation: 12,
+          ...Platform.select({
+            web: {},
+            default: {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -3 },
+            shadowOpacity: isDark ? 0.28 : 0.10,
+            shadowRadius: 12,
+            elevation: 12,
+            },
+          })
         }}
       >
         {bottomInputArea}

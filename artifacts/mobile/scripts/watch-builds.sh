@@ -1,9 +1,9 @@
 #!/bin/bash
 cd "$(dirname "$0")/.."
-export EXPO_TOKEN=$(grep -oP "(?<=EXPO_TOKEN=)[^\s']+" ../../.replit 2>/dev/null | head -1)
-APK_ID="04d48b7b-d060-4949-ad51-163d6d1f22be"
-AAB_ID="9880e3d6-c368-4016-aa7a-9b1bb6106fc3"
-echo "=== Monitoring EAS Android builds (ProGuard fix) ==="
+export EXPO_TOKEN="${EXPO_TOKEN:-$(grep -oP '(?<=EXPO_TOKEN=)[^\s'"'"']+' ../../.replit 2>/dev/null | head -1)}"
+APK_ID="d88f51c1-a692-4cc6-8e3d-b86669635c51"
+AAB_ID="1c837e43-2c23-4c26-8c19-0f61725d45a4"
+echo "=== Monitoring EAS Android builds (audit + referral fixes) ==="
 echo "APK (preview):    https://expo.dev/accounts/afuapp/projects/afuchat/builds/$APK_ID"
 echo "AAB (production): https://expo.dev/accounts/afuapp/projects/afuchat/builds/$AAB_ID"
 watch_build() {

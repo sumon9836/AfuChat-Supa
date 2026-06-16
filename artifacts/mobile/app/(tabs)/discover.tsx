@@ -218,8 +218,7 @@ function PostImages({
 
         {/* Double-tap heart */}
         <Animated.View
-          pointerEvents="none"
-          style={{ position: "absolute", alignSelf: "center", top: imgH / 2 - 44, opacity: heartOpacity, transform: [{ scale: heartScale }] }}
+          style={{ position: "absolute", alignSelf: "center", top: imgH / 2 - 44, opacity: heartOpacity, transform: [{ scale: heartScale }], pointerEvents: "none" }}
         >
           <Ionicons name="heart" size={88} color="#FF3B30" />
         </Animated.View>

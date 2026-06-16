@@ -74,8 +74,8 @@ export default function OfflineBanner() {
 
   return (
     <Animated.View
-      pointerEvents="none"
       style={[
+        { pointerEvents: "none" },
         st.pill,
         {
           top: insets.top + (Platform.OS === "android" ? 10 : 6),
@@ -110,10 +110,15 @@ const st = StyleSheet.create({
     borderRadius: T.radius.pill,
     zIndex: 99999,
     elevation: T.elevation.overlay,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.22,
-    shadowRadius: T.space.sm,
+    ...Platform.select({
+      web: {},
+      default: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.22,
+      shadowRadius: T.space.sm,
+      },
+    })
   },
   label: {
     color: "#fff",

@@ -16,7 +16,7 @@ initCrashReporter();
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Linking, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, LogBox, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack, usePathname, router } from "expo-router";
 import { setCurrentPage, resolvePageInfo } from "@/lib/pageTracker";
 import { StatusBar } from "expo-status-bar";
@@ -74,6 +74,18 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // intended sizes regardless of the device's accessibility font-size setting.
 (Text as any).defaultProps = { ...((Text as any).defaultProps ?? {}), allowFontScaling: false };
 (TextInput as any).defaultProps = { ...((TextInput as any).defaultProps ?? {}), allowFontScaling: false };
+
+// Suppress RN-web deprecation warnings — shadow* and pointerEvents-as-prop are
+// web-renderer artefacts only; native Android/iOS builds are completely unaffected.
+LogBox.ignoreLogs(['"shadow*" style props are deprecated', "props.pointerEvents is deprecated"]);
+if (Platform.OS === "web") {
+  const _origWarn = console.warn.bind(console);
+  console.warn = (...a: any[]) => {
+    const msg = typeof a[0] === "string" ? a[0] : "";
+    if (msg.includes('"shadow*" style props are deprecated') || msg.includes("props.pointerEvents is deprecated")) return;
+    _origWarn(...a);
+  };
+}
 
 // ─── AppReadyGate ─────────────────────────────────────────────────────────────
 // Sits inside AuthProvider so it can read auth loading state.

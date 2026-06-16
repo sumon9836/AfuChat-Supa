@@ -508,7 +508,7 @@ function BottomSheet({ visible, onClose, children }: { visible: boolean; onClose
   if (!visible) return null;
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: "box-none" }]}>
       <Pressable style={[st.sheetOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]} onPress={onClose} />
       <Animated.View
         style={[st.sheetContent, { backgroundColor: colors.surface, transform: [{ translateY }], maxHeight: screenHeight * 0.75 }]}
