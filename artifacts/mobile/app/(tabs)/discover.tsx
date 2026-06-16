@@ -430,11 +430,11 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                 )}
               </TouchableOpacity>
             )}
-            <View style={{ flex: 1, gap: 0 }}>
+            <View style={{ flex: 1, gap: 0, paddingTop: 10 }}>
               {item.org_page_id ? (
                 /* ── Org page: keep display name + type badge inline ── */
                 <>
-                  <View style={styles.nameRow}>
+                  <View style={[styles.nameRow, { flex: 1 }]}>
                     <TouchableOpacity onPress={() => safeRouter.push(`/company/${item.org_slug}` as any)} activeOpacity={0.7}>
                       <Text style={[styles.cardHandle, { color: colors.text, fontSize: isDesktop ? 14 : 13, flexShrink: 1 }]} numberOfLines={1}>
                         {item.profile.display_name}
@@ -446,16 +446,53 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                         {item.org_type?.replace(/\s*\/.*$/, "") || "Company"}
                       </Text>
                     </View>
+                    <View style={{ flex: 1 }} />
+                    <TouchableOpacity
+                      style={[styles.followBtn, { backgroundColor: colors.accent + "15", borderWidth: 1, borderColor: colors.accent + "30", marginRight: 6 }]}
+                      onPress={() => safeRouter.push(`/company/${item.org_slug}` as any)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="business-outline" size={13} color={colors.accent} />
+                      <Text style={[styles.followBtnText, { color: colors.accent }]}>View Page</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMenuVisible(true); }}
+                      hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+                    >
+                      <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
+                    </TouchableOpacity>
                   </View>
                 </>
               ) : (
                 /* ── Person: bold display name / @handle subtitle / bio ── */
                 <>
-                  <View style={styles.nameRow}>
+                  <View style={[styles.nameRow, { flex: 1 }]}>
                     <Text style={[styles.cardHandle, { color: colors.text, fontSize: isDesktop ? 14 : 13, fontFamily: "Inter_700Bold", flexShrink: 1 }]} numberOfLines={1}>
                       {item.profile.display_name || item.profile.handle}
                     </Text>
                     <VerifiedBadge isVerified={item.is_verified} isOrganizationVerified={item.is_organization_verified} size={isDesktop ? 14 : 12} />
+                    <View style={{ flex: 1 }} />
+                    {showFollowBtn && (
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: isDark ? "#ffffff" : "#0f0f0f",
+                          borderRadius: 20,
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          marginRight: 6,
+                        }}
+                        onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } onToggleFollow(item.author_id); }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={{ color: isDark ? "#0f0f0f" : "#ffffff", fontSize: 12, fontFamily: "Inter_700Bold" }}>Follow</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMenuVisible(true); }}
+                      hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+                    >
+                      <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
+                    </TouchableOpacity>
                   </View>
                   <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.textMuted, marginTop: 1 }} numberOfLines={1}>
                     @{item.profile.handle}
@@ -468,40 +505,6 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                 </>
               )}
             </View>
-            {item.org_page_id ? (
-              <TouchableOpacity
-                style={[styles.followBtn, { backgroundColor: colors.accent + "15", borderWidth: 1, borderColor: colors.accent + "30" }]}
-                onPress={() => safeRouter.push(`/company/${item.org_slug}` as any)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="business-outline" size={14} color={colors.accent} />
-                <Text style={[styles.followBtnText, { color: colors.accent }]}>View Page</Text>
-              </TouchableOpacity>
-            ) : (
-              <>
-                {showFollowBtn && (
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: isDark ? "#ffffff" : "#0f0f0f",
-                      borderRadius: 20,
-                      paddingHorizontal: 16,
-                      paddingVertical: 7,
-                    }}
-                    onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } onToggleFollow(item.author_id); }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={{ color: isDark ? "#0f0f0f" : "#ffffff", fontSize: 13, fontFamily: "Inter_700Bold" }}>Follow</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMenuVisible(true); }}
-                  hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-                  style={{ marginLeft: showFollowBtn ? 4 : 0 }}
-                >
-                  <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
-                </TouchableOpacity>
-              </>
-            )}
           </View>
 
           {/* ── VIDEO: thumbnail preview card ── */}
@@ -2394,7 +2397,7 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 6,
