@@ -1914,22 +1914,40 @@ export default function DiscoverScreen() {
         {/* Flat header background */}
         <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "#0F0F0F" : "#F5F0E8", zIndex: 0 }]} />
 
-        {/* ── Row 1: wordmark + optional action ── */}
+        {/* ── Row 1: wordmark + actions ── */}
         <View style={[styles.headerTop, { paddingTop: insets.top + 6 }]}>
+          {/* Brand wordmark */}
           <View style={styles.wordmarkRow}>
             <Text style={[styles.wordmarkText, { color: colors.text }]}>Afu</Text>
             <Text style={[styles.wordmarkText, { color: colors.accent }]}>Chat</Text>
           </View>
 
-          {!user && (
+          {/* Right actions — always has search; sign-in shown when logged out */}
+          <View style={styles.headerActions}>
+            {!user && (
+              <TouchableOpacity
+                onPress={() => safeRouter.push("/(auth)/login")}
+                style={styles.signInBtn}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.signInText, { color: colors.textSecondary }]}>Sign in</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
-              onPress={() => safeRouter.push("/(auth)/login")}
-              style={styles.signInBtn}
+              onPress={() => {
+                Haptics.selectionAsync();
+                safeRouter.push("/(tabs)/search");
+              }}
+              style={[styles.searchBtn, { backgroundColor: colors.backgroundSecondary }]}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Search"
             >
-              <Ionicons name="log-in-outline" size={16} color={colors.text} />
-              <Text style={[styles.signInText, { color: colors.text }]}>Sign in</Text>
+              <Ionicons name="search" size={18} color={colors.icon} />
             </TouchableOpacity>
-          )}
+          </View>
         </View>
 
         {/* ── Row 2: For You / Following tabs ── */}
@@ -2361,16 +2379,25 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.3,
   },
-  signInBtn: {
+  headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 6,
+  },
+  signInBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   signInText: {
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
+  },
+  searchBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabRow: {
     flexDirection: "row",
