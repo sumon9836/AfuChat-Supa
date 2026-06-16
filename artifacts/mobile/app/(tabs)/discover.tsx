@@ -1914,65 +1914,60 @@ export default function DiscoverScreen() {
         {/* Flat header background */}
         <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? "#0F0F0F" : "#F5F0E8", zIndex: 0 }]} />
 
-        {/* Tab switcher — centered underline tabs */}
-        <View
-          style={[
-            styles.header,
-            { paddingTop: insets.top + 8, justifyContent: "center" },
-          ]}
-        >
-          {/* Brand wordmark — absolute left */}
-          <View style={{ position: "absolute", left: 16, bottom: 10, flexDirection: "row", alignItems: "baseline" }}>
-            <Text style={{ fontSize: 18, fontFamily: "Inter_700Bold", color: colors.text }}>Afu</Text>
-            <Text style={{ fontSize: 18, fontFamily: "Inter_700Bold", color: colors.accent }}>Chat</Text>
-          </View>
-
-          <View style={styles.tabRow}>
-            <TouchableOpacity
-              style={[
-                styles.tabPill,
-                feedTab === "for_you" && { borderBottomWidth: 2.5, borderBottomColor: colors.accent },
-              ]}
-              onPress={() => {
-                setFeedTab("for_you");
-                pagerRef.current?.setPage(0);
-              }}
-            >
-              <Text style={[
-                styles.tabPillText,
-                { color: feedTab === "for_you" ? colors.accent : colors.textMuted },
-              ]}>
-                For You
-              </Text>
-            </TouchableOpacity>
-            {user && (
-              <TouchableOpacity
-                style={[
-                  styles.tabPill,
-                  feedTab === "following" && { borderBottomWidth: 2.5, borderBottomColor: colors.accent },
-                ]}
-                onPress={() => {
-                  setFeedTab("following");
-                  pagerRef.current?.setPage(1);
-                }}
-              >
-                <Text style={[
-                  styles.tabPillText,
-                  { color: feedTab === "following" ? colors.accent : colors.textMuted },
-                ]}>
-                  Following
-                </Text>
-              </TouchableOpacity>
-            )}
+        {/* ── Row 1: wordmark + optional action ── */}
+        <View style={[styles.headerTop, { paddingTop: insets.top + 6 }]}>
+          <View style={styles.wordmarkRow}>
+            <Text style={[styles.wordmarkText, { color: colors.text }]}>Afu</Text>
+            <Text style={[styles.wordmarkText, { color: colors.accent }]}>Chat</Text>
           </View>
 
           {!user && (
             <TouchableOpacity
               onPress={() => safeRouter.push("/(auth)/login")}
-              style={{ position: "absolute", right: 12, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8, paddingVertical: 6 }}
+              style={styles.signInBtn}
             >
               <Ionicons name="log-in-outline" size={16} color={colors.text} />
-              <Text style={{ color: colors.text, fontSize: 13, fontFamily: "Inter_600SemiBold" }}>Sign in</Text>
+              <Text style={[styles.signInText, { color: colors.text }]}>Sign in</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── Row 2: For You / Following tabs ── */}
+        <View style={[styles.tabRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}>
+          <TouchableOpacity
+            style={[
+              styles.tabPill,
+              feedTab === "for_you" && { borderBottomWidth: 2.5, borderBottomColor: colors.accent },
+            ]}
+            onPress={() => {
+              setFeedTab("for_you");
+              pagerRef.current?.setPage(0);
+            }}
+          >
+            <Text style={[
+              styles.tabPillText,
+              { color: feedTab === "for_you" ? colors.accent : colors.textMuted },
+            ]}>
+              For You
+            </Text>
+          </TouchableOpacity>
+          {user && (
+            <TouchableOpacity
+              style={[
+                styles.tabPill,
+                feedTab === "following" && { borderBottomWidth: 2.5, borderBottomColor: colors.accent },
+              ]}
+              onPress={() => {
+                setFeedTab("following");
+                pagerRef.current?.setPage(1);
+              }}
+            >
+              <Text style={[
+                styles.tabPillText,
+                { color: feedTab === "following" ? colors.accent : colors.textMuted },
+              ]}>
+                Following
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -2350,15 +2345,37 @@ const styles = StyleSheet.create({
     zIndex: 20,
     overflow: "hidden",
   },
-  header: {
+  headerTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 0,
-    gap: 12,
+    paddingBottom: 6,
   },
-  tabRow: { flexDirection: "row", gap: 0 },
+  wordmarkRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+  wordmarkText: {
+    fontSize: 20,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.3,
+  },
+  signInBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  signInText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  tabRow: {
+    flexDirection: "row",
+    paddingHorizontal: 4,
+  },
   endOfFeed: {
     flexDirection: "row",
     alignItems: "center",
