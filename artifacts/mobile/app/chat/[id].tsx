@@ -3592,6 +3592,7 @@ function ChatScreen() {
   // ── Add Members handlers ──────────────────────────────────────────────────
 
   async function handleOpenAddMembers() {
+    const chatId = isDraft ? realChatId : id;
     if (!chatId) return;
     const { data } = await supabase.from("chat_members").select("user_id").eq("chat_id", chatId);
     setExistingMemberIds(new Set((data || []).map((m: any) => m.user_id)));
@@ -3619,6 +3620,7 @@ function ChatScreen() {
   }
 
   async function handleConfirmAddMembers() {
+    const chatId = isDraft ? realChatId : id;
     if (!chatId || addMemberSelected.size === 0 || addMemberAdding) return;
     setAddMemberAdding(true);
     try {
