@@ -123,7 +123,7 @@ function BookmarkButton({ bookmarked, onPress }: { bookmarked: boolean; onPress:
   return (
     <Animated.View style={{ transform: [{ scale }], marginLeft: "auto" }}>
       <TouchableOpacity onPress={handlePress} hitSlop={8}>
-        <Ionicons name={bookmarked ? "bookmark" : "bookmark-outline"} size={18} color={bookmarked ? Colors.gold : colors.textMuted} />
+        <Ionicons name={bookmarked ? "bookmark" : "bookmark-outline"} size={21} color={bookmarked ? Colors.gold : colors.textMuted} />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -641,7 +641,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               <Animated.View style={{ transform: [{ scale: heartScale }] }}>
                 <Ionicons
                   name={item.liked ? "heart" : "heart-outline"}
-                  size={22}
+                  size={21}
                   color={item.liked ? "#FF3B30" : colors.textMuted}
                 />
               </Animated.View>
@@ -673,15 +673,15 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="arrow-redo-outline" size={20} color={colors.textMuted} />
+              <Ionicons name="arrow-redo-outline" size={21} color={colors.textMuted} />
             </TouchableOpacity>
 
             <View style={{ flex: 1 }} />
 
-            {/* Views — deemphasised */}
-            <View style={[styles.footerStat, { opacity: 0.55 }]}>
-              <Ionicons name="eye-outline" size={16} color={colors.textMuted} />
-              <Text style={[styles.footerStatNum, { color: colors.textMuted, fontSize: 12 }]}>{formatNum(item.view_count)}</Text>
+            {/* Views */}
+            <View style={styles.footerStat}>
+              <Ionicons name="eye-outline" size={21} color={colors.textMuted} />
+              <Text style={[styles.footerStatNum, { color: colors.textMuted }]}>{formatNum(item.view_count)}</Text>
             </View>
 
             {/* Bookmark */}
