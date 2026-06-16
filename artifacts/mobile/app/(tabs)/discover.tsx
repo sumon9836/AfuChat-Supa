@@ -254,7 +254,7 @@ function PostImages({
 }
 
 const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBookmark, onToggleFollow, onImagePress, onRequireAuth, colWidth, onOpenComments, onDismiss, onMuteAuthor }: { item: PostItem; onToggleLike: (postId: string) => void; onToggleBookmark: (postId: string) => void; onToggleFollow: (authorId: string) => void; onImagePress?: (images: string[], index: number) => void; onRequireAuth?: () => void; colWidth?: number; onOpenComments: (postId: string, authorId: string) => void; onDismiss?: (postId: string) => void; onMuteAuthor?: (authorId: string, handle: string) => void }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { preferredLang } = useLanguage();
   const { width: screenW } = useWindowDimensions();
   const cardInsets = useCardInsets();
@@ -449,23 +449,17 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                   </View>
                 </>
               ) : (
-                /* ── Person: @handle as identity, bio as whisper line ── */
+                /* ── Person: bold display name / @handle subtitle / bio ── */
                 <>
                   <View style={styles.nameRow}>
-                    <Text style={[styles.cardHandle, { color: colors.text, fontSize: isDesktop ? 14 : 13, flexShrink: 1 }]} numberOfLines={1}>
-                      @{item.profile.handle}
+                    <Text style={[styles.cardHandle, { color: colors.text, fontSize: isDesktop ? 14 : 13, fontFamily: "Inter_700Bold", flexShrink: 1 }]} numberOfLines={1}>
+                      {item.profile.display_name || item.profile.handle}
                     </Text>
                     <VerifiedBadge isVerified={item.is_verified} isOrganizationVerified={item.is_organization_verified} size={isDesktop ? 14 : 12} />
                   </View>
-                  {showFollowBtn && (
-                    <TouchableOpacity
-                      style={[styles.followBtn, { alignSelf: "flex-start", backgroundColor: "transparent", borderWidth: 1, borderColor: colors.accent, marginTop: 2 }]}
-                      onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } onToggleFollow(item.author_id); }}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.followBtnText, { color: colors.accent }]}>Follow</Text>
-                    </TouchableOpacity>
-                  )}
+                  <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.textMuted, marginTop: 1 }} numberOfLines={1}>
+                    @{item.profile.handle}
+                  </Text>
                   {item.profile.bio ? (
                     <Text style={[styles.cardBio, { color: colors.textMuted }]} numberOfLines={1}>
                       {item.profile.bio}
@@ -484,12 +478,29 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
                 <Text style={[styles.followBtnText, { color: colors.accent }]}>View Page</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMenuVisible(true); }}
-                hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-              >
-                <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
-              </TouchableOpacity>
+              <>
+                {showFollowBtn && (
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: isDark ? "#ffffff" : "#0f0f0f",
+                      borderRadius: 20,
+                      paddingHorizontal: 16,
+                      paddingVertical: 7,
+                    }}
+                    onPress={() => { if (!currentUser) { onRequireAuth?.(); return; } onToggleFollow(item.author_id); }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={{ color: isDark ? "#0f0f0f" : "#ffffff", fontSize: 13, fontFamily: "Inter_700Bold" }}>Follow</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMenuVisible(true); }}
+                  hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+                  style={{ marginLeft: showFollowBtn ? 4 : 0 }}
+                >
+                  <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
+                </TouchableOpacity>
+              </>
             )}
           </View>
 
