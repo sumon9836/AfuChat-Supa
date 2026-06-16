@@ -232,22 +232,6 @@ function PostImages({
         )}
       </View>
 
-      {/* ── Dot indicators ── */}
-      {images.length > 1 && (
-        <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 6, marginBottom: 6 }}>
-          {images.map((_, i) => (
-            <View
-              key={i}
-              style={{
-                width: i === currentIdx ? 16 : 6,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: i === currentIdx ? colors.accent : (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)"),
-              }}
-            />
-          ))}
-        </View>
-      )}
     </View>
   );
 
@@ -2421,9 +2405,6 @@ const styles = StyleSheet.create({
   translatedBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 66, paddingRight: 16, marginBottom: 8 },
   translatedText: { fontSize: 11, fontFamily: "Inter_400Regular" },
   images: { marginBottom: 8 },
-  carouselDots: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 5, marginTop: 7 },
-  carouselDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(0,0,0,0.18)" },
-  carouselDotActive: { backgroundColor: "#1f95ff", width: 18, borderRadius: 3 },
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
