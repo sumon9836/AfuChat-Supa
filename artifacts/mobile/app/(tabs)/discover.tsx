@@ -641,7 +641,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               <Animated.View style={{ transform: [{ scale: heartScale }] }}>
                 <Ionicons
                   name={item.liked ? "heart" : "heart-outline"}
-                  size={19}
+                  size={22}
                   color={item.liked ? "#FF3B30" : colors.textMuted}
                 />
               </Animated.View>
@@ -656,7 +656,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               onPress={() => onOpenComments(item.id, item.author_id)}
               activeOpacity={0.7}
             >
-              <Ionicons name="chatbubble-outline" size={18} color={colors.textMuted} />
+              <Ionicons name="chatbubble-outline" size={21} color={colors.textMuted} />
               <RecentCommenters postId={item.id} replyCount={item.replyCount} bgColor={colors.background} accentColor={colors.accent} />
               <Text style={[styles.footerStatNum, { color: colors.textMuted }]}>{formatNum(item.replyCount)}</Text>
             </TouchableOpacity>
@@ -673,15 +673,15 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="arrow-redo-outline" size={17} color={colors.textMuted} />
+              <Ionicons name="arrow-redo-outline" size={20} color={colors.textMuted} />
             </TouchableOpacity>
 
             <View style={{ flex: 1 }} />
 
             {/* Views — deemphasised */}
             <View style={[styles.footerStat, { opacity: 0.55 }]}>
-              <Ionicons name="eye-outline" size={13} color={colors.textMuted} />
-              <Text style={[styles.footerStatNum, { color: colors.textMuted, fontSize: 11 }]}>{formatNum(item.view_count)}</Text>
+              <Ionicons name="eye-outline" size={16} color={colors.textMuted} />
+              <Text style={[styles.footerStatNum, { color: colors.textMuted, fontSize: 12 }]}>{formatNum(item.view_count)}</Text>
             </View>
 
             {/* Bookmark */}
@@ -2460,8 +2460,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   footerStatNum: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
     letterSpacing: -0.1,
   },
   action: { flexDirection: "row", alignItems: "center", gap: 5 },
