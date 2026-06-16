@@ -3625,10 +3625,20 @@ function ChatScreen() {
     setAddMemberAdding(true);
     try {
       const uids = Array.from(addMemberSelected);
-      const { error } = await supabase.from("chat_members").insert(
-        uids.map(uid => ({ chat_id: chatId, user_id: uid, is_admin: false }))
-      );
+      const { data: rpcResult, error } = await supabase.rpc("add_group_members", {
+        p_chat_id: chatId,
+        p_user_ids: uids,
+      });
       if (error) throw error;
+      if (rpcResult && !rpcResult.ok) {
+        throw new Error(
+          rpcResult.error === "not_admin"
+            ? "Only group admins can add members."
+            : rpcResult.error === "not_a_group"
+            ? "This is not a group chat."
+            : "Failed to add members."
+        );
+      }
       for (const uid of uids) {
         try {
           await supabase.from("notifications").insert({
