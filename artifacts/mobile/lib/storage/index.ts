@@ -37,7 +37,7 @@ export * from "./chatFolders";
 import { getDB } from "./db";
 import { startSyncQueue } from "./syncQueue";
 import { migrateOfflineCacheV2toV3 } from "../videoCache";
-import { cleanupTempCache } from "./tempCache";
+import { cleanupTempCache, _sweepOrphanedRecordings } from "./tempCache";
 
 let _initialized = false;
 
@@ -53,7 +53,8 @@ let _initialized = false;
  *      run lazily on first read (inside chatFolders.ts / videoProgress.ts)
  *      so they don't block the startup path.
  *   4. Starts the offline action queue listener (drains on reconnect).
- *   5. Cleans up temp cacheDirectory files older than 7 days.
+ *   5. Cleans up temp cacheDirectory files older than 2 days (capped at 15 MB).
+ *   6. Sweeps orphaned expo-av recording files from the root of cacheDirectory.
  *
  * No permanent user data is purged — only expired temp files are removed.
  */
@@ -68,7 +69,11 @@ export async function initDeviceStorage(): Promise<void> {
     migrateOfflineCacheV2toV3().catch(() => {});
     // Start listening for network changes to drain the offline action queue
     startSyncQueue();
-    // Clean up temp cache files older than 7 days (runs in background)
+    // Clean up temp cache files older than 2 days (runs in background)
     cleanupTempCache().catch(() => {});
+    // Sweep orphaned expo-av recording files from root of cacheDirectory
+    // (voice recordings left behind by previous app versions before the
+    //  post-upload deleteAsync fix was added — pattern: "Recording-*.m4a")
+    _sweepOrphanedRecordings().catch(() => {});
   } catch {}
 }

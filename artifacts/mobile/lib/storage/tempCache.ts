@@ -14,8 +14,8 @@
 //   • Avatars / profile photos (use mediaCache.ts → documentDirectory)
 //
 // AUTO-CLEANUP:
-//   • Files older than 7 days are deleted on app startup and periodically
-//   • Total cache is capped at CACHE_SIZE_LIMIT_BYTES
+//   • Files older than 2 days are deleted on app startup and periodically
+//   • Total cache is capped at CACHE_SIZE_LIMIT_BYTES (15 MB)
 //
 // FILE NAMING: deterministic hash → img_<hash>.webp  vid_<hash>.mp4
 // so re-requesting the same URL returns the cached file instantly.
@@ -28,8 +28,8 @@ import * as FileSystem from "expo-file-system/legacy";
 function getTempDir(): string {
   return ((FileSystem as any).cacheDirectory ?? "") + "afuchat_temp/";
 }
-const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CACHE_SIZE_LIMIT_BYTES = 200 * 1024 * 1024; // 200 MB
+const MAX_AGE_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
+const CACHE_SIZE_LIMIT_BYTES = 15 * 1024 * 1024; // 15 MB
 
 // ─── In-memory path map for the current session ────────────────────────────
 const _mem = new Map<string, string>(); // key → local path
@@ -317,3 +317,31 @@ export async function clearTempCache(): Promise<void> {
 
 // ─── Directory path export (for external tooling) ──────────────────────────
 export const TEMP_CACHE_DIR = getTempDir();
+
+/**
+ * One-time startup sweep: delete orphaned expo-av recording files from the
+ * root of cacheDirectory. expo-av writes voice recordings as
+ * "Recording-<UUID>.m4a" (or "AV/" prefixed on some SDK versions) directly
+ * in cacheDirectory, not inside our afuchat_temp/ subdirectory, so
+ * cleanupTempCache() never sees them.
+ *
+ * Any recording file still sitting in the cache root at startup was NOT
+ * successfully deleted after upload (pre-fix behaviour). It is safe to
+ * remove them — the audio has already been uploaded to R2 or the recording
+ * was cancelled.
+ */
+export async function _sweepOrphanedRecordings(): Promise<void> {
+  if (Platform.OS === "web") return;
+  const cacheDir = (FileSystem as any).cacheDirectory as string | null;
+  if (!cacheDir) return;
+
+  try {
+    const entries = await FileSystem.readDirectoryAsync(cacheDir);
+    const RECORDING_RE = /^(Recording-|AV\/|recording-).+\.(m4a|mp4|wav|aac|caf|opus|webm)$/i;
+    for (const name of entries) {
+      if (RECORDING_RE.test(name)) {
+        FileSystem.deleteAsync(cacheDir + name, { idempotent: true }).catch(() => {});
+      }
+    }
+  } catch {}
+}

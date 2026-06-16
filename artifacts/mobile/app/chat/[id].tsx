@@ -4795,6 +4795,14 @@ STRICT RULES:
           : m
       ));
 
+      // Delete the DocumentPicker temp copy from cacheDirectory now that upload is done
+      if (Platform.OS !== "web" && uri) {
+        const cacheDir = (FileSystem as any).cacheDirectory ?? "";
+        if (cacheDir && uri.startsWith(cacheDir)) {
+          FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
+        }
+      }
+
       // Notify recipients — same logic as sendMessage()
       if (chatInfo) {
         const recipientIds = chatInfo.member_ids.length > 0
@@ -5169,6 +5177,10 @@ STRICT RULES:
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       loadMessages();
       setSending(false);
+      // Delete the local recording from cacheDirectory now that upload is complete
+      if (Platform.OS !== "web" && uri) {
+        FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
+      }
     } catch (err: any) {
       console.warn("[Voice] Error:", err?.message || err);
       recordingActiveRef.current = false;
@@ -5206,7 +5218,12 @@ STRICT RULES:
         webChunksRef.current = [];
       } else {
         try {
+          const cancelUri = recorderRef.current?.getURI();
           await recorderRef.current?.stopAndUnloadAsync();
+          // Delete the discarded recording file from cacheDirectory immediately
+          if (cancelUri) {
+            FileSystem.deleteAsync(cancelUri, { idempotent: true }).catch(() => {});
+          }
         } catch (_) {}
         recorderRef.current = null;
         // Restore audio session to playback mode after cancellation.
