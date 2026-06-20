@@ -97,6 +97,32 @@ export default function SecuritySettingsScreen() {
     }
   }
 
+  // ── Sign Out (3-step — buried here intentionally) ────────────────────────────
+  const [showLogoutStep1, setShowLogoutStep1] = useState(false);
+  const [showLogoutStep2, setShowLogoutStep2] = useState(false);
+  const [logoutText, setLogoutText]           = useState("");
+  const [logoutCountdown, setLogoutCountdown] = useState(5);
+  const [loggingOut, setLoggingOut]           = useState(false);
+
+  useEffect(() => {
+    if (!showLogoutStep2) { setLogoutCountdown(5); return; }
+    if (logoutCountdown <= 0) return;
+    const t = setTimeout(() => setLogoutCountdown((n) => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [showLogoutStep2, logoutCountdown]);
+
+  async function handleConfirmLogout() {
+    if (logoutText.trim().toUpperCase() !== "SIGN OUT") {
+      showAlert("Confirmation required", 'Type "SIGN OUT" (all caps) to confirm.');
+      return;
+    }
+    setLoggingOut(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    setShowLogoutStep2(false);
+    await signOut();
+    setLoggingOut(false);
+  }
+
   // ── Delete account ────────────────────────────────────────────────────────────
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteGate, setShowDeleteGate] = useState(false);
@@ -211,6 +237,13 @@ export default function SecuritySettingsScreen() {
             noChevron={false}
             onPress={() => setShowDeleteGate(true)}
           />
+          <GlassMenuSeparator />
+          <GlassMenuItem
+            icon="exit-outline"
+            label="Sign Out of This Device"
+            subtitle="Removes all local data from this device"
+            onPress={() => { setLogoutText(""); setShowLogoutStep1(true); }}
+          />
         </GlassMenuSection>
 
         <Text style={[styles.footerNote, { color: colors.textMuted }]}>
@@ -300,6 +333,102 @@ export default function SecuritySettingsScreen() {
         </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* ── Sign Out Step 1: Warning ────────────────────────────────────── */}
+      <Modal visible={showLogoutStep1} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <GlassCard style={styles.modalSheet} variant="strong">
+            <View style={styles.dragHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Sign Out?</Text>
+              <TouchableOpacity onPress={() => setShowLogoutStep1(false)}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.warningBox}>
+              <Ionicons name="information-circle" size={22} color={colors.accent} />
+              <Text style={[styles.warningText, { color: colors.text }]}>
+                Signing out will permanently erase all local data from this device — messages, media, and settings.
+                Your account remains active and you can log back in anytime.
+              </Text>
+            </View>
+
+            <View style={styles.logoutChecklist}>
+              {[
+                "All offline messages will be removed",
+                "Cached media and downloads deleted",
+                "You will need your password to log back in",
+                "Your account and data on our servers are safe",
+              ].map((item) => (
+                <View key={item} style={styles.checklistRow}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color={colors.textMuted} />
+                  <Text style={[styles.checklistText, { color: colors.textMuted }]}>{item}</Text>
+                </View>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.logoutContinueBtn, { borderColor: colors.border }]}
+              onPress={() => { setShowLogoutStep1(false); setLogoutText(""); setLogoutCountdown(5); setShowLogoutStep2(true); }}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.logoutContinueBtnText, { color: colors.text }]}>Continue to confirmation →</Text>
+            </TouchableOpacity>
+          </GlassCard>
+        </View>
+      </Modal>
+
+      {/* ── Sign Out Step 2: Type SIGN OUT + countdown ──────────────────── */}
+      <Modal visible={showLogoutStep2} animationType="slide" transparent>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <View style={styles.modalOverlay}>
+          <GlassCard style={styles.modalSheet} variant="strong">
+            <View style={styles.dragHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Final Confirmation</Text>
+              <TouchableOpacity onPress={() => setShowLogoutStep2(false)}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.confirmLabel, { color: colors.textMuted }]}>
+              Type{" "}
+              <Text style={{ fontFamily: "Inter_700Bold", color: colors.text, letterSpacing: 1 }}>SIGN OUT</Text>
+              {" "}to confirm:
+            </Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", borderColor: colors.border }]}
+              placeholder='Type "SIGN OUT"'
+              placeholderTextColor={colors.textMuted}
+              value={logoutText}
+              onChangeText={setLogoutText}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.deleteBtnWrap,
+                (loggingOut || logoutText.trim().toUpperCase() !== "SIGN OUT" || logoutCountdown > 0) && { opacity: 0.4 },
+              ]}
+              onPress={handleConfirmLogout}
+              disabled={loggingOut || logoutText.trim().toUpperCase() !== "SIGN OUT" || logoutCountdown > 0}
+              activeOpacity={0.8}
+            >
+              <LinearGradient colors={["#636366", "#3A3A3C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.modalBtnGradient}>
+                {loggingOut
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.modalBtnText}>
+                      {logoutCountdown > 0 ? `Wait ${logoutCountdown}s…` : "Sign Out of This Device"}
+                    </Text>
+                }
+              </LinearGradient>
+            </TouchableOpacity>
+          </GlassCard>
+        </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -339,4 +468,10 @@ const styles = StyleSheet.create({
   confirmLabel: { fontSize: 14, fontFamily: "Inter_500Medium" },
 
   showDeleteGate: {},
+
+  logoutChecklist: { gap: 10 },
+  checklistRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  checklistText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
+  logoutContinueBtn: { borderRadius: 14, borderWidth: 1, paddingVertical: 14, alignItems: "center" },
+  logoutContinueBtnText: { fontSize: 15, fontFamily: "Inter_500Medium" },
 });

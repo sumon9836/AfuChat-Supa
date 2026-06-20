@@ -380,3 +380,35 @@ export async function clearAccountCache(): Promise<void> {
     ]);
   } catch {}
 }
+
+/**
+ * Nuclear wipe — clears every byte of local user data.
+ *
+ * Used on explicit sign-out so the device looks exactly like a fresh install.
+ * Covers ALL stores: MMKV, AsyncStorage, and every SQLite table.
+ *
+ * Safe to call even if individual stores fail — each store is wrapped
+ * in its own try/catch so one failure never blocks the others.
+ */
+export async function wipeAllLocalData(): Promise<void> {
+  // ── 1. MMKV: instant synchronous clear ─────────────────────────────────────
+  try { storage.clearAll(); } catch {}
+
+  // ── 2. AsyncStorage: full wipe (no selective removal) ──────────────────────
+  try { await AsyncStorage.clear(); } catch {}
+
+  // ── 3. SQLite: wipe every user-data table ──────────────────────────────────
+  try {
+    const { getDB } = await import("./storage/db");
+    const db = await getDB();
+    const tables = [
+      "conversations", "messages", "feed_posts", "notifications",
+      "search_history", "media_cache", "offline_queue", "contacts",
+      "video_registry", "phone_contact_names", "chat_folders",
+      "user_profiles", "user_settings", "call_history",
+    ];
+    for (const t of tables) {
+      try { await db.runAsync(`DELETE FROM ${t}`); } catch {}
+    }
+  } catch {}
+}

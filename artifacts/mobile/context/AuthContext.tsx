@@ -22,6 +22,7 @@ import {
   setCachedUserId,
   getCachedUserId,
   clearCachedUserId,
+  wipeAllLocalData,
 } from "@/lib/offlineStore";
 import { clearAllConversations } from "@/lib/storage/localConversations";
 import { invalidateConversationsPreload } from "@/lib/conversationsPreload";
@@ -490,45 +491,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     isUserSigningOut.current = true; // mark as intentional before any state changes
     isSwitchingRef.current = true;  // suppress saveCurrentSession
+    const signedOutUserId = user?.id;
     try {
-      // Fire-and-forget: don't let a slow/offline network block the logout UX.
-      if (user) clearPushToken(user.id).catch(() => {});
+      // Fire-and-forget: don't let slow/offline network block the logout UX.
+      if (signedOutUserId) clearPushToken(signedOutUserId).catch(() => {});
 
-      // Drop React state immediately
+      // Drop React state immediately so the UI shows nothing while wiping.
       setProfile(null);
       setSubscription(null);
       setUser(null);
       setSession(null);
-
-      // Wipe all caches
-      clearCachedUserId();
       clearProfileCache();
       invalidateConversationsPreload();
-      const signedOutUserId = user?.id;
-      await Promise.all([
-        clearAccountCache(),
-        clearAllConversations(),
-        signedOutUserId ? deleteLocalProfile(signedOutUserId) : Promise.resolve(),
-        signedOutUserId ? deleteLocalSettings(signedOutUserId) : Promise.resolve(),
-      ]);
 
-      await supabase.auth.signOut();
+      // ── Nuclear wipe: clears MMKV + AsyncStorage + all SQLite tables ─────
+      // This runs BEFORE supabase.auth.signOut() so data is gone even if the
+      // network call fails. wipeAllLocalData() swallows its own errors.
+      await wipeAllLocalData();
 
-      // Belt-and-suspenders: wipe any lingering Supabase session keys from
-      // web localStorage so a page reload never restores the old session.
-      if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
-        Object.keys(localStorage)
-          .filter((k) => k.startsWith("sb-") && k.endsWith("-auth-token"))
-          .forEach((k) => localStorage.removeItem(k));
+      // Remove this account's SecureStore token so background session-restore
+      // in onAuthStateChange cannot silently re-login the user.
+      if (signedOutUserId) {
+        removeStoredAccount(signedOutUserId).catch(() => {});
       }
+
+      // Sign out from Supabase (best-effort — works offline too via local clear).
+      await supabase.auth.signOut().catch(() => {});
 
       router.replace("/welcome");
     } finally {
       isSwitchingRef.current = false;
-      // Keep isUserSigningOut=true for 2 s after the call returns so the
-      // async onAuthStateChange SIGNED_OUT handler sees it and does NOT
-      // attempt a SecureStore session restore (which would re-log the user in).
-      setTimeout(() => { isUserSigningOut.current = false; }, 2000);
+      // Keep isUserSigningOut=true for 3 s after the call so the async
+      // onAuthStateChange SIGNED_OUT handler sees it and does NOT attempt
+      // a SecureStore session restore (which would re-login the user).
+      setTimeout(() => { isUserSigningOut.current = false; }, 3000);
     }
   }, [user]);
 

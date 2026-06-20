@@ -300,21 +300,6 @@ export default function SettingsScreen() {
           />
         </GlassMenuSection>
 
-        <GlassMenuSection title="SESSION">
-          <GlassMenuItem
-            icon="log-out-outline"
-            label="Sign Out"
-            danger
-            noChevron
-            onPress={() =>
-              showAlert("Sign Out", "Are you sure you want to sign out?", [
-                { text: "Cancel", style: "cancel" },
-                { text: "Sign Out", style: "destructive", onPress: () => signOut() },
-              ])
-            }
-          />
-        </GlassMenuSection>
-
         {/* ── Brand footer ─────────────────────────────────────────── */}
         <View style={styles.brandFooter}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 0 }}>
