@@ -58,6 +58,7 @@ type FullProfile = {
 type Counts = { followers: number; following: number; posts: number };
 type GridPost = { id: string; image_url: string | null; article_cover_url: string | null; video_url: string | null; post_type: string | null; content?: string | null; article_title?: string | null };
 type MutualUser = { id: string; handle: string; avatar_url: string | null };
+type ExpandUser = { id: string; display_name: string; handle: string; avatar_url: string | null; bio: string | null; is_verified: boolean; is_organization_verified: boolean; acoin: number };
 type TabId = "posts" | "articles" | "videos";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -148,6 +149,11 @@ export default function ContactScreen() {
   const [gridLoading,   setGridLoading]   = useState(false);
   const [activeTab,         setActiveTab]         = useState<TabId>("posts");
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [expandedStat,      setExpandedStat]      = useState<"followers" | "following" | null>(null);
+  const [expandedUsers,     setExpandedUsers]     = useState<ExpandUser[]>([]);
+  const [expandedLoading,   setExpandedLoading]   = useState(false);
+  const [expandedFollowIds, setExpandedFollowIds] = useState<Set<string>>(new Set());
+  const [expandedToggling,  setExpandedToggling]  = useState<string | null>(null);
 
   // ── Load profile ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -234,6 +240,60 @@ export default function ContactScreen() {
     } catch { showToast("Could not update follow status", { type: "error" }); }
     finally { setFollowLoading(false); }
   }, [user, id, isFollowing, followLoading, isSelf]);
+
+  // ── Inline followers/following expansion ──────────────────────────────────
+  const handleExpandStat = useCallback(async (type: "followers" | "following") => {
+    if (expandedStat === type) { setExpandedStat(null); return; }
+    setExpandedStat(type);
+    setExpandedUsers([]);
+    setExpandedLoading(true);
+    try {
+      const followCol  = type === "followers" ? "following_id" : "follower_id";
+      const joinCol    = type === "followers" ? "follower_id"  : "following_id";
+      const profileKey = type === "followers" ? "follower"     : "following";
+      const fkName     = type === "followers"
+        ? "follows_follower_id_fkey"
+        : "follows_following_id_fkey";
+
+      const { data: rows } = await supabase
+        .from("follows")
+        .select(`${joinCol}, ${profileKey}:profiles!${fkName}(id,display_name,handle,avatar_url,bio,is_verified,is_organization_verified,acoin)`)
+        .eq(followCol, id)
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+      const profiles: ExpandUser[] = (rows ?? [])
+        .map((r: any) => r[profileKey])
+        .filter(Boolean) as ExpandUser[];
+
+      setExpandedUsers(profiles);
+
+      if (user && profiles.length > 0) {
+        const ids = profiles.map((p) => p.id);
+        const { data: myFlw } = await supabase
+          .from("follows")
+          .select("following_id")
+          .eq("follower_id", user.id)
+          .in("following_id", ids);
+        if (myFlw) setExpandedFollowIds(new Set(myFlw.map((f: any) => f.following_id)));
+      }
+    } catch {}
+    setExpandedLoading(false);
+  }, [id, expandedStat, user]);
+
+  const handleExpandFollow = useCallback(async (targetId: string) => {
+    if (!user || expandedToggling) return;
+    setExpandedToggling(targetId);
+    const isNowFollowing = expandedFollowIds.has(targetId);
+    if (isNowFollowing) {
+      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", targetId);
+      setExpandedFollowIds((prev) => { const s = new Set(prev); s.delete(targetId); return s; });
+    } else {
+      await supabase.from("follows").insert({ follower_id: user.id, following_id: targetId });
+      setExpandedFollowIds((prev) => new Set(prev).add(targetId));
+    }
+    setExpandedToggling(null);
+  }, [user, expandedFollowIds, expandedToggling]);
 
   // ── Message ───────────────────────────────────────────────────────────────
   const handleMessage = useCallback(async () => {
@@ -535,25 +595,135 @@ export default function ContactScreen() {
         {/* ══════════════════════════════════════════════════════════════ */}
         <View style={[s.statsCard, { backgroundColor: colors.background, borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]}>
           {[
-            { label: "Posts",     value: counts.posts,     onPress: () => router.push({ pathname: "/my-posts", params: { userId: id } } as any) },
-            { label: "Followers", value: counts.followers, onPress: () => router.push({ pathname: "/followers", params: { userId: id, type: "followers", ownerHandle: profile.handle } } as any) },
-            { label: "Following", value: counts.following, locked: profile.is_private,
-              onPress: () => !profile.is_private && router.push({ pathname: "/followers", params: { userId: id, type: "following", ownerHandle: profile.handle } } as any) },
-          ].map((stat, i) => (
-            <React.Fragment key={stat.label}>
-              {i > 0 && <View style={[s.statDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]} />}
-              <TouchableOpacity style={s.statCell} onPress={stat.onPress} activeOpacity={stat.locked ? 1 : 0.65}>
-                {stat.locked
-                  ? <View style={s.lockedStat}>
-                      <Ionicons name="lock-closed" size={11} color={colors.textMuted} />
-                      <Text style={[s.statNum, { color: colors.textMuted }]}>—</Text>
-                    </View>
-                  : <Text style={[s.statNum, { color: accent }]}>{fmtCount(stat.value)}</Text>}
-                <Text style={[s.statLabel, { color: colors.textMuted }]}>{stat.label}</Text>
-              </TouchableOpacity>
-            </React.Fragment>
-          ))}
+            { label: "Posts",     value: counts.posts,     expandable: false, onPress: () => router.push({ pathname: "/my-posts", params: { userId: id } } as any) },
+            { label: "Followers", value: counts.followers, expandable: true,  onPress: () => handleExpandStat("followers") },
+            { label: "Following", value: counts.following, expandable: true,  locked: profile.is_private,
+              onPress: () => !profile.is_private && handleExpandStat("following") },
+          ].map((stat, i) => {
+            const isExpanded = (stat.label === "Followers" && expandedStat === "followers") || (stat.label === "Following" && expandedStat === "following");
+            return (
+              <React.Fragment key={stat.label}>
+                {i > 0 && <View style={[s.statDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]} />}
+                <TouchableOpacity style={s.statCell} onPress={stat.onPress} activeOpacity={stat.locked ? 1 : 0.65}>
+                  {stat.locked
+                    ? <View style={s.lockedStat}>
+                        <Ionicons name="lock-closed" size={11} color={colors.textMuted} />
+                        <Text style={[s.statNum, { color: colors.textMuted }]}>—</Text>
+                      </View>
+                    : <Text style={[s.statNum, { color: isExpanded ? accent : colors.text }]}>{fmtCount(stat.value)}</Text>}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                    <Text style={[s.statLabel, { color: isExpanded ? accent : colors.textMuted }]}>{stat.label}</Text>
+                    {stat.expandable && !stat.locked && (
+                      <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={10} color={isExpanded ? accent : colors.textMuted} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </React.Fragment>
+            );
+          })}
         </View>
+
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {/* INLINE FOLLOWERS / FOLLOWING PANEL                            */}
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {expandedStat && (
+          <View style={[s.expandPanel, { backgroundColor: colors.surface, borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]}>
+            {/* Header */}
+            <View style={s.expandHeader}>
+              <Text style={[s.expandTitle, { color: colors.text }]}>
+                {expandedStat === "followers" ? "Followers" : "Following"}
+              </Text>
+              <Text style={[s.expandCount, { color: colors.textMuted }]}>
+                {(expandedStat === "followers" ? counts.followers : counts.following).toLocaleString()}
+              </Text>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: "/followers", params: { userId: id, type: expandedStat, ownerHandle: profile.handle } } as any)}
+                style={[s.expandViewAll, { borderColor: accent + "55" }]}
+                activeOpacity={0.7}
+              >
+                <Text style={[s.expandViewAllText, { color: accent }]}>View all</Text>
+                <Ionicons name="chevron-forward" size={12} color={accent} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setExpandedStat(null)}
+                style={s.expandClose}
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* User cards */}
+            {expandedLoading ? (
+              <View style={s.expandLoadingRow}>
+                {[1,2,3].map(i => (
+                  <View key={i} style={s.expandSkeletonCard}>
+                    <View style={[s.expandSkeletonAvatar, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }]} />
+                    <View style={[s.expandSkeletonLine, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", width: 52 }]} />
+                    <View style={[s.expandSkeletonLine, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", width: 40, marginTop: 3 }]} />
+                  </View>
+                ))}
+              </View>
+            ) : expandedUsers.length === 0 ? (
+              <View style={s.expandEmpty}>
+                <Ionicons name={expandedStat === "followers" ? "people-outline" : "person-add-outline"} size={28} color={colors.textMuted} />
+                <Text style={[s.expandEmptyText, { color: colors.textMuted }]}>
+                  {expandedStat === "followers" ? "No followers yet" : "Not following anyone yet"}
+                </Text>
+              </View>
+            ) : (
+              <View style={s.expandCardsRow}>
+                {expandedUsers.map((eu) => {
+                  const isMe = eu.id === user?.id;
+                  const amFollowing = expandedFollowIds.has(eu.id);
+                  const toggling = expandedToggling === eu.id;
+                  return (
+                    <TouchableOpacity
+                      key={eu.id}
+                      style={[s.expandCard, { backgroundColor: colors.background, borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }]}
+                      activeOpacity={0.75}
+                      onPress={() => {
+                        setExpandedStat(null);
+                        if (isMe) router.push("/(tabs)/me" as any);
+                        else router.push({ pathname: "/contact/[id]", params: { id: eu.id } } as any);
+                      }}
+                    >
+                      <Avatar uri={eu.avatar_url} name={eu.display_name} size={44} square={!!eu.is_organization_verified} />
+                      <View style={s.expandCardInfo}>
+                        <View style={s.expandCardNameRow}>
+                          <Text style={[s.expandCardName, { color: colors.text }]} numberOfLines={1}>{eu.display_name}</Text>
+                          {eu.is_verified && <Ionicons name="checkmark-circle" size={11} color={accent} />}
+                        </View>
+                        <Text style={[s.expandCardHandle, { color: colors.textMuted }]} numberOfLines={1}>@{eu.handle}</Text>
+                      </View>
+                      {!isMe && user && (
+                        <TouchableOpacity
+                          style={[
+                            s.expandFollowBtn,
+                            amFollowing
+                              ? { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.border }
+                              : { backgroundColor: accent, borderWidth: 0 },
+                          ]}
+                          onPress={(e) => { e.stopPropagation?.(); handleExpandFollow(eu.id); }}
+                          disabled={toggling}
+                          activeOpacity={0.75}
+                        >
+                          {toggling
+                            ? <ActivityIndicator size="small" color={amFollowing ? colors.textMuted : "#fff"} />
+                            : <Text style={[s.expandFollowBtnText, { color: amFollowing ? colors.text : "#fff" }]}>
+                                {amFollowing ? "Following" : "Follow"}
+                              </Text>
+                          }
+                        </TouchableOpacity>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════ */}
         {/* BIO                                                            */}
@@ -857,6 +1027,91 @@ const s = StyleSheet.create({
   statLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
   statDivider: { width: 0.5, marginVertical: 8 },
   lockedStat: { flexDirection: "row", alignItems: "center", gap: 3 },
+
+  // Inline expand panel
+  expandPanel: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    ...Platform.select({
+      web: { boxShadow: "0 2px 12px rgba(0,0,0,0.07)" } as any,
+      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
+    }),
+  },
+  expandHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    gap: 6,
+  },
+  expandTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  expandCount: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  expandViewAll: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  expandViewAllText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  expandClose: {
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: "center", justifyContent: "center",
+  },
+  expandLoadingRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+  },
+  expandSkeletonCard: {
+    width: 88,
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 10,
+  },
+  expandSkeletonAvatar: { width: 44, height: 44, borderRadius: 22 },
+  expandSkeletonLine: { height: 9, borderRadius: 5 },
+  expandEmpty: {
+    alignItems: "center",
+    paddingVertical: 20,
+    gap: 8,
+  },
+  expandEmptyText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  expandCardsRow: {
+    flexDirection: "row",
+    paddingHorizontal: 10,
+    paddingBottom: 12,
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  expandCard: {
+    width: 90,
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 6,
+  },
+  expandCardInfo: { alignItems: "center", width: "100%", gap: 1 },
+  expandCardNameRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  expandCardName: { fontSize: 12, fontFamily: "Inter_600SemiBold", maxWidth: 68, textAlign: "center" },
+  expandCardHandle: { fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "center" },
+  expandFollowBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 7,
+    minWidth: 64,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  expandFollowBtnText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
 
   // Bio + meta
   bio: {
