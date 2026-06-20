@@ -335,45 +335,53 @@ export default function ContactScreen() {
         </View>
 
         {/* ══════════════════════════════════════════════════════════════ */}
-        {/* IDENTITY — centred avatar with name block below               */}
+        {/* IDENTITY BAND                                                  */}
+        {/* Left col: avatar (overlaps banner) + name/handle below        */}
+        {/* Right col: action buttons aligned to the right                */}
         {/* ══════════════════════════════════════════════════════════════ */}
-        <View style={s.identityBlock}>
-          {/* Avatar — overlaps banner */}
-          <TouchableOpacity
-            onPress={() => setAvatarModalVisible(true)}
-            activeOpacity={0.88}
-            style={[s.avatarShell, { borderColor: colors.background, marginTop: -(AVATAR_SIZE / 2 + 4) }]}>
-            <Avatar uri={profile.avatar_url} name={profile.display_name}
-              size={AVATAR_SIZE} square={isOrg} premium={false} />
-            {ls.online && <View style={[s.onlineDot, { borderColor: colors.background }]} />}
-          </TouchableOpacity>
+        <View style={s.identityBand}>
 
-          {/* Display name + verified badge */}
-          <View style={s.nameRow}>
-            <Text style={[s.displayName, { color: colors.text }]} numberOfLines={1}>
-              {profile.display_name}
-            </Text>
-            <VerifiedBadge isVerified={profile.is_verified}
-              isOrganizationVerified={profile.is_organization_verified} size={16} />
-          </View>
+          {/* ── Left: avatar + name stack ─────────────────────────────── */}
+          <View style={s.identityLeft}>
+            <TouchableOpacity
+              onPress={() => setAvatarModalVisible(true)}
+              activeOpacity={0.88}
+              style={[s.avatarShell, { borderColor: colors.background, marginTop: -(AVATAR_SIZE / 2 + 4) }]}>
+              <Avatar uri={profile.avatar_url} name={profile.display_name}
+                size={AVATAR_SIZE} square={isOrg} premium={false} />
+              {ls.online && <View style={[s.onlineDot, { borderColor: colors.background }]} />}
+            </TouchableOpacity>
 
-          {/* Handle + online status */}
-          <View style={s.handleRow}>
-            <Text style={[s.handle, { color: colors.textMuted }]}>@{profile.handle}</Text>
-            {ls.text !== "" && (
-              <>
-                <View style={[s.statusDot, { backgroundColor: ls.online ? "#34C759" : colors.textMuted }]} />
-                <Text style={[s.statusText, { color: ls.online ? "#34C759" : colors.textMuted }]}>{ls.text}</Text>
-              </>
-            )}
-          </View>
+            {/* Name + verified badge */}
+            <View style={s.nameRow}>
+              <Text style={[s.displayName, { color: colors.text }]} numberOfLines={1}>
+                {profile.display_name}
+              </Text>
+              <VerifiedBadge isVerified={profile.is_verified}
+                isOrganizationVerified={profile.is_organization_verified} size={16} />
+            </View>
 
-          {/* Prestige pill + follow CTA */}
-          <View style={s.identityBottomRow}>
+            {/* Handle + online status */}
+            <View style={s.handleRow}>
+              <Text style={[s.handle, { color: colors.textMuted }]}>@{profile.handle}</Text>
+              {ls.text !== "" && (
+                <>
+                  <View style={[s.statusDot, { backgroundColor: ls.online ? "#34C759" : colors.textMuted }]} />
+                  <Text style={[s.statusText, { color: ls.online ? "#34C759" : colors.textMuted }]}>{ls.text}</Text>
+                </>
+              )}
+            </View>
+
+            {/* Prestige pill */}
             <View style={[s.prestigePill, { backgroundColor: prestige.color + "1A", borderColor: prestige.color + "44" }]}>
               <Text style={s.prestigeEmoji}>{prestige.emoji}</Text>
               <Text style={[s.prestigeText, { color: prestige.color }]}>{prestige.label}</Text>
             </View>
+          </View>
+
+          {/* ── Right: action buttons ─────────────────────────────────── */}
+          <View style={s.identityRight}>
+            {/* Follow / Edit */}
             {!isSelf && user && (
               <TouchableOpacity
                 style={[s.primaryBtn, { backgroundColor: followBg, borderColor: followBrd }]}
@@ -392,6 +400,39 @@ export default function ContactScreen() {
                 <Text style={[s.primaryBtnText, { color: colors.text }]}>Edit</Text>
               </TouchableOpacity>
             )}
+
+            {/* Quick icon buttons */}
+            <View style={s.quickIconRow}>
+              {!isSelf && user && (
+                <TouchableOpacity
+                  style={[s.quickIconBtn, { backgroundColor: accent + "18" }]}
+                  onPress={handleMessage} activeOpacity={0.8}>
+                  <Ionicons name="chatbubble-outline" size={16} color={accent} />
+                </TouchableOpacity>
+              )}
+              {!isSelf && user && (
+                <TouchableOpacity
+                  style={[s.quickIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
+                  onPress={() => showAlert("More", undefined, [
+                    { text: "Gift",         onPress: () => router.push({ pathname: "/gifts/index", params: { recipientId: id } } as any) },
+                    { text: "Store",        onPress: () => router.push({ pathname: "/shop/[userId]", params: { userId: id } } as any) },
+                    { text: "Share Profile",onPress: () => showToast("Link copied", { type: "info" }) },
+                    { text: "Add to Contacts", onPress: () => showToast("Saved", { type: "success" }) },
+                    { text: "Report",       style: "destructive", onPress: () => {} },
+                    { text: "Block",        style: "destructive", onPress: () => {} },
+                    { text: "Cancel",       style: "cancel" },
+                  ])} activeOpacity={0.8}>
+                  <Ionicons name="ellipsis-horizontal" size={16} color={colors.text} />
+                </TouchableOpacity>
+              )}
+              {isSelf && (
+                <TouchableOpacity
+                  style={[s.quickIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
+                  onPress={() => router.push("/settings")} activeOpacity={0.8}>
+                  <Ionicons name="settings-outline" size={16} color={colors.text} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
 
@@ -721,12 +762,24 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
   },
 
-  // Identity — centred column
-  identityBlock: {
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    gap: 5,
+  // Identity band — left avatar col + right action col
+  identityBand: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    marginTop: -(AVATAR_SIZE / 2 + 4),
+    gap: 10,
+  },
+  identityLeft: {
+    flex: 1,
+    gap: 4,
+  },
+  identityRight: {
+    alignItems: "flex-end",
+    justifyContent: "flex-end",
+    paddingTop: (AVATAR_SIZE / 2 + 4) + 6,
+    gap: 8,
   },
   avatarShell: {
     width: AVATAR_SIZE + 6,
@@ -744,18 +797,18 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    marginTop: 4,
-    maxWidth: "90%",
+    marginTop: 2,
   },
-  identityBottomRow: {
+  quickIconRow: {
     flexDirection: "row",
-    alignItems: "center",
     gap: 8,
-    flexWrap: "wrap",
-    justifyContent: "center",
+  },
+  quickIconBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    alignItems: "center", justifyContent: "center",
   },
 
-  displayName: { fontSize: 19, fontFamily: "Inter_700Bold", letterSpacing: -0.3, flexShrink: 1 },
+  displayName: { fontSize: 17, fontFamily: "Inter_700Bold", letterSpacing: -0.2, flexShrink: 1 },
   prestigePill: {
     flexDirection: "row", alignItems: "center", gap: 4,
     paddingHorizontal: 8, paddingVertical: 3,
