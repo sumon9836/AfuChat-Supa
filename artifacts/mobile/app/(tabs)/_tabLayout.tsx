@@ -332,7 +332,7 @@ export default function TabLayout() {
     if (loading) return;
     const isFullySignedOut = session === null && user === null;
     if (prevSessionRef.current !== null && isFullySignedOut) {
-      router.replace("/discover");
+      router.replace("/welcome");
     }
     prevSessionRef.current = session;
   }, [session, user, loading]);

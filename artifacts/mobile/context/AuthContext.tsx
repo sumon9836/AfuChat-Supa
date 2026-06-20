@@ -491,7 +491,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isUserSigningOut.current = true; // mark as intentional before any state changes
     isSwitchingRef.current = true;  // suppress saveCurrentSession
     try {
-      if (user) await clearPushToken(user.id);
+      // Fire-and-forget: don't let a slow/offline network block the logout UX.
+      if (user) clearPushToken(user.id).catch(() => {});
 
       // Drop React state immediately
       setProfile(null);
@@ -512,10 +513,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       await supabase.auth.signOut();
-      router.replace("/discover");
+
+      // Belt-and-suspenders: wipe any lingering Supabase session keys from
+      // web localStorage so a page reload never restores the old session.
+      if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("sb-") && k.endsWith("-auth-token"))
+          .forEach((k) => localStorage.removeItem(k));
+      }
+
+      router.replace("/welcome");
     } finally {
       isSwitchingRef.current = false;
-      isUserSigningOut.current = false;
+      // Keep isUserSigningOut=true for 2 s after the call returns so the
+      // async onAuthStateChange SIGNED_OUT handler sees it and does NOT
+      // attempt a SecureStore session restore (which would re-log the user in).
+      setTimeout(() => { isUserSigningOut.current = false; }, 2000);
     }
   }, [user]);
 
@@ -528,7 +541,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const safetyTimer = setTimeout(() => {
       safetyFired = true;
       setLoading(false);
-    }, 6000);
+    }, 3500);
 
     supabase.auth.getSession()
       .then(async ({ data: { session } }) => {
@@ -537,9 +550,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(session);
           setUser(session.user);
           setCachedUserId(session.user.id);
-          const cached = await getCachedProfile();
-          if (cached) setProfile(cached as Profile);
+          // Use synchronous MMKV read first — releases loading immediately
+          // so the UI renders from cache while the fresh profile loads in bg.
+          const cachedSync = getCachedProfileSync();
+          if (cachedSync) setProfile(cachedSync as Profile);
           setLoading(false);
+          // Refresh profile from Supabase in the background (non-blocking)
           fetchProfile(session.user.id);
           startOfflineSync();
           supabase

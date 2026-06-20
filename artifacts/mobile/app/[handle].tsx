@@ -293,6 +293,21 @@ function PublicProfileScreen({ handle }: { handle: string }) {
   );
 }
 
+// ─── Reserved app-route segments (never treated as user handles) ───────────────
+//
+// Expo Router resolves explicit files before dynamic routes, so these should
+// never reach [handle].tsx under normal navigation. This guard is a belt-and-
+// suspenders defence for deep-links or typos that slip through.
+const RESERVED_ROUTES = new Set([
+  "terms", "privacy", "browser", "onboarding", "welcome", "settings",
+  "wallet", "shop", "chat", "discover", "video", "shorts", "moments",
+  "match", "games", "ai", "support", "company", "freelance", "article",
+  "channel", "group", "join", "my-posts", "profile", "post", "stories",
+  "red-envelope", "mini-programs", "gifts", "p", "update-password",
+  "contact", "cart", "orders", "product", "index", "logout", "register",
+  "login", "reset-password", "404", "not-found",
+]);
+
 // ─── Router / Splash (handles redirect logic) ──────────────────────────────────
 
 export default function HandleScreen() {
@@ -308,7 +323,12 @@ export default function HandleScreen() {
 
   const isAtHandle = (rawHandle || "").startsWith("@");
   const cleanHandle = (rawHandle || "").replace(/^@/, "").toLowerCase();
-  const isValidHandle = /^[a-zA-Z0-9_]+$/.test(cleanHandle);
+
+  // Valid user handle: 1-30 alphanumeric/underscore chars, not a reserved app route.
+  // Dots are intentionally excluded (no dots in AfuChat handles).
+  const isValidHandle =
+    /^[a-zA-Z0-9_]{1,30}$/.test(cleanHandle) &&
+    !RESERVED_ROUTES.has(cleanHandle.toLowerCase());
 
   useEffect(() => {
     // For /@username when not logged in, skip DB resolve — PublicProfileScreen handles it.
@@ -343,6 +363,14 @@ export default function HandleScreen() {
     if (!dataReady) return;
     if (authLoading) return;
     if (!navigationState?.key) return;
+
+    // Reserved app route accidentally deep-linked: bounce to the appropriate home.
+    if (RESERVED_ROUTES.has(cleanHandle.toLowerCase())) {
+      hasNavigated.current = true;
+      safeNavigate(session ? "/(tabs)" : "/welcome");
+      return;
+    }
+
     if (profileNotFound || !cleanHandle || !isValidHandle) return;
     // /@username without session → shown as public profile, no redirect needed
     if (isAtHandle && !session) return;
