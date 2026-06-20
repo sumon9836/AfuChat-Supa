@@ -16,7 +16,7 @@ initCrashReporter();
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Linking, LogBox, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, LogBox, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack, usePathname, router } from "expo-router";
 import { setCurrentPage, resolvePageInfo } from "@/lib/pageTracker";
 import { StatusBar } from "expo-status-bar";
@@ -27,6 +27,7 @@ import { getCachedUserId } from "@/lib/offlineStore";
 import { preloadConversations } from "@/lib/conversationsPreload";
 
 import { handleIncomingUrl } from "@/lib/deepLinkHandler";
+import { verifyDeepLinks } from "@/lib/deepLinkVerifier";
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -183,46 +184,10 @@ export default function RootLayout() {
     try { enableScreens(true); } catch {}
   }, []);
 
-  // Web-only: inject phone-frame CSS so the Replit preview looks like a mobile
-  // device viewport (390×844 centered on a dark background). No-ops on native.
+  // Run deep-link route verification once in dev mode to catch any routes
+  // that might accidentally fall through to [handle].tsx.
   useEffect(() => {
-    if (Platform.OS !== "web") return;
-    if (typeof document === "undefined") return;
-    const id = "afu-mobile-frame";
-    if (document.getElementById(id)) return;
-    const style = document.createElement("style");
-    style.id = id;
-    style.textContent = `
-      html {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        background: #111;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        width: 390px;
-        height: 844px;
-        max-height: 100vh;
-        overflow: hidden;
-        position: relative;
-        border-radius: 40px;
-        box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 32px 100px rgba(0,0,0,0.8);
-        background: #000;
-      }
-      @media (max-height: 860px) {
-        body { height: 100vh; border-radius: 0; box-shadow: none; }
-      }
-      @media (max-width: 420px) {
-        html { background: #000; }
-        body { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; }
-      }
-    `;
-    document.head.appendChild(style);
+    verifyDeepLinks().catch(() => {});
   }, []);
 
   const fontsReady = fontsLoaded || !!fontError;
@@ -230,8 +195,20 @@ export default function RootLayout() {
   useEffect(() => {
     async function handleUrl(url: string | null) {
       const action = await handleIncomingUrl(url);
-      if (action?.type === "join_group") {
+      if (!action) return;
+
+      if (action.type === "join_group") {
         router.push({ pathname: "/join/[code]", params: { code: action.code } } as any);
+        return;
+      }
+
+      if (action.type === "navigate") {
+        if (action.params) {
+          router.push({ pathname: action.path as any, params: action.params });
+        } else {
+          router.push(action.path as any);
+        }
+        return;
       }
     }
     Linking.getInitialURL().then(handleUrl).catch(() => {});

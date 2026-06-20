@@ -2,15 +2,17 @@
  * [handle].tsx — catch-all route for /@username and /username
  *
  * Rules:
- *  • /@username  (unauthenticated) → public profile page, fully indexed by Google
+ *  • /@username  (unauthenticated) → public profile page
  *  • /username   (unauthenticated) → referral link: saves referrer_handle → sends to /register
  *  • Any handle + logged-in user  → navigate to /contact/[id] (full in-app profile)
+ *
+ * Route-leak guard: logs a warning in __DEV__ whenever a reserved app path
+ * slips through to this catch-all instead of resolving to a static file.
  */
 
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -30,19 +32,14 @@ import { ProfilePrivateView } from "@/app/profile-private";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import { T } from "@/constants/theme";
-import { setPageMeta, resetPageMeta } from "@/lib/webMeta";
 import { ProfileSkeleton } from "@/components/ui/Skeleton";
+import { logHandleLeak } from "@/lib/deepLinkVerifier";
 
 function safeNavigate(path: string, params?: Record<string, string>) {
   try {
     if (params) router.replace({ pathname: path as any, params });
     else router.replace(path as any);
-  } catch {
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      const url = params ? path.replace(/\[(\w+)\]/g, (_, k) => params[k] || "") : path;
-      window.location.href = url;
-    }
-  }
+  } catch {}
 }
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -66,57 +63,12 @@ type PubCounts = { followers: number; following: number; posts: number };
 // ─── Public Profile (shown to unauthenticated visitors of /@username) ──────────
 
 function PublicProfileScreen({ handle }: { handle: string }) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState<PubProfile | null>(null);
   const [counts, setCounts] = useState<PubCounts>({ followers: 0, following: 0, posts: 0 });
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-
-  // ── SEO meta + Schema.org Person for Google indexing ──────────────────
-  useEffect(() => {
-    if (!profile || Platform.OS !== "web") return;
-    const title = `${profile.display_name} (@${profile.handle}) — AfuChat`;
-    const desc = profile.bio
-      ? `${profile.bio.slice(0, 155)}`
-      : `Follow @${profile.handle} on AfuChat — the all-in-one social super app.`;
-    setPageMeta({
-      title,
-      description: desc,
-      image: profile.avatar_url ?? undefined,
-      url: `https://afuchat.com/@${profile.handle}`,
-      type: "profile",
-    });
-
-    // Inject Schema.org Person structured data
-    if (typeof document !== "undefined") {
-      const id = `schema-person-${profile.handle}`;
-      let el = document.getElementById(id) as HTMLScriptElement | null;
-      if (!el) {
-        el = document.createElement("script") as HTMLScriptElement;
-        el.id = id;
-        el.type = "application/ld+json";
-        document.head.appendChild(el);
-      }
-      el.textContent = JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "Person",
-        name: profile.display_name,
-        alternateName: `@${profile.handle}`,
-        description: profile.bio ?? undefined,
-        image: profile.avatar_url ?? undefined,
-        url: `https://afuchat.com/@${profile.handle}`,
-        sameAs: [`https://afuchat.com/@${profile.handle}`],
-      });
-    }
-
-    return () => {
-      resetPageMeta();
-      if (typeof document !== "undefined") {
-        document.getElementById(`schema-person-${profile.handle}`)?.remove();
-      }
-    };
-  }, [profile]);
 
   useEffect(() => {
     async function load() {
@@ -192,9 +144,7 @@ function PublicProfileScreen({ handle }: { handle: string }) {
         <TouchableOpacity
           style={pub.headerBack}
           onPress={() => {
-            if (Platform.OS === "web" && typeof window !== "undefined") {
-              window.history.back();
-            } else if (router.canGoBack()) {
+            if (router.canGoBack()) {
               router.back();
             } else {
               router.replace("/(tabs)/discover" as any);
@@ -306,6 +256,14 @@ const RESERVED_ROUTES = new Set([
   "red-envelope", "mini-programs", "gifts", "p", "update-password",
   "contact", "cart", "orders", "product", "index", "logout", "register",
   "login", "reset-password", "404", "not-found",
+  // Additional routes guarded below
+  "about", "advanced-features", "lab", "achievements", "watch-history",
+  "referral", "prestige", "store", "premium", "status", "digital-id",
+  "qr-scanner", "create-post", "followers", "saved-posts", "collections",
+  "language-settings", "linked-accounts", "device-security", "monetize",
+  "call-history", "phone-contacts", "user-discovery", "username-market",
+  "video-analytics", "digital-events", "file-manager", "business",
+  "business-verification", "paid-communities", "help", "lab",
 ]);
 
 // ─── Router / Splash (handles redirect logic) ──────────────────────────────────
@@ -329,6 +287,24 @@ export default function HandleScreen() {
   const isValidHandle =
     /^[a-zA-Z0-9_]{1,30}$/.test(cleanHandle) &&
     !RESERVED_ROUTES.has(cleanHandle.toLowerCase());
+
+  // ── Route-leak detection ─────────────────────────────────────────────────────
+  // Log a warning when a reserved app path reaches this catch-all instead of
+  // resolving to a static file. This lets us catch missing route registrations
+  // during development without crashing the app.
+  useEffect(() => {
+    if (!cleanHandle) return;
+    const lower = cleanHandle.toLowerCase();
+
+    if (RESERVED_ROUTES.has(lower)) {
+      logHandleLeak(cleanHandle, "reserved app route reached [handle].tsx — missing static file");
+      // Bounce the user to a safe home instead of showing a broken profile
+      if (!hasNavigated.current) {
+        hasNavigated.current = true;
+        safeNavigate(session ? "/(tabs)" : "/welcome");
+      }
+    }
+  }, [cleanHandle, session]);
 
   useEffect(() => {
     // For /@username when not logged in, skip DB resolve — PublicProfileScreen handles it.
@@ -409,7 +385,7 @@ export default function HandleScreen() {
   // Plain /username referral link — render nothing while the redirect fires
   if (!isAtHandle) return null;
 
-  // /@username — public profile (Google-indexed)
+  // /@username — public profile
   if (!isValidHandle || (dataReady && profileNotFound)) return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
       <ProfileNotFoundView handle={cleanHandle} />
