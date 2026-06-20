@@ -38,8 +38,6 @@ export const SUPER_APP_REGISTRY: ModuleManifest[] = [
     icon: "game-controller",
     gradient: ["#FF3B30", "#FF6B35"] as const,
     keepAlive: false,
-    badge: "SOON",
-    comingSoon: true,
   },
   {
     id: "afubusiness",
@@ -96,8 +94,6 @@ export const SUPER_APP_REGISTRY: ModuleManifest[] = [
     icon: "gift",
     gradient: ["#FF3B30", "#FF453A"] as const,
     keepAlive: false,
-    badge: "SOON",
-    comingSoon: true,
   },
   {
     id: "afuid",
@@ -145,8 +141,6 @@ export const SUPER_APP_REGISTRY: ModuleManifest[] = [
     icon: "heart",
     gradient: ["#FF2D55", "#FF375F"] as const,
     keepAlive: false,
-    badge: "SOON",
-    comingSoon: true,
   },
   {
     id: "afuevents",

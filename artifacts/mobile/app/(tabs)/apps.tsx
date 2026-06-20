@@ -86,7 +86,6 @@ const CATEGORIES: Category[] = [
         icon: "game-controller",
         gradient: ["#FF3B30", "#FF6B35"],
         route: "/games",
-        miniApp: true,
         featuredSub: "Play mini games and compete with friends.",
       },
       {
@@ -162,7 +161,6 @@ const CATEGORIES: Category[] = [
         icon: "gift",
         gradient: ["#FF3B30", "#FF453A"],
         route: "/gifts",
-        miniApp: true,
         featuredSub: "Send animated gifts to people you love.",
       },
       {
@@ -186,7 +184,6 @@ const CATEGORIES: Category[] = [
         icon: "heart",
         gradient: ["#FF2D55", "#FF375F"],
         route: "/match",
-        miniApp: true,
         featuredSub: "Meet new people and find meaningful connections.",
       },
       {
