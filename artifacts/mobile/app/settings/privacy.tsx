@@ -1,90 +1,181 @@
 import React from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 import { GlassHeader } from "@/components/ui/GlassHeader";
-import { GlassMenuSection, GlassMenuItem, GlassMenuSeparator } from "@/components/ui/GlassMenuItem";
 
+// ─── Section ──────────────────────────────────────────────────────────────────
+function Section({
+  title,
+  children,
+  colors,
+}: {
+  title: string;
+  children: React.ReactNode;
+  colors: ReturnType<typeof useTheme>["colors"];
+}) {
+  return (
+    <View style={s.section}>
+      <Text style={[s.sectionLabel, { color: colors.textMuted }]}>{title}</Text>
+      <View style={[s.card, { backgroundColor: colors.card }]}>{children}</View>
+    </View>
+  );
+}
+
+// ─── Row ──────────────────────────────────────────────────────────────────────
+function Row({
+  icon,
+  iconColor,
+  label,
+  sublabel,
+  last,
+  danger,
+  onPress,
+  colors,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  iconColor: string;
+  label: string;
+  sublabel?: string;
+  last?: boolean;
+  danger?: boolean;
+  onPress?: () => void;
+  colors: ReturnType<typeof useTheme>["colors"];
+}) {
+  return (
+    <>
+      <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.7}>
+        <View style={[s.iconWrap, { backgroundColor: iconColor + "18" }]}>
+          <Ionicons name={icon} size={18} color={iconColor} />
+        </View>
+        <View style={s.rowText}>
+          <Text style={[s.rowLabel, { color: danger ? "#FF3B30" : colors.text }]}>{label}</Text>
+          {sublabel && (
+            <Text style={[s.rowSub, { color: colors.textMuted }]} numberOfLines={2}>
+              {sublabel}
+            </Text>
+          )}
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={15}
+          color={danger ? "#FF3B3088" : colors.textMuted}
+          style={{ marginLeft: 2 }}
+        />
+      </TouchableOpacity>
+      {!last && <View style={[s.divider, { backgroundColor: colors.separator }]} />}
+    </>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function PrivacySettingsScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.backgroundSecondary }]}>
+    <View style={[s.root, { backgroundColor: colors.backgroundSecondary }]}>
       <GlassHeader title="Privacy" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 48 }]}
+        contentContainerStyle={[s.body, { paddingBottom: insets.bottom + 48 }]}
       >
         {/* ── ACCOUNT ──────────────────────────────────────────────────── */}
-        <GlassMenuSection title="ACCOUNT">
-          <GlassMenuItem
-            icon="lock-closed"
+        <Section title="ACCOUNT" colors={colors}>
+          <Row
+            icon="lock-closed-outline"
+            iconColor="#0A84FF"
             label="Account Privacy"
-            subtitle="Private account, online status, profile visibility"
+            sublabel="Private account, online status, profile visibility"
             onPress={() => router.push("/settings/privacy-account" as any)}
+            colors={colors}
           />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="eye-off"
+          <Row
+            icon="eye-off-outline"
+            iconColor="#AF52DE"
             label="Visibility"
-            subtitle="Who can see your followers and following list"
+            sublabel="Who can see your followers and following list"
             onPress={() => router.push("/settings/privacy-visibility" as any)}
+            last
+            colors={colors}
           />
-        </GlassMenuSection>
+        </Section>
 
         {/* ── INTERACTIONS ─────────────────────────────────────────────── */}
-        <GlassMenuSection title="INTERACTIONS">
-          <GlassMenuItem
-            icon="chatbubble-ellipses"
+        <Section title="INTERACTIONS" colors={colors}>
+          <Row
+            icon="chatbubble-ellipses-outline"
+            iconColor="#30D158"
             label="Messages"
-            subtitle="Who can send you messages and calls"
+            sublabel="Who can send you messages and calls"
             onPress={() => router.push("/settings/privacy-messages" as any)}
+            colors={colors}
           />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="heart"
+          <Row
+            icon="heart-outline"
+            iconColor="#FF2D55"
             label="Reactions & Tags"
-            subtitle="Who can like, comment and tag you"
+            sublabel="Who can like, comment and tag you"
             onPress={() => router.push("/settings/privacy-interactions" as any)}
+            last
+            colors={colors}
           />
-        </GlassMenuSection>
+        </Section>
 
         {/* ── SAFETY ───────────────────────────────────────────────────── */}
-        <GlassMenuSection title="SAFETY">
-          <GlassMenuItem
-            icon="ban"
+        <Section title="SAFETY" colors={colors}>
+          <Row
+            icon="ban-outline"
+            iconColor="#FF3B30"
             label="Blocked Users"
-            subtitle="Manage accounts you have blocked"
+            sublabel="Manage accounts you have blocked"
             danger
             onPress={() => router.push("/settings/blocked")}
+            colors={colors}
           />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="flag"
+          <Row
+            icon="flag-outline"
+            iconColor="#FF9500"
             label="Restricted Accounts"
-            subtitle="Limit interactions without blocking"
+            sublabel="Limit interactions without blocking"
             onPress={() => router.push("/settings/privacy-restricted" as any)}
+            last
+            colors={colors}
           />
-        </GlassMenuSection>
+        </Section>
 
         {/* ── DATA ─────────────────────────────────────────────────────── */}
-        <GlassMenuSection title="DATA">
-          <GlassMenuItem
-            icon="analytics"
+        <Section title="DATA" colors={colors}>
+          <Row
+            icon="analytics-outline"
+            iconColor="#0A84FF"
             label="Activity Data"
-            subtitle="Manage how your activity is used"
+            sublabel="Manage how your activity is used"
             onPress={() => router.push("/settings/privacy-data" as any)}
+            last
+            colors={colors}
           />
-        </GlassMenuSection>
+        </Section>
       </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   root: { flex: 1 },
-  body: { paddingHorizontal: 16, paddingTop: 24, gap: 28 },
+  body: { paddingHorizontal: 16, paddingTop: 16, gap: 0 },
+
+  section: { marginBottom: 20 },
+  sectionLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.6, marginBottom: 8, paddingHorizontal: 4 },
+  card: { borderRadius: 18, overflow: "hidden" },
+
+  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12 },
+  iconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  rowText: { flex: 1 },
+  rowLabel: { fontSize: 15, fontFamily: "Inter_500Medium" },
+  rowSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2, lineHeight: 17 },
+  divider: { height: 0.5, marginHorizontal: 16 },
 });

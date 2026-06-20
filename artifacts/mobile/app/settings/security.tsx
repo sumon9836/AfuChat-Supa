@@ -22,8 +22,89 @@ import { useTheme } from "@/hooks/useTheme";
 import { showAlert } from "@/lib/alert";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { GlassMenuSection, GlassMenuItem, GlassMenuSeparator } from "@/components/ui/GlassMenuItem";
 import { TwoFactorGate } from "@/components/ui/TwoFactorGate";
+
+// ─── Section ──────────────────────────────────────────────────────────────────
+function Section({
+  title,
+  children,
+  colors,
+}: {
+  title: string;
+  children: React.ReactNode;
+  colors: ReturnType<typeof useTheme>["colors"];
+}) {
+  return (
+    <View style={sec.section}>
+      <Text style={[sec.sectionLabel, { color: colors.textMuted }]}>{title}</Text>
+      <View style={[sec.card, { backgroundColor: colors.card }]}>{children}</View>
+    </View>
+  );
+}
+
+// ─── Row ──────────────────────────────────────────────────────────────────────
+function Row({
+  icon,
+  iconColor,
+  label,
+  sublabel,
+  last,
+  danger,
+  loading: rowLoading,
+  onPress,
+  colors,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  iconColor: string;
+  label: string;
+  sublabel?: string;
+  last?: boolean;
+  danger?: boolean;
+  loading?: boolean;
+  onPress?: () => void;
+  colors: ReturnType<typeof useTheme>["colors"];
+}) {
+  const ic = danger ? "#FF3B30" : iconColor;
+  return (
+    <>
+      <TouchableOpacity
+        style={sec.row}
+        onPress={onPress}
+        activeOpacity={onPress ? 0.7 : 1}
+        disabled={!onPress || rowLoading}
+      >
+        <View style={[sec.iconWrap, { backgroundColor: ic + "18" }]}>
+          {rowLoading
+            ? <ActivityIndicator size="small" color={ic} />
+            : <Ionicons name={icon} size={18} color={ic} />
+          }
+        </View>
+        <View style={sec.rowText}>
+          <Text style={[sec.rowLabel, { color: danger ? "#FF3B30" : colors.text }]}>{label}</Text>
+          {sublabel && (
+            <Text style={[sec.rowSub, { color: colors.textMuted }]} numberOfLines={2}>{sublabel}</Text>
+          )}
+        </View>
+        {onPress && !rowLoading && (
+          <Ionicons name="chevron-forward" size={15} color={danger ? "#FF3B3088" : colors.textMuted} style={{ marginLeft: 2 }} />
+        )}
+      </TouchableOpacity>
+      {!last && <View style={[sec.divider, { backgroundColor: colors.separator }]} />}
+    </>
+  );
+}
+
+const sec = StyleSheet.create({
+  section: { marginBottom: 0 },
+  sectionLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.6, marginBottom: 8, paddingHorizontal: 4 },
+  card: { borderRadius: 18, overflow: "hidden" },
+  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12 },
+  iconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  rowText: { flex: 1 },
+  rowLabel: { fontSize: 15, fontFamily: "Inter_500Medium" },
+  rowSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2, lineHeight: 17 },
+  divider: { height: 0.5, marginHorizontal: 16 },
+});
 import Colors from "@/constants/colors";
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -201,50 +282,61 @@ export default function SecuritySettingsScreen() {
         </GlassCard>
 
         {/* ── SECURITY ─────────────────────────────────────────────────── */}
-        <GlassMenuSection title="SECURITY">
-          <GlassMenuItem
+        <Section title="SECURITY" colors={colors}>
+          <Row
             icon="key-outline"
+            iconColor="#0A84FF"
             label="Change Password"
-            subtitle="Update your account password"
+            sublabel="Update your account password"
             onPress={() => setShowPwdGate(true)}
+            colors={colors}
           />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="shield-checkmark-outline"
+          <Row
+            icon="phone-portrait-outline"
+            iconColor="#30D158"
             label="Device Security"
-            subtitle="PIN lock, biometrics, trusted devices"
+            sublabel="PIN lock, biometrics, trusted devices"
             onPress={() => router.push("/device-security" as any)}
+            last
+            colors={colors}
           />
-        </GlassMenuSection>
+        </Section>
 
         {/* ── YOUR DATA ────────────────────────────────────────────────── */}
-        <GlassMenuSection title="YOUR DATA">
-          <GlassMenuItem
-            icon="download-outline"
+        <Section title="YOUR DATA" colors={colors}>
+          <Row
+            icon="cloud-download-outline"
+            iconColor="#0A84FF"
             label="Download My Data"
-            subtitle="Export profile, posts, contacts & transactions"
-            onPress={() => setShowDownloadGate(true)}
+            sublabel="Export profile, posts, contacts & transactions"
             loading={downloading}
+            onPress={() => setShowDownloadGate(true)}
+            last
+            colors={colors}
           />
-        </GlassMenuSection>
+        </Section>
 
         {/* ── DANGER ZONE ───────────────────────────────────────────────── */}
-        <GlassMenuSection title="DANGER ZONE">
-          <GlassMenuItem
+        <Section title="DANGER ZONE" colors={colors}>
+          <Row
             icon="trash-outline"
+            iconColor="#FF3B30"
             label="Delete Account"
+            sublabel="Schedule permanent deletion after 30 days"
             danger
-            noChevron={false}
             onPress={() => setShowDeleteGate(true)}
+            colors={colors}
           />
-          <GlassMenuSeparator />
-          <GlassMenuItem
+          <Row
             icon="exit-outline"
+            iconColor="#FF9500"
             label="Sign Out of This Device"
-            subtitle="Removes all local data from this device"
+            sublabel="Removes all local data from this device"
             onPress={() => { setLogoutText(""); setShowLogoutStep1(true); }}
+            last
+            colors={colors}
           />
-        </GlassMenuSection>
+        </Section>
 
         <Text style={[styles.footerNote, { color: colors.textMuted }]}>
           Deleted accounts are held for 30 days. Log back in during this period to restore your account.

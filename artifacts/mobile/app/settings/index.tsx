@@ -451,6 +451,21 @@ export default function SettingsScreen() {
           )}
         </Section>
 
+        {/* ── Manage Account ────────────────────────────────────────────── */}
+        <Section title="MANAGE ACCOUNT" colors={colors}>
+          <Row
+            icon="person-remove-outline"
+            iconColor="#FF3B30"
+            iconBg="#FF3B3018"
+            label="Manage Account"
+            sublabel="Export data, delete account"
+            onPress={() => router.push("/settings/manage-account" as any)}
+            last
+            colors={colors}
+            accent={accent}
+          />
+        </Section>
+
         {/* ── Support & About ───────────────────────────────────────────── */}
         <Section title="SUPPORT & ABOUT" colors={colors}>
           <Row
