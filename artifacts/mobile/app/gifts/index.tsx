@@ -566,7 +566,7 @@ export default function GiftsScreen() {
           </View>
       </SwipeableBottomSheet>
 
-      <Modal visible={confirmConvert} animationType="fade" transparent>
+      <Modal visible={confirmConvert} animationType="none" transparent>
         <View style={styles.confirmOverlay}>
           <View style={[styles.confirmBox, { backgroundColor: colors.surface }]}>
             <View style={[styles.confirmIconWrap, { backgroundColor: "rgba(212,168,83,0.1)" }]}>
@@ -601,7 +601,7 @@ export default function GiftsScreen() {
         </View>
       </Modal>
 
-      <Modal visible={showListModal} animationType="fade" transparent>
+      <Modal visible={showListModal} animationType="none" transparent>
         <View style={styles.confirmOverlay}>
           <View style={[styles.confirmBox, { backgroundColor: colors.surface }]}>
             <View style={[styles.confirmIconWrap, { backgroundColor: "rgba(255,149,0,0.1)" }]}>

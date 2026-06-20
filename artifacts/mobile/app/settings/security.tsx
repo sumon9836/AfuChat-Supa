@@ -367,7 +367,7 @@ export default function SecuritySettingsScreen() {
       />
 
       {/* ── Change Password modal ──────────────────────────────────────── */}
-      <Modal visible={showChangePwd} animationType="slide" transparent>
+      <Modal visible={showChangePwd} animationType="none" transparent>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <GlassCard style={styles.modalSheet} variant="strong">
@@ -393,7 +393,7 @@ export default function SecuritySettingsScreen() {
       </Modal>
 
       {/* ── Delete Account modal ───────────────────────────────────────── */}
-      <Modal visible={showDeleteModal} animationType="slide" transparent>
+      <Modal visible={showDeleteModal} animationType="none" transparent>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <GlassCard style={styles.modalSheet} variant="strong">
@@ -427,7 +427,7 @@ export default function SecuritySettingsScreen() {
       </Modal>
 
       {/* ── Sign Out Step 1: Warning ────────────────────────────────────── */}
-      <Modal visible={showLogoutStep1} animationType="slide" transparent>
+      <Modal visible={showLogoutStep1} animationType="none" transparent>
         <View style={styles.modalOverlay}>
           <GlassCard style={styles.modalSheet} variant="strong">
             <View style={styles.dragHandle} />
@@ -472,7 +472,7 @@ export default function SecuritySettingsScreen() {
       </Modal>
 
       {/* ── Sign Out Step 2: Type SIGN OUT + countdown ──────────────────── */}
-      <Modal visible={showLogoutStep2} animationType="slide" transparent>
+      <Modal visible={showLogoutStep2} animationType="none" transparent>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <GlassCard style={styles.modalSheet} variant="strong">

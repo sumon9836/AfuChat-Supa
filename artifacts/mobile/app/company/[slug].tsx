@@ -974,7 +974,7 @@ export default function CompanyPageScreen() {
       )}
 
       {/* ─── Post Update Modal ─── */}
-      <Modal visible={showPostModal} transparent animationType="slide" onRequestClose={closePostModal}>
+      <Modal visible={showPostModal} transparent animationType="none" onRequestClose={closePostModal}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closePostModal}>
           <KeyboardAvoidingView behavior="padding" style={{ width: "100%" }}>
             <TouchableOpacity activeOpacity={1} onPress={() => {}}>
@@ -1169,7 +1169,7 @@ export default function CompanyPageScreen() {
       </Modal>
 
       {/* ─── Post Job Modal ─── */}
-      <Modal visible={showJobModal} transparent animationType="slide" onRequestClose={() => setShowJobModal(false)}>
+      <Modal visible={showJobModal} transparent animationType="none" onRequestClose={() => setShowJobModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowJobModal(false)}>
           <KeyboardAvoidingView behavior="padding" style={{ width: "100%" }}>
             <Pressable>
@@ -1284,7 +1284,7 @@ export default function CompanyPageScreen() {
       </Modal>
 
       {/* ─── Page-to-page follow modal ─── */}
-      <Modal visible={showPageFollowModal} transparent animationType="slide" onRequestClose={() => setShowPageFollowModal(false)}>
+      <Modal visible={showPageFollowModal} transparent animationType="none" onRequestClose={() => setShowPageFollowModal(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPageFollowModal(false)}>
           <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />

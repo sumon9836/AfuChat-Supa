@@ -391,7 +391,7 @@ function ReplyCard({
               <TouchableOpacity activeOpacity={0.88} onPress={() => setImgExpanded(true)} style={{ marginTop: 7, borderRadius: 10, overflow: "hidden", alignSelf: "flex-start" }}>
                 <Image source={{ uri: item.image_url }} style={{ width: 200, height: 140, borderRadius: 10 }} resizeMode="cover" />
               </TouchableOpacity>
-              <Modal visible={imgExpanded} transparent animationType="fade" onRequestClose={() => setImgExpanded(false)}>
+              <Modal visible={imgExpanded} transparent animationType="none" onRequestClose={() => setImgExpanded(false)}>
                 <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.92)", alignItems: "center", justifyContent: "center" }} onPress={() => setImgExpanded(false)}>
                   <Image source={{ uri: item.image_url }} style={{ width: "92%", height: "70%", borderRadius: 14 }} resizeMode="contain" />
                   <TouchableOpacity onPress={() => setImgExpanded(false)} style={{ position: "absolute", top: 52, right: 20, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }}>
@@ -1365,7 +1365,7 @@ export default function PostDetailScreen() {
       </KeyboardAvoidingView>
 
       {/* Context menu */}
-      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+      <Modal visible={menuVisible} transparent animationType="none" onRequestClose={() => setMenuVisible(false)}>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
           <View style={[styles.menuSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]}>
             <View style={[styles.menuHandle, { backgroundColor: colors.border }]} />
@@ -1405,7 +1405,7 @@ export default function PostDetailScreen() {
       </Modal>
 
       {/* Report modal */}
-      <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)}>
+      <Modal visible={reportVisible} transparent animationType="none" onRequestClose={() => setReportVisible(false)}>
         <View style={styles.menuOverlay}>
           <View style={[styles.reportSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]}>
             <View style={[styles.menuHandle, { backgroundColor: colors.border }]} />

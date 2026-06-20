@@ -497,7 +497,7 @@ export default function CreatePostScreen() {
         )}
       </View>
 
-      <Modal visible={showAudienceModal} transparent animationType="fade" onRequestClose={() => setShowAudienceModal(false)}>
+      <Modal visible={showAudienceModal} transparent animationType="none" onRequestClose={() => setShowAudienceModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowAudienceModal(false)}>
           <View style={[styles.modalSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
@@ -522,7 +522,7 @@ export default function CreatePostScreen() {
         </Pressable>
       </Modal>
 
-      <Modal visible={showLangModal} transparent animationType="fade" onRequestClose={() => setShowLangModal(false)}>
+      <Modal visible={showLangModal} transparent animationType="none" onRequestClose={() => setShowLangModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowLangModal(false)}>
           <Pressable style={[styles.modalSheet, styles.langSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]} onPress={() => {}}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
@@ -565,7 +565,7 @@ export default function CreatePostScreen() {
         </Pressable>
       </Modal>
 
-      <Modal visible={showLocationModal} transparent animationType="fade" onRequestClose={() => setShowLocationModal(false)}>
+      <Modal visible={showLocationModal} transparent animationType="none" onRequestClose={() => setShowLocationModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowLocationModal(false)}>
           <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]} onPress={() => {}}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
@@ -614,7 +614,7 @@ export default function CreatePostScreen() {
         </Pressable>
       </Modal>
 
-      <Modal visible={showMentionModal} transparent animationType="fade" onRequestClose={() => setShowMentionModal(false)}>
+      <Modal visible={showMentionModal} transparent animationType="none" onRequestClose={() => setShowMentionModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowMentionModal(false)}>
           <Pressable style={[styles.modalSheet, styles.langSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]} onPress={() => {}}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />

@@ -309,7 +309,7 @@ export default function CartScreen() {
         </>
       )}
 
-      <Modal visible={orderDone} transparent animationType="fade" onRequestClose={() => setOrderDone(false)}>
+      <Modal visible={orderDone} transparent animationType="none" onRequestClose={() => setOrderDone(false)}>
         <View style={styles.modalOverlay}>
           <View style={[styles.successSheet, { backgroundColor: colors.surface }]}>
             <Text style={{ fontSize: 72 }}>🎉</Text>

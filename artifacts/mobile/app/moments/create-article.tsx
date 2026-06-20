@@ -285,7 +285,7 @@ export default function CreateArticleScreen() {
       </View>
 
       {/* Audience Modal */}
-      <Modal visible={showAudienceModal} transparent animationType="slide" onRequestClose={() => setShowAudienceModal(false)}>
+      <Modal visible={showAudienceModal} transparent animationType="none" onRequestClose={() => setShowAudienceModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowAudienceModal(false)}>
           <View style={[styles.modalSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />

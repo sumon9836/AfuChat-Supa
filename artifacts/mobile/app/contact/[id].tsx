@@ -503,7 +503,7 @@ export default function ContactScreen() {
         <Modal
           visible={avatarModalVisible}
           transparent
-          animationType="fade"
+          animationType="none"
           onRequestClose={() => setAvatarModalVisible(false)}>
           <TouchableOpacity
             style={s.avatarModalBg}

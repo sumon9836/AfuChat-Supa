@@ -362,7 +362,7 @@ export default function ProductDetailScreen() {
       )}
 
       {/* ── Order success modal ── */}
-      <Modal visible={!!orderDone} transparent animationType="fade">
+      <Modal visible={!!orderDone} transparent animationType="none">
         <View style={st.successOverlay}>
           <View style={[st.successCard, { backgroundColor: colors.surface }]}>
             <View style={[st.successIcon, { backgroundColor: "#34C75920" }]}>
@@ -378,7 +378,7 @@ export default function ProductDetailScreen() {
       </Modal>
 
       {/* ── Checkout modal ── */}
-      <Modal visible={showCheckout} transparent animationType="slide">
+      <Modal visible={showCheckout} transparent animationType="none">
         <View style={st.checkoutOverlay}>
           <View style={[st.checkoutCard, { backgroundColor: colors.background }]}>
             {/* Handle */}

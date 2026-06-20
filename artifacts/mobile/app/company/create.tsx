@@ -865,7 +865,7 @@ export default function CreateCompanyPageScreen() {
       </View>
 
       {/* Industry picker modal */}
-      <Modal visible={showIndustryPicker} transparent animationType="slide" onRequestClose={() => setShowIndustryPicker(false)}>
+      <Modal visible={showIndustryPicker} transparent animationType="none" onRequestClose={() => setShowIndustryPicker(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowIndustryPicker(false)}>
           <View style={[styles.pickerSheet, { backgroundColor: colors.surface }]}>
             <View style={[styles.pickerHandle, { backgroundColor: colors.border }]} />

@@ -524,7 +524,7 @@ export default function OrderDetailScreen() {
       )}
 
       {/* Dispute Modal */}
-      <Modal visible={showDisputeModal} transparent animationType="slide" onRequestClose={() => setShowDisputeModal(false)}>
+      <Modal visible={showDisputeModal} transparent animationType="none" onRequestClose={() => setShowDisputeModal(false)}>
         <View style={st.modalOverlay}>
           <View style={[st.modalSheet, { backgroundColor: colors.surface }]}>
             <View style={st.modalHandle} />
@@ -565,7 +565,7 @@ export default function OrderDetailScreen() {
       </Modal>
 
       {/* Review Modal */}
-      <Modal visible={showReviewModal} transparent animationType="slide" onRequestClose={() => setShowReviewModal(false)}>
+      <Modal visible={showReviewModal} transparent animationType="none" onRequestClose={() => setShowReviewModal(false)}>
         <View style={st.modalOverlay}>
           <View style={[st.modalSheet, { backgroundColor: colors.surface }]}>
             <View style={st.modalHandle} />

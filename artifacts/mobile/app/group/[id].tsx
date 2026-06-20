@@ -84,7 +84,7 @@ function BottomSheet({
 
   if (Platform.OS === "web" && isDesktop) {
     return (
-      <Modal transparent animationType="fade" onRequestClose={onClose}>
+      <Modal transparent animationType="none" onRequestClose={onClose}>
         <TouchableOpacity
           style={bsDesktop.backdrop}
           activeOpacity={1}
@@ -99,7 +99,7 @@ function BottomSheet({
   }
 
   return (
-    <Modal transparent animationType="slide" onRequestClose={onClose}>
+    <Modal transparent animationType="none" onRequestClose={onClose}>
       <TouchableOpacity style={bs.overlay} activeOpacity={1} onPress={onClose} />
       <View style={bs.sheet}>{children}</View>
     </Modal>
@@ -801,7 +801,7 @@ export default function GroupManageScreen() {
       </ScrollView>
 
       {/* ── Edit Name / Description modal ─── */}
-      <Modal visible={showEditModal} transparent animationType="fade" onRequestClose={() => setShowEditModal(false)}>
+      <Modal visible={showEditModal} transparent animationType="none" onRequestClose={() => setShowEditModal(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <TouchableOpacity
           style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24 }}

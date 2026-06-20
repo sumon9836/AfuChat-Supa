@@ -619,7 +619,7 @@ export default function MeScreen() {
       />
 
       {/* ── Username Purchase Details Modal ─────────────────────────────── */}
-      <Modal visible={!!purchasePopup} transparent animationType="fade" onRequestClose={() => setPurchasePopup(null)}>
+      <Modal visible={!!purchasePopup} transparent animationType="none" onRequestClose={() => setPurchasePopup(null)}>
         <TouchableOpacity
           style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}
           activeOpacity={1}

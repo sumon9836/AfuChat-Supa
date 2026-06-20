@@ -661,7 +661,7 @@ const PostCard = React.memo(function PostCard({ item, onToggleLike, onToggleBook
         onClose={() => { setShowShareModal(false); setShareablePost(null); }}
       />
 
-      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+      <Modal visible={menuVisible} transparent animationType="none" onRequestClose={() => setMenuVisible(false)}>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
           <View style={[styles.menuSheet, { backgroundColor: colors.surface, paddingBottom: cardInsets.bottom + 12 }]}>
             <View style={[styles.menuHandle, { backgroundColor: colors.border }]} />
@@ -2246,7 +2246,7 @@ export default function DiscoverScreen() {
       <Modal
         visible={showCreatePicker}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={() => setShowCreatePicker(false)}
       >
         <TouchableOpacity

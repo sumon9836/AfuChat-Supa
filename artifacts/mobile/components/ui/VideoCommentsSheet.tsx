@@ -399,7 +399,7 @@ function VideoReplyItem({
                   resizeMode="cover"
                 />
               </TouchableOpacity>
-              <Modal visible={imgExpanded} transparent animationType="fade" onRequestClose={() => setImgExpanded(false)}>
+              <Modal visible={imgExpanded} transparent animationType="none" onRequestClose={() => setImgExpanded(false)}>
                 <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.9)", alignItems: "center", justifyContent: "center" }} onPress={() => setImgExpanded(false)}>
                   <Image source={{ uri: r.image_url }} style={{ width: "92%", height: "70%", borderRadius: 16 }} resizeMode="contain" />
                   <TouchableOpacity onPress={() => setImgExpanded(false)} style={{ position: "absolute", top: 52, right: 20, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }}>
@@ -1017,7 +1017,7 @@ export function VideoCommentsSheet({
   // ─── Desktop: right-side panel ────────────────────────────────────────────
   if (isDesktopWeb) {
     return (
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
         <View style={{ flex: 1, flexDirection: "row" }}>
           <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} onPress={onClose} />
           <View style={dpStyles.panel}>

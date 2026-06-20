@@ -598,7 +598,7 @@ export default function ManageCompanyPageScreen() {
       </KeyboardAvoidingView>
 
       {/* Verification request modal */}
-      <Modal visible={showVerifyModal} transparent animationType="slide" onRequestClose={() => setShowVerifyModal(false)}>
+      <Modal visible={showVerifyModal} transparent animationType="none" onRequestClose={() => setShowVerifyModal(false)}>
         <TouchableOpacity style={verSt.overlay} activeOpacity={1} onPress={() => setShowVerifyModal(false)}>
           <TouchableOpacity activeOpacity={1} onPress={() => {}}>
             <ScrollView
@@ -750,7 +750,7 @@ export default function ManageCompanyPageScreen() {
       </Modal>
 
       {/* Industry picker sheet */}
-      <Modal visible={verPickerVisible} transparent animationType="slide" onRequestClose={() => setVerPickerVisible(false)}>
+      <Modal visible={verPickerVisible} transparent animationType="none" onRequestClose={() => setVerPickerVisible(false)}>
         <TouchableOpacity style={verSt.overlay} activeOpacity={1} onPress={() => setVerPickerVisible(false)}>
           <TouchableOpacity activeOpacity={1} onPress={() => {}}>
             <View style={[verSt.pickerSheet, { backgroundColor: colors.surface }]}>

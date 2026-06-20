@@ -253,7 +253,7 @@ export default function ManageAccountScreen() {
       />
 
       {/* ── Delete Account Modal ───────────────────────────────────────────── */}
-      <Modal visible={showDeleteModal} animationType="slide" transparent>
+      <Modal visible={showDeleteModal} animationType="none" transparent>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <View style={s.modalOverlay}>
             <GlassCard style={s.modalSheet} variant="strong">

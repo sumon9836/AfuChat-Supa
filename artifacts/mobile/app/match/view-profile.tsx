@@ -228,7 +228,7 @@ export default function ViewProfileScreen() {
       </ScrollView>
 
       {/* Report Modal */}
-      <Modal visible={showReport} transparent animationType="slide" onRequestClose={() => setShowReport(false)}>
+      <Modal visible={showReport} transparent animationType="none" onRequestClose={() => setShowReport(false)}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.reportSheet, { backgroundColor: colors.surface }]}>
             <View style={styles.sheetHandle} />

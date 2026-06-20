@@ -6361,7 +6361,7 @@ STRICT RULES:
       <Modal
         visible={showAttachPanel}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={() => setShowAttachPanel(false)}
       >
         {(() => {
@@ -6885,7 +6885,7 @@ STRICT RULES:
         currentChatId={chatInfo && !chatInfo.is_group && chatInfo.other_id === miniProfileUserId ? chatInfo.other_id : null}
       />
 
-      <Modal visible={!!showReactions} transparent animationType="fade" onRequestClose={() => { setShowReactions(null); setAiResult(null); setAiResultType(null); setAiReplies([]); setShowMoreEmojis(false); }}>
+      <Modal visible={!!showReactions} transparent animationType="none" onRequestClose={() => { setShowReactions(null); setAiResult(null); setAiResultType(null); setAiReplies([]); setShowMoreEmojis(false); }}>
         <View style={st.reactModalOverlay}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => { setShowReactions(null); setAiResult(null); setAiResultType(null); setAiReplies([]); setShowMoreEmojis(false); }} />
 
@@ -7403,7 +7403,7 @@ STRICT RULES:
         </View>
       </BottomSheet>
 
-      <Modal visible={!!envReveal} transparent animationType="fade" onRequestClose={() => setEnvReveal(null)}>
+      <Modal visible={!!envReveal} transparent animationType="none" onRequestClose={() => setEnvReveal(null)}>
         <View style={st.envRevealOverlay}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setEnvReveal(null)} />
           <View style={[st.envRevealCard, { backgroundColor: colors.surface }]}>
@@ -7444,7 +7444,7 @@ STRICT RULES:
         </View>
       </Modal>
 
-      <Modal visible={!!giftReveal} transparent animationType="fade" onRequestClose={() => setGiftReveal(null)}>
+      <Modal visible={!!giftReveal} transparent animationType="none" onRequestClose={() => setGiftReveal(null)}>
         <View style={st.giftRevealOverlay}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setGiftReveal(null)} />
           <View style={[st.giftRevealContainer, { backgroundColor: colors.surface }]}>
@@ -7483,7 +7483,7 @@ STRICT RULES:
         <Modal
           visible={showChatOptions}
           transparent
-          animationType="fade"
+          animationType="none"
           onRequestClose={() => setShowChatOptions(false)}
         >
           <View style={{ flex: 1 }}>
@@ -7598,7 +7598,7 @@ STRICT RULES:
         <Modal
           visible
           transparent
-          animationType="fade"
+          animationType="none"
           statusBarTranslucent
           onRequestClose={() => { setShowChatOptions(false); setShowMutePicker(false); setShowDisappearingPicker(false); }}
         >
@@ -7717,7 +7717,7 @@ STRICT RULES:
         <Modal
           visible
           transparent
-          animationType="slide"
+          animationType="none"
           onRequestClose={() => { setForwardMsg(null); setForwardChats([]); }}
         >
           <View style={[st.forwardOverlay]}>
@@ -7769,7 +7769,7 @@ STRICT RULES:
       <Modal
         visible={showAddMembers}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={() => setShowAddMembers(false)}
       >
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
@@ -7904,7 +7904,7 @@ STRICT RULES:
       <Modal
         visible={showInviteLink}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={() => { setShowInviteLink(false); setInviteLinkCopied(false); }}
       >
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
@@ -8019,7 +8019,7 @@ STRICT RULES:
       <Modal
         visible={!!editHistoryMsg}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={() => { setEditHistoryMsg(null); setEditHistoryItems([]); }}
       >
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>

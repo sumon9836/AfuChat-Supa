@@ -789,7 +789,7 @@ export default function PostShortLinkScreen() {
         )}
       </KeyboardAvoidingView>
 
-      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+      <Modal visible={menuVisible} transparent animationType="none" onRequestClose={() => setMenuVisible(false)}>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
           <View style={[styles.menuSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]}>
             <View style={[styles.menuHandle, { backgroundColor: colors.border }]} />
@@ -823,7 +823,7 @@ export default function PostShortLinkScreen() {
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)}>
+      <Modal visible={reportVisible} transparent animationType="none" onRequestClose={() => setReportVisible(false)}>
         <View style={styles.reportOverlay}>
           <View style={[styles.reportSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 12 }]}>
             <View style={[styles.menuHandle, { backgroundColor: colors.border }]} />

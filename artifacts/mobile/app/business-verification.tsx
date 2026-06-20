@@ -472,7 +472,7 @@ export default function BusinessVerificationScreen() {
       </KeyboardAvoidingView>
 
       {/* Org Type Picker */}
-      <Modal visible={showOrgTypePicker} transparent animationType="slide" onRequestClose={() => setShowOrgTypePicker(false)}>
+      <Modal visible={showOrgTypePicker} transparent animationType="none" onRequestClose={() => setShowOrgTypePicker(false)}>
         <TouchableOpacity style={st.modalOverlay} activeOpacity={1} onPress={() => setShowOrgTypePicker(false)}>
           <View style={[st.pickerSheet, { backgroundColor: colors.surface }]}>
             <View style={[st.pickerSheetHandle, { backgroundColor: colors.border }]} />
@@ -498,7 +498,7 @@ export default function BusinessVerificationScreen() {
       </Modal>
 
       {/* Industry Picker */}
-      <Modal visible={showIndustryPicker} transparent animationType="slide" onRequestClose={() => setShowIndustryPicker(false)}>
+      <Modal visible={showIndustryPicker} transparent animationType="none" onRequestClose={() => setShowIndustryPicker(false)}>
         <TouchableOpacity style={st.modalOverlay} activeOpacity={1} onPress={() => setShowIndustryPicker(false)}>
           <View style={[st.pickerSheet, { backgroundColor: colors.surface }]}>
             <View style={[st.pickerSheetHandle, { backgroundColor: colors.border }]} />
