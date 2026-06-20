@@ -362,10 +362,62 @@ export default function ContactScreen() {
               )}
             </View>
 
-            {/* Prestige pill */}
-            <View style={[s.prestigePill, { backgroundColor: prestige.color + "1A", borderColor: prestige.color + "44" }]}>
-              <Text style={s.prestigeEmoji}>{prestige.emoji}</Text>
-              <Text style={[s.prestigeText, { color: prestige.color }]}>{prestige.label}</Text>
+            {/* Prestige pill + inline action icons */}
+            <View style={s.pillActionRow}>
+              <View style={[s.prestigePill, { backgroundColor: prestige.color + "1A", borderColor: prestige.color + "44" }]}>
+                <Text style={s.prestigeEmoji}>{prestige.emoji}</Text>
+                <Text style={[s.prestigeText, { color: prestige.color }]}>{prestige.label}</Text>
+              </View>
+
+              {!isSelf && user && (
+                <>
+                  <TouchableOpacity
+                    style={[s.pillIconBtn, { backgroundColor: accent + "18" }]}
+                    onPress={handleMessage} activeOpacity={0.8}>
+                    <Ionicons name="chatbubble-outline" size={15} color={accent} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.pillIconBtn, { backgroundColor: "#FF2D5518" }]}
+                    onPress={() => router.push({ pathname: "/gifts/index", params: { recipientId: id } } as any)}
+                    activeOpacity={0.8}>
+                    <Ionicons name="gift-outline" size={15} color="#FF2D55" />
+                  </TouchableOpacity>
+                  {isOrg && (
+                    <TouchableOpacity
+                      style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
+                      onPress={() => router.push({ pathname: "/shop/[userId]", params: { userId: id } } as any)}
+                      activeOpacity={0.8}>
+                      <Ionicons name="storefront-outline" size={15} color={colors.text} />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
+                    onPress={() => showAlert("More", undefined, [
+                      { text: "Share Profile",    onPress: () => showToast("Link copied", { type: "info" }) },
+                      { text: "Add to Contacts",  onPress: () => showToast("Saved", { type: "success" }) },
+                      { text: "Report", style: "destructive", onPress: () => {} },
+                      { text: "Block",  style: "destructive", onPress: () => {} },
+                      { text: "Cancel", style: "cancel" },
+                    ])} activeOpacity={0.8}>
+                    <Ionicons name="ellipsis-horizontal" size={15} color={colors.text} />
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {isSelf && (
+                <>
+                  <TouchableOpacity
+                    style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
+                    onPress={() => showToast("Share link copied", { type: "info" })} activeOpacity={0.8}>
+                    <Ionicons name="share-outline" size={15} color={colors.text} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
+                    onPress={() => router.push("/settings")} activeOpacity={0.8}>
+                    <Ionicons name="settings-outline" size={15} color={colors.text} />
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
 
@@ -527,58 +579,6 @@ export default function ContactScreen() {
           </TouchableOpacity>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {/* ACTION BUTTONS                                                 */}
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {!isSelf && user && (
-          <View style={s.actionRow}>
-            <TouchableOpacity
-              style={[s.actionIconBtn, { backgroundColor: accent + "18" }]}
-              onPress={handleMessage} activeOpacity={0.8}>
-              <Ionicons name="chatbubble-outline" size={18} color={accent} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.actionIconBtn, { backgroundColor: "#FF2D5518" }]}
-              onPress={() => router.push({ pathname: "/gifts/index", params: { recipientId: id } } as any)}
-              activeOpacity={0.8}>
-              <Ionicons name="gift-outline" size={18} color="#FF2D55" />
-            </TouchableOpacity>
-            {isOrg && (
-              <TouchableOpacity
-                style={[s.actionIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-                onPress={() => router.push({ pathname: "/shop/[userId]", params: { userId: id } } as any)}
-                activeOpacity={0.8}>
-                <Ionicons name="storefront-outline" size={18} color={colors.text} />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[s.actionIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-              onPress={() => showAlert("More", undefined, [
-                { text: "Share Profile", onPress: () => showToast("Link copied", { type: "info" }) },
-                { text: "Add to Contacts", onPress: () => showToast("Saved", { type: "success" }) },
-                { text: "Report", style: "destructive", onPress: () => {} },
-                { text: "Block",  style: "destructive", onPress: () => {} },
-                { text: "Cancel", style: "cancel" },
-              ])} activeOpacity={0.8}>
-              <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-        )}
-        {isSelf && (
-          <View style={s.actionRow}>
-            <TouchableOpacity
-              style={[s.selfBtn, { flex: 1, backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-              onPress={() => showToast("Share link copied", { type: "info" })} activeOpacity={0.8}>
-              <Ionicons name="share-outline" size={16} color={colors.text} />
-              <Text style={[s.selfBtnText, { color: colors.text }]}>Share</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.actionIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-              onPress={() => router.push("/settings")} activeOpacity={0.8}>
-              <Ionicons name="settings-outline" size={18} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-        )}
 
 
         {/* ════════════════════════════════════════════════════════════════ */}
@@ -819,20 +819,15 @@ const s = StyleSheet.create({
   mutualsLabel: { fontSize: 10.5, fontFamily: "Inter_400Regular", marginBottom: 1 },
   mutualsText: { fontSize: 12.5, fontFamily: "Inter_500Medium" },
 
-  // Action buttons — no border, tinted backgrounds
-  actionRow: {
-    flexDirection: "row", gap: 8,
-    marginHorizontal: 16, marginBottom: 8,
+  // Prestige pill + inline action icons (same row)
+  pillActionRow: {
+    flexDirection: "row", alignItems: "center",
+    gap: 7, flexWrap: "wrap",
   },
-  actionIconBtn: {
-    width: 40, height: 40, borderRadius: 20,
+  pillIconBtn: {
+    width: 30, height: 30, borderRadius: 15,
     alignItems: "center", justifyContent: "center",
   },
-  selfBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, height: 40, borderRadius: 20,
-  },
-  selfBtnText: { fontSize: 13.5, fontFamily: "Inter_600SemiBold" },
 
   // Tab bar
   tabBar: {
