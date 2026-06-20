@@ -194,7 +194,6 @@ export default function MeScreen() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [postCount, setPostCount] = useState(0);
-  const isAdmin = !!profile?.is_admin;
   const insets = useSafeAreaInsets();
 
   type PurchaseInfo = { handle: string; price: number; purchasedAt: string; sellerHandle: string | null };
@@ -515,8 +514,7 @@ export default function MeScreen() {
           <MenuCard colors={colors}>
             <MenuItem icon="grid-outline" iconColor={Colors.brand} label="My Posts" value={`${fmtCount(postCount)} posts`} onPress={() => router.push("/my-posts")} showSeparator colors={colors} />
             <MenuItem icon="bookmark-outline" iconColor={colors.icon} label="Saved Posts" onPress={() => router.push("/saved-posts" as any)} showSeparator colors={colors} />
-            <MenuItem icon="time-outline" iconColor="#00BCD4" label="Watch History" onPress={() => router.push("/watch-history" as any)} showSeparator colors={colors} />
-            <MenuItem icon="bar-chart-outline" iconColor={colors.icon} label="Creator Analytics" onPress={() => router.push("/video-analytics" as any)} colors={colors} />
+            <MenuItem icon="time-outline" iconColor="#00BCD4" label="Watch History" onPress={() => router.push("/watch-history" as any)} colors={colors} />
           </MenuCard>
         </View>
 
@@ -557,28 +555,6 @@ export default function MeScreen() {
           <TrustpilotReviewCard />
         </View>
 
-        {/* ── Creator (admin only) ───────────────────────────────────────── */}
-        {isAdmin && (
-          <View>
-            <SectionLabel label="Creator" colors={colors} />
-            <MenuCard colors={colors}>
-              <MenuItem icon="videocam-outline" iconColor={colors.icon} label="Creator Studio" badge="Admin" badgeColor={accent} onPress={() => router.push("/monetize")} colors={colors} />
-            </MenuCard>
-          </View>
-        )}
-
-        {/* ── Staff / Admin ──────────────────────────────────────────────── */}
-        {(profile?.is_admin || profile?.is_support_staff) && (
-          <View>
-            <SectionLabel label="Staff" colors={colors} />
-            <MenuCard colors={colors}>
-              <MenuItem icon="headset-outline" iconColor={colors.icon} label="Support Dashboard" badge="Staff" badgeColor={accent} onPress={() => router.push("/admin/support-dashboard" as any)} showSeparator={!!profile?.is_admin} colors={colors} />
-              {profile?.is_admin && (
-                <MenuItem icon="shield-checkmark" iconColor={accent} label="Admin Dashboard" badge="Admin" badgeColor={accent} onPress={() => router.push("/admin")} colors={colors} />
-              )}
-            </MenuCard>
-          </View>
-        )}
 
       </ScrollView>
 

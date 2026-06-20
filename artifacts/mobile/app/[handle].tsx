@@ -260,9 +260,9 @@ const RESERVED_ROUTES = new Set([
   "about", "advanced-features", "lab", "achievements", "watch-history",
   "referral", "prestige", "store", "premium", "status", "digital-id",
   "qr-scanner", "create-post", "followers", "saved-posts", "collections",
-  "language-settings", "linked-accounts", "device-security", "monetize",
+  "language-settings", "linked-accounts", "device-security",
   "call-history", "phone-contacts", "user-discovery", "username-market",
-  "video-analytics", "digital-events", "file-manager", "business",
+  "digital-events", "file-manager", "business",
   "business-verification", "paid-communities", "help", "lab",
 ]);
 

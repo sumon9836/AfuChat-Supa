@@ -35,7 +35,6 @@ type AppItem = {
   route: string;
   badge?: string;
   featuredSub?: string;
-  adminOnly?: boolean;
   orgOnly?: boolean;
   comingSoon?: boolean;
   miniApp?: boolean;
@@ -143,7 +142,6 @@ const CATEGORIES: Category[] = [
         route: "/mini-programs",
         miniApp: true,
         featuredSub: "Pay bills, top up, and access local services.",
-        adminOnly: true,
       },
       {
         id: "afufreelance",
@@ -154,7 +152,6 @@ const CATEGORIES: Category[] = [
         badge: "NEW",
         miniApp: true,
         featuredSub: "Hire talent or find work on AfuFreelance.",
-        adminOnly: true,
       },
     ],
   },
@@ -187,7 +184,6 @@ const CATEGORIES: Category[] = [
         route: "/collections",
         miniApp: true,
         featuredSub: "Curate and share themed collections.",
-        adminOnly: true,
       },
     ],
   },
@@ -214,7 +210,6 @@ const CATEGORIES: Category[] = [
         route: "/digital-events",
         miniApp: true,
         featuredSub: "Discover local and online events near you.",
-        adminOnly: true,
       },
       {
         id: "afuusernames",
@@ -224,7 +219,6 @@ const CATEGORIES: Category[] = [
         route: "/username-market",
         miniApp: true,
         featuredSub: "Buy and sell premium @handles.",
-        adminOnly: true,
       },
     ],
   },
@@ -354,7 +348,6 @@ export default function AppsScreen() {
   const { width: SW } = useWindowDimensions();
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
   const { isPremium, profile } = useAuth();
-  const isAdmin = !!profile?.is_admin;
   const isOrgVerified = !!profile?.is_organization_verified;
   const { openApp } = useSuperApp();
 
@@ -381,7 +374,6 @@ export default function AppsScreen() {
   const isWeb = Platform.OS === "web";
   function isVisible(a: AppItem) {
     if (a.nativeOnly && isWeb) return false;
-    if (a.adminOnly && !isAdmin) return false;
     if (a.orgOnly && !isOrgVerified) return false;
     return true;
   }

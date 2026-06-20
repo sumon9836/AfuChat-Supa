@@ -18,28 +18,124 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/hooks/useTheme";
 import { showAlert } from "@/lib/alert";
 import { GlassHeader } from "@/components/ui/GlassHeader";
-import { GlassMenuSection, GlassMenuItem, GlassMenuSeparator } from "@/components/ui/GlassMenuItem";
 import { Avatar } from "@/components/ui/Avatar";
 import { AfuLogo } from "@/components/ui/AfuLogo";
+import Colors from "@/constants/colors";
 
-const MODE_OPTIONS = [
-  { key: "light"  as const, label: "Light",  icon: "sunny"                  as const },
-  { key: "system" as const, label: "System", icon: "phone-portrait-outline"  as const },
-  { key: "dark"   as const, label: "Dark",   icon: "moon"                   as const },
+// ─── Theme toggle options ──────────────────────────────────────────────────────
+const THEME_OPTIONS = [
+  { key: "light"  as const, label: "Light",  icon: "sunny-outline"          as const },
+  { key: "system" as const, label: "Auto",   icon: "contrast-outline"       as const },
+  { key: "dark"   as const, label: "Dark",   icon: "moon-outline"           as const },
 ];
 
+// ─── Reusable row primitives ───────────────────────────────────────────────────
+function Section({
+  title,
+  children,
+  colors,
+}: {
+  title?: string;
+  children: React.ReactNode;
+  colors: ReturnType<typeof useTheme>["colors"];
+}) {
+  return (
+    <View style={s.section}>
+      {title && (
+        <Text style={[s.sectionLabel, { color: colors.textMuted }]}>{title}</Text>
+      )}
+      <View style={[s.card, { backgroundColor: colors.card }]}>
+        {children}
+      </View>
+    </View>
+  );
+}
+
+function Row({
+  icon,
+  iconColor,
+  iconBg,
+  label,
+  sublabel,
+  value,
+  badge,
+  onPress,
+  last,
+  colors,
+  accent,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  iconColor?: string;
+  iconBg?: string;
+  label: string;
+  sublabel?: string;
+  value?: string;
+  badge?: string;
+  onPress?: () => void;
+  last?: boolean;
+  colors: ReturnType<typeof useTheme>["colors"];
+  accent: string;
+}) {
+  const ic = iconColor ?? accent;
+  const bg = iconBg ?? ic + "18";
+  return (
+    <>
+      <TouchableOpacity
+        style={s.row}
+        onPress={onPress}
+        activeOpacity={onPress ? 0.7 : 1}
+        disabled={!onPress}
+      >
+        <View style={[s.iconWrap, { backgroundColor: bg }]}>
+          <Ionicons name={icon} size={18} color={ic} />
+        </View>
+        <View style={s.rowText}>
+          <Text style={[s.rowLabel, { color: colors.text }]}>{label}</Text>
+          {sublabel && (
+            <Text style={[s.rowSub, { color: colors.textMuted }]} numberOfLines={1}>
+              {sublabel}
+            </Text>
+          )}
+        </View>
+        {value && (
+          <Text style={[s.rowValue, { color: colors.textMuted }]}>{value}</Text>
+        )}
+        {badge && (
+          <View style={[s.badge, { backgroundColor: accent + "22" }]}>
+            <Text style={[s.badgeText, { color: accent }]}>{badge}</Text>
+          </View>
+        )}
+        {onPress && (
+          <Ionicons name="chevron-forward" size={15} color={colors.textMuted} style={{ marginLeft: 2 }} />
+        )}
+      </TouchableOpacity>
+      {!last && <View style={[s.divider, { backgroundColor: colors.separator }]} />}
+    </>
+  );
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function SettingsScreen() {
-  const { colors, themeMode, setThemeMode, accent } = useTheme();
+  const { colors, themeMode, setThemeMode, accent, isDark } = useTheme();
   const { langLabel } = useLanguage();
-  const { user, profile, isPremium, linkedAccounts, switchAccount, signOut } = useAuth();
+  const { user, profile, isPremium, linkedAccounts, switchAccount } = useAuth();
   const insets = useSafeAreaInsets();
   const [switchingId, setSwitchingId] = useState<string | null>(null);
+
+  const activeAccount = linkedAccounts.find((a) => a.userId === user?.id);
+  const otherAccounts = linkedAccounts.filter((a) => a.userId !== user?.id);
+  const displayAccounts =
+    linkedAccounts.length === 0 && user && profile
+      ? [{ userId: user.id, displayName: profile.display_name, handle: profile.handle, avatarUrl: profile.avatar_url, email: user.email || "", accessToken: "", refreshToken: "" }]
+      : activeAccount
+      ? [activeAccount, ...otherAccounts]
+      : linkedAccounts;
 
   async function handleSwitch(userId: string) {
     if (userId === user?.id || switchingId) return;
     showAlert(
       "Switch account?",
-      "Your current session will be saved and you'll switch to the selected account.",
+      "Your current session will be saved.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -50,7 +146,7 @@ export default function SettingsScreen() {
             const result = await switchAccount(userId);
             setSwitchingId(null);
             if (!result.success) {
-              showAlert("Switch Failed", result.error || "Could not switch account. Please add it again.");
+              showAlert("Switch Failed", result.error || "Could not switch account.");
             }
           },
         },
@@ -58,120 +154,160 @@ export default function SettingsScreen() {
     );
   }
 
-  const activeAccount = linkedAccounts.find((a) => a.userId === user?.id);
-  const otherAccounts = linkedAccounts.filter((a) => a.userId !== user?.id);
-  const displayAccounts =
-    linkedAccounts.length === 0 && user && profile
-      ? [{ userId: user.id, displayName: profile.display_name, handle: profile.handle, avatarUrl: profile.avatar_url, email: user.email || "", accessToken: "", refreshToken: "" }]
-      : activeAccount
-      ? [activeAccount, ...otherAccounts]
-      : linkedAccounts;
-  const hasOtherAccounts = otherAccounts.length > 0;
+  const BRAND = Colors.brand;
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={[s.root, { backgroundColor: colors.backgroundSecondary }]}>
       <GlassHeader title="Settings" />
 
+      {/* Switching overlay */}
       {switchingId && (
-        <View style={styles.switchOverlay}>
-          <View style={[styles.switchCard, { backgroundColor: colors.surface }]}>
+        <View style={s.overlay}>
+          <View style={[s.overlayCard, { backgroundColor: colors.surface }]}>
             <ActivityIndicator size="large" color={accent} />
-            <Text style={[styles.switchingText, { color: colors.text }]}>Switching account…</Text>
-            <Text style={[styles.switchingSub, { color: colors.textMuted }]}>Clearing data and loading your other account</Text>
+            <Text style={[s.overlayTitle, { color: colors.text }]}>Switching account…</Text>
+            <Text style={[s.overlaySub, { color: colors.textMuted }]}>Loading your other account</Text>
           </View>
         </View>
       )}
 
       <ScrollView
-        contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 48 }]}
+        contentContainerStyle={[s.body, { paddingBottom: insets.bottom + 56 }]}
         showsVerticalScrollIndicator={false}
-        style={[{ pointerEvents: switchingId ? "none" : "auto" } as any]}
+        style={{ pointerEvents: switchingId ? "none" : "auto" }}
       >
 
-        {/* ── ACCOUNTS ─────────────────────────────────────────────────── */}
-        <GlassMenuSection title="ACCOUNTS">
-          {displayAccounts.map((account, index) => {
-            const isCurrent = account.userId === user?.id;
-            const isSwitching = switchingId === account.userId;
-            const isLast = index === displayAccounts.length - 1;
-            return (
-              <View key={account.userId}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.accountRow,
-                    pressed && !isCurrent && !switchingId && { backgroundColor: colors.backgroundSecondary },
-                  ]}
-                  onPress={() => !isCurrent && !switchingId && handleSwitch(account.userId)}
-                  disabled={isCurrent || !!switchingId}
-                >
-                  <View style={styles.avatarWrap}>
-                    <Avatar uri={account.avatarUrl} name={account.displayName} size={46} />
-                    {isCurrent && (
-                      <View style={[styles.activeIndicator, { backgroundColor: accent, borderColor: colors.surface }]}>
-                        <Ionicons name="checkmark" size={9} color="#fff" />
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.accountInfo}>
-                    <Text style={[styles.accountName, { color: colors.text }]} numberOfLines={1}>{account.displayName}</Text>
-                    <Text style={[styles.accountHandle, { color: colors.textMuted }]} numberOfLines={1}>@{account.handle}</Text>
-                    {isCurrent && user?.email && (
-                      <Text style={[styles.accountEmail, { color: colors.textMuted }]} numberOfLines={1}>{user.email}</Text>
-                    )}
-                    {isCurrent && (
-                      <View style={[styles.activeBadge, { backgroundColor: accent + "22" }]}>
-                        <Text style={[styles.activeBadgeText, { color: accent }]}>Active</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.accountRight}>
+        {/* ── Profile card ──────────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={[s.profileCard, { backgroundColor: colors.card }]}
+          onPress={() => router.push("/profile/edit")}
+          activeOpacity={0.8}
+        >
+          <Avatar
+            uri={profile?.avatar_url}
+            name={profile?.display_name}
+            size={58}
+          />
+          <View style={s.profileInfo}>
+            <View style={s.profileNameRow}>
+              <Text style={[s.profileName, { color: colors.text }]} numberOfLines={1}>
+                {profile?.display_name ?? "Your Name"}
+              </Text>
+              {isPremium && (
+                <View style={[s.premiumPill, { backgroundColor: BRAND + "20" }]}>
+                  <Ionicons name="star" size={10} color={BRAND} />
+                  <Text style={[s.premiumText, { color: BRAND }]}>Premium</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[s.profileHandle, { color: colors.textMuted }]} numberOfLines={1}>
+              @{profile?.handle ?? "handle"}
+            </Text>
+            {user?.email && (
+              <Text style={[s.profileEmail, { color: colors.textMuted }]} numberOfLines={1}>
+                {user.email}
+              </Text>
+            )}
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        {/* ── Accounts ──────────────────────────────────────────────────── */}
+        {displayAccounts.length > 1 && (
+          <Section title="ACCOUNTS" colors={colors}>
+            {displayAccounts.map((account, i) => {
+              const isCurrent = account.userId === user?.id;
+              const isSwitching = switchingId === account.userId;
+              return (
+                <React.Fragment key={account.userId}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      s.accountRow,
+                      pressed && !isCurrent && !switchingId && { backgroundColor: colors.backgroundSecondary },
+                    ]}
+                    onPress={() => !isCurrent && !switchingId && handleSwitch(account.userId)}
+                    disabled={isCurrent || !!switchingId}
+                  >
+                    <View style={s.accountAvatarWrap}>
+                      <Avatar uri={account.avatarUrl} name={account.displayName} size={42} />
+                      {isCurrent && (
+                        <View style={[s.activeDot, { backgroundColor: accent, borderColor: colors.card }]}>
+                          <Ionicons name="checkmark" size={8} color="#fff" />
+                        </View>
+                      )}
+                    </View>
+                    <View style={s.accountInfo}>
+                      <Text style={[s.accountName, { color: colors.text }]} numberOfLines={1}>
+                        {account.displayName}
+                      </Text>
+                      <Text style={[s.accountHandle, { color: colors.textMuted }]} numberOfLines={1}>
+                        @{account.handle}
+                      </Text>
+                    </View>
                     {isSwitching ? (
                       <ActivityIndicator size="small" color={accent} />
                     ) : isCurrent ? (
-                      <Ionicons name="radio-button-on" size={20} color={accent} />
+                      <View style={[s.activePill, { backgroundColor: accent + "20" }]}>
+                        <Text style={[s.activePillText, { color: accent }]}>Active</Text>
+                      </View>
                     ) : (
                       <TouchableOpacity
-                        style={[styles.switchBtn, { backgroundColor: accent }]}
+                        style={[s.switchBtn, { backgroundColor: accent }]}
                         onPress={() => handleSwitch(account.userId)}
                         disabled={!!switchingId}
                         activeOpacity={0.8}
                       >
-                        <Ionicons name="swap-horizontal" size={13} color="#fff" />
-                        <Text style={styles.switchBtnText}>Switch</Text>
+                        <Ionicons name="swap-horizontal" size={12} color="#fff" />
+                        <Text style={s.switchBtnText}>Switch</Text>
                       </TouchableOpacity>
                     )}
-                  </View>
-                </Pressable>
-              </View>
-            );
-          })}
+                  </Pressable>
+                  {i < displayAccounts.length - 1 && (
+                    <View style={[s.divider, { backgroundColor: colors.separator }]} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+            <View style={[s.divider, { backgroundColor: colors.separator }]} />
+            <TouchableOpacity
+              style={s.manageAccRow}
+              onPress={() => router.push("/linked-accounts")}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="person-add-outline" size={15} color={colors.textMuted} />
+              <Text style={[s.manageAccText, { color: colors.textMuted }]}>
+                {otherAccounts.length > 0 ? "Manage accounts" : "Add another account"}
+              </Text>
+              <Ionicons name="chevron-forward" size={13} color={colors.textMuted} />
+            </TouchableOpacity>
+          </Section>
+        )}
 
-          <TouchableOpacity
-            style={styles.manageRow}
-            onPress={() => router.push("/linked-accounts")}
-            activeOpacity={0.7}
-            disabled={!!switchingId}
-          >
-            <Ionicons name="people-outline" size={16} color={colors.textMuted} />
-            <Text style={[styles.manageText, { color: colors.textMuted }]}>
-              {hasOtherAccounts ? "Manage accounts" : "Add another account"}
-            </Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
-          </TouchableOpacity>
-        </GlassMenuSection>
+        {/* Show Manage Accounts link if only one account */}
+        {displayAccounts.length <= 1 && (
+          <Section colors={colors}>
+            <Row
+              icon="person-add-outline"
+              label="Add Another Account"
+              sublabel="Switch between multiple AfuChat accounts"
+              onPress={() => router.push("/linked-accounts")}
+              last
+              colors={colors}
+              accent={accent}
+            />
+          </Section>
+        )}
 
-        {/* ── THEME & APPEARANCE ────────────────────────────────────────── */}
-        <GlassMenuSection title="THEME & APPEARANCE">
-
-          {/* Mode selector */}
-          <View style={styles.modeRow}>
-            {MODE_OPTIONS.map(({ key, label, icon }) => {
+        {/* ── Appearance ────────────────────────────────────────────────── */}
+        <Section title="APPEARANCE" colors={colors}>
+          <View style={s.themeRow}>
+            {THEME_OPTIONS.map(({ key, label, icon }) => {
               const active = themeMode === key;
               return (
                 <TouchableOpacity
                   key={key}
                   style={[
-                    styles.modeBtn,
+                    s.themeBtn,
                     {
                       backgroundColor: active ? accent : colors.backgroundSecondary,
                       borderColor: active ? accent : colors.border,
@@ -180,135 +316,170 @@ export default function SettingsScreen() {
                   onPress={() => { Haptics.selectionAsync(); setThemeMode(key); }}
                   activeOpacity={0.75}
                 >
-                  <Ionicons name={icon} size={15} color={active ? "#fff" : colors.textMuted} />
-                  <Text style={[styles.modeBtnText, { color: active ? "#fff" : colors.textMuted }]}>
+                  <Ionicons name={icon} size={16} color={active ? "#fff" : colors.textMuted} />
+                  <Text style={[s.themeBtnText, { color: active ? "#fff" : colors.textMuted }]}>
                     {label}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-
-        </GlassMenuSection>
-
-        {/* ── PREFERENCES ─────────────────────────────────────────────── */}
-        <GlassMenuSection title="PREFERENCES">
-          <GlassMenuItem
+          <View style={[s.divider, { backgroundColor: colors.separator }]} />
+          <Row
             icon="language-outline"
             label="Language"
             value={langLabel}
             onPress={() => router.push("/language-settings")}
+            last
+            colors={colors}
+            accent={accent}
           />
-          {Platform.OS !== "web" && (
-            <>
-              <GlassMenuSeparator />
-              <GlassMenuItem
-                icon="notifications-outline"
-                label="Notifications"
-                onPress={() => router.push("/settings/notifications")}
-              />
-            </>
-          )}
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="chatbubbles-outline"
-            label="Chat Settings"
-            onPress={() => router.push("/settings/chat")}
-          />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="cloud-outline"
-            label="Storage & Cache"
-            onPress={() => router.push("/settings/storage")}
-          />
-          {Platform.OS !== "web" && (
-            <>
-              <GlassMenuSeparator />
-              <GlassMenuItem
-                icon="cloud-download-outline"
-                label="Offline Videos"
-                onPress={() => router.push("/settings/offline-videos" as any)}
-              />
-            </>
-          )}
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="eye-off-outline"
-            label="Not Interested"
-            subtitle="Manage muted authors and suppressed topics"
-            onPress={() => router.push("/settings/not-interested" as any)}
-          />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="flash-outline"
-            label="Advanced Features"
-            subtitle="Power settings, chat and feed customisation"
-            onPress={() => router.push("/advanced-features" as any)}
-          />
-        </GlassMenuSection>
+        </Section>
 
-        {/* ── PRIVACY & SECURITY ──────────────────────────────────────── */}
-        <GlassMenuSection title="PRIVACY & SECURITY">
-          <GlassMenuItem
-            icon="shield-checkmark-outline"
-            label="Privacy"
-            subtitle="Visibility, messages, interactions, blocked users"
-            onPress={() => router.push("/settings/privacy")}
+        {/* ── Notifications ─────────────────────────────────────────────── */}
+        {Platform.OS !== "web" && (
+          <Section title="NOTIFICATIONS" colors={colors}>
+            <Row
+              icon="notifications-outline"
+              label="Notifications"
+              sublabel="Alerts, sounds and vibration"
+              onPress={() => router.push("/settings/notifications")}
+              last
+              colors={colors}
+              accent={accent}
+            />
+          </Section>
+        )}
+
+        {/* ── Messaging ─────────────────────────────────────────────────── */}
+        <Section title="MESSAGING" colors={colors}>
+          <Row
+            icon="chatbubble-ellipses-outline"
+            label="Chat Settings"
+            sublabel="Bubbles, themes, media quality"
+            onPress={() => router.push("/settings/chat")}
+            colors={colors}
+            accent={accent}
           />
-          <GlassMenuSeparator />
-          <GlassMenuItem
+          <Row
+            icon="person-remove-outline"
+            label="Blocked Users"
+            sublabel="Manage people you've blocked"
+            onPress={() => router.push("/settings/blocked")}
+            last
+            colors={colors}
+            accent={accent}
+          />
+        </Section>
+
+        {/* ── Privacy & Security ────────────────────────────────────────── */}
+        <Section title="PRIVACY & SECURITY" colors={colors}>
+          <Row
+            icon="eye-off-outline"
+            label="Privacy"
+            sublabel="Visibility, messages, interactions"
+            onPress={() => router.push("/settings/privacy")}
+            colors={colors}
+            accent={accent}
+          />
+          <Row
             icon="lock-closed-outline"
             label="Security & Password"
-            subtitle="Password, 2FA, device security, data download"
+            sublabel="Password, 2FA, device lock"
             onPress={() => router.push("/settings/security")}
+            colors={colors}
+            accent={accent}
           />
-        </GlassMenuSection>
-
-        {/* ── CONNECTED ACCOUNTS ───────────────────────────────────────── */}
-        <GlassMenuSection title="CONNECTED ACCOUNTS">
-          <GlassMenuItem
-            icon="logo-google"
+          <Row
+            icon="key-outline"
             label="Login Methods"
-            subtitle="Google, Apple and other sign-in options"
+            sublabel="Google, Apple and other sign-in options"
             onPress={() => router.push("/settings/oauth-providers")}
+            colors={colors}
+            accent={accent}
           />
-        </GlassMenuSection>
+          <Row
+            icon="cloud-download-outline"
+            label="Download My Data"
+            sublabel="Export a copy of your account data"
+            onPress={() => router.push("/settings/privacy-download" as any)}
+            last
+            colors={colors}
+            accent={accent}
+          />
+        </Section>
 
-        {/* ── HELP & ABOUT ─────────────────────────────────────────────── */}
-        <GlassMenuSection title="HELP & ABOUT">
-          <GlassMenuItem
+        {/* ── Storage & Data ────────────────────────────────────────────── */}
+        <Section title="STORAGE & DATA" colors={colors}>
+          <Row
+            icon="server-outline"
+            label="Storage & Cache"
+            sublabel="Manage local files and cached media"
+            onPress={() => router.push("/settings/storage")}
+            colors={colors}
+            accent={accent}
+          />
+          {Platform.OS !== "web" && (
+            <Row
+              icon="download-outline"
+              label="Offline Videos"
+              sublabel="Videos saved for offline playback"
+              onPress={() => router.push("/settings/offline-videos" as any)}
+              colors={colors}
+              accent={accent}
+            />
+          )}
+          <Row
+            icon="flash-outline"
+            label="Advanced Features"
+            sublabel="Power settings, feed and chat customisation"
+            onPress={() => router.push("/advanced-features" as any)}
+            last={Platform.OS === "web"}
+            colors={colors}
+            accent={accent}
+          />
+          {Platform.OS !== "web" && (
+            <Row
+              icon="eye-off-outline"
+              label="Not Interested"
+              sublabel="Muted authors and suppressed topics"
+              onPress={() => router.push("/settings/not-interested" as any)}
+              last
+              colors={colors}
+              accent={accent}
+            />
+          )}
+        </Section>
+
+        {/* ── Support & About ───────────────────────────────────────────── */}
+        <Section title="SUPPORT & ABOUT" colors={colors}>
+          <Row
             icon="help-buoy-outline"
-            label="Support Center"
+            label="Help & Support"
+            sublabel="FAQs, contact and tickets"
             onPress={() => router.push("/support" as any)}
+            colors={colors}
+            accent={accent}
           />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="document-text-outline"
-            label="Terms of Service"
-            onPress={() => router.push("/terms" as any)}
-          />
-          <GlassMenuSeparator />
-          <GlassMenuItem
-            icon="shield-outline"
-            label="Privacy Policy"
-            onPress={() => router.push("/privacy" as any)}
-          />
-          <GlassMenuSeparator />
-          <GlassMenuItem
+          <Row
             icon="information-circle-outline"
             label="About AfuChat"
+            sublabel="Version, terms, privacy and company info"
             onPress={() => router.push("/about" as any)}
+            last
+            colors={colors}
+            accent={accent}
           />
-        </GlassMenuSection>
+        </Section>
 
-        {/* ── Brand footer ─────────────────────────────────────────── */}
-        <View style={styles.brandFooter}>
-          <View style={styles.brandLogoRow}>
-            <AfuLogo size={28} />
-            <Text style={[styles.brandWord, { color: colors.textMuted }]}>Afu</Text>
-            <Text style={[styles.brandWord, { color: accent }]}>Chat</Text>
+        {/* ── Brand footer ──────────────────────────────────────────────── */}
+        <View style={s.footer}>
+          <View style={s.footerBrand}>
+            <AfuLogo size={24} />
+            <Text style={[s.footerAfu,  { color: colors.textMuted }]}>Afu</Text>
+            <Text style={[s.footerChat, { color: BRAND }]}>Chat</Text>
           </View>
-          <Text style={[styles.brandTagline, { color: colors.textMuted }]}>
+          <Text style={[s.footerTagline, { color: colors.textMuted }]}>
             Connect · Discover · Create
           </Text>
         </View>
@@ -318,65 +489,81 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
   root: { flex: 1 },
-  body: { gap: 0, paddingTop: 8, paddingHorizontal: 0 },
+  body: { paddingHorizontal: 16, paddingTop: 12, gap: 0 },
 
-  switchOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center", zIndex: 100 },
-  switchCard: {
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center", zIndex: 100 },
+  overlayCard: {
     borderRadius: 24, padding: 32, alignItems: "center", gap: 14, minWidth: 240,
     ...Platform.select({
       web: { boxShadow: "0 8px 24px rgba(0,0,0,0.2)" } as any,
       default: { shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 24, elevation: 12 },
     }),
   },
-  switchingText: { fontSize: 17, fontFamily: "Inter_600SemiBold", textAlign: "center" },
-  switchingSub: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
+  overlayTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  overlaySub:   { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
 
-  accountRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 12 },
-  avatarWrap: { position: "relative" },
-  activeIndicator: { position: "absolute", bottom: -1, right: -1, width: 16, height: 16, borderRadius: 8, borderWidth: 2, alignItems: "center", justifyContent: "center" },
-  accountInfo: { flex: 1, gap: 1 },
-  accountName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  accountHandle: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  accountEmail: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
-  activeBadge: { alignSelf: "flex-start", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1, marginTop: 3 },
-  activeBadgeText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
-  accountRight: { alignItems: "flex-end", justifyContent: "center" },
-  switchBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 16 },
-  switchBtnText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
-
-  separator: { height: 0 },
-  manageRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 12 },
-  manageText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
-
-  brandFooter: {
-    alignItems: "center",
-    paddingTop: 32,
-    paddingBottom: 12,
-    gap: 4,
-  },
-  brandLogoRow: {
+  // Profile card
+  profileCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    borderRadius: 20,
+    padding: 16,
+    gap: 14,
+    marginBottom: 20,
   },
-  brandWord: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.4,
-  },
-  brandTagline: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    letterSpacing: 0.3,
-  },
+  profileInfo: { flex: 1, gap: 2 },
+  profileNameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  profileName: { fontSize: 17, fontFamily: "Inter_700Bold" },
+  premiumPill: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
+  premiumText: { fontSize: 10, fontFamily: "Inter_700Bold" },
+  profileHandle: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  profileEmail:  { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
 
-  modeRow: { flexDirection: "row", gap: 8, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
-  modeBtn: {
+  // Section container
+  section: { marginBottom: 20 },
+  sectionLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.6, marginBottom: 8, paddingHorizontal: 4 },
+  card: { borderRadius: 18, overflow: "hidden" },
+
+  // Generic row
+  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12 },
+  iconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  rowText: { flex: 1 },
+  rowLabel: { fontSize: 15, fontFamily: "Inter_400Regular" },
+  rowSub:   { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
+  rowValue: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  badge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  badgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  divider: { height: 0.5, marginHorizontal: 16 },
+
+  // Theme toggle
+  themeRow: { flexDirection: "row", gap: 8, paddingHorizontal: 14, paddingVertical: 12 },
+  themeBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 6, paddingVertical: 10, borderRadius: 12, borderWidth: 1,
   },
-  modeBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  themeBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
+  // Account rows
+  accountRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 12 },
+  accountAvatarWrap: { position: "relative" },
+  activeDot: { position: "absolute", bottom: -1, right: -1, width: 15, height: 15, borderRadius: 8, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  accountInfo: { flex: 1 },
+  accountName:   { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  accountHandle: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
+  activePill: { borderRadius: 10, paddingHorizontal: 9, paddingVertical: 3 },
+  activePillText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  switchBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 16 },
+  switchBtnText: { color: "#fff", fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  manageAccRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 11 },
+  manageAccText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular" },
+
+  // Footer
+  footer: { alignItems: "center", paddingTop: 16, paddingBottom: 8, gap: 4 },
+  footerBrand: { flexDirection: "row", alignItems: "center", gap: 4 },
+  footerAfu:  { fontSize: 18, fontFamily: "Inter_700Bold", letterSpacing: -0.4 },
+  footerChat: { fontSize: 18, fontFamily: "Inter_700Bold", letterSpacing: -0.4 },
+  footerTagline: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 0.3 },
 });
