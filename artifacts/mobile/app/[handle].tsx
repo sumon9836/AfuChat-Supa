@@ -249,7 +249,7 @@ function PublicProfileScreen({ handle }: { handle: string }) {
 // never reach [handle].tsx under normal navigation. This guard is a belt-and-
 // suspenders defence for deep-links or typos that slip through.
 const RESERVED_ROUTES = new Set([
-  "terms", "privacy", "browser", "onboarding", "welcome", "settings",
+  "browser", "onboarding", "welcome", "settings",
   "wallet", "shop", "chat", "discover", "video", "shorts", "moments",
   "match", "games", "ai", "support", "company", "freelance", "article",
   "channel", "group", "join", "my-posts", "profile", "post", "stories",

@@ -39,7 +39,7 @@ function fmtCount(n: number): string {
   return String(n);
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── MenuItem ─────────────────────────────────────────────────────────────────
 
 type MenuItemProps = {
   icon: string;
@@ -52,9 +52,10 @@ type MenuItemProps = {
   showSeparator?: boolean;
   colors: any;
   destructive?: boolean;
+  rightIcon?: string;
 };
 
-function MenuItem({ icon, iconColor, label, value, badge, badgeColor, onPress, showSeparator, colors, destructive }: MenuItemProps) {
+function MenuItem({ icon, iconColor, label, value, badge, badgeColor, onPress, showSeparator, colors, destructive, rightIcon }: MenuItemProps) {
   const scale = useRef(new Animated.Value(1)).current;
   return (
     <>
@@ -77,7 +78,7 @@ function MenuItem({ icon, iconColor, label, value, badge, badgeColor, onPress, s
                 <Text style={[mi.badgeText, { color: badgeColor || colors.accent }]}>{badge}</Text>
               </View>
             )}
-            <Ionicons name="chevron-forward" size={15} color={colors.textMuted + "80"} />
+            <Ionicons name={(rightIcon ?? "chevron-forward") as any} size={15} color={colors.textMuted + "80"} />
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -97,12 +98,16 @@ const mi = StyleSheet.create({
   sep: { height: 0.5, marginLeft: 62 },
 });
 
+// ─── SectionLabel ────────────────────────────────────────────────────────────
+
 function SectionLabel({ label, colors }: { label: string; colors: any }) {
   return <Text style={[sl.text, { color: colors.textMuted }]}>{label.toUpperCase()}</Text>;
 }
 const sl = StyleSheet.create({
   text: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.7, marginBottom: 6, marginTop: 24, marginLeft: 20 },
 });
+
+// ─── MenuCard ─────────────────────────────────────────────────────────────────
 
 function MenuCard({ children, colors }: { children: React.ReactNode; colors: any }) {
   return (
@@ -115,7 +120,7 @@ const mc = StyleSheet.create({
   card: { overflow: "hidden" },
 });
 
-// ─── Profile completion bar ───────────────────────────────────────────────────
+// ─── Profile Completion Bar ───────────────────────────────────────────────────
 
 type ProfileFields = {
   avatar_url?: string | null; bio?: string | null; country?: string | null;
@@ -224,7 +229,7 @@ export default function MeScreen() {
     return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   }
 
-  // ── Load stats ────────────────────────────────────────────────────────────
+  // ── Load stats ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     const STATS_KEY = `me_stats_${user.id}`;
@@ -242,7 +247,7 @@ export default function MeScreen() {
     }).catch(() => {});
   }, [user?.id]);
 
-  // ── Live stats via realtime ───────────────────────────────────────────────
+  // ── Live stats via realtime ──────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     const STATS_KEY = `me_stats_${user.id}`;
@@ -254,20 +259,23 @@ export default function MeScreen() {
     const ch = supabase
       .channel(`me-stats:${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${user.id}` }, () =>
-        supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id).then(({ count }) => { setFollowerCount(count ?? 0); persist({ fc: count ?? 0 }); }).catch(() => {})
+        supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id)
+          .then(({ count }) => { setFollowerCount(count ?? 0); persist({ fc: count ?? 0 }); }).catch(() => {})
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` }, () =>
-        supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id).then(({ count }) => { setFollowingCount(count ?? 0); persist({ fgc: count ?? 0 }); }).catch(() => {})
+        supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id)
+          .then(({ count }) => { setFollowingCount(count ?? 0); persist({ fgc: count ?? 0 }); }).catch(() => {})
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "posts", filter: `author_id=eq.${user.id}` }, () =>
-        supabase.from("posts").select("*", { count: "exact", head: true }).eq("author_id", user.id).then(({ count }) => { setPostCount(count ?? 0); persist({ pc: count ?? 0 }); }).catch(() => {})
+        supabase.from("posts").select("*", { count: "exact", head: true }).eq("author_id", user.id)
+          .then(({ count }) => { setPostCount(count ?? 0); persist({ pc: count ?? 0 }); }).catch(() => {})
       )
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id]);
 
-  // ── My Notes ─────────────────────────────────────────────────────────────
-  async function openMyNotes() {
+  // ── My Notes ────────────────────────────────────────────────────────────────
+  const openMyNotes = useCallback(async () => {
     if (!user || notesLoading) return;
     void Haptics.selectionAsync();
     setNotesLoading(true);
@@ -305,7 +313,7 @@ export default function MeScreen() {
     } finally {
       setNotesLoading(false);
     }
-  }
+  }, [user, notesLoading]);
 
   if (!loading && !profile) return <Redirect href="/discover" />;
   if (loading || !profile) {
@@ -322,7 +330,7 @@ export default function MeScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <OfflineBanner />
 
-      {/* ── Floating settings gear ── */}
+      {/* ── Settings gear ───────────────────────────────────────────────────── */}
       {!isDesktop && (
         <TouchableOpacity
           onPress={() => router.push("/settings" as any)}
@@ -357,16 +365,16 @@ export default function MeScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* ── Hero Card ─────────────────────────────────────────────────── */}
-        <View style={[s.heroCard, { backgroundColor: colors.surface, borderBottomColor: colors.separator }]}>
+        {/* ── Hero Card ───────────────────────────────────────────────────── */}
+        <View style={[s.heroCard, { backgroundColor: colors.surface }]}>
 
-          {/* Avatar row */}
+          {/* Avatar + info row */}
           <View style={s.heroTop}>
             <TouchableOpacity activeOpacity={0.9} onPress={() => setAvatarOpen(true)}>
               <Avatar
                 uri={profile?.avatar_url}
                 name={profile?.display_name}
-                size={72}
+                size={74}
                 premium={isPremium}
                 square={!!(profile?.is_organization_verified || profile?.is_business_mode)}
               />
@@ -384,6 +392,7 @@ export default function MeScreen() {
                 </Text>
                 <VerifiedBadge isVerified={profile?.is_verified} isOrganizationVerified={profile?.is_organization_verified} size={17} />
               </View>
+
               <TouchableOpacity
                 onPress={() => profile?.handle && showHandlePurchase(profile.handle)}
                 activeOpacity={0.7}
@@ -393,7 +402,9 @@ export default function MeScreen() {
                 <Text style={[s.heroHandle, { color: colors.textMuted }]}>@{profile?.handle || "handle"}</Text>
                 <Ionicons name="information-circle-outline" size={13} color={colors.textMuted} style={{ opacity: 0.6 }} />
               </TouchableOpacity>
+
               <PrestigeBadge acoin={acoin} size="sm" showLabel />
+
               {profile?.is_organization_verified && (
                 <View style={[s.businessChip, { backgroundColor: Colors.gold + "20" }]}>
                   <Ionicons name="briefcase" size={10} color={Colors.gold} />
@@ -401,7 +412,6 @@ export default function MeScreen() {
                 </View>
               )}
             </View>
-
           </View>
 
           {/* Bio */}
@@ -413,7 +423,7 @@ export default function MeScreen() {
 
           {/* ACoin bar */}
           <TouchableOpacity
-            style={[s.acoinBar, { backgroundColor: Colors.gold + "12", borderTopColor: colors.border }]}
+            style={[s.acoinBar, { backgroundColor: Colors.gold + "10", borderTopColor: colors.border }]}
             onPress={() => router.push("/prestige")}
             activeOpacity={0.8}
           >
@@ -422,14 +432,14 @@ export default function MeScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[s.acoinBalance, { color: Colors.gold }]}>{fmtCount(acoin)} ACoin</Text>
-              <Text style={[s.acoinSub, { color: colors.textMuted }]}>View Prestige & rewards</Text>
+              <Text style={[s.acoinSub, { color: colors.textMuted }]}>Prestige level & rewards</Text>
             </View>
             <Ionicons name="chevron-forward" size={15} color={Colors.gold + "80"} />
           </TouchableOpacity>
         </View>
 
-        {/* ── Stats Row ─────────────────────────────────────────────────── */}
-        <View style={[s.statsRow, { backgroundColor: colors.surface, borderBottomColor: colors.separator }]}>
+        {/* ── Stats Row ───────────────────────────────────────────────────── */}
+        <View style={[s.statsRow, { backgroundColor: colors.surface }]}>
           {[
             {
               label: "Followers", count: followerCount,
@@ -454,13 +464,13 @@ export default function MeScreen() {
           ))}
         </View>
 
-        {/* ── Quick Actions ──────────────────────────────────────────────── */}
-        <View style={[s.quickRow, { backgroundColor: colors.surface, borderBottomColor: colors.separator }]}>
+        {/* ── Quick Actions ───────────────────────────────────────────────── */}
+        <View style={[s.quickRow, { backgroundColor: colors.surface }]}>
           {[
-            { icon: "person-circle-outline", label: "View Profile", color: Colors.brand, onPress: () => profile?.handle && router.push(`/@${profile.handle}` as any) },
-            { icon: "create-outline",        label: "Edit Profile", color: colors.icon,  onPress: () => router.push("/profile/edit") },
-            { icon: "card-outline",          label: "Digital ID",   color: colors.icon,  onPress: () => router.push("/digital-id" as any) },
-            { icon: "qr-code-outline",       label: "QR Code",      color: colors.icon,  onPress: () => router.push("/qr-scanner" as any) },
+            { icon: "create-outline",    label: "Edit Profile", color: Colors.brand, onPress: () => router.push("/profile/edit") },
+            { icon: "person-outline",    label: "My Profile",   color: colors.icon,  onPress: () => profile?.handle && router.push(`/@${profile.handle}` as any) },
+            { icon: "qr-code-outline",   label: "QR Code",      color: colors.icon,  onPress: () => router.push("/qr-scanner" as any) },
+            { icon: "card-outline",      label: "Digital ID",   color: colors.icon,  onPress: () => router.push("/digital-id" as any) },
           ].map((a) => (
             <TouchableOpacity key={a.label} style={s.quickBtn} onPress={a.onPress} activeOpacity={0.75}>
               <View style={[s.quickIconWrap, { backgroundColor: a.color + "15" }]}>
@@ -471,13 +481,10 @@ export default function MeScreen() {
           ))}
         </View>
 
-        {/* ── Profile Completion ─────────────────────────────────────────── */}
-        <ProfileCompletionBar profile={profile} isPremium={isPremium} colors={colors} accent={accent} />
-
-        {/* ── Premium ────────────────────────────────────────────────────── */}
+        {/* ── Premium Banner / Card ───────────────────────────────────────── */}
         {!isPremium ? (
           <TouchableOpacity
-            style={[s.premiumBanner, { backgroundColor: isDark ? "#0f1923" : "#1A1208", borderBottomColor: colors.separator }]}
+            style={[s.premiumBanner, { backgroundColor: isDark ? "#0f1923" : "#1A1208" }]}
             onPress={() => router.push("/premium")}
             activeOpacity={0.88}
           >
@@ -486,7 +493,7 @@ export default function MeScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.premiumTitle}>Upgrade to Premium</Text>
-              <Text style={s.premiumSub}>Badges, linked accounts, exclusive perks & more</Text>
+              <Text style={s.premiumSub}>Verified badge, exclusive perks & more</Text>
             </View>
             <View style={[s.premiumChip, { backgroundColor: "#FFD60A22" }]}>
               <Text style={s.premiumChipText}>Upgrade</Text>
@@ -500,7 +507,7 @@ export default function MeScreen() {
                 icon="diamond"
                 iconColor="#FFD60A"
                 label="Premium Active"
-                value={subscription?.plan_tier ? `Plan: ${subscription.plan_tier}` : "Active"}
+                value={subscription?.plan_tier ? `${subscription.plan_tier}` : "Active"}
                 onPress={() => router.push("/premium")}
                 colors={colors}
               />
@@ -508,53 +515,147 @@ export default function MeScreen() {
           </View>
         )}
 
-        {/* ── Content ────────────────────────────────────────────────────── */}
-        <View>
-          <SectionLabel label="Content" colors={colors} />
-          <MenuCard colors={colors}>
-            <MenuItem icon="grid-outline" iconColor={Colors.brand} label="My Posts" value={`${fmtCount(postCount)} posts`} onPress={() => router.push("/my-posts")} showSeparator colors={colors} />
-            <MenuItem icon="bookmark-outline" iconColor={colors.icon} label="Saved Posts" onPress={() => router.push("/saved-posts" as any)} showSeparator colors={colors} />
-            <MenuItem icon="time-outline" iconColor="#00BCD4" label="Watch History" onPress={() => router.push("/watch-history" as any)} colors={colors} />
-          </MenuCard>
-        </View>
+        {/* ── Profile Completion ──────────────────────────────────────────── */}
+        <ProfileCompletionBar profile={profile} isPremium={isPremium} colors={colors} accent={accent} />
 
-        {/* ── Tools ─────────────────────────────────────────────────────── */}
+        {/* ── My Content ─────────────────────────────────────────────────── */}
         <View>
-          <SectionLabel label="Tools" colors={colors} />
+          <SectionLabel label="My Content" colors={colors} />
           <MenuCard colors={colors}>
             <MenuItem
-              icon="document-text-outline"
+              icon="grid-outline"
               iconColor={Colors.brand}
-              label="My Notes"
-              badge={notesLoading ? "…" : undefined}
-              onPress={openMyNotes}
+              label="My Posts"
+              value={`${fmtCount(postCount)} posts`}
+              onPress={() => router.push("/my-posts")}
               showSeparator
               colors={colors}
             />
-            <MenuItem icon="at-outline" iconColor={colors.icon} label="Username Market" onPress={() => router.push("/username-market")} showSeparator colors={colors} />
-            <MenuItem icon="gift-outline" iconColor={colors.icon} label="Referral Program" onPress={() => router.push("/referral" as any)} colors={colors} />
+            <MenuItem
+              icon="bookmark-outline"
+              iconColor="#FF9500"
+              label="Saved Posts"
+              onPress={() => router.push("/saved-posts" as any)}
+              showSeparator
+              colors={colors}
+            />
+            <MenuItem
+              icon="time-outline"
+              iconColor="#00BCD4"
+              label="Watch History"
+              onPress={() => router.push("/watch-history" as any)}
+              showSeparator
+              colors={colors}
+            />
+            <MenuItem
+              icon="document-text-outline"
+              iconColor="#34C759"
+              label="My Notes"
+              badge={notesLoading ? "…" : undefined}
+              onPress={openMyNotes}
+              colors={colors}
+            />
           </MenuCard>
         </View>
 
-        {/* ── Account ───────────────────────────────────────────────────── */}
+        {/* ── Social & Growth ─────────────────────────────────────────────── */}
         <View>
-          <SectionLabel label="Account" colors={colors} />
+          <SectionLabel label="Social & Growth" colors={colors} />
           <MenuCard colors={colors}>
-            <MenuItem icon="shield-checkmark-outline" iconColor={colors.icon} label="Security & Data" onPress={() => router.push("/settings/security" as any)} colors={colors} />
-            <MenuItem icon="settings-outline" iconColor={colors.icon} label="Settings" onPress={() => router.push("/settings")} colors={colors} />
+            <MenuItem
+              icon="people-outline"
+              iconColor={Colors.brand}
+              label="Find People"
+              onPress={() => router.push("/user-discovery")}
+              showSeparator
+              colors={colors}
+            />
+            <MenuItem
+              icon="gift-outline"
+              iconColor="#FF2D55"
+              label="Referral Program"
+              badge="Earn ACoin"
+              badgeColor="#FF2D55"
+              onPress={() => router.push("/referral" as any)}
+              showSeparator
+              colors={colors}
+            />
+            <MenuItem
+              icon="trophy-outline"
+              iconColor={Colors.gold}
+              label="Prestige & Rewards"
+              badge="NEW"
+              badgeColor={Colors.gold}
+              onPress={() => router.push("/prestige")}
+              showSeparator
+              colors={colors}
+            />
+            <MenuItem
+              icon="at-outline"
+              iconColor="#AF52DE"
+              label="Username Market"
+              onPress={() => router.push("/username-market")}
+              colors={colors}
+            />
           </MenuCard>
         </View>
 
-        {/* ── Growth ────────────────────────────────────────────────────── */}
+        {/* ── AfuMatch ────────────────────────────────────────────────────── */}
         <View>
-          <SectionLabel label="Growth" colors={colors} />
+          <SectionLabel label="Connections" colors={colors} />
           <MenuCard colors={colors}>
-            <MenuItem icon="trophy-outline" iconColor={Colors.gold} label="Prestige Status" badge="NEW" badgeColor={Colors.gold} onPress={() => router.push("/prestige")} showSeparator colors={colors} />
-            <MenuItem icon="people-outline" iconColor={colors.icon} label="Find People" onPress={() => router.push("/user-discovery")} colors={colors} />
+            <MenuItem
+              icon="heart-outline"
+              iconColor="#FF2D55"
+              label="AfuMatch"
+              badge="Dating"
+              badgeColor="#FF2D55"
+              onPress={() => router.push("/match" as any)}
+              showSeparator
+              colors={colors}
+            />
+            <MenuItem
+              icon="call-outline"
+              iconColor="#34C759"
+              label="Call History"
+              onPress={() => router.push("/call-history" as any)}
+              showSeparator
+              colors={colors}
+            />
+            <MenuItem
+              icon="people-circle-outline"
+              iconColor={colors.icon}
+              label="Phone Contacts"
+              onPress={() => router.push("/phone-contacts" as any)}
+              colors={colors}
+            />
           </MenuCard>
-          <TrustpilotReviewCard />
         </View>
 
+        {/* ── Business ────────────────────────────────────────────────────── */}
+        <View>
+          <SectionLabel label="Business" colors={colors} />
+          <MenuCard colors={colors}>
+            <MenuItem
+              icon="briefcase-outline"
+              iconColor="#0A84FF"
+              label="Business Page"
+              onPress={() => router.push("/business" as any)}
+              showSeparator
+              colors={colors}
+            />
+            <MenuItem
+              icon="ribbon-outline"
+              iconColor={Colors.gold}
+              label="Achievements"
+              onPress={() => router.push("/achievements" as any)}
+              colors={colors}
+            />
+          </MenuCard>
+        </View>
+
+        {/* ── Trustpilot ──────────────────────────────────────────────────── */}
+        <TrustpilotReviewCard />
 
       </ScrollView>
 
@@ -565,7 +666,7 @@ export default function MeScreen() {
         onClose={() => setAvatarOpen(false)}
       />
 
-      {/* ── Username Purchase Details Modal ── */}
+      {/* ── Username Purchase Details Modal ─────────────────────────────── */}
       <Modal visible={!!purchasePopup} transparent animationType="fade" onRequestClose={() => setPurchasePopup(null)}>
         <TouchableOpacity
           style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}
@@ -637,7 +738,7 @@ export default function MeScreen() {
 const s = StyleSheet.create({
   content: { gap: 0, paddingHorizontal: 0 },
 
-  // Hero — flat full-width
+  // Hero
   heroCard: { overflow: "hidden" },
   heroTop: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14, gap: 14 },
   heroName: { fontSize: 19, fontFamily: "Inter_700Bold", flexShrink: 1 },
@@ -646,6 +747,7 @@ const s = StyleSheet.create({
   premiumDot: { position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: "#FFD60A", alignItems: "center", justifyContent: "center" },
   businessChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, alignSelf: "flex-start", marginTop: 3 },
   businessChipText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
+
   // ACoin bar
   acoinBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingVertical: 12 },
   acoinIconWrap: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
@@ -653,20 +755,20 @@ const s = StyleSheet.create({
   acoinBalance: { fontSize: 15, fontFamily: "Inter_700Bold" },
   acoinSub: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
 
-  // Stats — flat
+  // Stats
   statsRow: { flexDirection: "row", paddingVertical: 16, paddingHorizontal: 8 },
   statCell: { flex: 1, alignItems: "center", gap: 3 },
   statValue: { fontSize: 22, fontFamily: "Inter_700Bold" },
   statLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
   statDivider: { width: 0.5, marginVertical: 4 },
 
-  // Quick actions — flat
+  // Quick actions
   quickRow: { flexDirection: "row", paddingVertical: 16, paddingHorizontal: 4 },
   quickBtn: { flex: 1, alignItems: "center", gap: 7 },
   quickIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   quickLabel: { fontSize: 10, fontFamily: "Inter_500Medium", textAlign: "center" },
 
-  // Premium banner — flat with subtle bg
+  // Premium banner
   premiumBanner: { padding: 20, flexDirection: "row", alignItems: "center", gap: 14 },
   premiumIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   premiumTitle: { color: "#FFD60A", fontSize: 15, fontFamily: "Inter_700Bold" },
