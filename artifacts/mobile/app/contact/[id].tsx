@@ -312,7 +312,7 @@ export default function ContactScreen() {
             </TouchableOpacity>
             {!isSelf && (
               <TouchableOpacity style={s.navBtn}
-                onPress={() => showAlert("Options", undefined, [
+                onPress={() => showAlert(profile.display_name, undefined, [
                   { text: "Report", style: "destructive", onPress: () => {} },
                   { text: "Block",  style: "destructive", onPress: () => {} },
                   { text: "Cancel", style: "cancel" },
@@ -392,14 +392,15 @@ export default function ContactScreen() {
                   )}
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-                    onPress={() => showAlert("More", undefined, [
-                      { text: "Share Profile",    onPress: () => showToast("Link copied", { type: "info" }) },
-                      { text: "Add to Contacts",  onPress: () => showToast("Saved", { type: "success" }) },
-                      { text: "Report", style: "destructive", onPress: () => {} },
-                      { text: "Block",  style: "destructive", onPress: () => {} },
-                      { text: "Cancel", style: "cancel" },
-                    ])} activeOpacity={0.8}>
-                    <Ionicons name="ellipsis-horizontal" size={15} color={colors.text} />
+                    onPress={() => showToast("Profile link copied", { type: "info" })}
+                    activeOpacity={0.8}>
+                    <Ionicons name="share-outline" size={15} color={colors.text} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
+                    onPress={() => showToast("Added to contacts", { type: "success" })}
+                    activeOpacity={0.8}>
+                    <Ionicons name="person-add-outline" size={15} color={colors.text} />
                   </TouchableOpacity>
                 </>
               )}
