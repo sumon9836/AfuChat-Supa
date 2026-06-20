@@ -11,6 +11,14 @@ const CHAT_PREF_TO_LOCAL: Partial<Record<string, string>> = {
 };
 
 const APP_ACCENT_KEY = "app_color_theme";
+const LOCAL_PREFS_KEY = "chat_prefs_local";
+
+// These keys are stored server-side (Supabase chat_preferences table)
+const SERVER_KEYS = new Set([
+  "chat_theme", "bubble_style", "font_size", "sounds_enabled", "auto_download",
+  "read_receipts", "chat_lock", "enter_to_send", "media_quality", "save_to_gallery",
+  "link_previews", "typing_indicators", "archive_on_delete", "chat_backup",
+]);
 
 export type ChatTheme =
   | "Teal" | "Blue" | "Green" | "Purple" | "Red"
@@ -21,6 +29,7 @@ export type BubbleStyle = "Rounded" | "Sharp" | "Minimal";
 export type MediaQuality = "Auto" | "High" | "Low";
 
 export type ChatPrefs = {
+  // ── Server-side prefs ──
   chat_theme: ChatTheme;
   bubble_style: BubbleStyle;
   font_size: number;
@@ -35,6 +44,14 @@ export type ChatPrefs = {
   typing_indicators: boolean;
   archive_on_delete: boolean;
   chat_backup: boolean;
+  // ── Client-side prefs (AsyncStorage) ──
+  compact_mode: boolean;
+  reactions_enabled: boolean;
+  autoplay_gifs: boolean;
+  screenshot_protection: boolean;
+  notification_preview: boolean;
+  send_haptics: boolean;
+  message_grouping: boolean;
 };
 
 export const CHAT_THEME_COLORS: Record<string, { bubble: string; bubbleText: string; accent: string }> = {
@@ -90,6 +107,13 @@ export const defaults: ChatPrefs = {
   typing_indicators: true,
   archive_on_delete: false,
   chat_backup: false,
+  compact_mode: false,
+  reactions_enabled: true,
+  autoplay_gifs: true,
+  screenshot_protection: false,
+  notification_preview: true,
+  send_haptics: true,
+  message_grouping: true,
 };
 
 type ChatPrefsContextType = {
@@ -118,13 +142,21 @@ export function ChatPreferencesProvider({ children }: { children: React.ReactNod
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     try {
+      // Load server-side prefs
       const { data } = await supabase
         .from("chat_preferences")
         .select("user_id, chat_theme, bubble_style, font_size, sounds_enabled, auto_download, read_receipts, chat_lock, enter_to_send, media_quality, save_to_gallery, link_previews, typing_indicators, archive_on_delete, chat_backup")
         .eq("user_id", user.id)
         .maybeSingle();
+
+      // Load client-side prefs from AsyncStorage
+      const localRaw = await AsyncStorage.getItem(LOCAL_PREFS_KEY + "_" + user.id);
+      const localPrefs = localRaw ? JSON.parse(localRaw) : {};
+
       if (data) {
-        setPrefs({ ...defaults, ...data });
+        setPrefs({ ...defaults, ...data, ...localPrefs });
+      } else {
+        setPrefs({ ...defaults, ...localPrefs });
       }
     } catch {}
     setLoading(false);
@@ -134,19 +166,34 @@ export function ChatPreferencesProvider({ children }: { children: React.ReactNod
 
   const updatePref = useCallback(async <K extends keyof ChatPrefs>(key: K, value: ChatPrefs[K]) => {
     setPrefs((p) => ({ ...p, [key]: value }));
+
     if (key === "chat_theme") AsyncStorage.setItem(APP_ACCENT_KEY, value as string).catch(() => {});
-    if (!user) return;
+
     const localKey = CHAT_PREF_TO_LOCAL[key as string];
-    if (localKey) {
+    if (localKey && user) {
       let localVal: any = value;
       if (key === "auto_download") localVal = (value as boolean) ? "wifi_only" : "never";
       patchLocalSetting(user.id, localKey as any, localVal).catch(() => {});
     }
-    try {
-      await supabase
-        .from("chat_preferences")
-        .upsert({ user_id: user.id, [key]: value }, { onConflict: "user_id" });
-    } catch {}
+
+    if (SERVER_KEYS.has(key as string)) {
+      // Persist to Supabase
+      if (!user) return;
+      try {
+        await supabase
+          .from("chat_preferences")
+          .upsert({ user_id: user.id, [key]: value }, { onConflict: "user_id" });
+      } catch {}
+    } else {
+      // Persist client-only prefs to AsyncStorage
+      if (!user) return;
+      try {
+        const storageKey = LOCAL_PREFS_KEY + "_" + user.id;
+        const raw = await AsyncStorage.getItem(storageKey);
+        const existing = raw ? JSON.parse(raw) : {};
+        await AsyncStorage.setItem(storageKey, JSON.stringify({ ...existing, [key]: value }));
+      } catch {}
+    }
   }, [user]);
 
   const themeColors = CHAT_THEME_COLORS[prefs.chat_theme] || CHAT_THEME_COLORS["Teal"];

@@ -33,7 +33,7 @@ const FONT_SIZES = [13, 15, 17, 19];
 const MEDIA_QUALITIES: MediaQuality[] = ["Auto", "High", "Low"];
 
 export default function ChatSettingsScreen() {
-  const { colors } = useTheme();
+  const { colors, accent, isDark } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { prefs, loading, updatePref } = useChatPreferences();
@@ -41,7 +41,7 @@ export default function ChatSettingsScreen() {
   const [clearing, setClearing] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
 
-  const themeColor = CHAT_THEME_COLORS[prefs.chat_theme]?.accent ?? "#1f95ff";
+  const themeColor = CHAT_THEME_COLORS[prefs.chat_theme]?.accent ?? accent;
   const bubbleRadius = BUBBLE_RADIUS[prefs.bubble_style] ?? 18;
 
   async function handleColorPick(key: ChatTheme) {
@@ -124,19 +124,16 @@ export default function ChatSettingsScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 48, paddingTop: 4 }}
         showsVerticalScrollIndicator={false}
       >
-
         {/* ── THEME COLOR ──────────────────────────────────── */}
-        <SectionTitle label="APP COLOR" />
+        <SectionTitle label="ACCENT COLOUR" />
         <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={s.cardHeaderRow}>
             <View style={[s.iconBadge, { backgroundColor: themeColor }]}>
               <Ionicons name="color-palette" size={16} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[s.cardTitle, { color: colors.text }]}>Accent Colour</Text>
-              <Text style={[s.cardSub, { color: colors.textMuted }]}>
-                Applies to bubbles, tabs and buttons
-              </Text>
+              <Text style={[s.cardTitle, { color: colors.text }]}>App Accent</Text>
+              <Text style={[s.cardSub, { color: colors.textMuted }]}>Applies to bubbles, tabs and buttons</Text>
             </View>
             <View style={[s.accentPill, { backgroundColor: themeColor + "20", borderColor: themeColor + "55" }]}>
               <Text style={[s.accentPillText, { color: themeColor }]}>{prefs.chat_theme}</Text>
@@ -151,11 +148,7 @@ export default function ChatSettingsScreen() {
                 <TouchableOpacity
                   key={key}
                   onPress={() => handleColorPick(key)}
-                  style={[
-                    s.swatch,
-                    { backgroundColor: hex },
-                    active && { borderWidth: 3, borderColor: "#fff", transform: [{ scale: 1.12 }] },
-                  ]}
+                  style={[s.swatch, { backgroundColor: hex }, active && s.swatchActive]}
                   activeOpacity={0.8}
                 >
                   {active && <Ionicons name="checkmark" size={17} color="#fff" />}
@@ -166,31 +159,17 @@ export default function ChatSettingsScreen() {
         </View>
 
         {/* ── LIVE PREVIEW ─────────────────────────────────── */}
-        <View style={[s.previewCard, { backgroundColor: colors.backgroundTertiary ?? colors.background, borderColor: colors.border }]}>
+        <View style={[s.previewCard, { backgroundColor: isDark ? colors.surface : "#f0f0f5", borderColor: colors.border }]}>
           <Text style={[s.previewLabel, { color: colors.textMuted }]}>PREVIEW</Text>
-
           <View style={s.previewBubbleRow}>
-            <View style={[s.previewBubble, s.previewBubbleLeft, {
-              backgroundColor: colors.surface,
-              borderRadius: bubbleRadius,
-              borderColor: colors.border,
-              borderWidth: 0.5,
-            }]}>
-              <Text style={[s.previewBubbleText, { color: colors.text, fontSize: prefs.font_size * 0.78 }]}>
-                Hey, how are you? 👋
-              </Text>
+            <View style={[s.previewBubble, s.previewBubbleLeft, { backgroundColor: colors.surface, borderRadius: bubbleRadius, borderColor: colors.border, borderWidth: 0.5 }]}>
+              <Text style={[s.previewBubbleText, { color: colors.text, fontSize: prefs.font_size * 0.78 }]}>Hey, how are you? 👋</Text>
             </View>
           </View>
-
           <View style={s.previewBubbleRow}>
             <View style={{ flex: 1 }} />
-            <View style={[s.previewBubble, s.previewBubbleRight, {
-              backgroundColor: themeColor,
-              borderRadius: bubbleRadius,
-            }]}>
-              <Text style={[s.previewBubbleText, { color: "#fff", fontSize: prefs.font_size * 0.78 }]}>
-                I'm great, thanks! 😊
-              </Text>
+            <View style={[s.previewBubble, s.previewBubbleRight, { backgroundColor: themeColor, borderRadius: bubbleRadius }]}>
+              <Text style={[s.previewBubbleText, { color: "#fff", fontSize: prefs.font_size * 0.78 }]}>I'm great, thanks! 😊</Text>
               <View style={s.previewTsRow}>
                 <Text style={[s.previewTs, { color: "rgba(255,255,255,0.75)" }]}>12:35</Text>
                 <Ionicons name="checkmark-done" size={11} color="rgba(255,255,255,0.75)" />
@@ -199,14 +178,15 @@ export default function ChatSettingsScreen() {
           </View>
         </View>
 
-        {/* ── BUBBLE STYLE ─────────────────────────────────── */}
-        <SectionTitle label="BUBBLE STYLE" />
-        <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {/* ── APPEARANCE ───────────────────────────────────── */}
+        <SectionTitle label="APPEARANCE" />
+        {/* Bubble style */}
+        <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 10 }]}>
           <View style={s.cardHeaderRow}>
-            <View style={[s.iconBadge, { backgroundColor: "#AF52DE" }]}>
+            <View style={[s.iconBadge, { backgroundColor: themeColor }]}>
               <Ionicons name="chatbubble" size={16} color="#fff" />
             </View>
-            <Text style={[s.cardTitle, { color: colors.text }]}>Shape of message bubbles</Text>
+            <Text style={[s.cardTitle, { color: colors.text }]}>Bubble Style</Text>
           </View>
           <View style={s.bubbleStyleRow}>
             {(["Rounded", "Sharp", "Minimal"] as BubbleStyle[]).map((name) => {
@@ -216,39 +196,25 @@ export default function ChatSettingsScreen() {
                 <TouchableOpacity
                   key={name}
                   onPress={() => updatePref("bubble_style", name)}
-                  style={[
-                    s.bubbleTile,
-                    { borderColor: active ? themeColor : colors.border },
-                    active && { backgroundColor: themeColor + "14" },
-                  ]}
+                  style={[s.bubbleTile, { borderColor: active ? themeColor : colors.border }, active && { backgroundColor: themeColor + "14" }]}
                   activeOpacity={0.8}
                 >
-                  <View style={[s.bubbleShape, {
-                    borderRadius: r,
-                    backgroundColor: active ? themeColor : colors.backgroundSecondary,
-                    borderColor: active ? themeColor : colors.border,
-                    borderWidth: active ? 0 : 1.5,
-                  }]} />
-                  <Text style={[s.bubbleTileLabel, { color: active ? themeColor : colors.textSecondary ?? colors.textMuted }]}>
-                    {name}
-                  </Text>
-                  {active && (
-                    <View style={[s.activeDot, { backgroundColor: themeColor }]} />
-                  )}
+                  <View style={[s.bubbleShape, { borderRadius: r, backgroundColor: active ? themeColor : colors.backgroundSecondary, borderColor: active ? themeColor : colors.border, borderWidth: active ? 0 : 1.5 }]} />
+                  <Text style={[s.bubbleTileLabel, { color: active ? themeColor : colors.textMuted }]}>{name}</Text>
+                  {active && <View style={[s.activeDot, { backgroundColor: themeColor }]} />}
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        {/* ── FONT SIZE ────────────────────────────────────── */}
-        <SectionTitle label="FONT SIZE" />
-        <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {/* Font size */}
+        <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 10 }]}>
           <View style={s.cardHeaderRow}>
             <View style={[s.iconBadge, { backgroundColor: "#FF9500" }]}>
               <Ionicons name="text" size={16} color="#fff" />
             </View>
-            <Text style={[s.cardTitle, { color: colors.text, flex: 1 }]}>Message text size</Text>
+            <Text style={[s.cardTitle, { color: colors.text, flex: 1 }]}>Font Size</Text>
             <Text style={[s.accentPillText, { color: "#FF9500" }]}>{prefs.font_size}px</Text>
           </View>
           <View style={s.fontRow}>
@@ -258,16 +224,10 @@ export default function ChatSettingsScreen() {
                 <TouchableOpacity
                   key={sz}
                   onPress={() => updatePref("font_size", sz)}
-                  style={[
-                    s.fontTile,
-                    { borderColor: active ? themeColor : colors.border },
-                    active && { backgroundColor: themeColor + "14" },
-                  ]}
+                  style={[s.fontTile, { borderColor: active ? themeColor : colors.border }, active && { backgroundColor: themeColor + "14" }]}
                   activeOpacity={0.8}
                 >
-                  <Text style={{ fontSize: sz * 0.85, color: active ? themeColor : colors.textSecondary ?? colors.textMuted, fontFamily: "Inter_700Bold" }}>
-                    Aa
-                  </Text>
+                  <Text style={{ fontSize: sz * 0.85, color: active ? themeColor : colors.textMuted, fontFamily: "Inter_700Bold" }}>Aa</Text>
                   <Text style={[s.fontSzLabel, { color: active ? themeColor : colors.textMuted }]}>{sz}px</Text>
                 </TouchableOpacity>
               );
@@ -275,8 +235,19 @@ export default function ChatSettingsScreen() {
           </View>
         </View>
 
-        {/* ── MESSAGES ─────────────────────────────────────── */}
-        <SectionTitle label="MESSAGES" />
+        {/* Layout toggles */}
+        <View style={[s.group, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <TogRow colors={colors} themeColor={themeColor} icon="reorder-four-outline" bg={themeColor}
+            label="Compact Mode" desc="Tighter message spacing for more content on screen"
+            value={prefs.compact_mode} onChange={(v) => updatePref("compact_mode", v)} />
+          <Sep color={colors.border} />
+          <TogRow colors={colors} themeColor={themeColor} icon="people-outline" bg={themeColor}
+            label="Message Grouping" desc="Group consecutive messages from the same sender"
+            value={prefs.message_grouping} onChange={(v) => updatePref("message_grouping", v)} />
+        </View>
+
+        {/* ── MESSAGING ────────────────────────────────────── */}
+        <SectionTitle label="MESSAGING" />
         <View style={[s.group, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TogRow colors={colors} themeColor={themeColor} icon="volume-high" bg="#007AFF"
             label="Sound Effects" desc="Play sounds for sent and received messages"
@@ -293,12 +264,20 @@ export default function ChatSettingsScreen() {
           <TogRow colors={colors} themeColor={themeColor} icon="link" bg="#FF2D55"
             label="Link Previews" desc="Show rich previews for URLs in messages"
             value={prefs.link_previews} onChange={(v) => updatePref("link_previews", v)} />
+          <Sep color={colors.border} />
+          <TogRow colors={colors} themeColor={themeColor} icon="happy-outline" bg="#FF9500"
+            label="Emoji Reactions" desc="Let others react to your messages with emojis"
+            value={prefs.reactions_enabled} onChange={(v) => updatePref("reactions_enabled", v)} />
           {Platform.OS !== "web" && (
             <>
               <Sep color={colors.border} />
               <TogRow colors={colors} themeColor={themeColor} icon="return-down-back" bg="#64748B"
                 label="Enter Key to Send" desc="Use Enter to send instead of new line"
                 value={prefs.enter_to_send} onChange={(v) => updatePref("enter_to_send", v)} />
+              <Sep color={colors.border} />
+              <TogRow colors={colors} themeColor={themeColor} icon="phone-portrait-outline" bg={themeColor}
+                label="Haptic Feedback" desc="Vibrate when you send or receive messages"
+                value={prefs.send_haptics} onChange={(v) => updatePref("send_haptics", v)} />
             </>
           )}
         </View>
@@ -310,13 +289,17 @@ export default function ChatSettingsScreen() {
             label="Auto-Download Media" desc="Automatically download photos and videos"
             value={prefs.auto_download} onChange={(v) => updatePref("auto_download", v)} />
           <Sep color={colors.border} />
+          <TogRow colors={colors} themeColor={themeColor} icon="logo-github" bg="#32ADE6"
+            label="Auto-Play GIFs" desc="Animate GIFs as soon as they load"
+            value={prefs.autoplay_gifs} onChange={(v) => updatePref("autoplay_gifs", v)} />
+          <Sep color={colors.border} />
           <View style={s.row}>
             <View style={[s.iconBadge, { backgroundColor: "#FF9500" }]}>
               <Ionicons name="image" size={16} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[s.rowLabel, { color: colors.text }]}>Media Quality</Text>
-              <Text style={[s.rowDesc, { color: colors.textMuted }]}>Upload quality for photos & videos</Text>
+              <Text style={[s.rowLabel, { color: colors.text }]}>Upload Quality</Text>
+              <Text style={[s.rowDesc, { color: colors.textMuted }]}>Quality when sending photos & videos</Text>
             </View>
             <View style={[s.seg, { borderColor: colors.border }]}>
               {MEDIA_QUALITIES.map((q) => (
@@ -361,12 +344,28 @@ export default function ChatSettingsScreen() {
           )}
         </View>
 
-        {/* ── SECURITY ─────────────────────────────────────── */}
-        <SectionTitle label="SECURITY" />
+        {/* ── NOTIFICATIONS ─────────────────────────────────── */}
+        <SectionTitle label="NOTIFICATIONS" />
+        <View style={[s.group, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <TogRow colors={colors} themeColor={themeColor} icon="notifications" bg={themeColor}
+            label="Message Preview" desc="Show message content in notification banners"
+            value={prefs.notification_preview} onChange={(v) => updatePref("notification_preview", v)} />
+        </View>
+
+        {/* ── PRIVACY & SECURITY ───────────────────────────── */}
+        <SectionTitle label="PRIVACY & SECURITY" />
         <View style={[s.group, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TogRow colors={colors} themeColor={themeColor} icon="lock-closed" bg="#FF3B30"
             label="Chat Lock" desc="Require Face ID / fingerprint to open chats"
             value={prefs.chat_lock} onChange={(v) => updatePref("chat_lock", v)} />
+          {Platform.OS !== "web" && (
+            <>
+              <Sep color={colors.border} />
+              <TogRow colors={colors} themeColor={themeColor} icon="eye-off" bg="#8E8E93"
+                label="Screenshot Protection" desc="Blur chat content when app is in the background"
+                value={prefs.screenshot_protection} onChange={(v) => updatePref("screenshot_protection", v)} />
+            </>
+          )}
           <Sep color={colors.border} />
           <TogRow colors={colors} themeColor={themeColor} icon="archive" bg="#FF9500"
             label="Archive on Delete" desc="Move messages to archive instead of deleting"
@@ -382,12 +381,7 @@ export default function ChatSettingsScreen() {
           {prefs.chat_backup && (
             <>
               <Sep color={colors.border} />
-              <TouchableOpacity
-                style={s.row}
-                onPress={handleBackupNow}
-                activeOpacity={0.7}
-                disabled={backingUp}
-              >
+              <TouchableOpacity style={s.row} onPress={handleBackupNow} activeOpacity={0.7} disabled={backingUp}>
                 <View style={[s.iconBadge, { backgroundColor: "#5856D6" }]}>
                   {backingUp
                     ? <ActivityIndicator size="small" color="#fff" />
@@ -403,21 +397,14 @@ export default function ChatSettingsScreen() {
         {/* ── DANGER ZONE ──────────────────────────────────── */}
         <SectionTitle label="DANGER ZONE" />
         <View style={[s.group, { backgroundColor: colors.surface, borderColor: "#FF3B3033" }]}>
-          <TouchableOpacity
-            style={s.row}
-            activeOpacity={0.7}
-            onPress={handleClearAllChats}
-            disabled={clearing}
-          >
+          <TouchableOpacity style={s.row} activeOpacity={0.7} onPress={handleClearAllChats} disabled={clearing}>
             <View style={[s.iconBadge, { backgroundColor: "#FF3B30" }]}>
               {clearing
                 ? <ActivityIndicator size="small" color="#fff" />
                 : <Ionicons name="trash" size={16} color="#fff" />}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[s.rowLabel, { color: "#FF3B30" }]}>
-                {clearing ? "Clearing…" : "Clear All Chats"}
-              </Text>
+              <Text style={[s.rowLabel, { color: "#FF3B30" }]}>{clearing ? "Clearing…" : "Clear All Chats"}</Text>
               <Text style={[s.rowDesc, { color: colors.textMuted }]}>
                 {prefs.archive_on_delete ? "Archives your sent messages" : "Permanently deletes your sent messages"}
               </Text>
@@ -440,9 +427,7 @@ export default function ChatSettingsScreen() {
 
 function SectionTitle({ label }: { label: string }) {
   const { colors } = useTheme();
-  return (
-    <Text style={[s.sectionTitle, { color: colors.textMuted }]}>{label}</Text>
-  );
+  return <Text style={[s.sectionTitle, { color: colors.textMuted }]}>{label}</Text>;
 }
 
 function Sep({ color }: { color: string }) {
@@ -509,119 +494,77 @@ const s = StyleSheet.create({
     }),
   },
 
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
-  },
+  cardHeaderRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
   cardTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   cardSub:   { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
 
-  accentPill: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
+  accentPill: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
   accentPillText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
 
-  swatchGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    justifyContent: "flex-start",
-  },
+  swatchGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "flex-start" },
   swatch: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: "center", justifyContent: "center",
     ...Platform.select({
       default: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 4, elevation: 3 },
     }),
   },
+  swatchActive: { borderWidth: 3, borderColor: "#fff", transform: [{ scale: 1.12 }] },
 
   previewCard: {
-    marginHorizontal: 16,
-    marginTop: 10,
-    borderRadius: 18,
-    borderWidth: 0.5,
-    padding: 14,
-    gap: 8,
+    marginHorizontal: 16, marginTop: 10, borderRadius: 18,
+    borderWidth: 0.5, padding: 14, gap: 8,
   },
-  previewLabel: {
-    fontSize: 10,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
+  previewLabel: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.8, marginBottom: 4 },
   previewBubbleRow: { flexDirection: "row" },
   previewBubble: { maxWidth: "72%", paddingHorizontal: 12, paddingVertical: 8 },
   previewBubbleLeft: {},
   previewBubbleRight: {},
-  previewBubbleText: { fontFamily: "Inter_400Regular", lineHeight: 18 },
-  previewTsRow: { flexDirection: "row", alignItems: "center", gap: 2, alignSelf: "flex-end", marginTop: 4 },
+  previewBubbleText: { fontFamily: "Inter_400Regular" },
+  previewTsRow: { flexDirection: "row", alignItems: "center", gap: 2, justifyContent: "flex-end", marginTop: 3 },
   previewTs: { fontSize: 10, fontFamily: "Inter_400Regular" },
 
-  bubbleStyleRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
+  bubbleStyleRow: { flexDirection: "row", gap: 10 },
   bubbleTile: {
-    flex: 1,
-    alignItems: "center",
+    flex: 1, alignItems: "center", paddingVertical: 14,
+    borderRadius: 14, borderWidth: 1.5,
     gap: 8,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
   },
-  bubbleShape: { width: 40, height: 26 },
-  bubbleTileLabel: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  bubbleShape: { width: 36, height: 22 },
+  bubbleTileLabel: { fontSize: 12, fontFamily: "Inter_500Medium" },
   activeDot: { width: 6, height: 6, borderRadius: 3 },
 
-  fontRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
+  fontRow: { flexDirection: "row", gap: 8 },
   fontTile: {
-    flex: 1,
-    alignItems: "center",
-    gap: 5,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    paddingVertical: 12,
+    flex: 1, alignItems: "center", paddingVertical: 12,
+    borderRadius: 12, borderWidth: 1.5, gap: 4,
   },
   fontSzLabel: { fontSize: 10, fontFamily: "Inter_400Regular" },
 
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 13,
     gap: 12,
   },
   iconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 32, height: 32, borderRadius: 9,
+    alignItems: "center", justifyContent: "center",
   },
   rowLabel: { fontSize: 15, fontFamily: "Inter_500Medium" },
-  rowDesc:  { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2, lineHeight: 16 },
-  sep: { height: 0.5, marginLeft: 58 },
+  rowDesc: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
+
+  sep: { height: 0.5, marginLeft: 60 },
 
   seg: {
     flexDirection: "row",
+    borderWidth: 1,
     borderRadius: 10,
     overflow: "hidden",
-    borderWidth: 1,
   },
   segBtn: { paddingHorizontal: 10, paddingVertical: 6 },
-  segTxt: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  segTxt: { fontSize: 12, fontFamily: "Inter_500Medium" },
 
   footer: {
     flexDirection: "row",
@@ -629,7 +572,7 @@ const s = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 4,
+    paddingBottom: 8,
   },
   footerText: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1 },
 });

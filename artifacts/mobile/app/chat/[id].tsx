@@ -7637,6 +7637,8 @@ STRICT RULES:
               )}
               <DdRow colors={colors} icon="star-outline" label="Starred Messages"
                 onPress={() => { setShowChatOptions(false); router.push({ pathname: "/saved-posts", params: { tab: "messages" } } as any); }} />
+              <DdRow colors={colors} icon="settings-outline" label="Chat Settings"
+                onPress={() => { setShowChatOptions(false); router.push("/settings/chat" as any); }} />
               {advancedFeatures.chat_summary && (
                 <DdRow colors={colors} icon="sparkles-outline" label="Summarize Chat"
                   onPress={() => { setShowChatOptions(false); handleChatSummaryFull(); }} />
