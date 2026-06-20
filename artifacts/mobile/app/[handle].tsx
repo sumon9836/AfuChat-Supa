@@ -257,7 +257,7 @@ const RESERVED_ROUTES = new Set([
   "contact", "cart", "orders", "product", "index", "logout", "register",
   "login", "reset-password", "404", "not-found",
   // Additional routes guarded below
-  "about", "advanced-features", "lab", "achievements", "watch-history",
+  "about", "lab", "achievements", "watch-history",
   "referral", "prestige", "store", "premium", "status", "digital-id",
   "qr-scanner", "create-post", "followers", "saved-posts", "collections",
   "language-settings", "linked-accounts", "device-security",

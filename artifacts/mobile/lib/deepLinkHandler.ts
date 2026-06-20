@@ -76,7 +76,7 @@ const SYSTEM_ROUTES = new Set([
   "channel", "digital-events", "ref", "app", "download", "privacy",
   "terms", "about", "help", "feedback", "notifications", "likes",
   "explore", "trending", "feed", "home", "index", "join",
-  "advanced-features", "lab", "achievements", "watch-history",
+  "lab", "achievements", "watch-history",
   "browser", "business", "collections", "games", "welcome",
   "store", "paid-communities", "phone-contacts", "file-manager",
   "create-post", "video-analytics", "username-market", "user-discovery",

@@ -47,7 +47,7 @@ const WORD_ROUTES = [
 ] as const;
 
 const HYPHEN_ROUTES = [
-  "advanced-features", "business-verification", "call-history", "chat-search",
+  "business-verification", "call-history", "chat-search",
   "create-post", "device-security", "digital-events", "digital-id",
   "file-manager", "language-settings", "linked-accounts", "mini-programs",
   "my-posts", "paid-communities", "phone-contacts", "profile-not-found",

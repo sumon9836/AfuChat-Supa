@@ -429,15 +429,6 @@ export default function SettingsScreen() {
               accent={accent}
             />
           )}
-          <Row
-            icon="flash-outline"
-            label="Advanced Features"
-            sublabel="Power settings, feed and chat customisation"
-            onPress={() => router.push("/advanced-features" as any)}
-            last={Platform.OS === "web"}
-            colors={colors}
-            accent={accent}
-          />
           {Platform.OS !== "web" && (
             <Row
               icon="eye-off-outline"
