@@ -201,7 +201,8 @@ export default function ContactScreen() {
     if (!id || loading) return;
     setGridLoading(true);
     let q = supabase.from("posts").select("id,media_urls,post_type,content,article_title,video_url")
-      .eq("author_id", id).in("visibility",["public","followers"])
+      .eq("author_id", id)
+      .or("visibility.eq.public,visibility.eq.followers,visibility.is.null")
       .order("created_at", { ascending: false }).limit(30);
     if (activeTab === "videos")        q = (q as any).eq("post_type","video");
     else if (activeTab === "articles") q = (q as any).eq("post_type","article");
@@ -882,10 +883,11 @@ const s = StyleSheet.create({
   mutualsLabel: { fontSize: 10.5, fontFamily: "Inter_400Regular", marginBottom: 1 },
   mutualsText: { fontSize: 12.5, fontFamily: "Inter_500Medium" },
 
-  // Prestige pill + inline action icons (same row, no wrap)
+  // Prestige pill + inline action icons (same row, no wrap, spread across available width)
   pillActionRow: {
     flexDirection: "row", alignItems: "center",
-    gap: 6, flexWrap: "nowrap",
+    justifyContent: "space-between",
+    flex: 1, flexWrap: "nowrap",
   },
   pillIconBtn: {
     width: 30, height: 30, borderRadius: 15,
