@@ -467,10 +467,10 @@ export default function MeScreen() {
         {/* ── Quick Actions ───────────────────────────────────────────────── */}
         <View style={[s.quickRow, { backgroundColor: colors.surface }]}>
           {[
-            { icon: "create-outline",    label: "Edit Profile", color: Colors.brand,  onPress: () => router.push("/profile/edit") },
-            { icon: "person-outline",    label: "My Profile",   color: "#5856D6",     onPress: () => profile?.handle && router.push(`/@${profile.handle}` as any) },
-            { icon: "qr-code-outline",   label: "QR Code",      color: "#FF9500",     onPress: () => router.push("/qr-scanner" as any) },
-            { icon: "card-outline",      label: "Digital ID",   color: "#34C759",     onPress: () => router.push("/digital-id" as any) },
+            { icon: "create-outline",    label: "Edit Profile", color: accent, onPress: () => router.push("/profile/edit") },
+            { icon: "person-outline",    label: "My Profile",   color: accent, onPress: () => profile?.handle && router.push(`/@${profile.handle}` as any) },
+            { icon: "qr-code-outline",   label: "QR Code",      color: accent, onPress: () => router.push("/qr-scanner" as any) },
+            { icon: "card-outline",      label: "Digital ID",   color: accent, onPress: () => router.push("/digital-id" as any) },
           ].map((a) => (
             <TouchableOpacity key={a.label} style={s.quickBtn} onPress={a.onPress} activeOpacity={0.75}>
               <View style={[s.quickIconWrap, { backgroundColor: a.color + "15" }]}>
@@ -505,7 +505,7 @@ export default function MeScreen() {
             <MenuCard colors={colors}>
               <MenuItem
                 icon="diamond"
-                iconColor="#FFD60A"
+                iconColor={accent}
                 label="Premium Active"
                 value={subscription?.plan_tier ? `${subscription.plan_tier}` : "Active"}
                 onPress={() => router.push("/premium")}
@@ -524,7 +524,7 @@ export default function MeScreen() {
           <MenuCard colors={colors}>
             <MenuItem
               icon="grid-outline"
-              iconColor={Colors.brand}
+              iconColor={accent}
               label="My Posts"
               value={`${fmtCount(postCount)} posts`}
               onPress={() => router.push("/my-posts")}
@@ -533,7 +533,7 @@ export default function MeScreen() {
             />
             <MenuItem
               icon="bookmark-outline"
-              iconColor="#FF9500"
+              iconColor={accent}
               label="Saved Posts"
               onPress={() => router.push("/saved-posts" as any)}
               showSeparator
@@ -541,7 +541,7 @@ export default function MeScreen() {
             />
             <MenuItem
               icon="time-outline"
-              iconColor="#00BCD4"
+              iconColor={accent}
               label="Watch History"
               onPress={() => router.push("/watch-history" as any)}
               showSeparator
@@ -549,7 +549,7 @@ export default function MeScreen() {
             />
             <MenuItem
               icon="document-text-outline"
-              iconColor="#34C759"
+              iconColor={accent}
               label="My Notes"
               badge={notesLoading ? "…" : undefined}
               onPress={openMyNotes}
@@ -564,7 +564,7 @@ export default function MeScreen() {
           <MenuCard colors={colors}>
             <MenuItem
               icon="people-outline"
-              iconColor={Colors.brand}
+              iconColor={accent}
               label="Find People"
               onPress={() => router.push("/user-discovery")}
               showSeparator
@@ -572,27 +572,25 @@ export default function MeScreen() {
             />
             <MenuItem
               icon="gift-outline"
-              iconColor="#FF2D55"
+              iconColor={accent}
               label="Referral Program"
               badge="Earn ACoin"
-              badgeColor="#FF2D55"
               onPress={() => router.push("/referral" as any)}
               showSeparator
               colors={colors}
             />
             <MenuItem
               icon="trophy-outline"
-              iconColor={Colors.gold}
+              iconColor={accent}
               label="Prestige & Rewards"
               badge="NEW"
-              badgeColor={Colors.gold}
               onPress={() => router.push("/prestige")}
               showSeparator
               colors={colors}
             />
             <MenuItem
               icon="people-circle-outline"
-              iconColor="#34C759"
+              iconColor={accent}
               label="Phone Contacts"
               onPress={() => router.push("/phone-contacts" as any)}
               showSeparator
@@ -600,7 +598,7 @@ export default function MeScreen() {
             />
             <MenuItem
               icon="ribbon-outline"
-              iconColor={Colors.gold}
+              iconColor={accent}
               label="Achievements"
               onPress={() => router.push("/achievements" as any)}
               colors={colors}
