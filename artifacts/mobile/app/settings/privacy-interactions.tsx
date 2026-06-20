@@ -7,14 +7,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { ListRowSkeleton } from "@/components/ui/Skeleton";
-import Colors from "@/constants/colors";
 import { showAlert } from "@/lib/alert";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -27,10 +25,17 @@ type Settings = {
   allow_tagging: PrivacyLevel;
 };
 
+const OPTS: { v: PrivacyLevel; l: string }[] = [
+  { v: "everyone",  l: "Everyone"  },
+  { v: "followers", l: "Followers" },
+  { v: "nobody",    l: "Nobody"    },
+];
+
 function RadioGroup({
   label,
   description,
   icon,
+  iconColor,
   value,
   onChange,
   saving,
@@ -38,33 +43,44 @@ function RadioGroup({
   label: string;
   description: string;
   icon: React.ComponentProps<typeof Ionicons>["name"];
+  iconColor: string;
   value: PrivacyLevel;
   onChange: (v: PrivacyLevel) => void;
   saving: boolean;
 }) {
-  const { colors } = useTheme();
-  const opts: { v: PrivacyLevel; l: string }[] = [{ v: "everyone", l: "Everyone" }, { v: "followers", l: "Followers" }, { v: "nobody", l: "Nobody" }];
+  const { colors, accent } = useTheme();
   return (
-    <View style={[styles.groupCard, { backgroundColor: colors.surface }]}>
-      <View style={styles.groupHeader}>
-        <View style={[styles.groupIcon, { backgroundColor: colors.backgroundSecondary }]}><Ionicons name={icon} size={18} color={colors.icon} /></View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.groupLabel, { color: colors.text }]}>{label}</Text>
-          <Text style={[styles.groupDesc, { color: colors.textMuted }]}>{description}</Text>
+    <GlassCard style={s.groupCard} variant="medium">
+      <View style={[s.groupHeader, { backgroundColor: colors.surface }]}>
+        <View style={[s.groupIcon, { backgroundColor: iconColor + "18" }]}>
+          <Ionicons name={icon} size={18} color={iconColor} />
         </View>
-        {saving && <ActivityIndicator size="small" color={colors.accent} />}
+        <View style={{ flex: 1 }}>
+          <Text style={[s.groupLabel, { color: colors.text }]}>{label}</Text>
+          <Text style={[s.groupDesc, { color: colors.textMuted }]}>{description}</Text>
+        </View>
+        {saving && <ActivityIndicator size="small" color={accent} />}
       </View>
-      <View style={[styles.optRow, { borderTopColor: colors.border }]}>
-        {opts.map((o) => (
-          <TouchableOpacity key={o.v} style={styles.optItem} onPress={() => onChange(o.v)} activeOpacity={0.7}>
-            <View style={[styles.radio, { borderColor: value === o.v ? colors.accent : colors.border }]}>
-              {value === o.v && <View style={[styles.radioDot, { backgroundColor: colors.accent }]} />}
-            </View>
-            <Text style={[styles.optLabel, { color: value === o.v ? colors.accent : colors.textSecondary }]}>{o.l}</Text>
-          </TouchableOpacity>
-        ))}
+
+      <View style={[s.optStrip, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+        {OPTS.map((o) => {
+          const active = value === o.v;
+          return (
+            <TouchableOpacity
+              key={o.v}
+              style={[s.optItem, active && { backgroundColor: accent + "12" }]}
+              onPress={() => onChange(o.v)}
+              activeOpacity={0.7}
+            >
+              <View style={[s.radio, { borderColor: active ? accent : colors.border }]}>
+                {active && <View style={[s.radioDot, { backgroundColor: accent }]} />}
+              </View>
+              <Text style={[s.optLabel, { color: active ? accent : colors.textSecondary }]}>{o.l}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-    </View>
+    </GlassCard>
   );
 }
 
@@ -79,7 +95,10 @@ export default function PrivacyInteractionsScreen() {
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("reactions_privacy, allow_tagging").eq("id", user.id).single().then(({ data }) => {
-      if (data) setSettings({ reactions_privacy: (data.reactions_privacy as PrivacyLevel) ?? "everyone", allow_tagging: (data.allow_tagging as PrivacyLevel) ?? "everyone" });
+      if (data) setSettings({
+        reactions_privacy: (data.reactions_privacy as PrivacyLevel) ?? "everyone",
+        allow_tagging: (data.allow_tagging as PrivacyLevel) ?? "everyone",
+      });
       setLoading(false);
     });
   }, [user]);
@@ -87,7 +106,6 @@ export default function PrivacyInteractionsScreen() {
   async function update(field: keyof Settings, value: PrivacyLevel) {
     if (!user) return;
     setSaving(field);
-    // Write to device immediately (offline-first)
     patchLocalSetting(user.id, field as any, value).catch(() => {});
     const { error } = await supabase.from("profiles").update({ [field]: value }).eq("id", user.id);
     if (error) showAlert("Error", "Failed to save setting.");
@@ -96,14 +114,18 @@ export default function PrivacyInteractionsScreen() {
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.backgroundSecondary }]}>
+    <View style={[s.root, { backgroundColor: colors.backgroundSecondary }]}>
       <GlassHeader title="Reactions & Tags" />
-      {loading ? <View style={{ padding: 16, gap: 10 }}>{[1,2,3,4,5].map(i => <ListRowSkeleton key={i} />)}</View> : (
+      {loading ? (
+        <View style={{ padding: 16, gap: 10 }}>{[1,2,3,4,5].map(i => <ListRowSkeleton key={i} />)}</View>
+      ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>INTERACTIONS</Text>
+
+          <Text style={[s.sectionTitle, { color: colors.textMuted }]}>INTERACTIONS</Text>
           <View style={{ paddingHorizontal: 16, gap: 12 }}>
             <RadioGroup
               icon="heart"
+              iconColor="#FF2D55"
               label="Reactions & Comments"
               description="Who can react to and comment on your posts"
               value={settings.reactions_privacy}
@@ -112,6 +134,7 @@ export default function PrivacyInteractionsScreen() {
             />
             <RadioGroup
               icon="pricetag"
+              iconColor="#FF9500"
               label="Tagging"
               description="Who can tag you in their posts or stories"
               value={settings.allow_tagging}
@@ -119,27 +142,35 @@ export default function PrivacyInteractionsScreen() {
               saving={saving === "allow_tagging"}
             />
           </View>
-          <Text style={[styles.hint, { color: colors.textMuted }]}>Changes apply to new interactions only. Existing comments and tags remain.</Text>
+
+          <Text style={[s.hint, { color: colors.textMuted }]}>
+            Changes apply to new interactions only. Existing comments and tags remain.
+          </Text>
         </ScrollView>
       )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12 },
-  headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
-  sectionTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 8 },
-  groupCard: { borderRadius: 14, overflow: "hidden" },
+  sectionTitle: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.8,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 8,
+  },
+  groupCard: { borderRadius: 16, overflow: "hidden" },
   groupHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
-  groupIcon: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  groupIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   groupLabel: { fontSize: 15, fontFamily: "Inter_500Medium", marginBottom: 2 },
   groupDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 16 },
-  optRow: { flexDirection: "row", paddingVertical: 10, paddingHorizontal: 14 },
-  optItem: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
+  optStrip: { flexDirection: "row", borderTopWidth: 0.5, paddingVertical: 10, paddingHorizontal: 8 },
+  optItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 6, borderRadius: 8 },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   radioDot: { width: 10, height: 10, borderRadius: 5 },
   optLabel: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  hint: { fontSize: 13, fontFamily: "Inter_400Regular", paddingHorizontal: 20, paddingTop: 14, lineHeight: 18 },
+  hint: { fontSize: 13, fontFamily: "Inter_400Regular", paddingHorizontal: 20, paddingTop: 16, lineHeight: 18 },
 });

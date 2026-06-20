@@ -16,16 +16,22 @@ import { GlassHeader } from "@/components/ui/GlassHeader";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { supabase, supabaseUrl, supabaseAnonKey } from "@/lib/supabase";
 
-const DATA_TYPES = [
-  { id: "profile",      icon: "person-circle"   as const, label: "Profile Data",     description: "Your display name, bio, settings, and account info" },
-  { id: "messages",     icon: "chatbubble"       as const, label: "Messages",         description: "All your chat conversations and media" },
-  { id: "posts",        icon: "document-text"    as const, label: "Posts & Moments",  description: "Everything you've posted on Discover" },
-  { id: "activity",     icon: "analytics"        as const, label: "Activity History", description: "Notifications, follows, and app activity" },
-  { id: "transactions", icon: "card"             as const, label: "Transactions",     description: "ACoin and XP transaction history" },
+const DATA_TYPES: {
+  id: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  iconColor: string;
+  label: string;
+  description: string;
+}[] = [
+  { id: "profile",      icon: "person-circle",  iconColor: "#007AFF", label: "Profile Data",     description: "Your display name, bio, settings, and account info" },
+  { id: "messages",     icon: "chatbubble",      iconColor: "#34C759", label: "Messages",         description: "All your chat conversations and media" },
+  { id: "posts",        icon: "document-text",   iconColor: "#FF9500", label: "Posts & Moments",  description: "Everything you've posted on Discover" },
+  { id: "activity",     icon: "analytics",       iconColor: "#AF52DE", label: "Activity History", description: "Notifications, follows, and app activity" },
+  { id: "transactions", icon: "card",            iconColor: "#FFD60A", label: "Transactions",     description: "ACoin and XP transaction history" },
 ];
 
 export default function PrivacyDownloadScreen() {
-  const { colors } = useTheme();
+  const { colors, accent } = useTheme();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<Set<string>>(new Set(["profile"]));
   const [loading, setLoading] = useState(false);
@@ -46,19 +52,14 @@ export default function PrivacyDownloadScreen() {
       showAlert("Select Data", "Please select at least one data type to download.");
       return;
     }
-
     setLoading(true);
     try {
-      // Get the current session token
       const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
       if (sessionErr || !sessionData?.session) {
         showAlert("Not Signed In", "You must be signed in to export your data.");
         return;
       }
       const accessToken = sessionData.session.access_token;
-
-      // Call the edge function directly via fetch — more reliable than
-      // supabase.functions.invoke in Expo Go environments.
       const functionUrl = `${supabaseUrl}/functions/v1/data-export`;
       const res = await fetch(functionUrl, {
         method: "POST",
@@ -69,17 +70,14 @@ export default function PrivacyDownloadScreen() {
         },
         body: JSON.stringify({ types: Array.from(selected) }),
       });
-
       const data = await res.json().catch(() => ({}));
-
       if (!res.ok || data?.error) {
         showAlert("Export Failed", data?.error || `Server error (${res.status}). Please try again.`);
         return;
       }
-
       setSentToEmail(data?.email ?? "");
       setRequested(true);
-    } catch (err: any) {
+    } catch {
       showAlert("Network Error", "Could not reach the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
@@ -87,59 +85,64 @@ export default function PrivacyDownloadScreen() {
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.backgroundSecondary }]}>
+    <View style={[s.root, { backgroundColor: colors.backgroundSecondary }]}>
       <GlassHeader title="Download My Data" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
         {requested ? (
-          <View style={styles.successContainer}>
-            <View style={[styles.successIcon, { backgroundColor: "#34C75922" }]}>
+          <View style={s.successContainer}>
+            <View style={[s.successIcon, { backgroundColor: "#34C75922" }]}>
               <Ionicons name="checkmark-circle" size={56} color="#34C759" />
             </View>
-            <Text style={[styles.successTitle, { color: colors.text }]}>Export Sent!</Text>
-            <Text style={[styles.successDesc, { color: colors.textMuted }]}>
+            <Text style={[s.successTitle, { color: colors.text }]}>Export Sent!</Text>
+            <Text style={[s.successDesc, { color: colors.textMuted }]}>
               Your data export has been sent to{"\n"}
               <Text style={{ fontFamily: "Inter_600SemiBold", color: colors.text }}>{sentToEmail}</Text>
               {"\n\n"}Open the email and download the attached JSON file. It contains all the data you selected.
             </Text>
-            <TouchableOpacity style={[styles.doneBtn, { backgroundColor: colors.accent }]} onPress={() => router.back()}>
-              <Text style={styles.doneBtnText}>Done</Text>
+            <TouchableOpacity style={[s.doneBtn, { backgroundColor: accent }]} onPress={() => router.back()}>
+              <Text style={s.doneBtnText}>Done</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            <GlassCard style={{ marginHorizontal: 16, marginTop: 20, borderRadius: 14, overflow: "hidden" }} variant="subtle" noShadow>
-              <View style={styles.infoCard}>
-                <Ionicons name="shield-checkmark" size={22} color={colors.accent} />
+            <GlassCard style={{ marginHorizontal: 16, marginTop: 20, borderRadius: 16, overflow: "hidden" }} variant="subtle" noShadow>
+              <View style={s.infoCard}>
+                <View style={[s.infoIconWrap, { backgroundColor: accent + "18" }]}>
+                  <Ionicons name="shield-checkmark" size={20} color={accent} />
+                </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.infoTitle, { color: colors.text }]}>Your data is yours</Text>
-                  <Text style={[styles.infoText, { color: colors.textMuted }]}>
+                  <Text style={[s.infoTitle, { color: colors.text }]}>Your data is yours</Text>
+                  <Text style={[s.infoText, { color: colors.textMuted }]}>
                     AfuChat gives you full access to a copy of your personal data. Select what you'd like to include and we'll email it to you instantly.
                   </Text>
                 </View>
               </View>
             </GlassCard>
 
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>SELECT DATA TO INCLUDE</Text>
-            <GlassCard style={styles.group} variant="medium">
+            <Text style={[s.sectionTitle, { color: colors.textMuted }]}>SELECT DATA TO INCLUDE</Text>
+            <GlassCard style={s.group} variant="medium">
               {DATA_TYPES.map((item, i) => {
                 const isSelected = selected.has(item.id);
                 return (
                   <View key={item.id}>
-                    {i > 0 && <View style={[styles.sep, { backgroundColor: colors.border, marginLeft: 62 }]} />}
+                    {i > 0 && <View style={[s.sep, { backgroundColor: colors.border }]} />}
                     <TouchableOpacity
-                      style={[styles.row, { backgroundColor: colors.surface }]}
+                      style={[s.row, { backgroundColor: colors.surface }]}
                       onPress={() => toggle(item.id)}
                       activeOpacity={0.7}
                     >
-                      <View style={[styles.rowIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                        <Ionicons name={item.icon} size={18} color={colors.icon} />
+                      <View style={[s.rowIcon, { backgroundColor: item.iconColor + "18" }]}>
+                        <Ionicons name={item.icon} size={18} color={item.iconColor} />
                       </View>
-                      <View style={styles.rowText}>
-                        <Text style={[styles.rowLabel, { color: colors.text }]}>{item.label}</Text>
-                        <Text style={[styles.rowDesc, { color: colors.textMuted }]}>{item.description}</Text>
+                      <View style={s.rowText}>
+                        <Text style={[s.rowLabel, { color: colors.text }]}>{item.label}</Text>
+                        <Text style={[s.rowDesc, { color: colors.textMuted }]}>{item.description}</Text>
                       </View>
-                      <View style={[styles.checkbox, { borderColor: isSelected ? colors.accent : colors.border, backgroundColor: isSelected ? colors.accent : "transparent" }]}>
+                      <View style={[s.checkbox, {
+                        borderColor: isSelected ? accent : colors.border,
+                        backgroundColor: isSelected ? accent : "transparent",
+                      }]}>
                         {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
                       </View>
                     </TouchableOpacity>
@@ -148,12 +151,12 @@ export default function PrivacyDownloadScreen() {
               })}
             </GlassCard>
 
-            <Text style={[styles.hint, { color: colors.textMuted }]}>
+            <Text style={[s.hint, { color: colors.textMuted }]}>
               Your selected data will be compiled into a JSON file and emailed to your registered address immediately — no waiting required.
             </Text>
 
             <TouchableOpacity
-              style={[styles.requestBtn, { backgroundColor: colors.accent, opacity: (selected.size === 0 || loading) ? 0.5 : 1 }]}
+              style={[s.requestBtn, { backgroundColor: accent, opacity: (selected.size === 0 || loading) ? 0.5 : 1 }]}
               onPress={requestDownload}
               activeOpacity={0.85}
               disabled={loading || selected.size === 0}
@@ -161,12 +164,12 @@ export default function PrivacyDownloadScreen() {
               {loading ? (
                 <>
                   <ActivityIndicator size="small" color="#fff" />
-                  <Text style={styles.requestBtnText}>Preparing export…</Text>
+                  <Text style={s.requestBtnText}>Preparing export…</Text>
                 </>
               ) : (
                 <>
                   <Ionicons name="cloud-download" size={18} color="#fff" />
-                  <Text style={styles.requestBtnText}>Export & Email My Data ({selected.size} selected)</Text>
+                  <Text style={s.requestBtnText}>Export & Email My Data ({selected.size} selected)</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -177,20 +180,28 @@ export default function PrivacyDownloadScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   root: { flex: 1 },
-  infoCard: { flexDirection: "row", alignItems: "flex-start", gap: 12, borderRadius: 14, padding: 16 },
+  infoCard: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 16 },
+  infoIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   infoTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", marginBottom: 4 },
   infoText: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
-  sectionTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 },
-  group: { marginHorizontal: 16, borderRadius: 14, overflow: "hidden" },
-  sep: { height: 0.5 },
+  sectionTitle: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.8,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 8,
+  },
+  group: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden" },
+  sep: { height: 0.5, marginLeft: 62 },
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 14, gap: 14 },
-  rowIcon: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  rowIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   rowText: { flex: 1 },
-  rowLabel: { fontSize: 16, fontFamily: "Inter_400Regular", marginBottom: 2 },
+  rowLabel: { fontSize: 15, fontFamily: "Inter_500Medium", marginBottom: 2 },
   rowDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 16 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  checkbox: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   hint: { fontSize: 13, fontFamily: "Inter_400Regular", paddingHorizontal: 20, paddingTop: 14, lineHeight: 18 },
   requestBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginHorizontal: 16, marginTop: 20, borderRadius: 16, paddingVertical: 16 },
   requestBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },

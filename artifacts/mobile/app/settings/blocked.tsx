@@ -4,21 +4,21 @@ import {
   FlatList,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { Avatar } from "@/components/ui/Avatar";
-import Colors from "@/constants/colors";
 import { showAlert } from "@/lib/alert";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { ContactRowSkeleton } from "@/components/ui/Skeleton";
 import { GlassHeader } from "@/components/ui/GlassHeader";
+import { GlassCard } from "@/components/ui/GlassCard";
 
 type BlockedItem = {
   id: string;
@@ -26,12 +26,25 @@ type BlockedItem = {
   profile: { id: string; display_name: string; handle: string; avatar_url: string | null; is_verified?: boolean; is_organization_verified?: boolean };
 };
 
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(ms / 86_400_000);
+  if (days < 1) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}
+
 export default function BlockedUsersScreen() {
-  const { colors } = useTheme();
+  const { colors, accent } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<BlockedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unblocking, setUnblocking] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -47,60 +60,151 @@ export default function BlockedUsersScreen() {
   useEffect(() => { load(); }, [load]);
 
   async function unblock(item: BlockedItem) {
-    showAlert("Unblock", `Unblock ${item.profile.display_name}?`, [
+    showAlert("Unblock", `Unblock ${item.profile.display_name}? They will be able to see your profile and message you again.`, [
       { text: "Cancel", style: "cancel" },
-      { text: "Unblock", onPress: async () => {
-        await supabase.from("blocked_users").delete().eq("id", item.id);
-        setItems((prev) => prev.filter((b) => b.id !== item.id));
-      }},
+      {
+        text: "Unblock",
+        style: "destructive",
+        onPress: async () => {
+          setUnblocking(item.id);
+          await supabase.from("blocked_users").delete().eq("id", item.id);
+          setItems((prev) => prev.filter((b) => b.id !== item.id));
+          setUnblocking(null);
+        },
+      },
     ]);
   }
 
-  return (
-    <View style={[styles.root, { backgroundColor: colors.backgroundSecondary }]}>
-      <GlassHeader title="Blocked Users" />
+  const filtered = search.trim()
+    ? items.filter((i) =>
+        i.profile.display_name?.toLowerCase().includes(search.toLowerCase()) ||
+        i.profile.handle?.toLowerCase().includes(search.toLowerCase())
+      )
+    : items;
 
-      {loading ? <View style={{ padding: 8 }}>{[1,2,3,4].map(i => <ContactRowSkeleton key={i} />)}</View> : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={[styles.row, { backgroundColor: colors.surface }]}>
-              <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={44} />
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={[styles.name, { color: colors.text }]}>{item.profile.display_name}</Text>
-                  <VerifiedBadge isVerified={item.profile.is_verified} isOrganizationVerified={item.profile.is_organization_verified} size={13} />
-                </View>
-                <Text style={[styles.handle, { color: colors.textMuted }]}>@{item.profile.handle}</Text>
+  return (
+    <View style={[s.root, { backgroundColor: colors.backgroundSecondary }]}>
+      <GlassHeader
+        title="Blocked Users"
+        subtitle={!loading && items.length > 0 ? `${items.length} ${items.length === 1 ? "person" : "people"} blocked` : undefined}
+      />
+
+      {loading ? (
+        <View style={{ padding: 8, gap: 2 }}>{[1,2,3,4,5].map(i => <ContactRowSkeleton key={i} />)}</View>
+      ) : (
+        <>
+          {items.length > 3 && (
+            <GlassCard style={{ marginHorizontal: 16, marginTop: 12, borderRadius: 14, overflow: "hidden" }} variant="subtle" noShadow>
+              <View style={[s.searchBar, { backgroundColor: "transparent" }]}>
+                <Ionicons name="search" size={16} color={colors.textMuted} />
+                <TextInput
+                  style={[s.searchInput, { color: colors.text }]}
+                  placeholder="Search blocked…"
+                  placeholderTextColor={colors.textMuted}
+                  value={search}
+                  onChangeText={setSearch}
+                  autoCapitalize="none"
+                />
+                {search.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
               </View>
-              <TouchableOpacity style={styles.unblockBtn} onPress={() => unblock(item)}>
-                <Text style={styles.unblockText}>Unblock</Text>
-              </TouchableOpacity>
-            </View>
+            </GlassCard>
           )}
-          contentContainerStyle={{ paddingBottom: 90 }}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="checkmark-circle-outline" size={48} color={colors.textMuted} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No blocked users</Text>
-            </View>
-          }
-        />
+
+          <FlatList
+            data={filtered}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 32, paddingTop: 12 }}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              filtered.length > 0 ? (
+                <Text style={[s.listHeader, { color: colors.textMuted }]}>BLOCKED ACCOUNTS</Text>
+              ) : null
+            }
+            renderItem={({ item, index }) => {
+              const isLast = index === filtered.length - 1;
+              return (
+                <View style={[s.rowWrapper, { backgroundColor: colors.card, marginHorizontal: 16 }]}>
+                  <View style={s.row}>
+                    <Avatar uri={item.profile.avatar_url} name={item.profile.display_name} size={46} />
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <Text style={[s.name, { color: colors.text }]} numberOfLines={1}>{item.profile.display_name}</Text>
+                        <VerifiedBadge isVerified={item.profile.is_verified} isOrganizationVerified={item.profile.is_organization_verified} size={13} />
+                      </View>
+                      <Text style={[s.handle, { color: colors.textMuted }]}>@{item.profile.handle}</Text>
+                      <Text style={[s.blockedAt, { color: colors.textMuted }]}>Blocked {timeAgo(item.blocked_at)}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[s.unblockBtn, { borderColor: colors.border }]}
+                      onPress={() => unblock(item)}
+                      disabled={unblocking === item.id}
+                      activeOpacity={0.7}
+                    >
+                      {unblocking === item.id ? (
+                        <ActivityIndicator size="small" color="#FF3B30" />
+                      ) : (
+                        <Text style={s.unblockText}>Unblock</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                  {!isLast && <View style={[s.sep, { backgroundColor: colors.border }]} />}
+                </View>
+              );
+            }}
+            ListEmptyComponent={
+              <View style={s.empty}>
+                <View style={[s.emptyIcon, { backgroundColor: "#34C75918" }]}>
+                  <Ionicons name="shield-checkmark" size={40} color="#34C759" />
+                </View>
+                <Text style={[s.emptyTitle, { color: colors.text }]}>
+                  {search.trim() ? "No results" : "No blocked accounts"}
+                </Text>
+                <Text style={[s.emptyDesc, { color: colors.textMuted }]}>
+                  {search.trim()
+                    ? "Try a different name or handle."
+                    : "People you block won't be able to see your profile or contact you."}
+                </Text>
+              </View>
+            }
+          />
+        </>
       )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 12},
-  headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
-  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
-  name: { fontSize: 16, fontFamily: "Inter_500Medium" },
-  handle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 2 },
-  unblockBtn: { borderWidth: 1, borderColor: "#FF3B30", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
+  searchBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  searchInput: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", padding: 0 },
+  listHeader: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.8,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
+  rowWrapper: { borderRadius: 0, overflow: "hidden" },
+  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12 },
+  sep: { height: 0.5, marginLeft: 74 },
+  name: { fontSize: 15, fontFamily: "Inter_600SemiBold", flexShrink: 1 },
+  handle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 1 },
+  blockedAt: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  unblockBtn: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    minWidth: 76,
+    alignItems: "center",
+  },
   unblockText: { color: "#FF3B30", fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  empty: { alignItems: "center", paddingTop: 80, gap: 12 },
-  emptyText: { fontSize: 15, fontFamily: "Inter_400Regular" },
+  empty: { alignItems: "center", paddingTop: 72, paddingHorizontal: 32, gap: 12 },
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center" },
+  emptyTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  emptyDesc: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
 });
