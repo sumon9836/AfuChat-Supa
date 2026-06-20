@@ -422,7 +422,7 @@ export default function ContactScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: "#FF2D5518" }]}
-                    onPress={() => router.push({ pathname: "/gifts/index", params: { recipientId: id } } as any)}
+                    onPress={() => router.push({ pathname: "/gifts/index", params: { recipientHandle: profile.handle, recipientName: profile.display_name } } as any)}
                     activeOpacity={0.8}>
                     <Ionicons name="gift-outline" size={17} color="#FF2D55" />
                   </TouchableOpacity>
@@ -911,8 +911,8 @@ const s = StyleSheet.create({
   },
 
   // Grid
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 1, marginTop: 1 },
-  gridCell: { overflow: "hidden", backgroundColor: "#111" },
+  grid: { flexDirection: "row", flexWrap: "wrap" },
+  gridCell: { overflow: "hidden", borderWidth: 0.5, borderColor: "rgba(128,128,128,0.18)" },
   gridPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   gridTextCard: {
     flex: 1, padding: 8, justifyContent: "center", alignItems: "flex-start",

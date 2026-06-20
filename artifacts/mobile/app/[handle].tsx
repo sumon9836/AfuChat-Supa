@@ -32,7 +32,7 @@ import { ProfilePrivateView } from "@/app/profile-private";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import { T } from "@/constants/theme";
-import { ProfileSkeleton } from "@/components/ui/Skeleton";
+import { ContactProfileSkeleton } from "@/components/ui/Skeleton";
 import { logHandleLeak } from "@/lib/deepLinkVerifier";
 
 function safeNavigate(path: string, params?: Record<string, string>) {
@@ -377,7 +377,7 @@ export default function HandleScreen() {
     // Show skeleton instead of blank while the DB lookup + navigation fires
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <ProfileSkeleton />
+        <ContactProfileSkeleton />
       </View>
     );
   }
