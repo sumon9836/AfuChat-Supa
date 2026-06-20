@@ -53,7 +53,7 @@ type FullProfile = {
 };
 
 type Counts = { followers: number; following: number; posts: number };
-type GridPost = { id: string; media_urls: string[] | null; post_type: string | null };
+type GridPost = { id: string; media_urls: string[] | null; post_type: string | null; content?: string | null };
 type MutualUser = { id: string; handle: string; avatar_url: string | null };
 type TabId = "posts" | "articles" | "videos";
 
@@ -197,12 +197,11 @@ export default function ContactScreen() {
   useEffect(() => {
     if (!id || loading) return;
     setGridLoading(true);
-    let q = supabase.from("posts").select("id,media_urls,post_type")
+    let q = supabase.from("posts").select("id,media_urls,post_type,content")
       .eq("author_id", id).in("visibility",["public","followers"])
       .order("created_at", { ascending: false }).limit(30);
-    if (activeTab === "videos")   q = (q as any).eq("post_type","video");
+    if (activeTab === "videos")        q = (q as any).eq("post_type","video");
     else if (activeTab === "articles") q = (q as any).in("post_type",["article","text"]);
-    else q = (q as any).neq("post_type","text");
     q.then(({ data }) => { setGridPosts((data as GridPost[]) ?? []); setGridLoading(false); })
      .catch(() => { setGridPosts([]); setGridLoading(false); });
   }, [id, loading, activeTab]);
@@ -624,9 +623,16 @@ export default function ContactScreen() {
                   onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } } as any)}>
                   {thumb
                     ? <Image source={{ uri: thumb }} style={{ width: CELL, height: CELL }} contentFit="cover" />
-                    : <View style={[s.gridPlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
-                        <Ionicons name="image-outline" size={20} color={colors.textMuted} />
-                      </View>}
+                    : item.content
+                      ? <View style={[s.gridTextCard, { backgroundColor: isDark ? "#1c1c1e" : "#f2f2f7" }]}>
+                          <Ionicons name="text" size={12} color={colors.textMuted} style={{ marginBottom: 4 }} />
+                          <Text style={[s.gridTextPreview, { color: colors.text }]} numberOfLines={4}>
+                            {item.content}
+                          </Text>
+                        </View>
+                      : <View style={[s.gridPlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
+                          <Ionicons name="image-outline" size={20} color={colors.textMuted} />
+                        </View>}
                   {isVid && (
                     <View style={s.videoTag}>
                       <Ionicons name="play-circle" size={20} color="#fff" />
@@ -689,12 +695,12 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 4,
+    paddingTop: 8,
+    paddingBottom: 2,
     marginTop: AVATAR_SIZE / 2 - 4,
     gap: 10,
   },
-  nameBlock: { flex: 1, gap: 5 },
+  nameBlock: { flex: 1, gap: 3 },
   nameLineRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   displayName: { fontSize: 20, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   prestigePill: {
@@ -720,7 +726,7 @@ const s = StyleSheet.create({
 
   handleRow: {
     flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 16, marginBottom: 14,
+    paddingHorizontal: 16, marginBottom: 8,
   },
   handle: { fontSize: 13.5, fontFamily: "Inter_400Regular" },
   dot: { fontSize: 13.5 },
@@ -731,10 +737,10 @@ const s = StyleSheet.create({
   statsCard: {
     flexDirection: "row",
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 10,
     borderRadius: 14,
     borderWidth: 0.5,
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
   statCell: { flex: 1, alignItems: "center", gap: 3 },
   statNum: { fontSize: 22, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
@@ -744,28 +750,28 @@ const s = StyleSheet.create({
 
   // Bio + meta
   bio: {
-    fontSize: 14.5, fontFamily: "Inter_400Regular",
-    lineHeight: 22, marginHorizontal: 16, marginBottom: 12,
+    fontSize: 14, fontFamily: "Inter_400Regular",
+    lineHeight: 21, marginHorizontal: 16, marginBottom: 8,
   },
   metaStrip: {
-    flexDirection: "row", flexWrap: "wrap", gap: 8,
-    marginHorizontal: 16, marginBottom: 8,
+    flexDirection: "row", flexWrap: "wrap", gap: 6,
+    marginHorizontal: 16, marginBottom: 6,
   },
   metaChip: { flexDirection: "row", alignItems: "center", gap: 4 },
-  metaChipText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  metaChipText: { fontSize: 12.5, fontFamily: "Inter_400Regular" },
   linkText: { textDecorationLine: "underline" },
   metaRow: {
     flexDirection: "row", alignItems: "center",
-    gap: 5, marginHorizontal: 16, marginBottom: 10, flexWrap: "wrap",
+    gap: 5, marginHorizontal: 16, marginBottom: 6, flexWrap: "wrap",
   },
   metaBodyText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
 
   // Mutuals
   mutualsRow: {
     flexDirection: "row", alignItems: "center",
-    gap: 8, marginHorizontal: 16, marginBottom: 12,
+    gap: 8, marginHorizontal: 16, marginBottom: 8,
     borderRadius: 10, borderWidth: 0.5,
-    paddingHorizontal: 12, paddingVertical: 9,
+    paddingHorizontal: 12, paddingVertical: 8,
   },
   mutualsAvatars: { flexDirection: "row", alignItems: "center" },
   mutualAvatar: { borderRadius: 11, overflow: "hidden" },
@@ -773,44 +779,44 @@ const s = StyleSheet.create({
 
   // Actions
   actionRow: {
-    flexDirection: "row", gap: 9,
-    marginHorizontal: 16, marginBottom: 14,
+    flexDirection: "row", gap: 8,
+    marginHorizontal: 16, marginBottom: 8,
   },
   actionIconBtn: {
-    width: 42, height: 42, borderRadius: 21,
+    width: 40, height: 40, borderRadius: 20,
     borderWidth: 1, alignItems: "center", justifyContent: "center",
   },
   selfBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, height: 42, borderRadius: 21, borderWidth: 1,
+    gap: 6, height: 40, borderRadius: 20, borderWidth: 1,
   },
   selfBtnText: { fontSize: 13.5, fontFamily: "Inter_600SemiBold" },
 
   // XP bar
   xpCard: {
-    marginHorizontal: 16, marginBottom: 4,
+    marginHorizontal: 16, marginBottom: 0,
     borderRadius: 12, borderWidth: 0.5,
-    paddingHorizontal: 14, paddingVertical: 12,
-    gap: 8,
+    paddingHorizontal: 13, paddingVertical: 10,
+    gap: 7,
   },
   xpTopRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  xpGradeName: { fontSize: 13.5, fontFamily: "Inter_700Bold", flex: 1 },
-  xpAmount: { fontSize: 12.5, fontFamily: "Inter_400Regular" },
-  xpPct: { fontSize: 12.5, fontFamily: "Inter_700Bold", minWidth: 36, textAlign: "right" },
-  xpTrack: { height: 7, borderRadius: 4, overflow: "hidden" },
-  xpFill: { height: 7, borderRadius: 4, overflow: "hidden" },
+  xpGradeName: { fontSize: 13, fontFamily: "Inter_700Bold", flex: 1 },
+  xpAmount: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  xpPct: { fontSize: 12, fontFamily: "Inter_700Bold", minWidth: 34, textAlign: "right" },
+  xpTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
+  xpFill: { height: 6, borderRadius: 3, overflow: "hidden" },
 
   // Tab bar
   tabBar: {
     flexDirection: "row",
     borderTopWidth: 0.5, borderBottomWidth: 0.5,
-    marginTop: 10,
+    marginTop: 8,
   },
   tabItem: {
     flex: 1, alignItems: "center", justifyContent: "center",
-    paddingVertical: 10, gap: 3, position: "relative",
+    paddingVertical: 9, gap: 2, position: "relative",
   },
-  tabLabel: { fontSize: 10.5, fontFamily: "Inter_500Medium" },
+  tabLabel: { fontSize: 10, fontFamily: "Inter_500Medium" },
   tabIndicator: {
     position: "absolute", bottom: 0,
     left: "15%", right: "15%", height: 2, borderRadius: 2,
@@ -827,6 +833,12 @@ const s = StyleSheet.create({
     position: "absolute", top: 6, right: 6,
     backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 6,
     paddingHorizontal: 4, paddingVertical: 2,
+  },
+  gridTextCard: {
+    flex: 1, padding: 8, justifyContent: "center",
+  },
+  gridTextPreview: {
+    fontSize: 10, fontFamily: "Inter_400Regular", lineHeight: 14,
   },
   gridCenter: { paddingVertical: 60, alignItems: "center", gap: 12 },
   emptyIcon: { width: 68, height: 68, borderRadius: 34, alignItems: "center", justifyContent: "center" },
