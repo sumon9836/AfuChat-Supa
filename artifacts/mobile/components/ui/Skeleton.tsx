@@ -130,7 +130,7 @@ export function ProfileSkeleton() {
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14 }}>
         <Skeleton width={78} height={78} borderRadius={39} />
         <View style={{ flex: 1, flexDirection: "row", justifyContent: "space-around", marginLeft: 18 }}>
-          {[["32", "48", "Posts"], ["44", "64", "Followers"], ["36", "56", "Following"]].map(([nw, lw, _], i) => (
+          {[["32", "48"], ["44", "64"], ["36", "56"]].map(([nw, lw], i) => (
             <View key={i} style={{ alignItems: "center", gap: 5 }}>
               <Skeleton width={Number(nw)} height={18} borderRadius={5} />
               <Skeleton width={Number(lw)} height={11} borderRadius={4} />
@@ -144,26 +144,120 @@ export function ProfileSkeleton() {
       </View>
       <Skeleton width="88%" height={13} borderRadius={4} style={{ marginHorizontal: 16, marginBottom: 5 }} />
       <Skeleton width="65%" height={13} borderRadius={4} style={{ marginHorizontal: 16, marginBottom: 14 }} />
-      <Skeleton width={90} height={18} borderRadius={9} style={{ marginHorizontal: 16, marginBottom: 14 }} />
-      <View style={{ flexDirection: "row", gap: 10, marginHorizontal: 16, marginBottom: 14 }}>
-        <Skeleton width="48%" height={38} borderRadius={20} />
-        <Skeleton width="48%" height={38} borderRadius={20} />
-      </View>
-      <View style={{ height: 36, backgroundColor: colors.backgroundSecondary, justifyContent: "center", paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <Skeleton width={80} height={12} borderRadius={4} />
-        <Skeleton width="40%" height={8} borderRadius={4} />
-        <Skeleton width={28} height={12} borderRadius={4} />
-      </View>
-      <View style={{ flexDirection: "row", height: 46, borderTopColor: colors.border }}>
+      <View style={{ flexDirection: "row", height: 44, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: colors.border }}>
         {[0, 1, 2].map((i) => (
-          <View key={i} style={{ flex: 1, justifyContent: "center", alignItems: "center", borderTopWidth: i === 0 ? 2 : 0, borderTopColor: colors.accent }}>
+          <View key={i} style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
             <Skeleton width={22} height={22} borderRadius={4} />
           </View>
         ))}
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 2, paddingHorizontal: 0, marginTop: 2 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <Skeleton key={i} width="32.5%" height={110} borderRadius={0} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ─── Contact profile skeleton — mirrors contact/[id].tsx layout exactly ───────
+export function ContactProfileSkeleton() {
+  const { colors, isDark } = useTheme();
+  const BANNER_H    = 100;
+  const AVATAR_SIZE = 80;
+  const SHELL       = AVATAR_SIZE + 6;           // 86
+  const NEG_TOP     = -(AVATAR_SIZE / 2 + 4);   // -44
+  const RIGHT_PT    = (AVATAR_SIZE / 2 + 4) + 6; // 50
+  const CELL_SIZE   = 110;
+
+  const chipBg = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)";
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+
+      {/* ── Banner ── */}
+      <Skeleton width="100%" height={BANNER_H} borderRadius={0} />
+
+      {/* ── Identity band ── */}
+      <View style={{ flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 14, paddingBottom: 12, gap: 10 }}>
+
+        {/* Left col */}
+        <View style={{ flex: 1, gap: 6 }}>
+          {/* Avatar overlapping banner */}
+          <Skeleton
+            width={SHELL} height={SHELL} borderRadius={SHELL / 2}
+            style={{ marginTop: NEG_TOP }}
+          />
+          {/* Display name */}
+          <Skeleton width={130} height={15} borderRadius={5} />
+          {/* Handle */}
+          <Skeleton width={80} height={12} borderRadius={4} />
+          {/* Pill action row: prestige pill + 4 icon circles */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-evenly", width: "100%", marginTop: 2 }}>
+            <Skeleton width={68} height={26} borderRadius={13} />
+            {[0, 1, 2, 3].map(i => (
+              <Skeleton key={i} width={36} height={36} borderRadius={18} />
+            ))}
+          </View>
+        </View>
+
+        {/* Right col — Follow button, padded down to sit below banner */}
+        <View style={{ paddingTop: RIGHT_PT }}>
+          <Skeleton width={80} height={30} borderRadius={15} />
+        </View>
+      </View>
+
+      {/* ── Stats card ── */}
+      <View style={{
+        flexDirection: "row", marginHorizontal: 14, marginBottom: 10,
+        borderRadius: 14, borderWidth: 0.5,
+        borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+        paddingVertical: 12,
+      }}>
+        {["Posts", "Followers", "Following"].map((_, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && (
+              <View style={{ width: 0.5, backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }} />
+            )}
+            <View style={{ flex: 1, alignItems: "center", gap: 5 }}>
+              <Skeleton width={36} height={16} borderRadius={5} />
+              <Skeleton width={52} height={11} borderRadius={4} />
+            </View>
+          </React.Fragment>
+        ))}
+      </View>
+
+      {/* ── Bio (2 lines) ── */}
+      <Skeleton width="88%" height={13} borderRadius={4} style={{ marginHorizontal: 14, marginBottom: 5 }} />
+      <Skeleton width="66%" height={13} borderRadius={4} style={{ marginHorizontal: 14, marginBottom: 10 }} />
+
+      {/* ── Meta chips ── */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: 14, marginBottom: 10 }}>
+        <View style={{ height: 24, paddingHorizontal: 10, borderRadius: 12, backgroundColor: chipBg, justifyContent: "center" }}>
+          <Skeleton width={70} height={10} borderRadius={4} />
+        </View>
+        <View style={{ height: 24, paddingHorizontal: 10, borderRadius: 12, backgroundColor: chipBg, justifyContent: "center" }}>
+          <Skeleton width={55} height={10} borderRadius={4} />
+        </View>
+      </View>
+
+      {/* ── Tab bar: Posts / Articles / Videos ── */}
+      <View style={{ flexDirection: "row", height: 44, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: colors.border }}>
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}>
+            <Skeleton width={20} height={20} borderRadius={4} />
+            <Skeleton width={i === 0 ? 32 : i === 1 ? 44 : 36} height={9} borderRadius={3} />
+            {i === 0 && (
+              <View style={{ position: "absolute", bottom: 0, left: "15%", right: "15%", height: 2, borderRadius: 1, backgroundColor: colors.accent, opacity: 0.5 }} />
+            )}
+          </View>
+        ))}
+      </View>
+
+      {/* ── 3-column grid (6 cells) ── */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} width="32.5%" height={CELL_SIZE} borderRadius={0} />
         ))}
       </View>
     </View>

@@ -24,7 +24,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { ProfileNotFoundView } from "@/app/profile-not-found";
 import { ProfilePrivateView } from "@/app/profile-private";
-import { ProfileSkeleton } from "@/components/ui/Skeleton";
+import { ContactProfileSkeleton } from "@/components/ui/Skeleton";
 import { getProfileCache, setProfileCache } from "@/lib/profileCache";
 import { showAlert } from "@/lib/alert";
 import { showToast } from "@/lib/toast";
@@ -283,7 +283,7 @@ export default function ContactScreen() {
 
   // ── Guard states ──────────────────────────────────────────────────────────
   if (loading && !profile) return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}><ProfileSkeleton /></View>
+    <View style={{ flex: 1, backgroundColor: colors.background }}><ContactProfileSkeleton /></View>
   );
   if (notFound || !profile) return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
