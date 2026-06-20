@@ -591,56 +591,10 @@ export default function MeScreen() {
               colors={colors}
             />
             <MenuItem
-              icon="at-outline"
-              iconColor="#AF52DE"
-              label="Username Market"
-              onPress={() => router.push("/username-market")}
-              colors={colors}
-            />
-          </MenuCard>
-        </View>
-
-        {/* ── AfuMatch ────────────────────────────────────────────────────── */}
-        <View>
-          <SectionLabel label="Connections" colors={colors} />
-          <MenuCard colors={colors}>
-            <MenuItem
-              icon="heart-outline"
-              iconColor="#FF2D55"
-              label="AfuMatch"
-              badge="Dating"
-              badgeColor="#FF2D55"
-              onPress={() => router.push("/match" as any)}
-              showSeparator
-              colors={colors}
-            />
-            <MenuItem
-              icon="call-outline"
-              iconColor="#34C759"
-              label="Call History"
-              onPress={() => router.push("/call-history" as any)}
-              showSeparator
-              colors={colors}
-            />
-            <MenuItem
               icon="people-circle-outline"
               iconColor={colors.icon}
               label="Phone Contacts"
               onPress={() => router.push("/phone-contacts" as any)}
-              colors={colors}
-            />
-          </MenuCard>
-        </View>
-
-        {/* ── Business ────────────────────────────────────────────────────── */}
-        <View>
-          <SectionLabel label="Business" colors={colors} />
-          <MenuCard colors={colors}>
-            <MenuItem
-              icon="briefcase-outline"
-              iconColor="#0A84FF"
-              label="Business Page"
-              onPress={() => router.push("/business" as any)}
               showSeparator
               colors={colors}
             />

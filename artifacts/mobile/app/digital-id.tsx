@@ -16,7 +16,6 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ProfileSkeleton } from "@/components/ui/Skeleton";
 import * as Sharing from "expo-sharing";
 import QRCode from "@/components/ui/QRCode";
 import { useAuth } from "@/context/AuthContext";
@@ -223,7 +222,11 @@ export default function DigitalIdScreen() {
     finally { setDlState("idle"); }
   }
 
-  if (loading) return <ProfileSkeleton />;
+  if (loading) return (
+    <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
+      <ActivityIndicator size="large" color={colors.accent} />
+    </View>
+  );
 
   const cp = { cardWidth: CARD_W, cardHeight: CARD_H, theme, profile, role, roleConf,
                memberNumber, afuId, issued, expires, mrzLine1, mrzLine2, qrValue };
