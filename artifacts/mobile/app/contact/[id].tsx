@@ -147,7 +147,6 @@ export default function ContactScreen() {
   const [gridLoading,   setGridLoading]   = useState(false);
   const [activeTab,         setActiveTab]         = useState<TabId>("posts");
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
-  const barAnim = useRef(new Animated.Value(0)).current;
 
   // ── Load profile ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -209,12 +208,6 @@ export default function ContactScreen() {
      .catch(() => { setGridPosts([]); setGridLoading(false); });
   }, [id, loading, activeTab]);
 
-  // ── XP bar animation ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!profile) return;
-    const { progress } = xpInfo(profile.xp ?? 0, profile.current_grade);
-    Animated.timing(barAnim, { toValue: progress, duration: 1000, delay: 400, useNativeDriver: false }).start();
-  }, [profile?.xp, profile?.current_grade]);
 
   // ── Follow ────────────────────────────────────────────────────────────────
   const handleFollow = useCallback(async () => {
@@ -262,7 +255,6 @@ export default function ContactScreen() {
 
   // ── Derived values ────────────────────────────────────────────────────────
   const prestige = getPrestigeTier(profile.acoin ?? 0);
-  const { grade: xpGrade, pct: xpPct } = xpInfo(profile.xp ?? 0, profile.current_grade);
   const ls = lastSeenLabel(profile.last_seen, profile.show_online_status);
 
   const followState = isFollowing && theyFollowMe ? "friends"
@@ -279,8 +271,6 @@ export default function ContactScreen() {
 
   const bannerColor1 = prestige.ringColors[0];
   const bannerColor2 = prestige.ringColors[1];
-  const barFill = barAnim.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] });
-
   const TABS: { id: TabId; icon: string; label: string }[] = [
     { id: "posts",    icon: "grid-outline",           label: "Posts"    },
     { id: "articles", icon: "document-text-outline",  label: "Articles" },
@@ -401,38 +391,6 @@ export default function ContactScreen() {
               </TouchableOpacity>
             )}
 
-            {/* Quick icon buttons */}
-            <View style={s.quickIconRow}>
-              {!isSelf && user && (
-                <TouchableOpacity
-                  style={[s.quickIconBtn, { backgroundColor: accent + "18" }]}
-                  onPress={handleMessage} activeOpacity={0.8}>
-                  <Ionicons name="chatbubble-outline" size={16} color={accent} />
-                </TouchableOpacity>
-              )}
-              {!isSelf && user && (
-                <TouchableOpacity
-                  style={[s.quickIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-                  onPress={() => showAlert("More", undefined, [
-                    { text: "Gift",         onPress: () => router.push({ pathname: "/gifts/index", params: { recipientId: id } } as any) },
-                    { text: "Store",        onPress: () => router.push({ pathname: "/shop/[userId]", params: { userId: id } } as any) },
-                    { text: "Share Profile",onPress: () => showToast("Link copied", { type: "info" }) },
-                    { text: "Add to Contacts", onPress: () => showToast("Saved", { type: "success" }) },
-                    { text: "Report",       style: "destructive", onPress: () => {} },
-                    { text: "Block",        style: "destructive", onPress: () => {} },
-                    { text: "Cancel",       style: "cancel" },
-                  ])} activeOpacity={0.8}>
-                  <Ionicons name="ellipsis-horizontal" size={16} color={colors.text} />
-                </TouchableOpacity>
-              )}
-              {isSelf && (
-                <TouchableOpacity
-                  style={[s.quickIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-                  onPress={() => router.push("/settings")} activeOpacity={0.8}>
-                  <Ionicons name="settings-outline" size={16} color={colors.text} />
-                </TouchableOpacity>
-              )}
-            </View>
           </View>
         </View>
 
@@ -585,17 +543,21 @@ export default function ContactScreen() {
               activeOpacity={0.8}>
               <Ionicons name="gift-outline" size={18} color="#FF2D55" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.actionIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-              onPress={() => router.push({ pathname: "/shop/[userId]", params: { userId: id } } as any)}
-              activeOpacity={0.8}>
-              <Ionicons name="storefront-outline" size={18} color={colors.text} />
-            </TouchableOpacity>
+            {isOrg && (
+              <TouchableOpacity
+                style={[s.actionIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
+                onPress={() => router.push({ pathname: "/shop/[userId]", params: { userId: id } } as any)}
+                activeOpacity={0.8}>
+                <Ionicons name="storefront-outline" size={18} color={colors.text} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[s.actionIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
               onPress={() => showAlert("More", undefined, [
                 { text: "Share Profile", onPress: () => showToast("Link copied", { type: "info" }) },
                 { text: "Add to Contacts", onPress: () => showToast("Saved", { type: "success" }) },
+                { text: "Report", style: "destructive", onPress: () => {} },
+                { text: "Block",  style: "destructive", onPress: () => {} },
                 { text: "Cancel", style: "cancel" },
               ])} activeOpacity={0.8}>
               <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
@@ -604,12 +566,6 @@ export default function ContactScreen() {
         )}
         {isSelf && (
           <View style={s.actionRow}>
-            <TouchableOpacity
-              style={[s.selfBtn, { flex: 1, backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-              onPress={() => router.push("/profile/edit")} activeOpacity={0.8}>
-              <Ionicons name="create-outline" size={16} color={colors.text} />
-              <Text style={[s.selfBtnText, { color: colors.text }]}>Edit Profile</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               style={[s.selfBtn, { flex: 1, backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
               onPress={() => showToast("Share link copied", { type: "info" })} activeOpacity={0.8}>
@@ -624,34 +580,6 @@ export default function ContactScreen() {
           </View>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {/* XP CARD — tinted glass style                                  */}
-        {/* ══════════════════════════════════════════════════════════════ */}
-        <View style={[s.xpCard, { backgroundColor: hex2rgba(xpGrade.color, isDark ? 0.12 : 0.07) }]}>
-          <View style={s.xpTopRow}>
-            <View style={[s.xpIconBox, { backgroundColor: xpGrade.color + "28" }]}>
-              <Ionicons name="flash" size={14} color={xpGrade.color} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[s.xpGradeName, { color: colors.text }]}>
-                {profile.current_grade ?? xpGrade.name}
-              </Text>
-              <Text style={[s.xpAmount, { color: colors.textMuted }]}>
-                {fmtCount(profile.xp ?? 0)} XP total
-              </Text>
-            </View>
-            <Text style={[s.xpPct, { color: xpGrade.color }]}>{xpPct}%</Text>
-          </View>
-          <View style={[s.xpTrack, { backgroundColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)" }]}>
-            <Animated.View style={[s.xpFill, { width: barFill }]}>
-              <LinearGradient
-                colors={[xpGrade.color, hex2rgba(xpGrade.color, 0.6)] as any}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={StyleSheet.absoluteFill}
-              />
-            </Animated.View>
-          </View>
-        </View>
 
         {/* ════════════════════════════════════════════════════════════════ */}
         {/* TAB BAR                                                          */}
@@ -800,15 +728,6 @@ const s = StyleSheet.create({
     gap: 5,
     marginTop: 2,
   },
-  quickIconRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  quickIconBtn: {
-    width: 34, height: 34, borderRadius: 17,
-    alignItems: "center", justifyContent: "center",
-  },
-
   displayName: { fontSize: 17, fontFamily: "Inter_700Bold", letterSpacing: -0.2, flexShrink: 1 },
   prestigePill: {
     flexDirection: "row", alignItems: "center", gap: 4,
@@ -914,23 +833,6 @@ const s = StyleSheet.create({
     gap: 6, height: 40, borderRadius: 20,
   },
   selfBtnText: { fontSize: 13.5, fontFamily: "Inter_600SemiBold" },
-
-  // XP card — glassy tinted
-  xpCard: {
-    marginHorizontal: 16, marginBottom: 0,
-    borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12,
-    gap: 8,
-  },
-  xpTopRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  xpIconBox: {
-    width: 32, height: 32, borderRadius: 10,
-    alignItems: "center", justifyContent: "center",
-  },
-  xpGradeName: { fontSize: 13.5, fontFamily: "Inter_700Bold" },
-  xpAmount: { fontSize: 11.5, fontFamily: "Inter_400Regular", marginTop: 1 },
-  xpPct: { fontSize: 13, fontFamily: "Inter_700Bold", minWidth: 36, textAlign: "right" },
-  xpTrack: { height: 7, borderRadius: 4, overflow: "hidden" },
-  xpFill: { height: 7, borderRadius: 4, overflow: "hidden" },
 
   // Tab bar
   tabBar: {
