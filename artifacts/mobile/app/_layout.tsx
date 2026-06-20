@@ -263,7 +263,8 @@ export default function RootLayout() {
                           <Stack
                             screenOptions={{
                               headerShown: false,
-                              animation: "none",
+                              animation: "slide_from_right",
+                              gestureEnabled: true,
                               contentStyle: { backgroundColor: "transparent" },
                               freezeOnBlur: true,
                             }}
@@ -271,7 +272,7 @@ export default function RootLayout() {
                             <Stack.Screen name="index" options={{ animation: "none", contentStyle: { backgroundColor: "transparent" } }} />
                             <Stack.Screen name="welcome" options={{ animation: "none", gestureEnabled: false }} />
                             <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
-                            <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
+                            <Stack.Screen name="(auth)" options={{ animation: "slide_from_right", gestureEnabled: true }} />
                             <Stack.Screen name="onboarding" options={{ animation: "none" }} />
                             <Stack.Screen name="+not-found" />
                           </Stack>
