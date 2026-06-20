@@ -8,13 +8,6 @@ import express, {
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
-import publicProfileRouter from "./routes/public-profile";
-import publicPostRouter from "./routes/public-post";
-import publicVideoRouter from "./routes/public-video";
-import publicArticleRouter from "./routes/public-article";
-import landingRouter from "./routes/landing";
-import seoRouter from "./routes/seo";
-import companyPageRouter from "./routes/company-page";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -43,18 +36,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(path.join(__dirname, "../public")));
-app.use(seoRouter);
-app.use(companyPageRouter);
-app.use(publicPostRouter);
-app.use(publicVideoRouter);
-app.use(publicArticleRouter);
-app.use(publicProfileRouter);
-app.use(landingRouter);
 app.use("/api", router);
 
-// Catch-all JSON 404 for /api/* so the mobile client always receives a
-// parseable JSON response (the previous default sent HTML, which caused
-// "Invalid response from upload service" errors on the client).
 app.use("/api", (req: Request, res: Response) => {
   res
     .status(404)
@@ -62,9 +45,6 @@ app.use("/api", (req: Request, res: Response) => {
     .send(JSON.stringify({ error: `No API route for ${req.method} ${req.path}` }));
 });
 
-// JSON error handler — must come last. Replaces Express's default HTML
-// error page so clients always see a parseable error body, even when an
-// upload exceeds the size limit or a route throws unexpectedly.
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   const status = typeof err?.status === "number" ? err.status : 500;
   const payload = {
