@@ -46,32 +46,16 @@ config.resolver = {
   resolveRequest: (context, moduleName, platform) => {
     if (platform === "web") {
       if (moduleName === "react-native-reanimated") {
-        return {
-          filePath: path.resolve(__dirname, "lib/reanimated-web-shim.js"),
-          type: "sourceFile",
-        };
+        return { filePath: path.resolve(__dirname, "lib/reanimated-web-shim.js"), type: "sourceFile" };
       }
       if (moduleName === "react-native-worklets") {
-        return {
-          filePath: path.resolve(__dirname, "lib/worklets-web-shim.js"),
-          type: "sourceFile",
-        };
+        return { filePath: path.resolve(__dirname, "lib/worklets-web-shim.js"), type: "sourceFile" };
       }
       if (moduleName === "react-native-pager-view") {
-        return {
-          filePath: path.resolve(__dirname, "lib/pager-view-web-shim.js"),
-          type: "sourceFile",
-        };
+        return { filePath: path.resolve(__dirname, "lib/pager-view-web-shim.js"), type: "sourceFile" };
       }
-      // expo-sqlite's web entry imports a wa-sqlite.wasm binary that is not
-      // shipped in the npm package, crashing Metro with "Unable to resolve
-      // module ./wa-sqlite/wa-sqlite.wasm". Redirect to a no-op shim on web —
-      // lib/storage/db.ts already returns a stub at runtime for web anyway.
       if (moduleName === "expo-sqlite") {
-        return {
-          filePath: path.resolve(__dirname, "lib/expo-sqlite-web-shim.js"),
-          type: "sourceFile",
-        };
+        return { filePath: path.resolve(__dirname, "lib/expo-sqlite-web-shim.js"), type: "sourceFile" };
       }
     }
     return context.resolveRequest(context, moduleName, platform);

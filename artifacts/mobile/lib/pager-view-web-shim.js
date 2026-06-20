@@ -1,20 +1,11 @@
-import React from "react";
-import { View, ScrollView } from "react-native";
+// No-op shim for react-native-pager-view on web (Expo dev preview only).
+// The real native module is only available in Android/iOS builds.
+const React = require("react");
+const { View } = require("react-native");
 
-export function PagerView({ children, style, initialPage, onPageSelected, onPageScroll, scrollEnabled, ...rest }) {
-  const pages = React.Children.toArray(children);
-  const [currentPage, setCurrentPage] = React.useState(initialPage || 0);
-
-  React.useEffect(() => {
-    onPageSelected && onPageSelected({ nativeEvent: { position: currentPage } });
-  }, [currentPage]);
-
-  return (
-    <View style={[{ flex: 1, overflow: "hidden" }, style]} {...rest}>
-      {pages[currentPage] || null}
-    </View>
-  );
+function PagerView({ children, style, ...rest }) {
+  return React.createElement(View, { style }, children);
 }
-
 PagerView.displayName = "PagerView";
-export default PagerView;
+
+module.exports = { PagerView, default: PagerView };

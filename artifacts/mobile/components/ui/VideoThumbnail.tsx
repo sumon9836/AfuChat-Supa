@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 
 const SEEK_TIME = 1.0;
@@ -128,88 +128,7 @@ function VideoThumbnailNative({
   );
 }
 
-function VideoThumbnailWeb({
-  videoUrl, fallbackImageUrl, style, lowData,
-  durationSeconds, showDuration = true, watchedFraction,
-}: Props) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [autoDuration, setAutoDuration] = useState<number | null>(null);
-
-  // Only mount a <video> element to probe duration when:
-  //   • not in low-data mode, AND
-  //   • the caller didn't already supply durationSeconds, AND
-  //   • there's no fallback image to show instead
-  // Browsers cap concurrent media elements (~6-10 per tab). Mounting one per
-  // thumbnail row in a long list silently kills older elements, causing black
-  // frames and play failures in the active feed players.
-  const needsVideoProbe = !lowData && durationSeconds == null && !fallbackImageUrl;
-
-  const handleLoadedMetadata = useCallback(() => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = SEEK_TIME;
-      const d = videoRef.current.duration;
-      if (isFinite(d) && d > 0) setAutoDuration(d);
-    }
-  }, []);
-
-  const resolvedDuration = durationSeconds ?? autoDuration;
-  const hasFraction = watchedFraction != null && watchedFraction >= 0.02 && watchedFraction <= 0.97;
-  const durationLabel = showDuration && resolvedDuration != null
-    ? formatDuration(resolvedDuration) : "";
-  const badgeBottom = hasFraction ? 10 : 6;
-
-  // Common badge/overlay content reused in both branches
-  const overlays = (
-    <>
-      {hasFraction && <WatchProgressBar fraction={watchedFraction!} />}
-      {!!durationLabel && (
-        <View style={[badgeStyles.wrap, { bottom: badgeBottom }]}>
-          <Text style={badgeStyles.text}>{durationLabel}</Text>
-        </View>
-      )}
-    </>
-  );
-
-  // When we have a fallback image (most cases) or are in low-data mode,
-  // render a plain image — no <video> element in the DOM at all.
-  if (!needsVideoProbe) {
-    return (
-      <View style={style}>
-        {fallbackImageUrl ? (
-          <Image source={{ uri: fallbackImageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: "#0a0a0a" }]} />
-        )}
-        {overlays}
-      </View>
-    );
-  }
-
-  // Rare case: no fallback image and duration unknown — probe via hidden video.
-  return (
-    <View style={style}>
-      {/* @ts-ignore */}
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        preload="metadata"
-        muted
-        playsInline
-        onLoadedMetadata={handleLoadedMetadata}
-        style={{
-          ...(typeof style === "object" ? StyleSheet.flatten(style) : {}),
-          position: "absolute",
-          top: 0, left: 0, width: "100%", height: "100%",
-          objectFit: "cover",
-        }}
-      />
-      {overlays}
-    </View>
-  );
-}
-
 export function VideoThumbnail(props: Props) {
-  if (Platform.OS === "web") return <VideoThumbnailWeb {...props} />;
   return <VideoThumbnailNative {...props} />;
 }
 

@@ -16,7 +16,7 @@ initCrashReporter();
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Linking, LogBox, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, LogBox, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack, usePathname, router } from "expo-router";
 import { setCurrentPage, resolvePageInfo } from "@/lib/pageTracker";
 import { StatusBar } from "expo-status-bar";
@@ -52,7 +52,6 @@ import { initActivityTracker } from "@/lib/activityTracker";
 import { startOfflineSync } from "@/lib/offlineSync";
 import { startSyncQueue } from "@/lib/storage/syncQueue";
 import { MiniAppRuntimeProvider } from "@/lib/superapp/MiniAppRuntime";
-import { DesktopShell } from "@/components/desktop/DesktopShell";
 import { AnimationGuardInit } from "@/components/AnimationGuardInit";
 
 // NOTE: react-native-mmkv has been downgraded to v3 (stable JSI bridge) and
@@ -75,17 +74,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 (Text as any).defaultProps = { ...((Text as any).defaultProps ?? {}), allowFontScaling: false };
 (TextInput as any).defaultProps = { ...((TextInput as any).defaultProps ?? {}), allowFontScaling: false };
 
-// Suppress RN-web deprecation warnings — shadow* and pointerEvents-as-prop are
-// web-renderer artefacts only; native Android/iOS builds are completely unaffected.
 LogBox.ignoreLogs(['"shadow*" style props are deprecated', "props.pointerEvents is deprecated"]);
-if (Platform.OS === "web") {
-  const _origWarn = console.warn.bind(console);
-  console.warn = (...a: any[]) => {
-    const msg = typeof a[0] === "string" ? a[0] : "";
-    if (msg.includes('"shadow*" style props are deprecated') || msg.includes("props.pointerEvents is deprecated")) return;
-    _origWarn(...a);
-  };
-}
 
 // ─── AppReadyGate ─────────────────────────────────────────────────────────────
 // Sits inside AuthProvider so it can read auth loading state.
@@ -113,14 +102,6 @@ function AppReadyGate({
     if (!fontsReady || loading) return;
     fire();
   }, [fontsReady, loading, fire]);
-
-  // Safety net for web: MMKV is not available so auth.loading may never
-  // resolve if onAuthStateChange is slow. After 4 s we dismiss anyway.
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
-    const t = setTimeout(fire, 1500);
-    return () => clearTimeout(t);
-  }, [fire]);
 
   return null;
 }
@@ -194,19 +175,6 @@ export default function RootLayout() {
     try { enableScreens(true); } catch {}
   }, []);
 
-  // On web, inject font-display:swap for all @font-face rules so the browser
-  // shows text immediately with a system fallback and swaps to Inter once loaded.
-  // This prevents the "invisible text" flash that occurs when a custom fontFamily
-  // is applied before the font has resolved.
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
-    try {
-      const style = document.createElement("style");
-      style.textContent = `@font-face { font-display: swap; }`;
-      document.head.appendChild(style);
-    } catch {}
-  }, []);
-
   const fontsReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
@@ -226,7 +194,7 @@ export default function RootLayout() {
     // initialise synchronously from the in-memory snapshot instead of waiting
     // for an async read.  Doing this inside useEffect (not at module-eval time)
     // ensures the native runtime is fully up before we touch MMKV storage.
-    if (Platform.OS !== "web" && getCachedUserId()) {
+    if (getCachedUserId()) {
       preloadConversations();
     }
 
@@ -240,11 +208,7 @@ export default function RootLayout() {
     startSyncQueue();
   }, []);
 
-  // On native: keep returning null (native splash covers it) until fonts load.
-  // On web: render immediately with the JS splash overlay on top.
-  if (Platform.OS !== "web" && !fontsReady) {
-    return null;
-  }
+  if (!fontsReady) return null;
 
   return (
     <ErrorBoundary>
@@ -268,24 +232,22 @@ export default function RootLayout() {
                     <AdvancedFeaturesProvider>
                       <ChatPreferencesProvider>
                         <MiniAppRuntimeProvider>
-                          <DesktopShell>
-                            <OfflineBanner />
-                            <Stack
-                              screenOptions={{
-                                headerShown: false,
-                                animation: "none",
-                                contentStyle: { backgroundColor: "transparent" },
-                                freezeOnBlur: true,
-                              }}
-                            >
-                              <Stack.Screen name="index" options={{ animation: "none", contentStyle: { backgroundColor: "transparent" } }} />
-                              <Stack.Screen name="welcome" options={{ animation: "none", gestureEnabled: false }} />
-                              <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
-                              <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
-                              <Stack.Screen name="onboarding" options={{ animation: "none" }} />
-                              <Stack.Screen name="+not-found" />
-                            </Stack>
-                          </DesktopShell>
+                          <OfflineBanner />
+                          <Stack
+                            screenOptions={{
+                              headerShown: false,
+                              animation: "none",
+                              contentStyle: { backgroundColor: "transparent" },
+                              freezeOnBlur: true,
+                            }}
+                          >
+                            <Stack.Screen name="index" options={{ animation: "none", contentStyle: { backgroundColor: "transparent" } }} />
+                            <Stack.Screen name="welcome" options={{ animation: "none", gestureEnabled: false }} />
+                            <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
+                            <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
+                            <Stack.Screen name="onboarding" options={{ animation: "none" }} />
+                            <Stack.Screen name="+not-found" />
+                          </Stack>
                           <ToastContainer />
                           <AlertModal />
                         </MiniAppRuntimeProvider>
