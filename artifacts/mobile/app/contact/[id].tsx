@@ -144,7 +144,7 @@ export default function ContactScreen() {
   const [aliases,       setAliases]       = useState<string[]>([]);
   const [mutuals,       setMutuals]       = useState<MutualUser[]>([]);
   const [mutualTotal,   setMutualTotal]   = useState(0);
-  const [gridPosts,     setGridPosts]     = useState<GridPost[]>([]);
+  const [allGridPosts,  setAllGridPosts]  = useState<GridPost[]>([]);
   const [gridLoading,   setGridLoading]   = useState(false);
   const [activeTab,         setActiveTab]         = useState<TabId>("posts");
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
@@ -196,20 +196,26 @@ export default function ContactScreen() {
     })().catch(() => {});
   }, [id, loading, user?.id, isSelf, profile?.handle]);
 
-  // ── Load grid ─────────────────────────────────────────────────────────────
+  // ── Load grid (fetch all post types once so tab switching is instant) ────
   useEffect(() => {
     if (!id || loading) return;
     setGridLoading(true);
-    let q = supabase.from("posts").select("id,image_url,article_cover_url,video_url,post_type,content,article_title")
+    supabase.from("posts")
+      .select("id,image_url,article_cover_url,video_url,post_type,content,article_title")
       .eq("author_id", id)
       .or("visibility.eq.public,visibility.eq.followers,visibility.is.null")
-      .order("created_at", { ascending: false }).limit(30);
-    if (activeTab === "videos")        q = (q as any).eq("post_type","video");
-    else if (activeTab === "articles") q = (q as any).eq("post_type","article");
-    else                               q = (q as any).or("post_type.eq.post,post_type.eq.text,post_type.is.null");
-    q.then(({ data }) => { setGridPosts((data as GridPost[]) ?? []); setGridLoading(false); })
-     .catch(() => { setGridPosts([]); setGridLoading(false); });
-  }, [id, loading, activeTab]);
+      .order("created_at", { ascending: false })
+      .limit(90)
+      .then(({ data }) => { setAllGridPosts((data as GridPost[]) ?? []); setGridLoading(false); })
+      .catch(() => { setAllGridPosts([]); setGridLoading(false); });
+  }, [id, loading]);
+
+  // ── Derive visible posts for the active tab (instant, no network) ─────────
+  const gridPosts = React.useMemo(() => {
+    if (activeTab === "videos")   return allGridPosts.filter(p => p.post_type === "video");
+    if (activeTab === "articles") return allGridPosts.filter(p => p.post_type === "article");
+    return allGridPosts.filter(p => !p.post_type || p.post_type === "post" || p.post_type === "text");
+  }, [allGridPosts, activeTab]);
 
 
   // ── Follow ────────────────────────────────────────────────────────────────
@@ -324,7 +330,7 @@ export default function ContactScreen() {
   const isOrg = profile.is_organization_verified || profile.is_business_mode;
 
   return (
-    <View style={[s.root, { backgroundColor: colors.background }]}>
+    <View style={[s.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <ScrollView showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
 
@@ -348,7 +354,7 @@ export default function ContactScreen() {
             style={[StyleSheet.absoluteFill, { height: 60 }]}
           />
           {/* Nav row: back (left) + more (right) */}
-          <View style={[s.navRow, { top: insets.top + 6 }]}>
+          <View style={[s.navRow, { top: 6 }]}>
             <TouchableOpacity style={s.navBtn}
               onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/discover" as any)}
               hitSlop={{ top: 8, left: 8, right: 10, bottom: 8 }}>
