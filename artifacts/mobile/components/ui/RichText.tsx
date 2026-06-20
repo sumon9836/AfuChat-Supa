@@ -15,7 +15,7 @@ import React, { useMemo, useState } from "react";
 import { Linking, Platform, StyleSheet, Text } from "react-native";
 import { router } from "expo-router";
 import { useAppAccent } from "@/context/AppAccentContext";
-import { useOpenLink } from "@/lib/useOpenLink";
+import { useOpenLink, useOpenLinkActions } from "@/lib/useOpenLink";
 import { useAuth } from "@/context/AuthContext";
 import { navigateToProfile } from "@/lib/navigateToProfile";
 
@@ -193,6 +193,7 @@ export function RichText({
 }: RichTextProps) {
   const { accent } = useAppAccent();
   const openLink = useOpenLink();
+  const { showLinkSheet } = useOpenLinkActions();
   const { session } = useAuth();
   const effectiveLinkColor = linkColor ?? accent;
 
@@ -296,6 +297,22 @@ export function RichText({
               />
             );
           case "url":
+            return (
+              <Text
+                key={i}
+                style={[styles.link, { color: effectiveLinkColor }]}
+                onPress={() => handlePress(span)}
+                onLongPress={() => {
+                  let url = span.text;
+                  if (!url.startsWith("http")) url = "https://" + url;
+                  showLinkSheet(url);
+                }}
+                selectable={selectable}
+                suppressHighlighting
+              >
+                {span.text}
+              </Text>
+            );
           case "email":
           case "mention":
           case "hashtag":

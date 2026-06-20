@@ -29,11 +29,7 @@ export default function IndexScreen() {
 
     if (!isLoggedIn) {
       redirected.current = true;
-      if (Platform.OS === "web") {
-        router.replace("/landing");
-      } else {
-        router.replace("/welcome");
-      }
+      router.replace("/welcome");
       return;
     }
 
@@ -119,8 +115,6 @@ export default function IndexScreen() {
       redirected.current = true;
       if (handle) {
         router.replace(`/${handle}` as any);
-      } else if (Platform.OS === "web") {
-        router.replace("/landing");
       } else if (getCachedUserId()) {
         // Known user — always go home, never to welcome/onboarding
         router.replace("/(tabs)/chats");

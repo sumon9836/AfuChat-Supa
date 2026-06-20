@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -291,7 +290,7 @@ export default function CartScreen() {
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              onPress={() => Linking.openURL("https://afuchat.com/terms")}
+              onPress={() => router.push("/terms" as any)}
               style={{ alignItems: "center", paddingTop: 2 }}
             >
               <Text style={[styles.topUpText, { color: colors.textMuted, fontSize: 11, textDecorationLine: "none" }]}>
@@ -299,7 +298,7 @@ export default function CartScreen() {
                 <Text style={{ color: colors.accent }}>Marketplace Terms</Text>
                 {" "}and{" "}
                 <Text style={{ color: colors.accent }}
-                  onPress={() => Linking.openURL("https://afuchat.com/terms")}
+                  onPress={() => router.push("/terms" as any)}
                 >
                   AfuPay Terms
                 </Text>

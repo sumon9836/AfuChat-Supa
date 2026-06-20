@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -285,13 +284,13 @@ export default function SettingsScreen() {
           <GlassMenuItem
             icon="document-text-outline"
             label="Terms of Service"
-            onPress={() => Linking.openURL("https://afuchat.com/terms")}
+            onPress={() => router.push("/terms" as any)}
           />
           <GlassMenuSeparator />
           <GlassMenuItem
             icon="shield-outline"
             label="Privacy Policy"
-            onPress={() => Linking.openURL("https://afuchat.com/privacy")}
+            onPress={() => router.push("/privacy" as any)}
           />
           <GlassMenuSeparator />
           <GlassMenuItem

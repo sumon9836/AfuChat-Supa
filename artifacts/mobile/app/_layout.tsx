@@ -167,6 +167,14 @@ export default function RootLayout() {
     SplashScreen.hideAsync().catch(() => {});
   }, []);
 
+  // Safety: force the splash away after 2.5 s maximum so the app is never
+  // permanently blocked by a slow/failing auth or font load. The normal path
+  // (AppReadyGate) clears it sooner when both fonts + auth resolve quickly.
+  useEffect(() => {
+    const t = setTimeout(() => setAppReady(true), 2500);
+    return () => clearTimeout(t);
+  }, []);
+
   // Enable react-native-screens optimisation. Called here (inside a component,
   // not at module-eval time) so the Android activity is guaranteed to be fully
   // initialized before the native call runs. Module-eval is too early on some

@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { router } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -14,7 +15,7 @@ export default function UpdatePasswordNative() {
       </Text>
       <TouchableOpacity
         style={[s.btn, { backgroundColor: "#1f95ff" }]}
-        onPress={() => Linking.openURL("https://afuchat.com/login")}
+        onPress={() => router.replace("/(auth)/login" as any)}
         activeOpacity={0.85}
       >
         <Text style={s.btnTxt}>Go to sign-in</Text>
