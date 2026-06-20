@@ -191,6 +191,18 @@ export default function TermsOfService() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* View online banner */}
+        <TouchableOpacity
+          style={[st.webBanner, { backgroundColor: BRAND + "12", borderColor: BRAND + "30" }]}
+          onPress={() => Linking.openURL("https://afuchat.com/terms").catch(() => {})}
+          activeOpacity={0.75}
+        >
+          <Ionicons name="globe-outline" size={16} color={BRAND} />
+          <Text style={[st.webBannerText, { color: BRAND }]}>
+            Read the full Terms at afuchat.com/terms →
+          </Text>
+        </TouchableOpacity>
+
         {/* Intro */}
         <View style={[st.introBox, { borderLeftColor: BRAND }]}>
           <Text style={[st.introText, { color: colors.textMuted }]}>
@@ -289,6 +301,21 @@ const st = StyleSheet.create({
     maxWidth: 720,
     alignSelf: "center",
     width: "100%",
+  },
+  webBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  webBannerText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    flex: 1,
   },
   introBox: {
     borderLeftWidth: 3,

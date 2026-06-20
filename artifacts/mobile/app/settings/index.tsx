@@ -20,6 +20,7 @@ import { showAlert } from "@/lib/alert";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { GlassMenuSection, GlassMenuItem, GlassMenuSeparator } from "@/components/ui/GlassMenuItem";
 import { Avatar } from "@/components/ui/Avatar";
+import { AfuLogo } from "@/components/ui/AfuLogo";
 
 const MODE_OPTIONS = [
   { key: "light"  as const, label: "Light",  icon: "sunny"                  as const },
@@ -302,7 +303,8 @@ export default function SettingsScreen() {
 
         {/* ── Brand footer ─────────────────────────────────────────── */}
         <View style={styles.brandFooter}>
-          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 0 }}>
+          <View style={styles.brandLogoRow}>
+            <AfuLogo size={28} />
             <Text style={[styles.brandWord, { color: colors.textMuted }]}>Afu</Text>
             <Text style={[styles.brandWord, { color: accent }]}>Chat</Text>
           </View>
@@ -352,6 +354,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 32,
     paddingBottom: 12,
+    gap: 4,
+  },
+  brandLogoRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   brandWord: {
