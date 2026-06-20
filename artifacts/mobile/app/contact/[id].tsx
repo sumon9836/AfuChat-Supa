@@ -55,7 +55,7 @@ type FullProfile = {
 };
 
 type Counts = { followers: number; following: number; posts: number };
-type GridPost = { id: string; media_urls: string[] | null; post_type: string | null; content?: string | null };
+type GridPost = { id: string; media_urls: string[] | null; post_type: string | null; content?: string | null; article_title?: string | null; video_url?: string | null };
 type MutualUser = { id: string; handle: string; avatar_url: string | null };
 type TabId = "posts" | "articles" | "videos";
 
@@ -199,11 +199,12 @@ export default function ContactScreen() {
   useEffect(() => {
     if (!id || loading) return;
     setGridLoading(true);
-    let q = supabase.from("posts").select("id,media_urls,post_type,content")
+    let q = supabase.from("posts").select("id,media_urls,post_type,content,article_title,video_url")
       .eq("author_id", id).in("visibility",["public","followers"])
       .order("created_at", { ascending: false }).limit(30);
     if (activeTab === "videos")        q = (q as any).eq("post_type","video");
-    else if (activeTab === "articles") q = (q as any).in("post_type",["article","text"]);
+    else if (activeTab === "articles") q = (q as any).eq("post_type","article");
+    else                               q = (q as any).not("post_type","in","(video,article)");
     q.then(({ data }) => { setGridPosts((data as GridPost[]) ?? []); setGridLoading(false); })
      .catch(() => { setGridPosts([]); setGridLoading(false); });
   }, [id, loading, activeTab]);
@@ -619,28 +620,47 @@ export default function ContactScreen() {
         ) : (
           <View style={s.grid}>
             {gridPosts.map(item => {
-              const thumb = item.media_urls?.[0];
-              const isVid = item.post_type === "video";
+              const isVid     = item.post_type === "video";
+              const isArticle = item.post_type === "article";
+              const thumb     = item.media_urls?.[0];
+              const dest      = isArticle
+                ? { pathname: "/article/[id]", params: { id: item.id } }
+                : { pathname: "/post/[id]",    params: { id: item.id } };
               return (
                 <TouchableOpacity key={item.id}
                   style={[s.gridCell, { width: CELL, height: CELL }]}
                   activeOpacity={0.88}
-                  onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } } as any)}>
+                  onPress={() => router.push(dest as any)}>
+
+                  {/* Thumbnail / fallback */}
                   {thumb
                     ? <Image source={{ uri: thumb }} style={{ width: CELL, height: CELL }} contentFit="cover" />
-                    : item.content
+                    : isArticle
                       ? <View style={[s.gridTextCard, { backgroundColor: isDark ? "#1c1c1e" : "#f2f2f7" }]}>
-                          <Ionicons name="text" size={12} color={colors.textMuted} style={{ marginBottom: 4 }} />
-                          <Text style={[s.gridTextPreview, { color: colors.text }]} numberOfLines={4}>
-                            {item.content}
+                          <Ionicons name="document-text-outline" size={14} color={accent} style={{ marginBottom: 4 }} />
+                          <Text style={[s.gridTextPreview, { color: colors.text, fontFamily: "Inter_600SemiBold" }]} numberOfLines={3}>
+                            {item.article_title || item.content || "Article"}
                           </Text>
                         </View>
-                      : <View style={[s.gridPlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
-                          <Ionicons name="image-outline" size={20} color={colors.textMuted} />
-                        </View>}
+                      : item.content
+                        ? <View style={[s.gridTextCard, { backgroundColor: isDark ? "#1c1c1e" : "#f2f2f7" }]}>
+                            <Text style={[s.gridTextPreview, { color: colors.text }]} numberOfLines={4}>
+                              {item.content}
+                            </Text>
+                          </View>
+                        : <View style={[s.gridPlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
+                            <Ionicons name="image-outline" size={20} color={colors.textMuted} />
+                          </View>}
+
+                  {/* Badges */}
                   {isVid && (
                     <View style={s.videoTag}>
                       <Ionicons name="play-circle" size={20} color="#fff" />
+                    </View>
+                  )}
+                  {isArticle && (
+                    <View style={[s.videoTag, { backgroundColor: "rgba(0,0,0,0.55)" }]}>
+                      <Ionicons name="book-outline" size={14} color="#fff" />
                     </View>
                   )}
                   {(item.media_urls?.length ?? 0) > 1 && (
