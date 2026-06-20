@@ -467,10 +467,10 @@ export default function MeScreen() {
         {/* ── Quick Actions ───────────────────────────────────────────────── */}
         <View style={[s.quickRow, { backgroundColor: colors.surface }]}>
           {[
-            { icon: "create-outline",    label: "Edit Profile", color: Colors.brand, onPress: () => router.push("/profile/edit") },
-            { icon: "person-outline",    label: "My Profile",   color: colors.icon,  onPress: () => profile?.handle && router.push(`/@${profile.handle}` as any) },
-            { icon: "qr-code-outline",   label: "QR Code",      color: colors.icon,  onPress: () => router.push("/qr-scanner" as any) },
-            { icon: "card-outline",      label: "Digital ID",   color: colors.icon,  onPress: () => router.push("/digital-id" as any) },
+            { icon: "create-outline",    label: "Edit Profile", color: Colors.brand,  onPress: () => router.push("/profile/edit") },
+            { icon: "person-outline",    label: "My Profile",   color: "#5856D6",     onPress: () => profile?.handle && router.push(`/@${profile.handle}` as any) },
+            { icon: "qr-code-outline",   label: "QR Code",      color: "#FF9500",     onPress: () => router.push("/qr-scanner" as any) },
+            { icon: "card-outline",      label: "Digital ID",   color: "#34C759",     onPress: () => router.push("/digital-id" as any) },
           ].map((a) => (
             <TouchableOpacity key={a.label} style={s.quickBtn} onPress={a.onPress} activeOpacity={0.75}>
               <View style={[s.quickIconWrap, { backgroundColor: a.color + "15" }]}>
@@ -592,7 +592,7 @@ export default function MeScreen() {
             />
             <MenuItem
               icon="people-circle-outline"
-              iconColor={colors.icon}
+              iconColor="#34C759"
               label="Phone Contacts"
               onPress={() => router.push("/phone-contacts" as any)}
               showSeparator

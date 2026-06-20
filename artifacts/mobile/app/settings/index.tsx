@@ -288,6 +288,7 @@ export default function SettingsScreen() {
           <Section colors={colors}>
             <Row
               icon="person-add-outline"
+              iconColor="#34C759"
               label="Add Another Account"
               sublabel="Switch between multiple AfuChat accounts"
               onPress={() => router.push("/linked-accounts")}
@@ -327,6 +328,7 @@ export default function SettingsScreen() {
           <View style={[s.divider, { backgroundColor: colors.separator }]} />
           <Row
             icon="language-outline"
+            iconColor="#FF9500"
             label="Language"
             value={langLabel}
             onPress={() => router.push("/language-settings")}
@@ -341,6 +343,7 @@ export default function SettingsScreen() {
           <Section title="NOTIFICATIONS" colors={colors}>
             <Row
               icon="notifications-outline"
+              iconColor="#FF3B30"
               label="Notifications"
               sublabel="Alerts, sounds and vibration"
               onPress={() => router.push("/settings/notifications")}
@@ -355,6 +358,7 @@ export default function SettingsScreen() {
         <Section title="MESSAGING" colors={colors}>
           <Row
             icon="chatbubble-ellipses-outline"
+            iconColor={Colors.brand}
             label="Chat Settings"
             sublabel="Bubbles, themes, media quality"
             onPress={() => router.push("/settings/chat")}
@@ -363,6 +367,7 @@ export default function SettingsScreen() {
           />
           <Row
             icon="person-remove-outline"
+            iconColor="#FF3B30"
             label="Blocked Users"
             sublabel="Manage people you've blocked"
             onPress={() => router.push("/settings/blocked")}
@@ -376,6 +381,7 @@ export default function SettingsScreen() {
         <Section title="PRIVACY & SECURITY" colors={colors}>
           <Row
             icon="eye-off-outline"
+            iconColor="#5856D6"
             label="Privacy"
             sublabel="Visibility, messages, interactions"
             onPress={() => router.push("/settings/privacy")}
@@ -384,6 +390,7 @@ export default function SettingsScreen() {
           />
           <Row
             icon="lock-closed-outline"
+            iconColor="#FF9500"
             label="Security & Password"
             sublabel="Password, 2FA, device lock"
             onPress={() => router.push("/settings/security")}
@@ -392,6 +399,7 @@ export default function SettingsScreen() {
           />
           <Row
             icon="key-outline"
+            iconColor="#007AFF"
             label="Login Methods"
             sublabel="Google, Apple and other sign-in options"
             onPress={() => router.push("/settings/oauth-providers")}
@@ -400,6 +408,7 @@ export default function SettingsScreen() {
           />
           <Row
             icon="cloud-download-outline"
+            iconColor="#34C759"
             label="Download My Data"
             sublabel="Export a copy of your account data"
             onPress={() => router.push("/settings/privacy-download" as any)}
@@ -413,6 +422,7 @@ export default function SettingsScreen() {
         <Section title="STORAGE & DATA" colors={colors}>
           <Row
             icon="server-outline"
+            iconColor="#5856D6"
             label="Storage & Cache"
             sublabel="Manage local files and cached media"
             onPress={() => router.push("/settings/storage")}
@@ -422,6 +432,7 @@ export default function SettingsScreen() {
           {Platform.OS !== "web" && (
             <Row
               icon="download-outline"
+              iconColor="#FF2D55"
               label="Offline Videos"
               sublabel="Videos saved for offline playback"
               onPress={() => router.push("/settings/offline-videos" as any)}
@@ -431,6 +442,7 @@ export default function SettingsScreen() {
           )}
           <Row
             icon="flash-outline"
+            iconColor="#FF9500"
             label="Advanced Features"
             sublabel="Power settings, feed and chat customisation"
             onPress={() => router.push("/advanced-features" as any)}
@@ -441,6 +453,7 @@ export default function SettingsScreen() {
           {Platform.OS !== "web" && (
             <Row
               icon="eye-off-outline"
+              iconColor="#8E8E93"
               label="Not Interested"
               sublabel="Muted authors and suppressed topics"
               onPress={() => router.push("/settings/not-interested" as any)}
@@ -470,6 +483,7 @@ export default function SettingsScreen() {
         <Section title="SUPPORT & ABOUT" colors={colors}>
           <Row
             icon="help-buoy-outline"
+            iconColor={Colors.brand}
             label="Help & Support"
             sublabel="FAQs, contact and tickets"
             onPress={() => router.push("/support" as any)}
@@ -478,6 +492,7 @@ export default function SettingsScreen() {
           />
           <Row
             icon="information-circle-outline"
+            iconColor="#007AFF"
             label="About AfuChat"
             sublabel="Version, terms, privacy and company info"
             onPress={() => router.push("/about" as any)}
