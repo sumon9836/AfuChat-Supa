@@ -7,6 +7,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -238,6 +239,47 @@ export default function ContactScreen() {
     } catch { showAlert("Error", "Could not start conversation. Please try again."); }
   }, [user, id]);
 
+  // ── Share profile ─────────────────────────────────────────────────────────
+  const handleShareProfile = useCallback(async () => {
+    const handle  = profile?.handle ?? id;
+    const name    = profile?.display_name ?? handle;
+    const url     = `https://afuchat.com/@${handle}`;
+    try {
+      await Share.share({ message: `Check out ${name} on AfuChat!\n${url}`, url, title: name ?? undefined });
+    } catch {}
+  }, [profile, id]);
+
+  // ── Add to device contacts ────────────────────────────────────────────────
+  const handleAddToContacts = useCallback(async () => {
+    if (Platform.OS === "web") {
+      showToast("Save contacts is not supported in the browser", { type: "info" });
+      return;
+    }
+    try {
+      const Contacts = require("expo-contacts");
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== "granted") {
+        showToast("Contacts permission denied", { type: "error" });
+        return;
+      }
+      const displayName = profile?.display_name ?? "";
+      const parts       = displayName.trim().split(/\s+/);
+      const contact: any = {
+        [Contacts.Fields.FirstName]: parts[0] ?? displayName,
+        [Contacts.Fields.LastName]:  parts.slice(1).join(" ") || undefined,
+        [Contacts.Fields.Note]:      `AfuChat: @${profile?.handle ?? id}`,
+        [Contacts.Fields.UrlAddresses]: [
+          { label: "AfuChat", url: `https://afuchat.com/@${profile?.handle ?? id}` },
+        ],
+      };
+      await Contacts.addContactAsync(contact);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast(`${displayName || "Contact"} saved to contacts`, { type: "success" });
+    } catch (e: any) {
+      showToast("Could not save contact", { type: "error" });
+    }
+  }, [profile, id]);
+
   // ── Guard states ──────────────────────────────────────────────────────────
   if (loading && !profile) return (
     <View style={{ flex: 1, backgroundColor: colors.background }}><ProfileSkeleton /></View>
@@ -393,13 +435,13 @@ export default function ContactScreen() {
                   )}
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-                    onPress={() => showToast("Profile link copied", { type: "info" })}
+                    onPress={handleShareProfile}
                     activeOpacity={0.8}>
                     <Ionicons name="share-outline" size={15} color={colors.text} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-                    onPress={() => showToast("Added to contacts", { type: "success" })}
+                    onPress={handleAddToContacts}
                     activeOpacity={0.8}>
                     <Ionicons name="person-add-outline" size={15} color={colors.text} />
                   </TouchableOpacity>
@@ -410,7 +452,7 @@ export default function ContactScreen() {
                 <>
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
-                    onPress={() => showToast("Share link copied", { type: "info" })} activeOpacity={0.8}>
+                    onPress={handleShareProfile} activeOpacity={0.8}>
                     <Ionicons name="share-outline" size={15} color={colors.text} />
                   </TouchableOpacity>
                   <TouchableOpacity
