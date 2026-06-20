@@ -204,7 +204,7 @@ export default function ContactScreen() {
       .order("created_at", { ascending: false }).limit(30);
     if (activeTab === "videos")        q = (q as any).eq("post_type","video");
     else if (activeTab === "articles") q = (q as any).eq("post_type","article");
-    else                               q = (q as any).not("post_type","in","(video,article)");
+    else                               q = (q as any).or("post_type.eq.post,post_type.eq.text,post_type.is.null");
     q.then(({ data }) => { setGridPosts((data as GridPost[]) ?? []); setGridLoading(false); })
      .catch(() => { setGridPosts([]); setGridLoading(false); });
   }, [id, loading, activeTab]);
