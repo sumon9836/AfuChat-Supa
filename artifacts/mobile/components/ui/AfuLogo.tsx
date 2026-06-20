@@ -1,9 +1,10 @@
 import React from "react";
 import { StyleProp, ViewStyle, useColorScheme } from "react-native";
 import { Image as ExpoImage } from "expo-image";
+import { LOGO_WHITE_B64, LOGO_BLACK_B64 } from "@/lib/logoAssets";
 
-const LOGO_DARK = require("../../assets/images/logo_white.png");
-const LOGO_LIGHT = require("../../assets/images/logo_black.png");
+const LOGO_DARK = { uri: LOGO_WHITE_B64 };
+const LOGO_LIGHT = { uri: LOGO_BLACK_B64 };
 
 /**
  * AfuChat brand logo — theme-aware.

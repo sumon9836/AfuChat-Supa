@@ -24,8 +24,9 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const LOGO_WHITE = require("../../assets/images/logo_white.png");
-const LOGO_BLACK = require("../../assets/images/logo_black.png");
+import { LOGO_WHITE_B64, LOGO_BLACK_B64 } from "@/lib/logoAssets";
+const LOGO_WHITE = { uri: LOGO_WHITE_B64 };
+const LOGO_BLACK = { uri: LOGO_BLACK_B64 };
 const { width } = Dimensions.get("window");
 const LOGO_SIZE = Math.min(width * 0.28, 120);
 
