@@ -840,10 +840,10 @@ const s = StyleSheet.create({
   mutualsLabel: { fontSize: 10.5, fontFamily: "Inter_400Regular", marginBottom: 1 },
   mutualsText: { fontSize: 12.5, fontFamily: "Inter_500Medium" },
 
-  // Prestige pill + inline action icons (same row)
+  // Prestige pill + inline action icons (same row, no wrap)
   pillActionRow: {
     flexDirection: "row", alignItems: "center",
-    gap: 7, flexWrap: "wrap",
+    gap: 6, flexWrap: "nowrap",
   },
   pillIconBtn: {
     width: 30, height: 30, borderRadius: 15,
