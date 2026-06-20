@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/hooks/useTheme";
 import * as Haptics from "@/lib/haptics";
@@ -40,6 +41,7 @@ export function TwoFactorGate({
   subtitle = "Enter the 6-digit code from your authenticator app to continue.",
 }: TwoFactorGateProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [gateState, setGateState] = useState<GateState>("checking");
   const [code, setCode] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -133,7 +135,7 @@ export function TwoFactorGate({
           onPress={() => { Keyboard.dismiss(); onDismiss(); }}
         />
 
-        <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+        <View style={[styles.sheet, { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom + 12, 32) }]}>
           <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
 
           <TouchableOpacity style={styles.closeBtn} onPress={onDismiss}>
@@ -224,7 +226,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    paddingBottom: 40,
     gap: 14,
     alignItems: "center",
   },

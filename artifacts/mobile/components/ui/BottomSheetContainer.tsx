@@ -49,6 +49,7 @@ export function BottomSheetContainer({
   backgroundColor,
 }: Props) {
   const { isDesktop } = useIsDesktop();
+  const insets = useSafeAreaInsets();
 
   if (Platform.OS === "web" && isDesktop) {
     return (
@@ -68,6 +69,9 @@ export function BottomSheetContainer({
     <View
       style={[
         styles.sheet,
+        // Extend background behind the home indicator so the sheet
+        // sits truly flush with the bottom edge of the screen.
+        { paddingBottom: insets.bottom },
         backgroundColor ? { backgroundColor } : undefined,
         style,
       ]}
