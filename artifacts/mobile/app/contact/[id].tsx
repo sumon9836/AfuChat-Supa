@@ -418,33 +418,33 @@ export default function ContactScreen() {
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: accent + "18" }]}
                     onPress={handleMessage} activeOpacity={0.8}>
-                    <Ionicons name="chatbubble-outline" size={15} color={accent} />
+                    <Ionicons name="chatbubble-outline" size={17} color={accent} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: "#FF2D5518" }]}
                     onPress={() => router.push({ pathname: "/gifts/index", params: { recipientId: id } } as any)}
                     activeOpacity={0.8}>
-                    <Ionicons name="gift-outline" size={15} color="#FF2D55" />
+                    <Ionicons name="gift-outline" size={17} color="#FF2D55" />
                   </TouchableOpacity>
                   {isOrg && (
                     <TouchableOpacity
                       style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
                       onPress={() => router.push({ pathname: "/shop/[userId]", params: { userId: id } } as any)}
                       activeOpacity={0.8}>
-                      <Ionicons name="storefront-outline" size={15} color={colors.text} />
+                      <Ionicons name="storefront-outline" size={17} color={colors.text} />
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
                     onPress={handleShareProfile}
                     activeOpacity={0.8}>
-                    <Ionicons name="share-outline" size={15} color={colors.text} />
+                    <Ionicons name="share-outline" size={17} color={colors.text} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
                     onPress={handleAddToContacts}
                     activeOpacity={0.8}>
-                    <Ionicons name="person-add-outline" size={15} color={colors.text} />
+                    <Ionicons name="person-add-outline" size={17} color={colors.text} />
                   </TouchableOpacity>
                 </>
               )}
@@ -454,12 +454,12 @@ export default function ContactScreen() {
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
                     onPress={handleShareProfile} activeOpacity={0.8}>
-                    <Ionicons name="share-outline" size={15} color={colors.text} />
+                    <Ionicons name="share-outline" size={17} color={colors.text} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[s.pillIconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
                     onPress={() => router.push("/settings")} activeOpacity={0.8}>
-                    <Ionicons name="settings-outline" size={15} color={colors.text} />
+                    <Ionicons name="settings-outline" size={17} color={colors.text} />
                   </TouchableOpacity>
                 </>
               )}
@@ -883,14 +883,14 @@ const s = StyleSheet.create({
   mutualsLabel: { fontSize: 10.5, fontFamily: "Inter_400Regular", marginBottom: 1 },
   mutualsText: { fontSize: 12.5, fontFamily: "Inter_500Medium" },
 
-  // Prestige pill + inline action icons (same row, no wrap, spread across available width)
+  // Prestige pill + inline action icons (same row, fills full width of identityLeft)
   pillActionRow: {
     flexDirection: "row", alignItems: "center",
-    justifyContent: "space-between",
-    flex: 1, flexWrap: "nowrap",
+    justifyContent: "space-evenly",
+    width: "100%",
   },
   pillIconBtn: {
-    width: 30, height: 30, borderRadius: 15,
+    width: 36, height: 36, borderRadius: 18,
     alignItems: "center", justifyContent: "center",
   },
 
