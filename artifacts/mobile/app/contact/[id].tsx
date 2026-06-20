@@ -313,92 +313,85 @@ export default function ContactScreen() {
             start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
             style={[StyleSheet.absoluteFill, { height: 60 }]}
           />
-          {/* Floating back button */}
+          {/* Nav row: back (left) + more (right) */}
           <View style={[s.navRow, { top: insets.top + 6 }]}>
             <TouchableOpacity style={s.navBtn}
               onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/discover" as any)}
               hitSlop={{ top: 8, left: 8, right: 10, bottom: 8 }}>
               <Ionicons name="arrow-back" size={20} color="#fff" />
             </TouchableOpacity>
+            {!isSelf && (
+              <TouchableOpacity style={s.navBtn}
+                onPress={() => showAlert("Options", undefined, [
+                  { text: "Report", style: "destructive", onPress: () => {} },
+                  { text: "Block",  style: "destructive", onPress: () => {} },
+                  { text: "Cancel", style: "cancel" },
+                ])}
+                hitSlop={{ top: 8, left: 10, right: 8, bottom: 8 }}>
+                <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
         {/* ══════════════════════════════════════════════════════════════ */}
-        {/* IDENTITY SEPARATOR — the dividing line between cover & content */}
-        {/* avatar on left overlapping, handle+status+CTA on right        */}
+        {/* IDENTITY — centred avatar with name block below               */}
         {/* ══════════════════════════════════════════════════════════════ */}
-        <View style={s.identitySep}>
-          {/* Tappable avatar — opens fullscreen */}
+        <View style={s.identityBlock}>
+          {/* Avatar — overlaps banner */}
           <TouchableOpacity
             onPress={() => setAvatarModalVisible(true)}
             activeOpacity={0.88}
-            style={[s.avatarShell, { borderColor: colors.background }]}>
+            style={[s.avatarShell, { borderColor: colors.background, marginTop: -(AVATAR_SIZE / 2 + 4) }]}>
             <Avatar uri={profile.avatar_url} name={profile.display_name}
               size={AVATAR_SIZE} square={isOrg} premium={false} />
             {ls.online && <View style={[s.onlineDot, { borderColor: colors.background }]} />}
           </TouchableOpacity>
 
-          {/* Right side: name row + status + CTA */}
-          <View style={s.identityRight}>
-            <View style={s.identityTopRow}>
-              {/* Name + badges */}
-              <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                <Text style={[s.displayName, { color: colors.text }]} numberOfLines={1}>
-                  {profile.display_name}
-                </Text>
-                <VerifiedBadge isVerified={profile.is_verified}
-                  isOrganizationVerified={profile.is_organization_verified} size={16} />
-              </View>
-              {/* Options for other users */}
-              {!isSelf && (
-                <TouchableOpacity
-                  style={[s.moreBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)" }]}
-                  onPress={() => showAlert("Options", undefined, [
-                    { text: "Report", style: "destructive", onPress: () => {} },
-                    { text: "Block",  style: "destructive", onPress: () => {} },
-                    { text: "Cancel", style: "cancel" },
-                  ])}>
-                  <Ionicons name="ellipsis-horizontal" size={16} color={colors.textMuted} />
-                </TouchableOpacity>
-              )}
-            </View>
+          {/* Display name + verified badge */}
+          <View style={s.nameRow}>
+            <Text style={[s.displayName, { color: colors.text }]} numberOfLines={1}>
+              {profile.display_name}
+            </Text>
+            <VerifiedBadge isVerified={profile.is_verified}
+              isOrganizationVerified={profile.is_organization_verified} size={16} />
+          </View>
 
-            {/* Handle + status */}
-            <View style={s.handleRow}>
-              <Text style={[s.handle, { color: colors.textMuted }]}>@{profile.handle}</Text>
-              {ls.text !== "" && (
-                <>
-                  <View style={[s.statusDot, { backgroundColor: ls.online ? "#34C759" : colors.textMuted }]} />
-                  <Text style={[s.statusText, { color: ls.online ? "#34C759" : colors.textMuted }]}>{ls.text}</Text>
-                </>
-              )}
-            </View>
+          {/* Handle + online status */}
+          <View style={s.handleRow}>
+            <Text style={[s.handle, { color: colors.textMuted }]}>@{profile.handle}</Text>
+            {ls.text !== "" && (
+              <>
+                <View style={[s.statusDot, { backgroundColor: ls.online ? "#34C759" : colors.textMuted }]} />
+                <Text style={[s.statusText, { color: ls.online ? "#34C759" : colors.textMuted }]}>{ls.text}</Text>
+              </>
+            )}
+          </View>
 
-            {/* Prestige + CTA */}
-            <View style={s.identityBottomRow}>
-              <View style={[s.prestigePill, { backgroundColor: prestige.color + "1A", borderColor: prestige.color + "44" }]}>
-                <Text style={s.prestigeEmoji}>{prestige.emoji}</Text>
-                <Text style={[s.prestigeText, { color: prestige.color }]}>{prestige.label}</Text>
-              </View>
-              {!isSelf && user && (
-                <TouchableOpacity
-                  style={[s.primaryBtn, { backgroundColor: followBg, borderColor: followBrd }]}
-                  onPress={handleFollow} activeOpacity={0.85} disabled={followLoading}>
-                  {followLoading
-                    ? <ActivityIndicator size="small" color={followTxt} />
-                    : <><Ionicons name={followIcon} size={13} color={followTxt} />
-                        <Text style={[s.primaryBtnText, { color: followTxt }]}>{followLabel}</Text></>}
-                </TouchableOpacity>
-              )}
-              {isSelf && (
-                <TouchableOpacity
-                  style={[s.primaryBtn, { backgroundColor: "transparent", borderColor: colors.border }]}
-                  onPress={() => router.push("/profile/edit")} activeOpacity={0.85}>
-                  <Ionicons name="create-outline" size={13} color={colors.text} />
-                  <Text style={[s.primaryBtnText, { color: colors.text }]}>Edit</Text>
-                </TouchableOpacity>
-              )}
+          {/* Prestige pill + follow CTA */}
+          <View style={s.identityBottomRow}>
+            <View style={[s.prestigePill, { backgroundColor: prestige.color + "1A", borderColor: prestige.color + "44" }]}>
+              <Text style={s.prestigeEmoji}>{prestige.emoji}</Text>
+              <Text style={[s.prestigeText, { color: prestige.color }]}>{prestige.label}</Text>
             </View>
+            {!isSelf && user && (
+              <TouchableOpacity
+                style={[s.primaryBtn, { backgroundColor: followBg, borderColor: followBrd }]}
+                onPress={handleFollow} activeOpacity={0.85} disabled={followLoading}>
+                {followLoading
+                  ? <ActivityIndicator size="small" color={followTxt} />
+                  : <><Ionicons name={followIcon} size={13} color={followTxt} />
+                      <Text style={[s.primaryBtnText, { color: followTxt }]}>{followLabel}</Text></>}
+              </TouchableOpacity>
+            )}
+            {isSelf && (
+              <TouchableOpacity
+                style={[s.primaryBtn, { backgroundColor: "transparent", borderColor: colors.border }]}
+                onPress={() => router.push("/profile/edit")} activeOpacity={0.85}>
+                <Ionicons name="create-outline" size={13} color={colors.text} />
+                <Text style={[s.primaryBtnText, { color: colors.text }]}>Edit</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -438,7 +431,7 @@ export default function ContactScreen() {
         {/* ══════════════════════════════════════════════════════════════ */}
         {/* STATS CARD — elevated, no plain border                        */}
         {/* ══════════════════════════════════════════════════════════════ */}
-        <View style={[s.statsCard, { backgroundColor: isDark ? "#1c1c1e" : "#fff" }, isDark ? cardShadowDark : cardShadow]}>
+        <View style={[s.statsCard, { backgroundColor: colors.background, borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]}>
           {[
             { label: "Posts",     value: counts.posts,     onPress: () => router.push({ pathname: "/my-posts", params: { userId: id } } as any) },
             { label: "Followers", value: counts.followers, onPress: () => router.push({ pathname: "/followers", params: { userId: id, type: "followers", ownerHandle: profile.handle } } as any) },
@@ -514,7 +507,7 @@ export default function ContactScreen() {
         {/* ══════════════════════════════════════════════════════════════ */}
         {!isSelf && mutuals.length > 0 && (
           <TouchableOpacity
-            style={[s.mutualsRow, { backgroundColor: isDark ? "#1c1c1e" : "#fff" }, isDark ? cardShadowDark : cardShadow]}
+            style={[s.mutualsRow, { backgroundColor: colors.background, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]}
             onPress={() => router.push({ pathname: "/followers", params: { userId: id, type: "followers", ownerHandle: profile.handle } } as any)}
             activeOpacity={0.8}>
             <View style={s.mutualsAvatars}>
@@ -593,7 +586,7 @@ export default function ContactScreen() {
         {/* ══════════════════════════════════════════════════════════════ */}
         {/* XP CARD — tinted glass style                                  */}
         {/* ══════════════════════════════════════════════════════════════ */}
-        <View style={[s.xpCard, { backgroundColor: hex2rgba(xpGrade.color, isDark ? 0.12 : 0.07) }, isDark ? cardShadowDark : cardShadow]}>
+        <View style={[s.xpCard, { backgroundColor: hex2rgba(xpGrade.color, isDark ? 0.12 : 0.07) }]}>
           <View style={s.xpTopRow}>
             <View style={[s.xpIconBox, { backgroundColor: xpGrade.color + "28" }]}>
               <Ionicons name="flash" size={14} color={xpGrade.color} />
@@ -720,6 +713,7 @@ const s = StyleSheet.create({
   navRow: {
     position: "absolute", left: 12, right: 12,
     flexDirection: "row", alignItems: "center",
+    justifyContent: "space-between",
   },
   navBtn: {
     width: 32, height: 32, borderRadius: 16,
@@ -727,15 +721,12 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
   },
 
-  // Identity separator — the band that bridges cover and content
-  // avatar overlaps cover on left, identity info fills right side
-  identitySep: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 14,
-    paddingBottom: 10,
-    marginTop: -(AVATAR_SIZE / 2 + 3),
-    gap: 10,
+  // Identity — centred column
+  identityBlock: {
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    gap: 5,
   },
   avatarShell: {
     width: AVATAR_SIZE + 6,
@@ -743,37 +734,28 @@ const s = StyleSheet.create({
     borderRadius: AVATAR_SIZE / 2 + 3,
     borderWidth: 3,
     overflow: "hidden",
-    flexShrink: 0,
   },
   onlineDot: {
     position: "absolute", bottom: 5, right: 5,
     width: 12, height: 12, borderRadius: 6,
     backgroundColor: "#34C759", borderWidth: 2,
   },
-
-  // Right column inside identitySep
-  identityRight: {
-    flex: 1,
-    paddingBottom: 2,
-    gap: 3,
-  },
-  identityTopRow: {
+  nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
+    marginTop: 4,
+    maxWidth: "90%",
   },
   identityBottomRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     flexWrap: "wrap",
-  },
-  moreBtn: {
-    width: 28, height: 28, borderRadius: 14,
-    alignItems: "center", justifyContent: "center",
+    justifyContent: "center",
   },
 
-  displayName: { fontSize: 17, fontFamily: "Inter_700Bold", letterSpacing: -0.2, flex: 1 },
+  displayName: { fontSize: 19, fontFamily: "Inter_700Bold", letterSpacing: -0.3, flexShrink: 1 },
   prestigePill: {
     flexDirection: "row", alignItems: "center", gap: 4,
     paddingHorizontal: 8, paddingVertical: 3,
@@ -819,11 +801,13 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
 
-  // Stats card — elevated, no border
+  // Stats — flat with hairline borders
   statsCard: {
     flexDirection: "row",
-    marginHorizontal: 16, marginBottom: 10,
-    borderRadius: 16, paddingVertical: 14,
+    paddingVertical: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginBottom: 10,
   },
   statCell: { flex: 1, alignItems: "center", gap: 2 },
   statNum: { fontSize: 22, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
