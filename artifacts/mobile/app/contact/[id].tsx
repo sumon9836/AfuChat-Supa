@@ -361,13 +361,13 @@ export default function ContactScreen() {
                 isOrganizationVerified={profile.is_organization_verified} size={16} />
             </View>
 
-            {/* Handle + online status */}
+            {/* Handle + online status (only show dot+label when actively online) */}
             <View style={s.handleRow}>
               <Text style={[s.handle, { color: colors.textMuted }]}>@{profile.handle}</Text>
-              {ls.text !== "" && (
+              {ls.online && (
                 <>
-                  <View style={[s.statusDot, { backgroundColor: ls.online ? "#34C759" : colors.textMuted }]} />
-                  <Text style={[s.statusText, { color: ls.online ? "#34C759" : colors.textMuted }]}>{ls.text}</Text>
+                  <View style={[s.statusDot, { backgroundColor: "#34C759" }]} />
+                  <Text style={[s.statusText, { color: "#34C759" }]}>Online</Text>
                 </>
               )}
             </View>
@@ -763,12 +763,12 @@ const s = StyleSheet.create({
   },
 
   // Identity band — left avatar col + right action col
+  // NOTE: no marginTop here — only the avatarShell gets the negative margin
   identityBand: {
     flexDirection: "row",
     alignItems: "flex-start",
     paddingHorizontal: 14,
     paddingBottom: 12,
-    marginTop: -(AVATAR_SIZE / 2 + 4),
     gap: 10,
   },
   identityLeft: {
@@ -778,6 +778,7 @@ const s = StyleSheet.create({
   identityRight: {
     alignItems: "flex-end",
     justifyContent: "flex-end",
+    // push buttons down so they sit below the cover boundary
     paddingTop: (AVATAR_SIZE / 2 + 4) + 6,
     gap: 8,
   },
