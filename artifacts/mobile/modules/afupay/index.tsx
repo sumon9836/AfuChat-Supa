@@ -107,7 +107,7 @@ function localLine(usd: number, country?: string | null): string | null {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getEdgeFnBase() {
-  return (process.env.EXPO_PUBLIC_SUPABASE_URL || "").trim().replace(/\/+$/, "") + "/functions/v1";
+  return (process.env.EXPO_PUBLIC_SUPABASE_URL || "https://rhnsjqqtdzlkvqazfcbg.supabase.co").trim().replace(/\/+$/, "") + "/functions/v1";
 }
 async function getToken(): Promise<string> {
   // Always refresh to avoid sending an expired token to Edge Functions

@@ -376,8 +376,8 @@ export default function SignInScreen() {
 
   async function resolveToEmail(raw: string): Promise<string | null> {
     try {
-      const base = (process.env.EXPO_PUBLIC_SUPABASE_URL || "").trim().replace(/\/+$/, "");
-      const anon = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "").trim();
+      const base = (process.env.EXPO_PUBLIC_SUPABASE_URL || "https://rhnsjqqtdzlkvqazfcbg.supabase.co").trim().replace(/\/+$/, "");
+      const anon = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJobnNqcXF0ZHpsa3ZxYXpmY2JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NzA4NjksImV4cCI6MjA3NzI0Njg2OX0.j8zuszO1K6Apjn-jRiVUyZeqe3Re424xyOho9qDl_oY").trim();
       if (!base) return null;
       const res = await fetch(`${base}/functions/v1/auth-resolve-identifier`, {
         method: "POST",
