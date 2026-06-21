@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
     const humanDate = now.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" });
 
     const emailBody = {
-      from:        "AfuChat <notifications@afuchat.com>",
+      from:        "AfuChat <onboarding@resend.dev>",
       to:          [userEmail],
       subject:     "Your AfuChat data export is ready",
       attachments: [{ filename, content: base64Content }],
