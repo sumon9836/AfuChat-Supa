@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { getCachedUserId } from "@/lib/offlineStore";
+import { storage, KEYS } from "@/lib/storage/mmkv";
 
 export default function IndexScreen() {
   const { session, profile, loading } = useAuth();
@@ -14,10 +15,17 @@ export default function IndexScreen() {
     const cachedId  = getCachedUserId();
     const isLoggedIn = hasSession || Boolean(cachedId);
 
-    // No session and no cached user — land on chats (handles unauth state gracefully)
+    // First-time visitor — show the welcome/onboarding landing before anything else
+    if (!isLoggedIn && !storage.getBoolean(KEYS.ONBOARDING_DONE)) {
+      redirected.current = true;
+      router.replace("/welcome");
+      return;
+    }
+
+    // No session and no cached user but onboarding already seen — go to login
     if (!isLoggedIn) {
       redirected.current = true;
-      router.replace("/(tabs)/chats");
+      router.replace("/login");
       return;
     }
 
@@ -71,9 +79,10 @@ export default function IndexScreen() {
         router.replace(`/${handle}` as any);
       } else if (getCachedUserId()) {
         router.replace("/(tabs)/chats");
+      } else if (!storage.getBoolean(KEYS.ONBOARDING_DONE)) {
+        router.replace("/welcome");
       } else {
-        // Always land on chats — even without auth (chats handles it)
-        router.replace("/(tabs)/chats");
+        router.replace("/login");
       }
     }, 600);
 
