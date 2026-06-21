@@ -16,8 +16,12 @@ import { logger } from "../lib/logger";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from "../lib/constants";
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY || "";
+function getGroqKey(): string {
+  return process.env.GROQ_API_KEY || "";
+}
+function getGeminiKey(): string {
+  return process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY || "";
+}
 
 const GROQ_MODELS = [
   "llama-3.3-70b-versatile",
@@ -68,6 +72,7 @@ async function callGroq(
   systemPrompt: string,
   userMessage: string,
 ): Promise<string | null> {
+  const GROQ_API_KEY = getGroqKey();
   if (!GROQ_API_KEY) return null;
 
   const client = new OpenAI({
@@ -107,6 +112,7 @@ async function callGemini(
   systemPrompt: string,
   userMessage: string,
 ): Promise<string | null> {
+  const GEMINI_API_KEY = getGeminiKey();
   if (!GEMINI_API_KEY) return null;
 
   for (const model of GEMINI_MODELS) {
@@ -214,7 +220,7 @@ export async function generateAiDraft(input: AiDraftInput): Promise<boolean> {
     metadata: {
       ai_draft: true,
       generated_at: new Date().toISOString(),
-      provider: GROQ_API_KEY ? "groq_or_gemini" : "gemini",
+      provider: getGroqKey() ? "groq_or_gemini" : "gemini",
     },
   });
 

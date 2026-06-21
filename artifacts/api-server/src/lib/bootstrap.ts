@@ -1,12 +1,32 @@
 /**
- * Server bootstrap — loads runtime configuration from Supabase `public.app_settings`.
+ * Server bootstrap — loads ALL secrets from Supabase `public.app_settings`.
  *
- * Per development rules (DEVELOPMENT_RULES.md §3):
- *   • The ONLY Replit secret required is SUPABASE_SERVICE_ROLE_KEY.
- *   • All other runtime config (R2 credentials, Pesapal keys, Resend key, DB URL, etc.)
- *     lives in the `public.app_settings` table in Supabase and is fetched here at startup.
+ * Architecture rule:
+ *   SUPABASE_SERVICE_ROLE_KEY is the ONLY environment variable the server ever needs.
+ *   Every other secret (R2 credentials, Pesapal keys, Resend key, OAuth session secret,
+ *   Groq/Gemini AI keys, account purge secret, etc.) lives exclusively in the
+ *   `public.app_settings` table in Supabase and is injected into process.env here.
  *
- * Values already present in process.env always win so local dev / CI can override
+ *   To add a secret:
+ *     INSERT INTO public.app_settings (key, value) VALUES ('MY_SECRET_KEY', 'value');
+ *
+ *   Keys currently expected in app_settings:
+ *     RESEND_API_KEY            — Resend transactional email
+ *     CLOUDFLARE_ACCOUNT_ID     — R2 media storage
+ *     CLOUDFLARE_R2_ACCESS_KEY_ID
+ *     CLOUDFLARE_R2_SECRET_ACCESS_KEY
+ *     R2_BUCKET                 — bucket name (default: afuchat-media)
+ *     R2_PUBLIC_BASE_URL        — public CDN base URL for R2 objects
+ *     PESAPAL_CONSUMER_KEY      — Pesapal payments
+ *     PESAPAL_CONSUMER_SECRET
+ *     PESAPAL_IPN_ID
+ *     OAUTH_SESSION_SECRET      — cookie signing for OAuth consent flow
+ *     GROQ_API_KEY              — AI auto-responder (optional)
+ *     GOOGLE_AI_KEY             — Gemini fallback for AI (optional)
+ *     ACCOUNT_PURGE_SECRET      — admin key for account purge endpoint
+ *     PUSH_WEBHOOK_TOKEN        — push notification webhook auth
+ *
+ * Values already present in process.env always win so local dev can override
  * any row without touching the remote config store.
  */
 

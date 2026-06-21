@@ -5,12 +5,11 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-const PURGE_SECRET = process.env.ACCOUNT_PURGE_SECRET;
-
 router.post("/account-purge", async (req, res) => {
   try {
+    const PURGE_SECRET = process.env.ACCOUNT_PURGE_SECRET;
     if (!PURGE_SECRET) {
-      return res.status(503).json({ error: "Purge endpoint not configured" });
+      return res.status(503).json({ error: "Purge endpoint not configured — set ACCOUNT_PURGE_SECRET in Supabase app_settings" });
     }
 
     const supabaseUrl = SUPABASE_URL;

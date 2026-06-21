@@ -1,6 +1,8 @@
 import { logger } from "./logger";
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+function getResendApiKey(): string {
+  return process.env.RESEND_API_KEY || "";
+}
 const FROM = "AfuChat Notifications <notifications@afuchat.com>";
 const SUPPORT_EMAIL = "support@afuchat.com";
 const SUPPORT_INBOX = "support+tickets@afuchat.com";
@@ -19,15 +21,16 @@ interface SendEmailOptions {
 }
 
 export async function sendEmail(opts: SendEmailOptions): Promise<boolean> {
-  if (!RESEND_API_KEY) {
-    logger.warn("[email] RESEND_API_KEY not set, skipping email");
+  const key = getResendApiKey();
+  if (!key) {
+    logger.warn("[email] RESEND_API_KEY not set in Supabase app_settings, skipping email");
     return false;
   }
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
