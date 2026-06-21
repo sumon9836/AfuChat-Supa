@@ -671,26 +671,25 @@ export default function TwoFactorScreen() {
                   </View>
                 </View>
 
-                {/* Hidden real input */}
-                <TextInput
-                  ref={verifyRef}
-                  value={verifyCode}
-                  onChangeText={t => {
-                    const v = t.replace(/\D/g, "").slice(0, 6);
-                    setVerifyCode(v);
-                    setVerifyError("");
-                    if (v.length === 6) confirmEnroll(factorId);
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  style={s.hiddenInput}
-                  caretHidden
-                  autoFocus={false}
-                />
-
-                <TouchableOpacity onPress={() => verifyRef.current?.focus()} activeOpacity={1}>
+                {/* OTP boxes + transparent overlay input — tap anywhere on the boxes to type */}
+                <View style={s.otpContainer}>
                   <OtpBoxes value={verifyCode} error={!!verifyError} colors={colors} />
-                </TouchableOpacity>
+                  <TextInput
+                    ref={verifyRef}
+                    value={verifyCode}
+                    onChangeText={t => {
+                      const v = t.replace(/\D/g, "").slice(0, 6);
+                      setVerifyCode(v);
+                      setVerifyError("");
+                      if (v.length === 6) confirmEnroll(factorId);
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    caretHidden
+                    autoFocus
+                    style={s.otpOverlayInput}
+                  />
+                </View>
 
                 {verifyError ? (
                   <View style={s.errorRow}>
@@ -918,7 +917,8 @@ const s = StyleSheet.create({
   checkbox:  { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: "center", justifyContent: "center", marginTop: 1, flexShrink: 0 },
   ackText:   { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21 },
 
-  hiddenInput: { position: "absolute", opacity: 0, width: 1, height: 1 },
+  otpContainer:    { position: "relative" },
+  otpOverlayInput: { ...StyleSheet.absoluteFillObject, opacity: 0, zIndex: 10 },
   errorRow:  { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 8 },
   errorText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", color: "#FF3B30", lineHeight: 18 },
   codeHint:  { fontSize: 11.5, fontFamily: "Inter_400Regular", textAlign: "center", marginTop: 10, lineHeight: 17 },
