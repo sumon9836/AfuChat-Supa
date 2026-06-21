@@ -24,7 +24,6 @@ import { showAlert } from "@/lib/alert";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { TwoFactorGate } from "@/components/ui/TwoFactorGate";
-import { API_URL } from "@/lib/env";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -394,38 +393,23 @@ export default function ManageAccountScreen() {
     if (!user) return;
     setDownloading(true);
     try {
-      // Get the current session JWT so the API server can verify identity
-      const { data: sessionData } = await supabase.auth.getSession();
-      const jwt = sessionData?.session?.access_token;
-      if (!jwt) {
-        showAlert("Session Error", "Please log out and log back in, then try again.");
-        return;
-      }
-
-      const res = await fetch(`${API_URL}/api/data-export`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${jwt}`,
-        },
-        body: JSON.stringify({
-          types: ["profile", "posts", "messages", "activity", "transactions"],
-        }),
+      const { data, error } = await supabase.functions.invoke("export-user-data", {
+        body: { types: ["profile", "posts", "messages", "activity", "transactions"] },
       });
 
-      const json = await res.json().catch(() => ({}));
-
-      if (!res.ok || json?.error) {
-        showAlert("Export Failed", json?.error ?? `Server error (${res.status}). Please try again.`);
+      if (error || data?.error) {
+        const msg = data?.error ?? error?.message ?? "Something went wrong. Please try again.";
+        showAlert("Export Failed", msg);
         return;
       }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const email = data?.email ?? user.email ?? "your registered email";
       showAlert(
-        "Export Sent ✓",
-        `Your data has been compiled and sent to ${json?.email ?? user.email ?? "your email"}. Check your inbox — it may take a minute to arrive.`
+        "Export Sent",
+        `Your data export has been sent to ${email}. Check your inbox for the attached JSON file.`
       );
-    } catch (err: any) {
+    } catch {
       showAlert("Error", "Failed to request data export. Please check your connection and try again.");
     } finally {
       setDownloading(false);

@@ -26,11 +26,3 @@ export const APP_DOMAIN: string =
 export const APP_ORIGIN: string = `https://${APP_DOMAIN}`;
 
 export const SUPABASE_EDGE_URL: string = `${SUPABASE_URL}/functions/v1`;
-
-/**
- * Base URL for the AfuChat API server.
- * In production: https://afuchat.com  (API is at /api/*)
- * In dev/Replit: set EXPO_PUBLIC_API_URL to your API server URL (e.g. https://your-repl-name-3000.replit.dev)
- */
-export const API_URL: string =
-  (process.env.EXPO_PUBLIC_API_URL ?? "").trim() || "https://afuchat.com";
