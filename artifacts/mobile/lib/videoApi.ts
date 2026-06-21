@@ -11,10 +11,7 @@ import { supabase, supabaseUrl } from "./supabase";
 
 // All video API calls go directly to the Supabase Edge Function.
 // No Express API server needed.
-const EDGE_BASE: string = (() => {
-  const url = (process.env.EXPO_PUBLIC_SUPABASE_URL || "https://rhnsjqqtdzlkvqazfcbg.supabase.co").trim().replace(/\/+$/, "");
-  return `${url}/functions/v1/videos`;
-})();
+const EDGE_BASE: string = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/videos`;
 
 export interface VideoSource {
   codec: "h264" | "av1";

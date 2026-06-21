@@ -11,9 +11,7 @@
  */
 
 import { encodeId, decodeId, isEncodedId, isUuid } from "./shortId";
-
-const APP_DOMAIN =
-  (process.env.EXPO_PUBLIC_DOMAIN as string | undefined) || "afuchat.com";
+import { APP_DOMAIN } from "./env";
 
 /** Generate a shareable invite link for a group chat. */
 export function generateGroupInviteLink(chatId: string): string {

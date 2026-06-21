@@ -21,6 +21,7 @@ import { LinearGradient } from "@/components/ui/SafeGradient";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { SUPABASE_EDGE_URL } from "@/lib/env";
 import { showAlert } from "@/lib/alert";
 import * as Haptics from "@/lib/haptics";
 import * as Clipboard from "expo-clipboard";
@@ -107,7 +108,7 @@ function localLine(usd: number, country?: string | null): string | null {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getEdgeFnBase() {
-  return (process.env.EXPO_PUBLIC_SUPABASE_URL || "https://rhnsjqqtdzlkvqazfcbg.supabase.co").trim().replace(/\/+$/, "") + "/functions/v1";
+  return SUPABASE_EDGE_URL;
 }
 async function getToken(): Promise<string> {
   // Always refresh to avoid sending an expired token to Edge Functions
