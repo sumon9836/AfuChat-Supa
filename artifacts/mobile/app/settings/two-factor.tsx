@@ -119,7 +119,16 @@ export default function TwoFactorScreen() {
     setStep({ id: "loading" });
     const { data: factors, error } = await supabase.auth.mfa.listFactors();
     if (error) { setStep({ id: "status", enrolled: false }); return; }
-    const active = factors?.totp?.find((f: any) => f.status === "verified");
+
+    const active   = factors?.totp?.find((f: any) => f.status === "verified");
+    const pending  = factors?.totp?.filter((f: any) => f.status !== "verified") ?? [];
+
+    // Silently remove any stale unverified factors so users never hit
+    // the "factor already exists" error on their next enrollment attempt.
+    for (const pf of pending) {
+      await supabase.auth.mfa.unenroll({ factorId: pf.id }).catch(() => {});
+    }
+
     setStep({ id: "status", enrolled: !!active, factorId: active?.id });
   }, []);
 
@@ -133,13 +142,24 @@ export default function TwoFactorScreen() {
     setVerifyError("");
     setSecretVisible(false);
 
+    // Remove any leftover unverified factors before starting a fresh enrollment.
+    // This prevents the "factor already exists" error for users who previously
+    // opened the setup screen but never completed verification.
+    try {
+      const { data: existing } = await supabase.auth.mfa.listFactors();
+      const stale = existing?.totp?.filter((f: any) => f.status !== "verified") ?? [];
+      for (const pf of stale) {
+        await supabase.auth.mfa.unenroll({ factorId: pf.id }).catch(() => {});
+      }
+    } catch { /* best-effort cleanup */ }
+
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: "totp",
       issuer: "AfuChat",
       friendlyName: user?.email ?? "AfuChat",
     });
     if (error || !data) {
-      showAlert("Error", error?.message ?? "Could not start enrollment.");
+      showAlert("Error", error?.message ?? "Could not start enrollment. Please try again.");
       await loadStatus();
       return;
     }
