@@ -51,6 +51,8 @@ import * as Clipboard from "expo-clipboard";
 import AudioPlayer from "@/components/AudioPlayer";
 import { ChatLoadingSkeleton, ChatBubbleSkeleton } from "@/components/ui/Skeleton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useChatAppearance } from "@/lib/chatAppearance";
+import ChatAppearanceSheet from "@/components/chat/ChatAppearanceSheet";
 import { supabase, supabaseUrl as SUPA_URL, supabaseAnonKey as SUPA_KEY } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -872,7 +874,7 @@ function LensContextCard({ msg, onSuggestionTap }: {
   );
 }
 
-function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, replyPreview, onTapReply, isHighlighted, onTapEnvelope, onTapGift, onImageTap, isPremiumSender, onConfirmExec, onCancelExec, onSuggestionTap, onSenderPress, onReactionPress, onStatusPress }: {
+function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, replyPreview, onTapReply, isHighlighted, onTapEnvelope, onTapGift, onImageTap, isPremiumSender, onConfirmExec, onCancelExec, onSuggestionTap, onSenderPress, onReactionPress, onStatusPress, brandColor }: {
   msg: Message;
   isMe: boolean;
   showTail: boolean;
@@ -892,9 +894,10 @@ function MessageBubble({ msg, isMe, showTail, showName, onLongPress, onReply, re
   onSenderPress?: (senderId: string) => void;
   onReactionPress?: (msg: Message, emoji: string) => void;
   onStatusPress?: (msg: Message) => void;
+  brandColor?: string;
 }) {
   const { colors, isDark } = useTheme();
-  const BRAND = colors.accent;
+  const BRAND = brandColor ?? colors.accent;
   const { preferredLang, voiceToText, textToSpeech } = useLanguage();
   const { themeColors: chatTheme, bubbleRadius: chatRadius, prefs: chatPrefsLocal } = useChatPreferences();
   const { features: msgBubbleFeatures } = useAdvancedFeatures();
@@ -1655,7 +1658,8 @@ function ChatScreen() {
   const { user, profile, isPremium, subscription, refreshProfile } = useAuth();
   const { colors, isDark } = useTheme();
   const { isDesktop } = useIsDesktop();
-  const BRAND = colors.accent;
+  const { appearance: chatAppearance, updateAppearance: updateChatAppearance } = useChatAppearance(id as string | undefined);
+  const BRAND = chatAppearance?.bubbleColor ?? colors.accent;
   const { textToSpeech: ttsEnabled } = useLanguage();
   const { prefs: chatPrefs, themeColors: chatThemeColors, bubbleRadius: chatBubbleRadius } = useChatPreferences();
   const { features: advancedFeatures } = useAdvancedFeatures();
@@ -1816,6 +1820,7 @@ function ChatScreen() {
     return () => { onShow.remove(); onHide.remove(); };
   }, []);
   const [showChatOptions, setShowChatOptions] = useState(false);
+  const [showAppearanceSheet, setShowAppearanceSheet] = useState(false);
   const notifPillAnim = useRef(new Animated.Value(80)).current;
   const [notifRowsMap, setNotifRowsMap] = useState<Map<string, any>>(new Map());
   const [muteUntil, setMuteUntil] = useState<string | null | undefined>(undefined);
@@ -5678,11 +5683,12 @@ STRICT RULES:
             onSenderPress={advancedFeatures.mini_profile_popup && !isMe ? (id) => setMiniProfileUserId(id) : undefined}
             onReactionPress={addReaction}
             onStatusPress={isMe ? (m) => setMsgInfoTarget(m) : undefined}
+            brandColor={chatAppearance?.bubbleColor}
           />
         )}
       </View>
     );
-  }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup, notifFilter, isAfuChatSystemChat, notifRowsMap, groupedNotifMap]);
+  }, [listData, messages, user, colors, highlightedMsgId, scrollToMessage, advancedFeatures.mini_profile_popup, notifFilter, isAfuChatSystemChat, notifRowsMap, groupedNotifMap, chatAppearance?.bubbleColor]);
 
   // Single source of truth for the bottom offset.
   // The floatingInputContainer is position:absolute so it cannot rely on
@@ -5697,7 +5703,7 @@ STRICT RULES:
       : insets.bottom;
 
   return (
-    <View style={[st.root, { backgroundColor: colors.background }]}>
+    <View style={[st.root, { backgroundColor: chatAppearance?.bgColor ?? colors.background }]}>
       {Platform.OS !== "web" && <OfflineBanner />}
       <View style={[st.header, { backgroundColor: colors.surface, paddingTop: insets.top + 4, borderBottomColor: colors.border }]}>
         {!isDesktop && (
@@ -7147,6 +7153,14 @@ STRICT RULES:
         </View>
       </Modal>
 
+      <ChatAppearanceSheet
+        visible={showAppearanceSheet}
+        chatId={id as string}
+        appearance={chatAppearance}
+        onUpdate={updateChatAppearance}
+        onClose={() => setShowAppearanceSheet(false)}
+      />
+
       <BottomSheet visible={showAfuAiMenu} onClose={() => setShowAfuAiMenu(false)}>
         <View style={{ paddingHorizontal: 16, paddingBottom: 8, paddingTop: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 12, borderBottomColor: colors.border }}>
@@ -7637,6 +7651,8 @@ STRICT RULES:
               )}
               <DdRow colors={colors} icon="star-outline" label="Starred Messages"
                 onPress={() => { setShowChatOptions(false); router.push({ pathname: "/saved-posts", params: { tab: "messages" } } as any); }} />
+              <DdRow colors={colors} icon="color-palette-outline" label="Chat Appearance"
+                onPress={() => { setShowChatOptions(false); setShowAppearanceSheet(true); }} />
               <DdRow colors={colors} icon="settings-outline" label="Chat Settings"
                 onPress={() => { setShowChatOptions(false); router.push("/settings/chat" as any); }} />
               {advancedFeatures.chat_summary && (
