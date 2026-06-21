@@ -121,7 +121,7 @@ export default function ManageAccountScreen() {
     if (!user) return;
     setDownloading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("data-export", {
+      const { data, error } = await supabase.functions.invoke("export-user-data", {
         body: { types: ["profile", "posts", "messages", "activity", "transactions"] },
       });
       if (error || data?.error) {

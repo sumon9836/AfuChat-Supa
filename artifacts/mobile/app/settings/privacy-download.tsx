@@ -60,7 +60,7 @@ export default function PrivacyDownloadScreen() {
         return;
       }
       const accessToken = sessionData.session.access_token;
-      const functionUrl = `${supabaseUrl}/functions/v1/data-export`;
+      const functionUrl = `${supabaseUrl}/functions/v1/export-user-data`;
       const res = await fetch(functionUrl, {
         method: "POST",
         headers: {

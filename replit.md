@@ -72,13 +72,33 @@ When building the mobile app with EAS (preview/production), set `EXPO_PUBLIC_API
 `artifacts/mobile/eas.json` to your deployed backend domain, e.g. `https://api.afuchat.com`.
 The placeholder `https://YOUR_BACKEND_DOMAIN` must be replaced before shipping.
 
-## Required secrets (Replit)
-These go in Replit secrets (NOT Supabase):
-- `SUPABASE_SERVICE_ROLE_KEY` — enables admin features, video processing, email watcher
-- `RESEND_API_KEY` — transactional email notifications
-- `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY` — media uploads
-- `R2_BUCKET`, `R2_PUBLIC_BASE_URL` — R2 bucket name and public URL
-- `PESAPAL_CONSUMER_KEY`, `PESAPAL_CONSUMER_SECRET`, `PESAPAL_IPN_ID` — payments
+## Required secrets
+
+### Replit secrets (only ONE key lives here)
+- `SUPABASE_SERVICE_ROLE_KEY` — the only Replit secret; enables bootstrap to load everything else from Supabase
+- `SUPABASE_ACCESS_TOKEN` — Supabase CLI token used for migrations and edge function deploys from Replit
+
+### Supabase `app_settings` table (all other secrets)
+All runtime secrets live in `public.app_settings` and are injected into `process.env` by `bootstrap.ts` at startup.
+To add/update a secret: `INSERT INTO app_settings (key, value) VALUES ('MY_KEY', 'value') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;`
+
+Keys currently in app_settings (✓ = confirmed present):
+- ✓ `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY` — R2 media
+- ✓ `R2_BUCKET`, `R2_PUBLIC_BASE_URL`, `R2_S3_ENDPOINT`, `R2_DEV_PUBLIC_URL` — R2 config
+- ✓ `AFUMAIL_API_BASE`, `AFUMAIL_CLIENT_ID`, `AFUMAIL_CLIENT_SECRET` — transactional email
+- ✓ `PESAPAL_ENV` — payment environment (`sandbox` or `live`)
+- ✓ `OAUTH_SESSION_SECRET` — cookie signing for OAuth consent flow (auto-generated)
+- ✓ `ACCOUNT_PURGE_SECRET` — admin key for account purge endpoint (auto-generated)
+- ✓ `PUSH_WEBHOOK_TOKEN` — push notification webhook auth (auto-generated)
+- ✗ `RESEND_API_KEY` — **MISSING** — transactional email (causes `hasResend: false`)
+- ✗ `PESAPAL_CONSUMER_KEY`, `PESAPAL_CONSUMER_SECRET`, `PESAPAL_IPN_ID` — **MISSING** — payments
+- ✗ `GROQ_API_KEY` — **MISSING** — AI auto-responder (causes `hasAi: false`)
+- ✗ `GOOGLE_AI_KEY` — optional Gemini fallback for AI auto-responder
+
+### Supabase Edge Function secrets (set in Supabase Dashboard → Edge Functions → Secrets)
+- `GROQ_API_KEY` — LLM chat (`afu-ai-reply`, `ai-chat`, `transcribe-audio`)
+- `OPENAI_API_KEY` — Whisper transcription + DALL-E image generation
+- `RUNWARE_API_KEY`, `AIMLAPI_KEY`, `FREEPIK_API_KEY` — optional image providers
 
 ## User preferences
 - Use pnpm for package management (enforced by preinstall hook)
