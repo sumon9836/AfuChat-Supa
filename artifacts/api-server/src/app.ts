@@ -6,8 +6,10 @@ import express, {
   type NextFunction,
 } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes";
+import wellknownRouter from "./routes/wellknown";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -31,11 +33,22 @@ app.use(
     },
   }),
 );
-app.use(cors());
+
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
+// Serve static files from public/
 app.use(express.static(path.join(__dirname, "../public")));
+
+// /.well-known/* endpoints (OIDC discovery etc.) — at root, not under /api
+app.use(wellknownRouter);
+
+// All API routes
 app.use("/api", router);
 
 app.use("/api", (req: Request, res: Response) => {

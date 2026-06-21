@@ -12,6 +12,7 @@ import dataExportRouter from "./data-export";
 import subscribeRouter from "./subscribe";
 import pushNotificationsRouter from "./push-notifications";
 import watchHistoryRouter from "./watch-history";
+import oauthRouter from "./oauth";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(dataExportRouter);
 router.use(subscribeRouter);
 router.use(pushNotificationsRouter);
 router.use(watchHistoryRouter);
+router.use(oauthRouter);
 
 export default router;

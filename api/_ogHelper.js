@@ -3,7 +3,8 @@
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 const SITE_DOMAIN  = process.env.EXPO_PUBLIC_DOMAIN || 'afuchat.com';
-const DEFAULT_OG   = `https://${SITE_DOMAIN}/assets/og-default.png`;
+const SITE_ORIGIN  = `https://${SITE_DOMAIN}`;
+const DEFAULT_OG   = `${SITE_ORIGIN}/assets/og-default.png`;
 
 // supa — thin wrapper around the Supabase REST API.
 // queryString is passed verbatim so Supabase join syntax (e.g. profiles!fkey)
@@ -37,15 +38,19 @@ function strip(s, max) {
   return plain.length > max ? plain.slice(0, max - 1) + '\u2026' : plain;
 }
 
-// buildHtml — returns a full HTML document with OG/Twitter meta tags.
+// buildHtml — returns a full HTML document with OG/Twitter meta tags + JSON-LD.
 // For browser users, a small inline script redirects them to the SPA (same
 // path + ?_s=1) so Expo Router handles the route natively.
 // Social media bots never run JavaScript, so they read the og: tags and stop.
-function buildHtml({ title, description, image, url, card = 'summary_large_image', type = 'website', extra = '' }) {
+function buildHtml({ title, description, image, url, card = 'summary_large_image', type = 'website', extra = '', jsonld = null }) {
   const t   = esc(title);
   const d   = esc(description);
   const img = esc(image || DEFAULT_OG);
   const u   = esc(url);
+
+  const ldScript = jsonld
+    ? `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -54,6 +59,8 @@ function buildHtml({ title, description, image, url, card = 'summary_large_image
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${t}</title>
 <meta name="description" content="${d}">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="${u}">
 <meta property="og:site_name" content="AfuChat">
 <meta property="og:type" content="${esc(type)}">
 <meta property="og:title" content="${t}">
@@ -61,6 +68,7 @@ function buildHtml({ title, description, image, url, card = 'summary_large_image
 <meta property="og:image" content="${img}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${t}">
 <meta property="og:url" content="${u}">
 <meta name="twitter:card" content="${esc(card)}">
 <meta name="twitter:site" content="@AfuChat">
@@ -68,6 +76,7 @@ function buildHtml({ title, description, image, url, card = 'summary_large_image
 <meta name="twitter:description" content="${d}">
 <meta name="twitter:image" content="${img}">
 ${extra}
+${ldScript}
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0a0a0a;color:#f1f1f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -103,4 +112,4 @@ ${image ? `<img class="hero-img" src="${img}" alt="">` : ''}
 </html>`;
 }
 
-module.exports = { supa, esc, strip, buildHtml, SITE_DOMAIN, DEFAULT_OG };
+module.exports = { supa, esc, strip, buildHtml, SITE_DOMAIN, SITE_ORIGIN, DEFAULT_OG };
