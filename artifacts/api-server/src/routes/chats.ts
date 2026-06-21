@@ -1,12 +1,12 @@
 import { Router, type Request, type Response } from "express";
 import { createClient } from "@supabase/supabase-js";
-import { SUPABASE_URL } from "../lib/constants";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY } from "../lib/constants";
 
 const router = Router();
 
 const supabaseUrl = SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabaseAnonKey = SUPABASE_ANON_KEY;
+const supabaseServiceKey = SUPABASE_SERVICE_ROLE_KEY;
 
 router.post("/chats/create", async (req: Request, res: Response) => {
   try {

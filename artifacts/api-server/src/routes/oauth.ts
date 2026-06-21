@@ -17,16 +17,10 @@
 import crypto from "crypto";
 import { Router, type Request, type Response } from "express";
 import { getAdminClient } from "../lib/supabase-admin";
-import { SUPABASE_URL } from "../lib/constants";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, APP_DOMAIN, APP_ORIGIN, API_ORIGIN } from "../lib/constants";
 import { setOAuthSession, getOAuthSession, clearOAuthSession } from "../lib/oauth-session";
 
 const router = Router();
-
-// ── Constants ──────────────────────────────────────────────────────────────────
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
-const APP_DOMAIN        = process.env.EXPO_PUBLIC_DOMAIN || "afuchat.com";
-const APP_ORIGIN        = process.env.APP_ORIGIN || `https://${APP_DOMAIN}`;
-const API_ORIGIN        = process.env.API_ORIGIN || "";
 
 const SCOPE_DESCRIPTIONS: Record<string, { label: string; icon: string }> = {
   openid:  { label: "Verify your identity with AfuChat",        icon: "🔑" },

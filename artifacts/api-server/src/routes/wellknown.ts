@@ -6,11 +6,9 @@
  */
 
 import { Router, type Request, type Response } from "express";
+import { API_ORIGIN } from "../lib/constants";
 
 const router = Router();
-
-const API_ORIGIN = process.env.API_ORIGIN
-  || (process.env.EXPO_PUBLIC_DOMAIN ? `https://api.${process.env.EXPO_PUBLIC_DOMAIN}` : "https://api.afuchat.com");
 
 router.get("/.well-known/openid-configuration", (_req: Request, res: Response) => {
   res.setHeader("Content-Type", "application/json");
