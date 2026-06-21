@@ -204,28 +204,6 @@ export default function SecuritySettingsScreen() {
     setLoggingOut(false);
   }
 
-  // ── Delete account ────────────────────────────────────────────────────────────
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showDeleteGate, setShowDeleteGate] = useState(false);
-  const [deleteText, setDeleteText] = useState("");
-  const [deleting, setDeleting] = useState(false);
-
-  async function handleDeleteAccount() {
-    if (deleteText !== "DELETE") { showAlert("Confirmation required", 'Type "DELETE" to confirm.'); return; }
-    setDeleting(true);
-    try {
-      if (user) {
-        const deletionDate = new Date();
-        deletionDate.setDate(deletionDate.getDate() + 30);
-        await supabase.from("profiles").update({ scheduled_deletion_at: deletionDate.toISOString(), fcm_token: null }).eq("id", user.id);
-      }
-      await signOut();
-      showAlert("Account Scheduled for Deletion", "Your account will be permanently deleted after 30 days. Log back in within that period to restore it.");
-      router.replace("/(auth)/login");
-    } catch { showAlert("Error", "Failed to schedule account deletion. Please try again."); }
-    setDeleting(false);
-  }
-
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <View style={[styles.root, { backgroundColor: colors.backgroundSecondary }]}>
@@ -316,17 +294,8 @@ export default function SecuritySettingsScreen() {
           />
         </Section>
 
-        {/* ── DANGER ZONE ───────────────────────────────────────────────── */}
-        <Section title="DANGER ZONE" colors={colors}>
-          <Row
-            icon="trash-outline"
-            iconColor="#FF3B30"
-            label="Delete Account"
-            sublabel="Schedule permanent deletion after 30 days"
-            danger
-            onPress={() => setShowDeleteGate(true)}
-            colors={colors}
-          />
+        {/* ── SIGN OUT ──────────────────────────────────────────────────── */}
+        <Section title="SESSION" colors={colors}>
           <Row
             icon="exit-outline"
             iconColor="#FF9500"
@@ -339,8 +308,19 @@ export default function SecuritySettingsScreen() {
         </Section>
 
         <Text style={[styles.footerNote, { color: colors.textMuted }]}>
-          Deleted accounts are held for 30 days. Log back in during this period to restore your account.
+          Your account data is synced to the cloud and stays safe when you sign out.
         </Text>
+
+        {/* ── Deeply buried account closure link ────────────────────── */}
+        <TouchableOpacity
+          style={styles.closureLink}
+          onPress={() => router.push("/settings/danger-zone" as any)}
+          activeOpacity={0.5}
+        >
+          <Text style={[styles.closureLinkText, { color: colors.textMuted }]}>
+            Account closure
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* ── 2FA gates ───────────────────────────────────────────────────── */}
@@ -357,13 +337,6 @@ export default function SecuritySettingsScreen() {
         subtitle="Confirm your identity before exporting your data."
         onSuccess={() => { setShowDownloadGate(false); handleDownloadData(); }}
         onDismiss={() => setShowDownloadGate(false)}
-      />
-      <TwoFactorGate
-        visible={showDeleteGate}
-        title="Verify Your Identity"
-        subtitle="2FA is required before deleting your account."
-        onSuccess={() => { setShowDeleteGate(false); setDeleteText(""); setShowDeleteModal(true); }}
-        onDismiss={() => setShowDeleteGate(false)}
       />
 
       {/* ── Change Password modal ──────────────────────────────────────── */}
@@ -385,40 +358,6 @@ export default function SecuritySettingsScreen() {
             <TouchableOpacity style={[styles.modalBtn, changingPwd && { opacity: 0.6 }]} onPress={handleChangePassword} disabled={changingPwd} activeOpacity={0.8}>
               <LinearGradient colors={["#1f95ff", "#1a7fd4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.modalBtnGradient}>
                 {changingPwd ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalBtnText}>Update Password</Text>}
-              </LinearGradient>
-            </TouchableOpacity>
-          </GlassCard>
-        </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* ── Delete Account modal ───────────────────────────────────────── */}
-      <Modal visible={showDeleteModal} animationType="none" transparent>
-        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-        <View style={styles.modalOverlay}>
-          <GlassCard style={styles.modalSheet} variant="strong">
-            <View style={styles.dragHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: "#FF3B30" }]}>Delete Account</Text>
-              <TouchableOpacity onPress={() => setShowDeleteModal(false)}>
-                <Ionicons name="close" size={22} color={colors.textMuted} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.warningBox}>
-              <Ionicons name="warning" size={22} color="#FF3B30" />
-              <Text style={[styles.warningText, { color: colors.text }]}>
-                Your account will be deactivated immediately and permanently deleted after 30 days. All posts, messages, and data will be removed.
-              </Text>
-            </View>
-            <Text style={[styles.confirmLabel, { color: colors.textMuted }]}>Type DELETE to confirm:</Text>
-            <TextInput style={[styles.input, { color: colors.text, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", borderColor: colors.border }]}
-              placeholder='Type "DELETE"' placeholderTextColor={colors.textMuted} value={deleteText} onChangeText={setDeleteText} autoCapitalize="characters" />
-            <TouchableOpacity
-              style={[styles.deleteBtnWrap, (deleting || deleteText !== "DELETE") && { opacity: 0.4 }]}
-              onPress={handleDeleteAccount} disabled={deleting || deleteText !== "DELETE"} activeOpacity={0.8}
-            >
-              <LinearGradient colors={["#FF3B30", "#CC2B22"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.modalBtnGradient}>
-                {deleting ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalBtnText}>Delete Account</Text>}
               </LinearGradient>
             </TouchableOpacity>
           </GlassCard>
@@ -559,7 +498,8 @@ const styles = StyleSheet.create({
   warningText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
   confirmLabel: { fontSize: 14, fontFamily: "Inter_500Medium" },
 
-  showDeleteGate: {},
+  closureLink:     { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 20 },
+  closureLinkText: { fontSize: 11, fontFamily: "Inter_400Regular", textDecorationLine: "underline", opacity: 0.45 },
 
   logoutChecklist: { gap: 10 },
   checklistRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
