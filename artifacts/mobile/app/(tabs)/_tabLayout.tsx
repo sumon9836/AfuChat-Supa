@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
+import { Security2FABanner } from "@/components/ui/Security2FABanner";
 import {
   Animated,
   Platform,
@@ -358,6 +359,10 @@ export default function TabLayout() {
             userId={user?.id}
             avatarUrl={profile?.avatar_url}
           />
+        )}
+
+        {isLoggedIn && (
+          <Security2FABanner userId={user?.id} />
         )}
       </View>
     </TabSwipeProvider>
