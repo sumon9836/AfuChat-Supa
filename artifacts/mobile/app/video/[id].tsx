@@ -178,6 +178,16 @@ function TapHandler({
   onDoubleTap?: () => void;
   onLongPress?: () => void;
 }) {
+  if (Platform.OS === "web") {
+    return (
+      <View
+        style={[StyleSheet.absoluteFill, { right: 80 } as any]}
+        onClick={onTap}
+        onDoubleClick={onDoubleTap as any}
+      />
+    );
+  }
+
   const singleTap = Gesture.Tap()
     .maxDuration(300)
     .maxDistance(10)

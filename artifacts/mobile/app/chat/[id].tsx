@@ -140,7 +140,7 @@ const ReAnimated       = { View: (_ra?.default?.View ?? Animated.View) as any };
 // crash the moment the gesture fires — the compiled worklet tries to call
 // native Reanimated methods on plain React ref stubs.  We gate the
 // GestureDetector mic button on this flag and fall back to a plain Pressable.
-const _reanimatedEnabled = _ra !== null;
+const _reanimatedEnabled = _ra !== null && Platform.OS !== "web";
 
 type Gift = {
   id: string;
