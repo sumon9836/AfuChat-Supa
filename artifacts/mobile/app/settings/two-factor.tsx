@@ -142,22 +142,35 @@ export default function TwoFactorScreen() {
     setVerifyError("");
     setSecretVisible(false);
 
-    // Remove any leftover unverified factors before starting a fresh enrollment.
-    // This prevents the "factor already exists" error for users who previously
-    // opened the setup screen but never completed verification.
+    // 1. Best-effort: remove any unverified factors before enrolling.
     try {
       const { data: existing } = await supabase.auth.mfa.listFactors();
-      const stale = existing?.totp?.filter((f: any) => f.status !== "verified") ?? [];
-      for (const pf of stale) {
-        await supabase.auth.mfa.unenroll({ factorId: pf.id }).catch(() => {});
+      for (const f of existing?.totp ?? []) {
+        if (f.status !== "verified") {
+          await supabase.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
+        }
       }
-    } catch { /* best-effort cleanup */ }
+    } catch { /* ignore */ }
 
-    const { data, error } = await supabase.auth.mfa.enroll({
+    // 2. Attempt enrollment with the user's email as the friendly name.
+    let { data, error } = await supabase.auth.mfa.enroll({
       factorType: "totp",
       issuer: "AfuChat",
       friendlyName: user?.email ?? "AfuChat",
     });
+
+    // 3. If a stale factor is still blocking (cleanup didn't take effect),
+    //    automatically retry with a unique name — this always succeeds.
+    if (error?.message?.includes("already exists")) {
+      const retry = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        issuer: "AfuChat",
+        friendlyName: `AfuChat-${Date.now()}`,
+      });
+      data  = retry.data;
+      error = retry.error;
+    }
+
     if (error || !data) {
       showAlert("Error", error?.message ?? "Could not start enrollment. Please try again.");
       await loadStatus();
