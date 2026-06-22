@@ -7633,7 +7633,7 @@ STRICT RULES:
                   setTimeout(() => searchInputRef.current?.focus(), 250);
                 }} />
               <DdDivider colors={colors} />
-              {/* Info */}
+              {/* Group / Channel Info */}
               {(chatInfo?.is_group || chatInfo?.is_channel) && (
                 <DdRow colors={colors} icon="people-outline"
                   label={chatInfo?.is_channel ? "Channel Info" : "Group Info & Members"}
@@ -7645,87 +7645,27 @@ STRICT RULES:
                   label="Invite via Link"
                   onPress={() => { setShowChatOptions(false); setShowInviteLink(true); }} />
               )}
-              {chatInfo?.other_id && !chatInfo.is_group && !chatInfo.is_channel && chatInfo.other_id !== AFUAI_BOT_ID && (
-                <DdRow colors={colors} icon="person-outline" label="Contact Info"
-                  onPress={() => { setShowChatOptions(false); router.push({ pathname: "/contact/[id]", params: { id: chatInfo.other_id! } }); }} />
-              )}
-              <DdRow colors={colors} icon="star-outline" label="Starred Messages"
-                onPress={() => { setShowChatOptions(false); router.push({ pathname: "/saved-posts", params: { tab: "messages" } } as any); }} />
-              <DdRow colors={colors} icon="color-palette-outline" label="Chat Appearance"
-                onPress={() => { setShowChatOptions(false); setShowAppearanceSheet(true); }} />
-              <DdRow colors={colors} icon="settings-outline" label="Chat Settings"
-                onPress={() => { setShowChatOptions(false); router.push("/settings/chat" as any); }} />
               {advancedFeatures.chat_summary && (
                 <DdRow colors={colors} icon="sparkles-outline" label="Summarize Chat"
                   onPress={() => { setShowChatOptions(false); handleChatSummaryFull(); }} />
               )}
-              {advancedFeatures.chat_export_format && (
-                <DdRow colors={colors} icon="download-outline"
-                  label={`Export Chat (${(advancedFeatures.chat_export_format || "txt").toUpperCase()})`}
-                  onPress={() => { setShowChatOptions(false); handleExportChat(); }} />
-              )}
               <DdDivider colors={colors} />
-              {/* Mute */}
-              <DdRow colors={colors}
-                icon={isMuted ? "notifications-outline" : "notifications-off-outline"}
-                label={isMuted ? "Unmute" : "Mute Notifications"}
-                sub={isMuted && muteLabel() ? muteLabel()! : undefined}
-                onPress={() => { if (isMuted) { handleUnmuteChat(); setShowChatOptions(false); } else setShowMutePicker((v) => !v); }}
-                chevron={!isMuted}
-              />
-              {showMutePicker && !isMuted && (
-                <View style={[st.ddSubGroup, { borderTopColor: colors.border }]}>
-                  {([ { label: "For 1 hour", hours: 1 }, { label: "For 8 hours", hours: 8 }, { label: "For 1 week", hours: 24 * 7 }, { label: "Always", hours: null } ] as { label: string; hours: number | null }[]).map((o) => (
-                    <DdRow key={o.label} colors={colors} icon="time-outline" label={o.label} small
-                      onPress={() => { handleMuteChat(o.hours); setShowMutePicker(false); setShowChatOptions(false); }} />
-                  ))}
-                </View>
-              )}
-              {/* Disappearing messages */}
-              {!chatInfo?.is_channel && (() => {
-                const activeLabel = disappearingEnabled
-                  ? (DISAPPEAR_OPTIONS.find((o) => o.seconds === disappearingTimer)?.label ?? "On")
-                  : "Off";
-                return (
-                  <>
-                    <DdRow colors={colors} icon="timer-outline" label="Disappearing Messages"
-                      sub={activeLabel} onPress={() => setShowDisappearingPicker((v) => !v)} chevron />
-                    {showDisappearingPicker && (
-                      <View style={[st.ddSubGroup, { borderTopColor: colors.border }]}>
-                        {DISAPPEAR_OPTIONS.map((o) => {
-                          const isSel = o.seconds === 0 ? !disappearingEnabled : (disappearingEnabled && disappearingTimer === o.seconds);
-                          return (
-                            <DdRow key={o.seconds} colors={colors}
-                              icon={o.seconds === 0 ? "close-circle-outline" : "timer-outline"}
-                              label={o.label} small checked={isSel}
-                              onPress={() => { handleDisappearingTimerSelect(o.seconds); setShowDisappearingPicker(false); }} />
-                          );
-                        })}
-                      </View>
-                    )}
-                  </>
-                );
-              })()}
-              {/* Safety */}
-              {chatInfo?.other_id && !chatInfo.is_group && !chatInfo.is_channel && chatInfo.other_id !== AFUAI_BOT_ID && (
-                <>
-                  <DdDivider colors={colors} />
-                  <DdRow colors={colors}
-                    icon={isBlocked ? "checkmark-circle-outline" : "ban-outline"}
-                    label={isBlocked ? `Unblock ${headerTitle}` : `Block ${headerTitle}`}
-                    onPress={() => { setShowChatOptions(false); handleBlockUser(); }}
-                    danger={!isBlocked} />
-                  <DdRow colors={colors} icon="flag-outline" label={`Report ${headerTitle}`}
-                    onPress={() => { setShowChatOptions(false); handleReportUser(); }} danger />
-                </>
-              )}
-              <DdDivider colors={colors} />
-              <DdRow colors={colors} icon="trash-outline" label="Clear Chat"
-                onPress={handleClearChatMessages} danger />
-              <DdRow colors={colors}
-                icon={chatInfo?.is_group || chatInfo?.is_channel ? "exit-outline" : "close-circle-outline"}
-                label={chatInfo?.is_channel ? "Leave Channel" : chatInfo?.is_group ? "Leave Group" : "Delete Chat"}
-                onPress={handleDeleteChat} danger />
+              {/* Single entry → dedicated per-chat settings page */}
+              <DdRow colors={colors} icon="information-circle-outline" label="Chat Info & Settings"
+                onPress={() => {
+                  setShowChatOptions(false);
+                  router.push({
+                    pathname: "/chat-info/[id]",
+                    params: {
+                      id: id as string,
+                      name: headerTitle,
+                      avatar: headerAvatar ?? "",
+                      otherId: chatInfo?.other_id ?? "",
+                      isGroup: chatInfo?.is_group ? "1" : "0",
+                      isChannel: chatInfo?.is_channel ? "1" : "0",
+                    },
+                  });
+                }} />
             </ScrollView>
           </View>
         </Modal>
