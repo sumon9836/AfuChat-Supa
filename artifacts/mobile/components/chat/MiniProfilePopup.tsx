@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,6 +20,10 @@ import { Avatar } from "@/components/ui/Avatar";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import SwipeableBottomSheet from "@/components/SwipeableBottomSheet";
 import { setProfileCache } from "@/lib/profileCache";
+
+const AVATAR_SIZE   = 68;
+const BANNER_H      = 130;
+const AVATAR_PULL   = AVATAR_SIZE / 2; // how far the identity row pulls up into banner
 
 type MiniProfile = {
   id: string;
@@ -41,26 +45,21 @@ type MiniProfile = {
 function formatLastSeen(ts: string | null, showOnline: boolean): { text: string; online: boolean } {
   if (!showOnline || !ts) return { text: "last seen recently", online: false };
   const diff = Date.now() - new Date(ts).getTime();
-  if (diff < 2 * 60 * 1000) return { text: "Online now", online: true };
-  if (diff < 60 * 60 * 1000) return { text: "last seen recently", online: false };
+  if (diff < 2 * 60 * 1000)       return { text: "Online now",           online: true };
+  if (diff < 60 * 60 * 1000)      return { text: "last seen recently",   online: false };
   if (diff < 24 * 60 * 60 * 1000) {
-    const h = Math.floor(diff / 3600000);
+    const h = Math.floor(diff / 3_600_000);
     return { text: `last seen ${h}h ago`, online: false };
   }
-  const d = Math.floor(diff / 86400000);
+  const d = Math.floor(diff / 86_400_000);
   return { text: `last seen ${d}d ago`, online: false };
 }
 
-function StatPill({ label, value }: { label: string; value: number | null }) {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.statPill}>
-      <Text style={[styles.statValue, { color: colors.text }]}>
-        {value === null ? "–" : value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
-      </Text>
-      <Text style={[styles.statLabel, { color: colors.textMuted }]}>{label}</Text>
-    </View>
-  );
+function fmt(n: number | null) {
+  if (n === null) return "–";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
 }
 
 interface Props {
@@ -71,397 +70,393 @@ interface Props {
 }
 
 export default function MiniProfilePopup({ userId, visible, onClose, currentChatId }: Props) {
-  const { colors, accent } = useTheme();
+  const { colors, accent, isDark } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
-  const [profile, setProfile] = useState<MiniProfile | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [followerCount, setFollowerCount] = useState<number | null>(null);
-  const [followingCount, setFollowingCount] = useState<number | null>(null);
-  const [postCount, setPostCount] = useState<number | null>(null);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [theyFollowMe, setTheyFollowMe] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
+  const [profile,      setProfile]      = useState<MiniProfile | null>(null);
+  const [loading,      setLoading]      = useState(false);
+  const [followers,    setFollowers]    = useState<number | null>(null);
+  const [following,    setFollowing]    = useState<number | null>(null);
+  const [posts,        setPosts]        = useState<number | null>(null);
+  const [isFollowing,  setIsFollowing]  = useState(false);
+  const [theyFollow,   setTheyFollow]   = useState(false);
+  const [followBusy,   setFollowBusy]   = useState(false);
 
   const isSelf = user?.id === userId;
+  const isOrg  = !!(profile?.is_organization_verified || profile?.is_business_mode);
 
   useEffect(() => {
     if (!visible || !userId) {
-      setProfile(null);
-      setLoading(false);
-      return;
+      setProfile(null); setLoading(false); return;
     }
     setLoading(true);
-    setProfile(null);
-    setFollowerCount(null);
-    setFollowingCount(null);
-    setPostCount(null);
-    setIsFollowing(false);
-    setTheyFollowMe(false);
+    setFollowers(null); setFollowing(null); setPosts(null);
+    setIsFollowing(false); setTheyFollow(false);
 
     Promise.all([
-      supabase
-        .from("profiles")
-        .select("id, display_name, handle, avatar_url, banner_url, bio, is_verified, is_organization_verified, is_business_mode, last_seen, show_online_status, website_url, country, xp")
-        .eq("id", userId)
-        .single(),
+      supabase.from("profiles")
+        .select("id,display_name,handle,avatar_url,banner_url,bio,is_verified,is_organization_verified,is_business_mode,last_seen,show_online_status,website_url,country,xp")
+        .eq("id", userId).single(),
       supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
       supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
-      supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", userId).in("visibility", ["public", "followers"]),
-      user
-        ? supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle()
-        : Promise.resolve({ data: null }),
-      user
-        ? supabase.from("follows").select("id").eq("follower_id", userId).eq("following_id", user.id).maybeSingle()
-        : Promise.resolve({ data: null }),
-    ]).then(([profileRes, followersRes, followingRes, postsRes, followingMeRes, theyFollowMeRes]) => {
-      if (profileRes.data) setProfile(profileRes.data as MiniProfile);
-      setFollowerCount(followersRes.count ?? 0);
-      setFollowingCount(followingRes.count ?? 0);
-      setPostCount(postsRes.count ?? 0);
-      setIsFollowing(!!(followingMeRes as any)?.data);
-      setTheyFollowMe(!!(theyFollowMeRes as any)?.data);
+      supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", userId).in("visibility", ["public","followers"]),
+      user ? supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle() : Promise.resolve({ data: null }),
+      user ? supabase.from("follows").select("id").eq("follower_id", userId).eq("following_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+    ]).then(([pRes, flrRes, flgRes, psRes, iFlwRes, theyRes]) => {
+      if (pRes.data) { setProfile(pRes.data as MiniProfile); setProfileCache(pRes.data.id, pRes.data as any); }
+      setFollowers(flrRes.count ?? 0);
+      setFollowing(flgRes.count ?? 0);
+      setPosts(psRes.count ?? 0);
+      setIsFollowing(!!(iFlwRes as any)?.data);
+      setTheyFollow(!!(theyRes as any)?.data);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [visible, userId, user?.id]);
 
   const handleFollow = useCallback(async () => {
-    if (!user || !userId || followLoading) return;
+    if (!user || !userId || followBusy) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setFollowLoading(true);
+    setFollowBusy(true);
     if (isFollowing) {
       await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
       setIsFollowing(false);
-      setFollowerCount((c) => Math.max(0, (c ?? 1) - 1));
+      setFollowers(v => (v ?? 1) - 1);
     } else {
       await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
       setIsFollowing(true);
-      setFollowerCount((c) => (c ?? 0) + 1);
+      setFollowers(v => (v ?? 0) + 1);
     }
-    setFollowLoading(false);
-  }, [user, userId, isFollowing, followLoading]);
+    setFollowBusy(false);
+  }, [user, userId, isFollowing, followBusy]);
 
-  const handleMessage = useCallback(() => {
-    if (!userId) return;
+  const handleMessage = useCallback(async () => {
+    if (!user || !userId) return;
     onClose();
-    if (currentChatId) return;
-    router.push({ pathname: "/chat/[id]", params: { id: userId } });
-  }, [userId, currentChatId, onClose]);
-
-  const handleViewProfile = useCallback(() => {
-    if (!userId) return;
-    onClose();
-    if (profile) {
-      setProfileCache(userId, profile as any);
-      router.push(`/@${profile.handle}` as any);
+    const { data } = await supabase.from("conversations")
+      .select("id").eq("is_group", false)
+      .or(`and(chat_members.user_id.eq.${user.id},chat_members.user_id.eq.${userId})`)
+      .maybeSingle();
+    if (data?.id) {
+      router.push({ pathname: "/chat/[id]", params: { id: data.id } });
     } else {
-      router.push({ pathname: "/contact/[id]", params: { id: userId } });
+      const { data: conv } = await supabase.from("conversations")
+        .insert({ is_group: false, created_by: user.id }).select("id").single();
+      if (conv?.id) {
+        await supabase.from("chat_members").insert([
+          { chat_id: conv.id, user_id: user.id },
+          { chat_id: conv.id, user_id: userId },
+        ]);
+        router.push({ pathname: "/chat/[id]", params: { id: conv.id } });
+      }
     }
-  }, [userId, onClose, profile]);
+  }, [user, userId, onClose]);
 
   const ls = profile ? formatLastSeen(profile.last_seen, profile.show_online_status) : null;
 
-  return (
-    <SwipeableBottomSheet visible={visible} onClose={onClose} maxHeight="72%" backgroundColor={colors.surface}>
-      <View style={styles.sheet}>
+  // ── Follow button state ────────────────────────────────────────────────────
+  const fState = isFollowing && theyFollow ? "friends"
+    : !isFollowing && theyFollow ? "follow_back"
+    : isFollowing ? "following"
+    : "follow";
+  const fBg    = fState === "follow" ? accent : fState === "follow_back" ? "#FF9500" : colors.inputBg ?? colors.surface;
+  const fBrd   = fState === "friends" ? "#34C759" : fState === "following" ? colors.border : "transparent";
+  const fBw    = (fState === "following" || fState === "friends") ? 1 : 0;
+  const fTc    = (fState === "follow" || fState === "follow_back") ? "#fff" : fState === "friends" ? "#34C759" : colors.textMuted;
+  const fLabel = fState === "follow" ? "Follow" : fState === "follow_back" ? "Follow Back" : fState === "following" ? "Following" : "Friends ♡";
+  const fIcon: any = fState === "follow" ? "person-add-outline" : fState === "follow_back" ? "person-add" : fState === "following" ? "checkmark" : "heart";
 
-        {loading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color={accent} />
+  return (
+    <SwipeableBottomSheet visible={visible} onClose={onClose} maxHeight="78%" backgroundColor={colors.surface}>
+
+      {loading ? (
+        <View style={st.loadingWrap}>
+          <ActivityIndicator size="large" color={accent} />
+        </View>
+      ) : !profile ? null : (
+        <View>
+          {/* ── 1. Banner — clipped by its own container ── */}
+          <View style={st.bannerWrap}>
+            {profile.banner_url ? (
+              <Image source={{ uri: profile.banner_url }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: accent + "28" }]} />
+            )}
+            {/* bottom gradient so text beneath is readable */}
+            <View style={st.bannerGrad} />
           </View>
-        ) : !profile ? null : (
-          <>
-            {/* ── Cover / Avatar area ──────────────────────── */}
-            <View style={styles.coverArea}>
-              {profile.banner_url ? (
-                <Image
-                  source={{ uri: profile.banner_url }}
-                  style={StyleSheet.absoluteFill}
-                  contentFit="cover"
-                />
-              ) : (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: accent + "30" }]} />
+
+          {/* ── 2. Identity row — pulled UP into banner with negative marginTop ── */}
+          <View style={st.identityRow}>
+            {/* Avatar — NOT inside overflow:hidden, so square/circle renders fine */}
+            <View style={[
+              st.avatarRing,
+              { borderColor: colors.surface },
+              isOrg && st.avatarRingSquare,
+            ]}>
+              <Avatar
+                uri={profile.avatar_url}
+                name={profile.display_name}
+                size={AVATAR_SIZE}
+                square={isOrg}
+              />
+              {ls?.online && (
+                <View style={[st.onlineDot, { borderColor: colors.surface }]} />
               )}
-              <View style={styles.avatarWrap}>
-                <Avatar
-                  uri={profile.avatar_url}
-                  name={profile.display_name}
-                  size={76}
-                  online={ls?.online}
-                  square={profile.is_organization_verified || profile.is_business_mode}
-                />
-                {ls?.online && (
-                  <View style={[styles.onlineDot, { borderColor: colors.surface }]} />
-                )}
-              </View>
             </View>
 
-            {/* ── Name / handle / bio ──────────────────────── */}
-            <View style={styles.infoSection}>
-              <View style={styles.nameRow}>
-                <Text style={[styles.displayName, { color: colors.text }]} numberOfLines={1}>
+            {/* Name + handle */}
+            <View style={st.nameBlock}>
+              <View style={st.nameRow}>
+                <Text style={[st.displayName, { color: colors.text }]} numberOfLines={1}>
                   {profile.display_name}
                 </Text>
                 <VerifiedBadge
                   isVerified={profile.is_verified}
                   isOrganizationVerified={profile.is_organization_verified}
-                  size={17}
+                  size={16}
                 />
               </View>
-
-              <Text style={[styles.handle, { color: colors.textMuted }]}>
-                @{profile.handle}
-              </Text>
-
-              {ls && (
-                <View style={styles.statusRow}>
-                  <View style={[styles.statusDot, { backgroundColor: ls.online ? "#34C759" : colors.textMuted }]} />
-                  <Text style={[styles.statusText, { color: ls.online ? "#34C759" : colors.textMuted }]}>
-                    {ls.text}
-                  </Text>
-                </View>
-              )}
-
-              {profile.bio ? (
-                <Text style={[styles.bio, { color: colors.textSecondary }]} numberOfLines={3}>
-                  {profile.bio}
-                </Text>
-              ) : null}
-
-              {(profile.country || profile.website_url) ? (
-                <View style={styles.metaRow}>
-                  {profile.country ? (
-                    <View style={styles.metaItem}>
-                      <Ionicons name="location-outline" size={13} color={colors.textMuted} />
-                      <Text style={[styles.metaText, { color: colors.textMuted }]}>{profile.country}</Text>
-                    </View>
-                  ) : null}
-                  {profile.website_url ? (
-                    <View style={styles.metaItem}>
-                      <Ionicons name="link-outline" size={13} color={accent} />
-                      <Text style={[styles.metaText, { color: accent }]} numberOfLines={1}>
-                        {profile.website_url.replace(/^https?:\/\//, "")}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-              ) : null}
+              <Text style={[st.handle, { color: colors.textMuted }]}>@{profile.handle}</Text>
             </View>
 
-            {/* ── Stats row ────────────────────────────────── */}
-            <View style={[styles.statsRow, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
-              <StatPill label="Followers" value={followerCount} />
-              <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-              <StatPill label="Following" value={followingCount} />
-              <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-              <StatPill label="Posts" value={postCount} />
-              {profile.xp > 0 && (
-                <>
-                  <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-                  <StatPill label="XP" value={profile.xp} />
-                </>
-              )}
-            </View>
-
-            {/* ── Action buttons ───────────────────────────── */}
-            <View style={[styles.actions, { paddingBottom: insets.bottom + 16 }]}>
-              {!isSelf && user && (() => {
-                const _fs = isFollowing && theyFollowMe ? "friends" : !isFollowing && theyFollowMe ? "follow_back" : isFollowing ? "following" : "follow";
-                const _bg = _fs === "follow" ? accent : _fs === "follow_back" ? "#FF9500" : colors.inputBg;
-                const _bc = _fs === "friends" ? "#34C759" : _fs === "following" ? colors.border : undefined;
-                const _bw = _fs === "following" || _fs === "friends" ? 1 : 0;
-                const _tc = _fs === "follow" || _fs === "follow_back" ? "#fff" : _fs === "friends" ? "#34C759" : colors.textMuted;
-                const _label = _fs === "follow" ? "Follow" : _fs === "follow_back" ? "Follow Back" : _fs === "following" ? "Following" : "Friends";
-                const _icon: any = _fs === "follow" ? "person-add-outline" : _fs === "follow_back" ? "person-add" : _fs === "following" ? "checkmark" : "heart";
-                return (
-                  <TouchableOpacity
-                    style={[styles.followBtn, { backgroundColor: _bg, borderColor: _bc, borderWidth: _bw }]}
-                    onPress={handleFollow}
-                    activeOpacity={0.82}
-                    disabled={followLoading}
-                  >
-                    {followLoading ? (
-                      <ActivityIndicator size="small" color={_tc} />
-                    ) : (
-                      <>
-                        <Ionicons name={_icon} size={15} color={_tc} />
-                        <Text style={[styles.followBtnText, { color: _tc }]}>{_label}</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                );
-              })()}
-
+            {/* Quick action pills */}
+            <View style={st.quickPills}>
               {!isSelf && !currentChatId && user && (
                 <TouchableOpacity
-                  style={[styles.actionIconBtn, { backgroundColor: colors.inputBg }]}
-                  onPress={handleMessage}
-                  activeOpacity={0.82}
-                >
-                  <Ionicons name="chatbubble-outline" size={18} color={colors.text} />
+                  style={[st.pill, { backgroundColor: accent + "18" }]}
+                  onPress={handleMessage} activeOpacity={0.78}>
+                  <Ionicons name="chatbubble-outline" size={17} color={accent} />
                 </TouchableOpacity>
               )}
-
               <TouchableOpacity
-                style={[styles.actionIconBtn, { backgroundColor: colors.inputBg }]}
-                onPress={handleViewProfile}
-                activeOpacity={0.82}
-              >
-                <Ionicons name="person-outline" size={18} color={colors.text} />
+                style={[st.pill, { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)" }]}
+                onPress={() => { onClose(); router.push({ pathname: "/contact/[id]", params: { id: profile.id } }); }}
+                activeOpacity={0.78}>
+                <Ionicons name="person-outline" size={17} color={colors.text} />
               </TouchableOpacity>
             </View>
-          </>
-        )}
-      </View>
+          </View>
+
+          {/* ── 3. Status / bio / meta ── */}
+          <View style={st.infoBlock}>
+            {ls && (
+              <View style={st.statusRow}>
+                <View style={[st.statusDot, { backgroundColor: ls.online ? "#34C759" : colors.textMuted }]} />
+                <Text style={[st.statusText, { color: ls.online ? "#34C759" : colors.textMuted }]}>
+                  {ls.text}
+                </Text>
+              </View>
+            )}
+
+            {profile.bio ? (
+              <Text style={[st.bio, { color: colors.textSecondary ?? colors.text }]} numberOfLines={3}>
+                {profile.bio}
+              </Text>
+            ) : null}
+
+            {(profile.country || profile.website_url) ? (
+              <View style={st.metaRow}>
+                {profile.country ? (
+                  <View style={st.metaItem}>
+                    <Ionicons name="location-outline" size={12} color={colors.textMuted} />
+                    <Text style={[st.metaText, { color: colors.textMuted }]}>{profile.country}</Text>
+                  </View>
+                ) : null}
+                {profile.website_url ? (
+                  <TouchableOpacity style={st.metaItem} activeOpacity={0.7}
+                    onPress={() => {
+                      const url = /^https?:\/\//i.test(profile.website_url!)
+                        ? profile.website_url! : `https://${profile.website_url!}`;
+                      Linking.openURL(url).catch(() => {});
+                    }}>
+                    <Ionicons name="link-outline" size={12} color={accent} />
+                    <Text style={[st.metaText, { color: accent }]} numberOfLines={1}>
+                      {profile.website_url.replace(/^https?:\/\//, "")}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+
+          {/* ── 4. Stats row ── */}
+          <View style={[st.statsRow, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
+            {[
+              { label: "Followers", val: followers },
+              { label: "Following", val: following },
+              { label: "Posts",     val: posts },
+              ...(profile.xp > 0 ? [{ label: "XP", val: profile.xp }] : []),
+            ].map((s, i, arr) => (
+              <React.Fragment key={s.label}>
+                <View style={st.statCell}>
+                  <Text style={[st.statVal, { color: colors.text }]}>{fmt(s.val)}</Text>
+                  <Text style={[st.statLbl, { color: colors.textMuted }]}>{s.label}</Text>
+                </View>
+                {i < arr.length - 1 && <View style={[st.statDiv, { backgroundColor: colors.border }]} />}
+              </React.Fragment>
+            ))}
+          </View>
+
+          {/* ── 5. Follow button ── */}
+          {!isSelf && user && (
+            <View style={[st.actions, { paddingBottom: insets.bottom + 20 }]}>
+              <TouchableOpacity
+                style={[st.followBtn, { backgroundColor: fBg, borderColor: fBrd, borderWidth: fBw }]}
+                onPress={handleFollow} activeOpacity={0.82} disabled={followBusy}>
+                {followBusy ? (
+                  <ActivityIndicator size="small" color={fTc} />
+                ) : (
+                  <>
+                    <Ionicons name={fIcon} size={15} color={fTc} />
+                    <Text style={[st.followBtnText, { color: fTc }]}>{fLabel}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
     </SwipeableBottomSheet>
   );
 }
 
-const styles = StyleSheet.create({
-  sheet: {
-    overflow: "hidden",
-  },
+const st = StyleSheet.create({
   loadingWrap: {
-    height: 220,
-    alignItems: "center",
-    justifyContent: "center",
+    height: 260, alignItems: "center", justifyContent: "center",
   },
-  coverArea: {
-    height: 120,
-    alignItems: "center",
-    justifyContent: "flex-end",
+
+  /* Banner — has its OWN overflow:hidden so the image is clipped */
+  bannerWrap: {
+    height: BANNER_H,
     overflow: "hidden",
-  },
-  avatarWrap: {
     position: "relative",
-    marginBottom: -38,
+  },
+  bannerGrad: {
+    position: "absolute",
+    left: 0, right: 0, bottom: 0,
+    height: 48,
+    backgroundColor: "transparent",
+  },
+
+  /* Identity row — pulls itself UP into the banner with negative marginTop */
+  identityRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    marginTop: -AVATAR_PULL,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    gap: 10,
+  },
+
+  avatarRing: {
+    borderRadius: AVATAR_SIZE / 2 + 3,
+    borderWidth: 3,
+    padding: 0,
+    position: "relative",
     ...Platform.select({
-      web: { filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.18))" } as any,
-      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 8, elevation: 6 },
+      web: { filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.22))" } as any,
+      default: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.22, shadowRadius: 10, elevation: 8 },
     }),
+  },
+  avatarRingSquare: {
+    borderRadius: AVATAR_SIZE * 0.22 + 3,
   },
   onlineDot: {
     position: "absolute",
-    bottom: 3,
-    right: 3,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    bottom: 2, right: 2,
+    width: 14, height: 14, borderRadius: 7,
     backgroundColor: "#34C759",
     borderWidth: 2.5,
   },
-  infoSection: {
-    alignItems: "center",
-    paddingTop: 46,
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    gap: 4,
+
+  nameBlock: {
+    flex: 1,
+    paddingTop: AVATAR_PULL + 4, // push text below the banner edge
+    gap: 1,
   },
   nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
+    flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap",
   },
   displayName: {
-    fontSize: 20,
-    fontFamily: "Inter_700Bold",
-  },
-  handle: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 2,
-  },
-  statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-  },
-  bio: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    lineHeight: 19,
-    marginTop: 4,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginTop: 4,
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-  metaItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  metaText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-  },
-  statsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-evenly",
-    
-    
-    paddingVertical: 14,
-    marginHorizontal: 0,
-  },
-  statPill: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statValue: {
     fontSize: 17,
     fontFamily: "Inter_700Bold",
   },
-  statLabel: {
-    fontSize: 11,
+  handle: {
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
-    marginTop: 2,
   },
-  statDivider: {
-    width: 0.5,
-    height: 30,
-  },
-  actions: {
+
+  quickPills: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    gap: 10,
+    gap: 7,
+    paddingTop: AVATAR_PULL + 4,
+  },
+  pill: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: "center", justifyContent: "center",
+  },
+
+  /* Info: status, bio, meta */
+  infoBlock: {
+    paddingHorizontal: 18,
+    paddingBottom: 14,
+    gap: 6,
+  },
+  statusRow: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+  },
+  statusDot: {
+    width: 7, height: 7, borderRadius: 4,
+  },
+  statusText: {
+    fontSize: 12, fontFamily: "Inter_400Regular",
+  },
+  bio: {
+    fontSize: 13, fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+  },
+  metaRow: {
+    flexDirection: "row", alignItems: "center", gap: 14, flexWrap: "wrap",
+  },
+  metaItem: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+  },
+  metaText: {
+    fontSize: 12, fontFamily: "Inter_400Regular",
+  },
+
+  /* Stats */
+  statsRow: {
+    flexDirection: "row", alignItems: "center",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 14,
+  },
+  statCell: {
+    flex: 1, alignItems: "center", gap: 2,
+  },
+  statVal: {
+    fontSize: 17, fontFamily: "Inter_700Bold",
+  },
+  statLbl: {
+    fontSize: 10, fontFamily: "Inter_400Regular",
+  },
+  statDiv: {
+    width: StyleSheet.hairlineWidth, height: 28,
+  },
+
+  /* Actions */
+  actions: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
   },
   followBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 11,
-    borderRadius: 12,
-    minHeight: 44,
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 7, paddingVertical: 13, borderRadius: 14, minHeight: 48,
   },
   followBtnText: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-  },
-  actionIconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    fontSize: 15, fontFamily: "Inter_600SemiBold",
   },
 });
