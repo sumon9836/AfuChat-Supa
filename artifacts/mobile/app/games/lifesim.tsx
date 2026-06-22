@@ -935,33 +935,77 @@ export default function LifeSimGame() {
     );
   }
 
+  // ── Birth screen ────────────────────────────────────────────────────────────
   if (uiPhase === "birth" && gameState) {
     const g = getPhaseGradient(0);
     return (
       <View style={cs.root}>
-        <View style={[cs.birthWrap, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }]}>
-          <Text style={cs.birthGlobe}>🌍</Text>
-          <Text style={cs.birthTitle}>YOU ARE BORN</Text>
+        {/* Hero gradient header */}
+        <LinearGradient
+          colors={[g[0] + "cc", g[1] + "66", "transparent"]}
+          style={[cs.birthHero, { paddingTop: insets.top + 16 }]}
+        >
+          <Text style={cs.birthHeroFlag}>{gameState.flag}</Text>
+          <Text style={cs.birthHeroCountry}>{gameState.country}</Text>
+          <View style={cs.birthPhasePill}>
+            <Text style={cs.birthPhasePillText}>LIFE EARTH</Text>
+          </View>
+        </LinearGradient>
 
-          <View style={cs.birthPills}>
-            <View style={cs.birthPill}>
-              <Text style={cs.birthPillIcon}>{gameState.flag}</Text>
-              <Text style={cs.birthPillVal}>{gameState.country}</Text>
+        {/* Info cards */}
+        <View style={cs.birthCards}>
+          <View style={cs.birthCard}>
+            <View style={[cs.birthCardIcon, { backgroundColor: "#3b82f620" }]}>
+              <Text style={{ fontSize: 18 }}>🏠</Text>
             </View>
-            <View style={cs.birthPill}>
-              <Text style={cs.birthPillIcon}>🏠</Text>
-              <Text style={cs.birthPillVal}>{gameState.familyClass}</Text>
-            </View>
-            <View style={cs.birthPill}>
-              <Text style={cs.birthPillIcon}>💰</Text>
-              <Text style={cs.birthPillVal}>{fmtWealth(gameState.stats.wealth)}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={cs.birthCardLabel}>FAMILY</Text>
+              <Text style={cs.birthCardVal}>{gameState.familyClass}</Text>
             </View>
           </View>
+          <View style={cs.birthCard}>
+            <View style={[cs.birthCardIcon, { backgroundColor: "#10b98120" }]}>
+              <Text style={{ fontSize: 18 }}>💰</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={cs.birthCardLabel}>STARTING WEALTH</Text>
+              <Text style={cs.birthCardVal}>{fmtWealth(gameState.stats.wealth)}</Text>
+            </View>
+          </View>
+          <View style={cs.birthCard}>
+            <View style={[cs.birthCardIcon, { backgroundColor: "#a78bfa20" }]}>
+              <Text style={{ fontSize: 18 }}>🎲</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={cs.birthCardLabel}>YOUR PATH</Text>
+              <Text style={cs.birthCardVal}>Unique — seeded to you</Text>
+            </View>
+          </View>
+        </View>
 
-          <Pressable style={cs.beginBtn} onPress={beginLife}>
-            <LinearGradient colors={g} style={cs.beginBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Text style={cs.beginBtnText}>Begin</Text>
-              <Ionicons name="arrow-forward" size={16} color="#fff" />
+        {/* Feature pills */}
+        <View style={cs.birthFeatures}>
+          {[
+            { icon: "🔀", label: "Branching choices" },
+            { icon: "♾️", label: "Endless gameplay" },
+            { icon: "🏆", label: "Live rankings" },
+          ].map(f => (
+            <View key={f.label} style={cs.birthFeaturePill}>
+              <Text style={cs.birthFeatureIcon}>{f.icon}</Text>
+              <Text style={cs.birthFeatureText}>{f.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* CTA pinned to bottom */}
+        <View style={[cs.birthBottom, { paddingBottom: insets.bottom + 20 }]}>
+          <Pressable
+            onPress={() => { Haptics.impactAsync?.(); beginLife(); }}
+            style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.97 : 1 }] }]}
+          >
+            <LinearGradient colors={g} style={cs.beginPill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <Text style={cs.beginPillText}>Begin Your Life</Text>
+              <Ionicons name="arrow-forward" size={18} color="#fff" />
             </LinearGradient>
           </Pressable>
         </View>
@@ -969,149 +1013,245 @@ export default function LifeSimGame() {
     );
   }
 
+  // ── Life event screen ────────────────────────────────────────────────────────
   if (uiPhase === "event" && gameState?.pendingEvent) {
     const ev = gameState.pendingEvent;
     const good = ev.type === "good";
-    const icons: Record<string, string> = { health:"❤️", education:"📚", happiness:"😊", fitness:"💪", reputation:"⭐", wealth:"💰", morality:"⚖️" };
+    const accentColor = good ? "#10b981" : "#ef4444";
+    const statIcons: Record<string, string> = {
+      health: "❤️", education: "📚", happiness: "😊",
+      fitness: "💪", reputation: "⭐", wealth: "💰", morality: "⚖️",
+    };
     return (
-      <View style={[cs.root, cs.evRoot]}>
-        <View style={[cs.evInner, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}>
+      <View style={cs.root}>
+        <LinearGradient
+          colors={[accentColor + "22", "transparent"]}
+          style={[cs.evHero, { paddingTop: insets.top + 24 }]}
+        >
+          <View style={[cs.evTypeBadge, { backgroundColor: accentColor + "25", borderColor: accentColor + "50" }]}>
+            <Text style={[cs.evTypeBadgeText, { color: accentColor }]}>
+              {good ? "FORTUNE" : "ADVERSITY"}
+            </Text>
+          </View>
           <Text style={cs.evIcon}>{ev.icon}</Text>
           <Text style={cs.evTitle}>{ev.title}</Text>
-          <View style={cs.evEffects}>
-            {Object.entries(ev.effect).map(([k, v]) => {
-              const val = v as number;
-              const pos = val > 0;
-              return (
-                <Text key={k} style={[cs.evChip, { color: pos ? "#34d399" : "#f87171", backgroundColor: pos ? "#34d39918" : "#f8717118" }]}>
-                  {pos ? "+" : ""}{k === "wealth" ? fmtWealth(val) : val} {icons[k] ?? ""}
+        </LinearGradient>
+
+        <View style={cs.evEffectsWrap}>
+          {Object.entries(ev.effect).map(([k, v]) => {
+            const val = v as number;
+            const pos = val > 0;
+            return (
+              <View key={k} style={[cs.evChip, {
+                backgroundColor: pos ? "#10b98115" : "#ef444415",
+                borderColor: pos ? "#10b98140" : "#ef444440",
+              }]}>
+                <Text style={{ fontSize: 14 }}>{statIcons[k] ?? "•"}</Text>
+                <Text style={[cs.evChipText, { color: pos ? "#34d399" : "#f87171" }]}>
+                  {pos ? "+" : ""}{k === "wealth" ? fmtWealth(val) : val}
                 </Text>
-              );
-            })}
-          </View>
-          <Pressable onPress={dismissEvent} style={cs.evBtn}>
-            <Text style={cs.evBtnText}>Continue</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={[cs.evBottom, { paddingBottom: insets.bottom + 20 }]}>
+          <Pressable
+            onPress={() => { Haptics.impactAsync?.(); dismissEvent(); }}
+            style={({ pressed }) => [cs.evCTA, { backgroundColor: accentColor, transform: [{ scale: pressed ? 0.97 : 1 }] }]}
+          >
+            <Text style={cs.evCTAText}>Continue</Text>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
           </Pressable>
         </View>
       </View>
     );
   }
 
+  // ── Leaderboard screen ───────────────────────────────────────────────────────
   if (uiPhase === "leaderboard") {
     return (
       <View style={cs.root}>
-        <View style={[cs.lbTop, { paddingTop: insets.top + 14 }]}>
-          <Pressable onPress={() => setUiPhase("playing")} hitSlop={16}>
-            <Ionicons name="close" size={20} color="rgba(255,255,255,0.6)" />
+        {/* Header */}
+        <View style={[cs.lbHeader, { paddingTop: insets.top + 14 }]}>
+          <Pressable
+            onPress={() => setUiPhase("playing")}
+            style={cs.lbCloseBtn}
+            hitSlop={12}
+          >
+            <Ionicons name="close" size={18} color="#94a3b8" />
           </Pressable>
-          <Text style={cs.lbTitle}>🏆  LEADERBOARD</Text>
-          <View style={{ width: 20 }} />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text style={cs.lbHeadTitle}>Leaderboard</Text>
+            <Text style={cs.lbHeadSub}>Global Legacy Scores</Text>
+          </View>
+          <View style={{ width: 36 }} />
         </View>
 
         {lbLoading ? (
           <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator color="#3b82f6" />
+            <ActivityIndicator color="#3b82f6" size="large" />
           </View>
         ) : (
           <View style={{ flex: 1 }}>
+            {/* Your score card */}
             {gameState && (
-              <View style={cs.lbYou}>
-                <Text style={cs.lbYouLabel}>YOU</Text>
+              <View style={cs.lbYouCard}>
+                <View style={cs.lbYouAvatar}>
+                  <Text style={{ fontSize: 18 }}>🌍</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={cs.lbYouName}>You · Age {gameState.age}</Text>
+                  <Text style={cs.lbYouCareer}>{gameState.career ?? "No career yet"}</Text>
+                </View>
                 <Text style={cs.lbYouScore}>{computeLegacyScore(gameState).toLocaleString()}</Text>
-                <Text style={cs.lbYouAge}>Age {gameState.age}</Text>
               </View>
             )}
+
+            {/* Divider */}
+            <View style={cs.lbDivider}>
+              <Text style={cs.lbDividerText}>ALL PLAYERS</Text>
+            </View>
+
             {leaderboard.length === 0 ? (
-              <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                <Text style={cs.lbEmpty}>No scores yet.</Text>
+              <View style={{ flex: 1, justifyContent: "center", alignItems: "center", gap: 10 }}>
+                <Text style={{ fontSize: 36 }}>🌍</Text>
+                <Text style={cs.lbEmpty}>No scores yet — be first.</Text>
               </View>
-            ) : leaderboard.slice(0, 15).map((e, i) => (
-              <View key={i} style={[cs.lbRow, i === 0 && { backgroundColor: "rgba(245,158,11,0.07)" }]}>
-                <Text style={[cs.lbRank, { color: i === 0 ? "#f59e0b" : i === 1 ? "#cbd5e1" : i === 2 ? "#cd7c2f" : "rgba(255,255,255,0.3)" }]}>
-                  {i === 0 ? "👑" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
-                </Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={cs.lbName} numberOfLines={1}>{e.display_name || e.handle || "—"}</Text>
-                  <Text style={cs.lbMeta} numberOfLines={1}>{e.career ?? "—"} · {e.country ?? "—"}</Text>
+            ) : leaderboard.slice(0, 15).map((e, i) => {
+              const medal = i === 0 ? "👑" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+              const rankColor = i === 0 ? "#f59e0b" : i === 1 ? "#cbd5e1" : i === 2 ? "#cd7c2f" : "#475569";
+              return (
+                <View key={i} style={[cs.lbRow, i < 3 && { backgroundColor: rankColor + "10" }]}>
+                  <View style={[cs.lbRankBadge, { backgroundColor: rankColor + "20" }]}>
+                    {medal
+                      ? <Text style={{ fontSize: 14 }}>{medal}</Text>
+                      : <Text style={[cs.lbRankNum, { color: rankColor }]}>#{i + 1}</Text>
+                    }
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={cs.lbName} numberOfLines={1}>{e.display_name || e.handle || "Anonymous"}</Text>
+                    <Text style={cs.lbMeta} numberOfLines={1}>{e.career ?? "—"} · {e.country ?? "—"}</Text>
+                  </View>
+                  <Text style={[cs.lbScore, { color: i < 3 ? rankColor : "#e2e8f0" }]}>
+                    {(e.legacy_score ?? 0).toLocaleString()}
+                  </Text>
                 </View>
-                <Text style={[cs.lbScore, { color: i < 3 ? "#f59e0b" : "#e2e8f0" }]}>
-                  {(e.legacy_score ?? 0).toLocaleString()}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
       </View>
     );
   }
 
-  // ── Main Game View ──────────────────────────────────────────────────────────
-
+  // ── Main game view ───────────────────────────────────────────────────────────
   if (!gameState || !currentScene) return null;
 
   const gradient = getPhaseGradient(gameState.age);
   const phaseName = getPhaseName(gameState.age);
   const score = computeLegacyScore(gameState);
+  const statRows = [
+    { icon: "❤️", v: gameState.stats.health,    c: "#f87171", label: "Health" },
+    { icon: "📚", v: gameState.stats.education,  c: "#60a5fa", label: "Edu" },
+    { icon: "😊", v: gameState.stats.happiness,  c: "#fbbf24", label: "Joy" },
+    { icon: "💪", v: gameState.stats.fitness,    c: "#34d399", label: "Fit" },
+    { icon: "⭐", v: gameState.stats.reputation, c: "#a78bfa", label: "Rep" },
+    { icon: "💰", v: Math.min(100, Math.max(0, gameState.stats.wealth / 500)), c: "#86efac", label: "Wealth", display: fmtWealth(gameState.stats.wealth) },
+  ];
 
   return (
     <View style={cs.root}>
 
-      {/* ── Header bar ── */}
-      <View style={[cs.bar, { paddingTop: insets.top + 8 }]}>
-        <View style={[cs.barDot, { backgroundColor: gradient[0] }]} />
-        <Text style={cs.barPhase}>{phaseName}</Text>
-        <Text style={cs.barAge}>{gameState.age}</Text>
-        <Pressable onPress={openLeaderboard} style={cs.barScore}>
-          <Text style={cs.barScoreText}>🏆 {score.toLocaleString()}</Text>
+      {/* ── Gradient hero header ── */}
+      <LinearGradient
+        colors={[gradient[0] + "ee", gradient[0] + "66", "transparent"]}
+        style={[cs.gameHeader, { paddingTop: insets.top + 10 }]}
+      >
+        <View style={cs.gameHeaderLeft}>
+          <Text style={cs.gameHeaderAge}>{gameState.age}</Text>
+          <Text style={cs.gameHeaderAgeLabel}>years old</Text>
+        </View>
+        <View style={cs.gameHeaderCenter}>
+          <View style={[cs.phasePill, { borderColor: gradient[1] + "60" }]}>
+            <View style={[cs.phaseDot, { backgroundColor: gradient[1] }]} />
+            <Text style={[cs.phaseLabel, { color: gradient[1] }]}>{phaseName.toUpperCase()}</Text>
+          </View>
+        </View>
+        <Pressable
+          style={cs.gameHeaderScore}
+          onPress={() => { Haptics.impactAsync?.(); openLeaderboard(); }}
+          hitSlop={8}
+        >
+          <Text style={cs.gameHeaderScoreNum}>{score.toLocaleString()}</Text>
+          <Text style={cs.gameHeaderScoreLabel}>🏆 LEGACY</Text>
         </Pressable>
-      </View>
+      </LinearGradient>
 
-      {/* ── Stats row ── */}
-      <View style={cs.stats}>
-        {[
-          { icon: "❤️", v: Math.round(gameState.stats.health),     c: "#f87171" },
-          { icon: "📚", v: Math.round(gameState.stats.education),   c: "#60a5fa" },
-          { icon: "😊", v: Math.round(gameState.stats.happiness),   c: "#fbbf24" },
-          { icon: "💪", v: Math.round(gameState.stats.fitness),     c: "#34d399" },
-          { icon: "⭐", v: Math.round(gameState.stats.reputation),  c: "#a78bfa" },
-          { icon: "💰", v: fmtWealth(gameState.stats.wealth),       c: "#86efac" },
-        ].map(s => (
-          <View key={s.icon} style={cs.stat}>
-            <Text style={cs.statIcon}>{s.icon}</Text>
-            <Text style={[cs.statVal, { color: s.c }]}>{s.v}</Text>
+      {/* ── Stats grid ── */}
+      <View style={cs.statsGrid}>
+        {statRows.map(s => (
+          <View key={s.label} style={cs.statCell}>
+            <View style={cs.statCellTop}>
+              <Text style={cs.statCellIcon}>{s.icon}</Text>
+              <Text style={[cs.statCellVal, { color: s.c }]}>
+                {s.display ?? Math.round(s.v)}
+              </Text>
+            </View>
+            <View style={cs.statBarTrack}>
+              <View style={[cs.statBarFill, {
+                width: `${Math.min(100, Math.max(1, s.v))}%`,
+                backgroundColor: s.c,
+              }]} />
+            </View>
           </View>
         ))}
       </View>
 
-      {/* ── Life bar ── */}
-      <View style={cs.lifeTrack}>
-        <View style={[cs.lifeFill, { width: `${Math.min(100, (gameState.age / 85) * 100)}%`, backgroundColor: gradient[0] }]} />
+      {/* ── Age progress strip ── */}
+      <View style={cs.ageTrack}>
+        <View style={[cs.ageFill, {
+          width: `${Math.min(100, (gameState.age / 85) * 100)}%`,
+          backgroundColor: gradient[0],
+        }]} />
       </View>
 
       {/* ── Situation card ── */}
-      <Animated.View style={[cs.card, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <LinearGradient colors={[gradient[0] + "28", "transparent"]} style={[cs.cardInner, { borderColor: gradient[0] + "44" }]}>
-          <Text style={[cs.cardAge, { color: gradient[1] }]}>AGE {gameState.age}</Text>
-          <Text style={cs.cardTitle}>{currentScene.title}</Text>
-          <Text style={cs.cardBody} numberOfLines={3}>{currentScene.narrative}</Text>
-        </LinearGradient>
+      <Animated.View style={[cs.cardWrap, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <View style={[cs.situationCard, { borderColor: gradient[0] + "50" }]}>
+          <LinearGradient
+            colors={[gradient[0] + "30", gradient[0] + "08"]}
+            style={cs.situationCardGrad}
+          >
+            <Text style={[cs.situationTag, { color: gradient[1] }]}>
+              {phaseName.toUpperCase()} · AGE {gameState.age}
+            </Text>
+            <Text style={cs.situationTitle}>{currentScene.title}</Text>
+            <Text style={cs.situationBody} numberOfLines={3}>{currentScene.narrative}</Text>
+          </LinearGradient>
+        </View>
       </Animated.View>
 
-      {/* ── Choices ── */}
-      <View style={[cs.choices, { paddingBottom: insets.bottom + 10 }]}>
+      {/* ── Choice buttons ── */}
+      <View style={[cs.choicesWrap, { paddingBottom: insets.bottom + 10 }]}>
         {filteredChoices.slice(0, 4).map((c, i) => (
           <Pressable
             key={i}
-            onPress={() => makeChoice(c)}
+            onPress={() => { Haptics.impactAsync?.(); makeChoice(c); }}
             style={({ pressed }) => [
-              cs.choice,
-              c.risky && cs.choiceRisky,
-              pressed && { opacity: 0.7 },
+              cs.choiceBtn,
+              c.risky && cs.choiceBtnRisky,
+              { transform: [{ scale: pressed ? 0.975 : 1 }], opacity: pressed ? 0.85 : 1 },
             ]}
           >
-            <Text style={cs.choiceIcon}>{c.icon}</Text>
-            <Text style={cs.choiceLabel} numberOfLines={1}>{c.label}</Text>
-            {c.risky && <View style={cs.riskDot} />}
+            <View style={[cs.choiceBtnIconWrap, { backgroundColor: c.risky ? "#ef444420" : gradient[0] + "25" }]}>
+              <Text style={cs.choiceBtnIcon}>{c.icon}</Text>
+            </View>
+            <Text style={cs.choiceBtnLabel} numberOfLines={1}>{c.label}</Text>
+            {c.risky
+              ? <View style={cs.riskyBadge}><Text style={cs.riskyBadgeText}>RISK</Text></View>
+              : <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.25)" />
+            }
           </Pressable>
         ))}
       </View>
@@ -1121,76 +1261,115 @@ export default function LifeSimGame() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
+const S = {
+  bg: "#0d1b2a",
+  surface: "#162032",
+  surfaceHigh: "#1d2d42",
+  border: "rgba(255,255,255,0.09)",
+  text: "#f1f5f9",
+  textMid: "rgba(241,245,249,0.6)",
+  textLow: "rgba(241,245,249,0.35)",
+};
+
 const cs = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0d1b2a" },
+  root: { flex: 1, backgroundColor: S.bg },
 
-  // Birth
-  birthWrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28, gap: 20 },
-  birthGlobe: { fontSize: 56 },
-  birthTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 4 },
-  birthPills: { width: "100%", gap: 8 },
-  birthPill: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 0.5, borderColor: "rgba(255,255,255,0.1)" },
-  birthPillIcon: { fontSize: 24 },
-  birthPillVal: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
-  beginBtn: { width: "100%", borderRadius: 14, overflow: "hidden" },
-  beginBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
-  beginBtnText: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" },
+  // ── Birth ──
+  birthHero: { alignItems: "center", paddingHorizontal: 24, paddingBottom: 20, gap: 6 },
+  birthHeroFlag: { fontSize: 52, marginBottom: 4 },
+  birthHeroCountry: { fontSize: 26, fontFamily: "Inter_700Bold", color: S.text, textAlign: "center" },
+  birthPhasePill: { backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 100, paddingHorizontal: 14, paddingVertical: 4, marginTop: 4 },
+  birthPhasePillText: { fontSize: 11, fontFamily: "Inter_700Bold", color: "rgba(255,255,255,0.7)", letterSpacing: 2 },
+  birthCards: { paddingHorizontal: 16, gap: 8, marginTop: 4 },
+  birthCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: S.surface, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: S.border },
+  birthCardIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  birthCardLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", color: S.textLow, letterSpacing: 0.8 },
+  birthCardVal: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: S.text, marginTop: 1 },
+  birthFeatures: { flexDirection: "row", justifyContent: "center", gap: 8, paddingHorizontal: 16, marginTop: 12 },
+  birthFeaturePill: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: S.surface, borderRadius: 100, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: S.border },
+  birthFeatureIcon: { fontSize: 12 },
+  birthFeatureText: { fontSize: 11, fontFamily: "Inter_500Medium", color: S.textMid },
+  birthBottom: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 20 },
+  beginPill: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, borderRadius: 100, paddingVertical: 17 },
+  beginPillText: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" },
 
-  // Event
-  evRoot: { justifyContent: "center" },
-  evInner: { alignItems: "center", paddingHorizontal: 32, gap: 16 },
-  evIcon: { fontSize: 52 },
-  evTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center" },
-  evEffects: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
-  evChip: { fontSize: 13, fontFamily: "Inter_600SemiBold", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  evBtn: { marginTop: 8, backgroundColor: "rgba(255,255,255,0.1)", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
-  evBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff" },
+  // ── Event ──
+  evHero: { alignItems: "center", paddingHorizontal: 28, paddingBottom: 16, gap: 10 },
+  evTypeBadge: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 5 },
+  evTypeBadgeText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1.5 },
+  evIcon: { fontSize: 56 },
+  evTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: S.text, textAlign: "center", lineHeight: 30 },
+  evEffectsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center", paddingHorizontal: 24, marginTop: 4 },
+  evChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 100, borderWidth: 1 },
+  evChipText: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  evBottom: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 24 },
+  evCTA: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 100, paddingVertical: 16 },
+  evCTAText: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" },
 
-  // Leaderboard
-  lbTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: "rgba(255,255,255,0.08)" },
-  lbTitle: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 0.5 },
-  lbYou: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginVertical: 8, backgroundColor: "rgba(59,130,246,0.12)", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 0.5, borderColor: "rgba(59,130,246,0.3)" },
-  lbYouLabel: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#60a5fa", letterSpacing: 0.5, flex: 1 },
-  lbYouScore: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#60a5fa" },
-  lbYouAge: { fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)" },
-  lbRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingVertical: 10, gap: 10, borderBottomWidth: 0.5, borderBottomColor: "rgba(255,255,255,0.05)" },
-  lbRank: { width: 28, fontSize: 12, fontFamily: "Inter_700Bold", textAlign: "center" },
-  lbName: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#e2e8f0" },
-  lbMeta: { fontSize: 10, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.35)", marginTop: 1 },
-  lbScore: { fontSize: 15, fontFamily: "Inter_700Bold" },
-  lbEmpty: { fontSize: 14, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.35)" },
+  // ── Leaderboard ──
+  lbHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: S.border },
+  lbCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: S.surface, alignItems: "center", justifyContent: "center" },
+  lbHeadTitle: { fontSize: 16, fontFamily: "Inter_700Bold", color: S.text },
+  lbHeadSub: { fontSize: 11, fontFamily: "Inter_400Regular", color: S.textLow, marginTop: 1 },
+  lbYouCard: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 16, marginTop: 12, marginBottom: 4, backgroundColor: "rgba(59,130,246,0.1)", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: "rgba(59,130,246,0.3)" },
+  lbYouAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(59,130,246,0.2)", alignItems: "center", justifyContent: "center" },
+  lbYouName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#93c5fd" },
+  lbYouCareer: { fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(147,197,253,0.6)", marginTop: 1 },
+  lbYouScore: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#60a5fa" },
+  lbDivider: { paddingHorizontal: 18, paddingVertical: 10 },
+  lbDividerText: { fontSize: 9, fontFamily: "Inter_700Bold", color: S.textLow, letterSpacing: 1.5 },
+  lbRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: S.border },
+  lbRankBadge: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  lbRankNum: { fontSize: 11, fontFamily: "Inter_700Bold" },
+  lbName: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: S.text },
+  lbMeta: { fontSize: 10, fontFamily: "Inter_400Regular", color: S.textLow, marginTop: 1 },
+  lbScore: { fontSize: 16, fontFamily: "Inter_700Bold" },
+  lbEmpty: { fontSize: 14, fontFamily: "Inter_400Regular", color: S.textLow },
 
-  // Game bar
-  bar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingBottom: 8, gap: 6 },
-  barDot: { width: 8, height: 8, borderRadius: 4 },
-  barPhase: { fontSize: 10, fontFamily: "Inter_600SemiBold", color: "rgba(255,255,255,0.45)", letterSpacing: 1, flex: 1 },
-  barAge: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff" },
-  barScore: { flex: 1, alignItems: "flex-end" },
-  barScoreText: { fontSize: 12, fontFamily: "Inter_700Bold", color: "#fbbf24" },
+  // ── Game header ──
+  gameHeader: { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
+  gameHeaderLeft: { flex: 1 },
+  gameHeaderAge: { fontSize: 40, fontFamily: "Inter_700Bold", color: "#fff", lineHeight: 44 },
+  gameHeaderAgeLabel: { fontSize: 10, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.5)", letterSpacing: 0.5 },
+  gameHeaderCenter: { alignItems: "center", flex: 1 },
+  phasePill: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 100, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
+  phaseDot: { width: 6, height: 6, borderRadius: 3 },
+  phaseLabel: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 1.2 },
+  gameHeaderScore: { flex: 1, alignItems: "flex-end" },
+  gameHeaderScoreNum: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#fbbf24" },
+  gameHeaderScoreLabel: { fontSize: 8, fontFamily: "Inter_600SemiBold", color: "rgba(255,255,255,0.4)", letterSpacing: 1, marginTop: 1 },
 
-  // Stats
-  stats: { flexDirection: "row", paddingHorizontal: 10, paddingBottom: 6, gap: 4 },
-  stat: { flex: 1, alignItems: "center", gap: 1 },
-  statIcon: { fontSize: 10 },
-  statVal: { fontSize: 10, fontFamily: "Inter_700Bold" },
+  // ── Stats ──
+  statsGrid: { flexDirection: "row", paddingHorizontal: 12, paddingBottom: 8, gap: 6 },
+  statCell: { flex: 1, gap: 3 },
+  statCellTop: { flexDirection: "row", alignItems: "center", gap: 3 },
+  statCellIcon: { fontSize: 10 },
+  statCellVal: { fontSize: 10, fontFamily: "Inter_700Bold" },
+  statBarTrack: { height: 2, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 2 },
+  statBarFill: { height: 2, borderRadius: 2 },
 
-  // Life bar
-  lifeTrack: { height: 2, backgroundColor: "rgba(255,255,255,0.06)", marginBottom: 10 },
-  lifeFill: { height: 2 },
+  // ── Age bar ──
+  ageTrack: { height: 2, backgroundColor: "rgba(255,255,255,0.05)" },
+  ageFill: { height: 2 },
 
-  // Situation card
-  card: { flex: 1, paddingHorizontal: 14, justifyContent: "center" },
-  cardInner: { borderRadius: 18, borderWidth: 1, padding: 16, gap: 8 },
-  cardAge: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 2 },
-  cardTitle: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#f1f5f9", lineHeight: 24 },
-  cardBody: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(241,245,249,0.65)", lineHeight: 20 },
+  // ── Situation card ──
+  cardWrap: { flex: 1, paddingHorizontal: 14, paddingTop: 10, justifyContent: "center" },
+  situationCard: { borderRadius: 20, borderWidth: 1, overflow: "hidden" },
+  situationCardGrad: { padding: 18, gap: 8 },
+  situationTag: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 2 },
+  situationTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: S.text, lineHeight: 26 },
+  situationBody: { fontSize: 13, fontFamily: "Inter_400Regular", color: S.textMid, lineHeight: 20 },
 
-  // Choices
-  choices: { paddingHorizontal: 14, gap: 7 },
-  choice: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 0.5, borderColor: "rgba(255,255,255,0.1)" },
-  choiceRisky: { borderColor: "rgba(239,68,68,0.4)", backgroundColor: "rgba(239,68,68,0.07)" },
-  choiceIcon: { fontSize: 20 },
-  choiceLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#f1f5f9" },
-  riskDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#f87171" },
+  // ── Choice buttons ──
+  choicesWrap: { paddingHorizontal: 14, gap: 6 },
+  choiceBtn: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: S.surface, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 11, borderWidth: 1, borderColor: S.border },
+  choiceBtnRisky: { borderColor: "rgba(239,68,68,0.35)", backgroundColor: "rgba(239,68,68,0.06)" },
+  choiceBtnIconWrap: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  choiceBtnIcon: { fontSize: 18 },
+  choiceBtnLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_600SemiBold", color: S.text },
+  riskyBadge: { backgroundColor: "rgba(239,68,68,0.2)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  riskyBadgeText: { fontSize: 8, fontFamily: "Inter_700Bold", color: "#f87171", letterSpacing: 0.5 },
 
+  // ── Misc ──
+  loadingText: { fontSize: 13, fontFamily: "Inter_400Regular", color: S.textLow },
 });
