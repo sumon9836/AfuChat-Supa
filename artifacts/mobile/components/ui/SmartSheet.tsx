@@ -241,7 +241,7 @@ export function SmartSheet({
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom }}
           scrollEnabled={isFull}
           bounces={Platform.OS !== "web"}
           showsVerticalScrollIndicator={false}

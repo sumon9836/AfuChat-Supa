@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Image } from "expo-image";
@@ -71,6 +72,7 @@ interface Props {
 export default function MiniProfilePopup({ userId, visible, onClose, currentChatId }: Props) {
   const { colors, accent } = useTheme();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [profile, setProfile] = useState<MiniProfile | null>(null);
   const [loading, setLoading] = useState(false);
@@ -160,8 +162,8 @@ export default function MiniProfilePopup({ userId, visible, onClose, currentChat
   const ls = profile ? formatLastSeen(profile.last_seen, profile.show_online_status) : null;
 
   return (
-    <SwipeableBottomSheet visible={visible} onClose={onClose} maxHeight="72%">
-      <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+    <SwipeableBottomSheet visible={visible} onClose={onClose} maxHeight="72%" backgroundColor={colors.surface}>
+      <View style={styles.sheet}>
 
         {loading ? (
           <View style={styles.loadingWrap}>
@@ -253,7 +255,7 @@ export default function MiniProfilePopup({ userId, visible, onClose, currentChat
             </View>
 
             {/* ── Action buttons ───────────────────────────── */}
-            <View style={styles.actions}>
+            <View style={[styles.actions, { paddingBottom: insets.bottom + 16 }]}>
               {!isSelf && user && (() => {
                 const _fs = isFollowing && theyFollowMe ? "friends" : !isFollowing && theyFollowMe ? "follow_back" : isFollowing ? "following" : "follow";
                 const _bg = _fs === "follow" ? accent : _fs === "follow_back" ? "#FF9500" : colors.inputBg;
@@ -308,10 +310,7 @@ export default function MiniProfilePopup({ userId, visible, onClose, currentChat
 
 const styles = StyleSheet.create({
   sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
     overflow: "hidden",
-    paddingBottom: 28,
   },
   loadingWrap: {
     height: 220,

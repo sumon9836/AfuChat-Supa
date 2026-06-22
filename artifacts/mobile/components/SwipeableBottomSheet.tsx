@@ -28,6 +28,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useTheme } from "@/hooks/useTheme";
 
 interface Props {
   visible: boolean;
@@ -120,8 +121,9 @@ type MobileProps = {
 function MobileSheet({ visible, onClose, children, backgroundColor, maxHeight = "62%", overlayColor }: MobileProps) {
   const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
-  const mobileBg = backgroundColor ?? "rgba(18,22,28,0.96)";
+  const mobileBg = backgroundColor ?? colors.surface;
   const mobileOverlay = overlayColor ?? "rgba(0,0,0,0.5)";
 
   // Resolve peek height from maxHeight prop
@@ -271,7 +273,7 @@ function MobileSheet({ visible, onClose, children, backgroundColor, maxHeight = 
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom }}
           scrollEnabled={isFull}
           bounces={Platform.OS !== "web"}
           showsVerticalScrollIndicator={false}
