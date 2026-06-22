@@ -774,24 +774,6 @@ function fmtWealth(w: number): string {
   return `$${Math.floor(w)}`;
 }
 
-// ─── Components ───────────────────────────────────────────────────────────────
-
-function StatPill({ icon, value, color }: { icon: string; value: number | string; color: string }) {
-  return (
-    <View style={[cs.statPill, { borderColor: color + "44" }]}>
-      <Text style={cs.statPillIcon}>{icon}</Text>
-      <Text style={[cs.statPillVal, { color }]}>{typeof value === "number" ? Math.round(value as number) : value}</Text>
-    </View>
-  );
-}
-
-function MiniBar({ value, color }: { value: number; color: string }) {
-  return (
-    <View style={cs.miniBarTrack}>
-      <View style={[cs.miniBarFill, { width: `${Math.max(2, Math.min(100, value))}%`, backgroundColor: color }]} />
-    </View>
-  );
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -954,96 +936,63 @@ export default function LifeSimGame() {
   }
 
   if (uiPhase === "birth" && gameState) {
-    const gradient = getPhaseGradient(0);
+    const g = getPhaseGradient(0);
     return (
       <View style={cs.root}>
-        <LinearGradient colors={[gradient[0] + "22", "#0d1b2a"]} style={cs.birthBg}>
-          <View style={[cs.birthInner, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]}>
-            <Text style={cs.birthGlobe}>🌍</Text>
-            <Text style={cs.birthTitle}>YOU ARE BORN</Text>
-            <Text style={cs.birthSub}>Your life has begun. No going back.</Text>
+        <View style={[cs.birthWrap, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }]}>
+          <Text style={cs.birthGlobe}>🌍</Text>
+          <Text style={cs.birthTitle}>YOU ARE BORN</Text>
 
-            <View style={cs.birthCard}>
-              <View style={cs.birthRow}>
-                <Text style={cs.birthRowIcon}>{gameState.flag}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={cs.birthRowLabel}>COUNTRY OF BIRTH</Text>
-                  <Text style={cs.birthRowVal}>{gameState.country}</Text>
-                </View>
-              </View>
-              <View style={[cs.birthDivider]} />
-              <View style={cs.birthRow}>
-                <Text style={cs.birthRowIcon}>🏠</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={cs.birthRowLabel}>FAMILY CLASS</Text>
-                  <Text style={cs.birthRowVal}>{gameState.familyClass}</Text>
-                </View>
-              </View>
-              <View style={cs.birthDivider} />
-              <View style={cs.birthRow}>
-                <Text style={cs.birthRowIcon}>💰</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={cs.birthRowLabel}>STARTING WEALTH</Text>
-                  <Text style={cs.birthRowVal}>{fmtWealth(gameState.stats.wealth)}</Text>
-                </View>
-              </View>
+          <View style={cs.birthPills}>
+            <View style={cs.birthPill}>
+              <Text style={cs.birthPillIcon}>{gameState.flag}</Text>
+              <Text style={cs.birthPillVal}>{gameState.country}</Text>
             </View>
-
-            <View style={cs.birthNote}>
-              <Text style={cs.birthNoteText}>
-                Your path is unique. Every choice shapes what comes next. No two lives are the same.
-              </Text>
+            <View style={cs.birthPill}>
+              <Text style={cs.birthPillIcon}>🏠</Text>
+              <Text style={cs.birthPillVal}>{gameState.familyClass}</Text>
             </View>
-
-            <Pressable style={cs.beginBtn} onPress={beginLife}>
-              <LinearGradient colors={gradient} style={cs.beginBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                <Text style={cs.beginBtnText}>Begin Your Life</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
-              </LinearGradient>
-            </Pressable>
-
-            <Text style={cs.birthWarning}>Once you begin, there is no restart.</Text>
+            <View style={cs.birthPill}>
+              <Text style={cs.birthPillIcon}>💰</Text>
+              <Text style={cs.birthPillVal}>{fmtWealth(gameState.stats.wealth)}</Text>
+            </View>
           </View>
-        </LinearGradient>
+
+          <Pressable style={cs.beginBtn} onPress={beginLife}>
+            <LinearGradient colors={g} style={cs.beginBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <Text style={cs.beginBtnText}>Begin</Text>
+              <Ionicons name="arrow-forward" size={16} color="#fff" />
+            </LinearGradient>
+          </Pressable>
+        </View>
       </View>
     );
   }
 
   if (uiPhase === "event" && gameState?.pendingEvent) {
-    const event = gameState.pendingEvent;
-    const isGood = event.type === "good";
-    const gradient: [string, string] = isGood ? ["#065f46", "#047857"] : ["#7f1d1d", "#991b1b"];
+    const ev = gameState.pendingEvent;
+    const good = ev.type === "good";
+    const icons: Record<string, string> = { health:"❤️", education:"📚", happiness:"😊", fitness:"💪", reputation:"⭐", wealth:"💰", morality:"⚖️" };
     return (
-      <View style={cs.root}>
-        <LinearGradient colors={[gradient[0] + "44", "#0d1b2a"]} style={{ flex: 1 }}>
-          <View style={[cs.eventInner, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]}>
-            <View style={[cs.eventTypePill, { backgroundColor: gradient[0] + "66" }]}>
-              <Text style={cs.eventTypePillText}>{isGood ? "LIFE EVENT — FORTUNE" : "LIFE EVENT — ADVERSITY"}</Text>
-            </View>
-            <Text style={cs.eventIcon}>{event.icon}</Text>
-            <Text style={cs.eventTitle}>{event.title}</Text>
-            <Text style={cs.eventBody}>{event.text}</Text>
-            <View style={cs.eventEffects}>
-              {Object.entries(event.effect).map(([k, v]) => {
-                const val = v as number;
-                const pos = val > 0;
-                const icons: Record<string, string> = { health:"❤️", education:"📚", happiness:"😊", fitness:"💪", reputation:"⭐", wealth:"💰", morality:"⚖️" };
-                return (
-                  <View key={k} style={[cs.eventEffectPill, { backgroundColor: pos ? "#065f4644" : "#7f1d1d44" }]}>
-                    <Text style={[cs.eventEffectText, { color: pos ? "#34d399" : "#f87171" }]}>
-                      {pos ? "+" : ""}{k === "wealth" ? fmtWealth(val) : val} {icons[k] ?? ""}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-            <Text style={[cs.eventAge, { color: "rgba(255,255,255,0.45)" }]}>Age {gameState.age}</Text>
-            <Pressable style={cs.eventBtn} onPress={dismissEvent}>
-              <Text style={cs.eventBtnText}>Continue</Text>
-              <Ionicons name="arrow-forward" size={16} color="#fff" />
-            </Pressable>
+      <View style={[cs.root, cs.evRoot]}>
+        <View style={[cs.evInner, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 28 }]}>
+          <Text style={cs.evIcon}>{ev.icon}</Text>
+          <Text style={cs.evTitle}>{ev.title}</Text>
+          <View style={cs.evEffects}>
+            {Object.entries(ev.effect).map(([k, v]) => {
+              const val = v as number;
+              const pos = val > 0;
+              return (
+                <Text key={k} style={[cs.evChip, { color: pos ? "#34d399" : "#f87171", backgroundColor: pos ? "#34d39918" : "#f8717118" }]}>
+                  {pos ? "+" : ""}{k === "wealth" ? fmtWealth(val) : val} {icons[k] ?? ""}
+                </Text>
+              );
+            })}
           </View>
-        </LinearGradient>
+          <Pressable onPress={dismissEvent} style={cs.evBtn}>
+            <Text style={cs.evBtnText}>Continue</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -1051,67 +1000,45 @@ export default function LifeSimGame() {
   if (uiPhase === "leaderboard") {
     return (
       <View style={cs.root}>
-        <View style={[cs.lbHeader, { paddingTop: insets.top + 12 }]}>
-          <Pressable onPress={() => setUiPhase("playing")} hitSlop={14}>
-            <Ionicons name="close" size={22} color="rgba(255,255,255,0.7)" />
+        <View style={[cs.lbTop, { paddingTop: insets.top + 14 }]}>
+          <Pressable onPress={() => setUiPhase("playing")} hitSlop={16}>
+            <Ionicons name="close" size={20} color="rgba(255,255,255,0.6)" />
           </Pressable>
-          <Text style={cs.lbHeaderTitle}>🏆 GLOBAL LEADERBOARD</Text>
-          <View style={{ width: 22 }} />
-        </View>
-        <View style={cs.lbSubheader}>
-          <Text style={cs.lbSubheaderText}>LIFE EARTH LEGACY SCORES — LIVE RANKINGS</Text>
+          <Text style={cs.lbTitle}>🏆  LEADERBOARD</Text>
+          <View style={{ width: 20 }} />
         </View>
 
         {lbLoading ? (
           <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator size="large" color="#3b82f6" />
+            <ActivityIndicator color="#3b82f6" />
           </View>
         ) : (
           <View style={{ flex: 1 }}>
-            {/* Player's own score */}
             {gameState && (
-              <View style={cs.lbYouRow}>
-                <Text style={cs.lbYouLabel}>YOUR SCORE</Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                  <Text style={cs.lbYouScore}>{computeLegacyScore(gameState).toLocaleString()}</Text>
-                  <Text style={cs.lbYouAge}>Age {gameState.age}</Text>
-                </View>
+              <View style={cs.lbYou}>
+                <Text style={cs.lbYouLabel}>YOU</Text>
+                <Text style={cs.lbYouScore}>{computeLegacyScore(gameState).toLocaleString()}</Text>
+                <Text style={cs.lbYouAge}>Age {gameState.age}</Text>
               </View>
             )}
-
             {leaderboard.length === 0 ? (
-              <View style={{ flex: 1, justifyContent: "center", alignItems: "center", gap: 12 }}>
-                <Text style={{ fontSize: 40 }}>🌍</Text>
-                <Text style={cs.lbEmpty}>Be the first to build a legacy.</Text>
+              <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                <Text style={cs.lbEmpty}>No scores yet.</Text>
               </View>
-            ) : (
-              <View style={{ flex: 1 }}>
-                {leaderboard.slice(0, 12).map((entry, idx) => (
-                  <View key={idx} style={[cs.lbRow, idx === 0 && cs.lbRowFirst]}>
-                    <View style={[cs.lbRank, {
-                      backgroundColor: idx === 0 ? "#d9770620" : idx === 1 ? "#94a3b820" : idx === 2 ? "#b4511020" : "transparent"
-                    }]}>
-                      <Text style={[cs.lbRankText, {
-                        color: idx === 0 ? "#f59e0b" : idx === 1 ? "#e2e8f0" : idx === 2 ? "#cd7c2f" : "rgba(255,255,255,0.4)"
-                      }]}>
-                        {idx === 0 ? "👑" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={cs.lbName} numberOfLines={1}>
-                        {entry.display_name || entry.handle || "Anonymous"}
-                      </Text>
-                      <Text style={cs.lbMeta} numberOfLines={1}>
-                        {entry.career ?? "No career"} · {entry.country ?? "Unknown"} · Age {entry.current_age}
-                      </Text>
-                    </View>
-                    <Text style={[cs.lbScore, { color: idx < 3 ? "#f59e0b" : "rgba(255,255,255,0.9)" }]}>
-                      {(entry.legacy_score ?? 0).toLocaleString()}
-                    </Text>
-                  </View>
-                ))}
+            ) : leaderboard.slice(0, 15).map((e, i) => (
+              <View key={i} style={[cs.lbRow, i === 0 && { backgroundColor: "rgba(245,158,11,0.07)" }]}>
+                <Text style={[cs.lbRank, { color: i === 0 ? "#f59e0b" : i === 1 ? "#cbd5e1" : i === 2 ? "#cd7c2f" : "rgba(255,255,255,0.3)" }]}>
+                  {i === 0 ? "👑" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={cs.lbName} numberOfLines={1}>{e.display_name || e.handle || "—"}</Text>
+                  <Text style={cs.lbMeta} numberOfLines={1}>{e.career ?? "—"} · {e.country ?? "—"}</Text>
+                </View>
+                <Text style={[cs.lbScore, { color: i < 3 ? "#f59e0b" : "#e2e8f0" }]}>
+                  {(e.legacy_score ?? 0).toLocaleString()}
+                </Text>
               </View>
-            )}
+            ))}
           </View>
         )}
       </View>
@@ -1129,76 +1056,62 @@ export default function LifeSimGame() {
   return (
     <View style={cs.root}>
 
-      {/* ── Header ── */}
-      <LinearGradient
-        colors={[gradient[0] + "dd", gradient[0] + "88", "transparent"]}
-        style={[cs.header, { paddingTop: insets.top + 6 }]}
-      >
-        <View style={cs.headerLeft}>
-          <Text style={cs.headerGame}>LIFE EARTH</Text>
-          <Text style={cs.headerPhase}>{phaseName}</Text>
-        </View>
-        <View style={cs.headerCenter}>
-          <Text style={cs.headerAge}>{gameState.age}</Text>
-          <Text style={cs.headerAgeLabel}>years old</Text>
-        </View>
-        <Pressable style={cs.headerRight} onPress={openLeaderboard}>
-          <Text style={cs.headerScore}>{score.toLocaleString()}</Text>
-          <Text style={cs.headerScoreLabel}>🏆 LEGACY</Text>
+      {/* ── Header bar ── */}
+      <View style={[cs.bar, { paddingTop: insets.top + 8 }]}>
+        <View style={[cs.barDot, { backgroundColor: gradient[0] }]} />
+        <Text style={cs.barPhase}>{phaseName}</Text>
+        <Text style={cs.barAge}>{gameState.age}</Text>
+        <Pressable onPress={openLeaderboard} style={cs.barScore}>
+          <Text style={cs.barScoreText}>🏆 {score.toLocaleString()}</Text>
         </Pressable>
-      </LinearGradient>
-
-      {/* ── Stats Strip ── */}
-      <View style={cs.statsStrip}>
-        <StatPill icon="❤️" value={Math.round(gameState.stats.health)} color="#f87171" />
-        <StatPill icon="📚" value={Math.round(gameState.stats.education)} color="#60a5fa" />
-        <StatPill icon="😊" value={Math.round(gameState.stats.happiness)} color="#fbbf24" />
-        <StatPill icon="💪" value={Math.round(gameState.stats.fitness)} color="#34d399" />
-        <StatPill icon="⭐" value={Math.round(gameState.stats.reputation)} color="#a78bfa" />
-        <StatPill icon="💰" value={fmtWealth(gameState.stats.wealth)} color="#86efac" />
       </View>
 
-      {/* ── Life Progress Bar ── */}
-      <View style={cs.lifeBarContainer}>
-        <View style={[cs.lifeBarFill, {
-          width: `${Math.min(100, (gameState.age / 85) * 100)}%`,
-          backgroundColor: gradient[0],
-        }]} />
+      {/* ── Stats row ── */}
+      <View style={cs.stats}>
+        {[
+          { icon: "❤️", v: Math.round(gameState.stats.health),     c: "#f87171" },
+          { icon: "📚", v: Math.round(gameState.stats.education),   c: "#60a5fa" },
+          { icon: "😊", v: Math.round(gameState.stats.happiness),   c: "#fbbf24" },
+          { icon: "💪", v: Math.round(gameState.stats.fitness),     c: "#34d399" },
+          { icon: "⭐", v: Math.round(gameState.stats.reputation),  c: "#a78bfa" },
+          { icon: "💰", v: fmtWealth(gameState.stats.wealth),       c: "#86efac" },
+        ].map(s => (
+          <View key={s.icon} style={cs.stat}>
+            <Text style={cs.statIcon}>{s.icon}</Text>
+            <Text style={[cs.statVal, { color: s.c }]}>{s.v}</Text>
+          </View>
+        ))}
       </View>
 
-      {/* ── Narrative Area ── */}
-      <Animated.View style={[cs.narrativeArea, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <View style={[cs.narrativeCard, { borderColor: gradient[0] + "55" }]}>
-          <LinearGradient colors={[gradient[0] + "22", "transparent"]} style={cs.narrativeGrad}>
-            <View style={cs.narrativeTag}>
-              <Text style={[cs.narrativeTagText, { color: gradient[1] }]}>{phaseName} · AGE {gameState.age}</Text>
-            </View>
-            <Text style={cs.narrativeTitle}>{currentScene.title}</Text>
-            <Text style={cs.narrativeBody} numberOfLines={5}>{currentScene.narrative}</Text>
-          </LinearGradient>
-        </View>
+      {/* ── Life bar ── */}
+      <View style={cs.lifeTrack}>
+        <View style={[cs.lifeFill, { width: `${Math.min(100, (gameState.age / 85) * 100)}%`, backgroundColor: gradient[0] }]} />
+      </View>
+
+      {/* ── Situation card ── */}
+      <Animated.View style={[cs.card, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <LinearGradient colors={[gradient[0] + "28", "transparent"]} style={[cs.cardInner, { borderColor: gradient[0] + "44" }]}>
+          <Text style={[cs.cardAge, { color: gradient[1] }]}>AGE {gameState.age}</Text>
+          <Text style={cs.cardTitle}>{currentScene.title}</Text>
+          <Text style={cs.cardBody} numberOfLines={3}>{currentScene.narrative}</Text>
+        </LinearGradient>
       </Animated.View>
 
       {/* ── Choices ── */}
-      <View style={[cs.choicesArea, { paddingBottom: insets.bottom + 12 }]}>
-        <Text style={cs.choicesLabel}>— WHAT DO YOU DO? —</Text>
-        {filteredChoices.slice(0, 4).map((choice, idx) => (
+      <View style={[cs.choices, { paddingBottom: insets.bottom + 10 }]}>
+        {filteredChoices.slice(0, 4).map((c, i) => (
           <Pressable
-            key={idx}
+            key={i}
+            onPress={() => makeChoice(c)}
             style={({ pressed }) => [
-              cs.choiceBtn,
-              choice.risky && cs.choiceBtnRisky,
-              pressed && { opacity: 0.75, transform: [{ scale: 0.98 }] },
+              cs.choice,
+              c.risky && cs.choiceRisky,
+              pressed && { opacity: 0.7 },
             ]}
-            onPress={() => makeChoice(choice)}
           >
-            <Text style={cs.choiceBtnIcon}>{choice.icon}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={cs.choiceBtnLabel} numberOfLines={1}>{choice.label}</Text>
-              <Text style={cs.choiceBtnSub} numberOfLines={1}>{choice.sub}</Text>
-            </View>
-            {choice.risky && <Text style={cs.riskyTag}>RISK</Text>}
-            <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.3)" />
+            <Text style={cs.choiceIcon}>{c.icon}</Text>
+            <Text style={cs.choiceLabel} numberOfLines={1}>{c.label}</Text>
+            {c.risky && <View style={cs.riskDot} />}
           </Pressable>
         ))}
       </View>
@@ -1210,99 +1123,74 @@ export default function LifeSimGame() {
 
 const cs = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#0d1b2a" },
-  loadingText: { fontSize: 14, color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular" },
 
   // Birth
-  birthBg: { flex: 1 },
-  birthInner: { flex: 1, alignItems: "center", paddingHorizontal: 24, gap: 16 },
-  birthGlobe: { fontSize: 64 },
-  birthTitle: { fontSize: 28, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 4 },
-  birthSub: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.55)", letterSpacing: 0.5 },
-  birthCard: { width: "100%", backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 20, overflow: "hidden", borderWidth: 0.5, borderColor: "rgba(255,255,255,0.12)" },
-  birthRow: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
-  birthRowIcon: { fontSize: 28 },
-  birthRowLabel: { fontSize: 9, fontFamily: "Inter_600SemiBold", color: "rgba(255,255,255,0.4)", letterSpacing: 1 },
-  birthRowVal: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff", marginTop: 2 },
-  birthDivider: { height: 0.5, backgroundColor: "rgba(255,255,255,0.1)", marginHorizontal: 16 },
-  birthNote: { backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 14, padding: 14, width: "100%" },
-  birthNoteText: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.6)", lineHeight: 20, textAlign: "center" },
-  beginBtn: { width: "100%", borderRadius: 18, overflow: "hidden" },
-  beginBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, padding: 18 },
-  beginBtnText: { fontSize: 17, fontFamily: "Inter_700Bold", color: "#fff" },
-  birthWarning: { fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.28)", letterSpacing: 0.5 },
+  birthWrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28, gap: 20 },
+  birthGlobe: { fontSize: 56 },
+  birthTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 4 },
+  birthPills: { width: "100%", gap: 8 },
+  birthPill: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 0.5, borderColor: "rgba(255,255,255,0.1)" },
+  birthPillIcon: { fontSize: 24 },
+  birthPillVal: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  beginBtn: { width: "100%", borderRadius: 14, overflow: "hidden" },
+  beginBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
+  beginBtnText: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" },
 
   // Event
-  eventInner: { flex: 1, alignItems: "center", paddingHorizontal: 28, gap: 16, justifyContent: "center" },
-  eventTypePill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20 },
-  eventTypePillText: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 1 },
-  eventIcon: { fontSize: 56 },
-  eventTitle: { fontSize: 24, fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center" },
-  eventBody: { fontSize: 14, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)", textAlign: "center", lineHeight: 22 },
-  eventEffects: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
-  eventEffectPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  eventEffectText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  eventAge: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  eventBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,0.12)", paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, marginTop: 8 },
-  eventBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff" },
+  evRoot: { justifyContent: "center" },
+  evInner: { alignItems: "center", paddingHorizontal: 32, gap: 16 },
+  evIcon: { fontSize: 52 },
+  evTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center" },
+  evEffects: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
+  evChip: { fontSize: 13, fontFamily: "Inter_600SemiBold", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  evBtn: { marginTop: 8, backgroundColor: "rgba(255,255,255,0.1)", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
+  evBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff" },
 
   // Leaderboard
-  lbHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: "rgba(255,255,255,0.1)" },
-  lbHeaderTitle: { fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 0.5 },
-  lbSubheader: { paddingHorizontal: 20, paddingVertical: 10 },
-  lbSubheaderText: { fontSize: 10, fontFamily: "Inter_600SemiBold", color: "rgba(255,255,255,0.35)", letterSpacing: 1 },
-  lbYouRow: { marginHorizontal: 16, marginBottom: 8, backgroundColor: "rgba(59,130,246,0.15)", borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 0.5, borderColor: "rgba(59,130,246,0.35)" },
-  lbYouLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#60a5fa", letterSpacing: 0.5 },
-  lbYouScore: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#60a5fa" },
-  lbYouAge: { fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.5)" },
-  lbRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 12, gap: 12, borderBottomWidth: 0.5, borderBottomColor: "rgba(255,255,255,0.06)" },
-  lbRowFirst: { backgroundColor: "rgba(245,158,11,0.06)" },
-  lbRank: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  lbRankText: { fontSize: 13, fontFamily: "Inter_700Bold" },
-  lbName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#e2e8f0" },
-  lbMeta: { fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)", marginTop: 2 },
-  lbScore: { fontSize: 17, fontFamily: "Inter_700Bold" },
-  lbEmpty: { fontSize: 15, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)", textAlign: "center" },
+  lbTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: "rgba(255,255,255,0.08)" },
+  lbTitle: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 0.5 },
+  lbYou: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginVertical: 8, backgroundColor: "rgba(59,130,246,0.12)", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 0.5, borderColor: "rgba(59,130,246,0.3)" },
+  lbYouLabel: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#60a5fa", letterSpacing: 0.5, flex: 1 },
+  lbYouScore: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#60a5fa" },
+  lbYouAge: { fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)" },
+  lbRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingVertical: 10, gap: 10, borderBottomWidth: 0.5, borderBottomColor: "rgba(255,255,255,0.05)" },
+  lbRank: { width: 28, fontSize: 12, fontFamily: "Inter_700Bold", textAlign: "center" },
+  lbName: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#e2e8f0" },
+  lbMeta: { fontSize: 10, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.35)", marginTop: 1 },
+  lbScore: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  lbEmpty: { fontSize: 14, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.35)" },
 
-  // Game header
-  header: { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 16, paddingBottom: 10, gap: 8 },
-  headerLeft: { flex: 1 },
-  headerGame: { fontSize: 11, fontFamily: "Inter_700Bold", color: "rgba(255,255,255,0.9)", letterSpacing: 2 },
-  headerPhase: { fontSize: 9, fontFamily: "Inter_600SemiBold", color: "rgba(255,255,255,0.45)", letterSpacing: 1, marginTop: 2 },
-  headerCenter: { alignItems: "center" },
-  headerAge: { fontSize: 28, fontFamily: "Inter_700Bold", color: "#fff", lineHeight: 32 },
-  headerAgeLabel: { fontSize: 9, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.45)", letterSpacing: 0.5 },
-  headerRight: { flex: 1, alignItems: "flex-end" },
-  headerScore: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fbbf24" },
-  headerScoreLabel: { fontSize: 9, fontFamily: "Inter_600SemiBold", color: "rgba(255,255,255,0.4)", letterSpacing: 1, marginTop: 2 },
+  // Game bar
+  bar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingBottom: 8, gap: 6 },
+  barDot: { width: 8, height: 8, borderRadius: 4 },
+  barPhase: { fontSize: 10, fontFamily: "Inter_600SemiBold", color: "rgba(255,255,255,0.45)", letterSpacing: 1, flex: 1 },
+  barAge: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff" },
+  barScore: { flex: 1, alignItems: "flex-end" },
+  barScoreText: { fontSize: 12, fontFamily: "Inter_700Bold", color: "#fbbf24" },
 
-  // Stats strip
-  statsStrip: { flexDirection: "row", paddingHorizontal: 12, paddingVertical: 6, gap: 6, backgroundColor: "rgba(0,0,0,0.3)" },
-  statPill: { flex: 1, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 4, borderWidth: 0.5 },
-  statPillIcon: { fontSize: 9 },
-  statPillVal: { fontSize: 10, fontFamily: "Inter_700Bold", flexShrink: 1 },
-  miniBarTrack: { height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.1)", flex: 1 },
-  miniBarFill: { height: 3, borderRadius: 2 },
+  // Stats
+  stats: { flexDirection: "row", paddingHorizontal: 10, paddingBottom: 6, gap: 4 },
+  stat: { flex: 1, alignItems: "center", gap: 1 },
+  statIcon: { fontSize: 10 },
+  statVal: { fontSize: 10, fontFamily: "Inter_700Bold" },
 
   // Life bar
-  lifeBarContainer: { height: 3, backgroundColor: "rgba(255,255,255,0.08)" },
-  lifeBarFill: { height: 3, borderRadius: 2 },
+  lifeTrack: { height: 2, backgroundColor: "rgba(255,255,255,0.06)", marginBottom: 10 },
+  lifeFill: { height: 2 },
 
-  // Narrative
-  narrativeArea: { flex: 1, paddingHorizontal: 14, paddingVertical: 12, justifyContent: "center" },
-  narrativeCard: { borderRadius: 20, borderWidth: 1, overflow: "hidden" },
-  narrativeGrad: { padding: 18, gap: 10 },
-  narrativeTag: { flexDirection: "row", alignItems: "center" },
-  narrativeTagText: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 1.5 },
-  narrativeTitle: { fontSize: 19, fontFamily: "Inter_700Bold", color: "#f1f5f9", lineHeight: 25 },
-  narrativeBody: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(241,245,249,0.7)", lineHeight: 21 },
+  // Situation card
+  card: { flex: 1, paddingHorizontal: 14, justifyContent: "center" },
+  cardInner: { borderRadius: 18, borderWidth: 1, padding: 16, gap: 8 },
+  cardAge: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 2 },
+  cardTitle: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#f1f5f9", lineHeight: 24 },
+  cardBody: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(241,245,249,0.65)", lineHeight: 20 },
 
   // Choices
-  choicesArea: { paddingHorizontal: 14, gap: 8 },
-  choicesLabel: { fontSize: 9, fontFamily: "Inter_700Bold", color: "rgba(255,255,255,0.25)", letterSpacing: 2, textAlign: "center", marginBottom: 2 },
-  choiceBtn: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 0.5, borderColor: "rgba(255,255,255,0.12)" },
-  choiceBtnRisky: { borderColor: "rgba(239,68,68,0.45)", backgroundColor: "rgba(239,68,68,0.08)" },
-  choiceBtnIcon: { fontSize: 22 },
-  choiceBtnLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#f1f5f9" },
-  choiceBtnSub: { fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(241,245,249,0.45)", marginTop: 1 },
-  riskyTag: { fontSize: 8, fontFamily: "Inter_700Bold", color: "#f87171", letterSpacing: 0.5, backgroundColor: "rgba(239,68,68,0.2)", paddingHorizontal: 5, paddingVertical: 2, borderRadius: 5 },
+  choices: { paddingHorizontal: 14, gap: 7 },
+  choice: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 0.5, borderColor: "rgba(255,255,255,0.1)" },
+  choiceRisky: { borderColor: "rgba(239,68,68,0.4)", backgroundColor: "rgba(239,68,68,0.07)" },
+  choiceIcon: { fontSize: 20 },
+  choiceLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#f1f5f9" },
+  riskDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#f87171" },
+
 });
