@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -29,7 +29,14 @@ const PURPLE = "#5856D6";
 
 export default function CreateChannelScreen() {
   const { colors } = useTheme();
-  const { user, subscription } = useAuth();
+  const { user, subscription, profile } = useAuth();
+
+  useEffect(() => {
+    if (profile !== undefined && !profile?.is_admin) {
+      showAlert("Permission denied", "Only admins can create channels.");
+      router.back();
+    }
+  }, [profile]);
 
   const [channelName, setChannelName] = useState("");
   const [description, setDescription] = useState("");

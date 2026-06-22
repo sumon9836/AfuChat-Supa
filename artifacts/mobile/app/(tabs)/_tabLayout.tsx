@@ -22,21 +22,31 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { TabSwipeProvider } from "@/context/TabSwipeContext";
 import { getLocalConversations } from "@/lib/storage/localConversations";
 import { supabase } from "@/lib/supabase";
-import { emitShortsRefresh } from "@/lib/shortsRefresh";
 import { getTotalUnread, subscribeUnread } from "@/lib/chatUnreadEvents";
 
-const TABS = [
-  { route: "/(tabs)/chats",    label: "Chats",   mdOn: "chatbubbles",   mdOff: "chatbubbles-outline"   },
-  { route: "/(tabs)/discover", label: "Discover", mdOn: "compass",       mdOff: "compass-outline"       },
-  { route: "/(tabs)/shorts",   label: "Shorts",   mdOn: "play-circle",   mdOff: "play-circle-outline"   },
-  { route: "/(tabs)/apps",     label: "Apps",     mdOn: "grid",          mdOff: "grid-outline"          },
-  { route: "/(tabs)/me",       label: "Profile",  mdOn: "person",        mdOff: "person-outline"        },
-] as const;
+type TabDef = {
+  route: string;
+  label: string;
+  mdOn: string;
+  mdOff: string;
+};
+
+const TABS_BASE: TabDef[] = [
+  { route: "/(tabs)/chats",    label: "Chats",   mdOn: "chatbubbles",  mdOff: "chatbubbles-outline"  },
+  { route: "/(tabs)/discover", label: "People",  mdOn: "people",       mdOff: "people-outline"       },
+  { route: "/(tabs)/me",       label: "Profile", mdOn: "person",       mdOff: "person-outline"       },
+];
+
+const TABS_ADMIN: TabDef[] = [
+  { route: "/(tabs)/chats",    label: "Chats",   mdOn: "chatbubbles",  mdOff: "chatbubbles-outline"  },
+  { route: "/(tabs)/discover", label: "People",  mdOn: "people",       mdOff: "people-outline"       },
+  { route: "/(tabs)/apps",     label: "Admin",   mdOn: "shield",       mdOff: "shield-outline"       },
+  { route: "/(tabs)/me",       label: "Profile", mdOn: "person",       mdOff: "person-outline"       },
+];
 
 function normalizeTabPath(p: string): string {
   if (p === "/" || p === "/(tabs)" || p === "/(tabs)/index" || p === "/chats" || p === "/(tabs)/chats") return "/(tabs)/chats";
   if (p === "/discover"  || p === "/(tabs)/discover")  return "/(tabs)/discover";
-  if (p === "/shorts"    || p === "/(tabs)/shorts")    return "/(tabs)/shorts";
   if (p === "/apps"      || p === "/(tabs)/apps")      return "/(tabs)/apps";
   if (p === "/me"        || p === "/(tabs)/me")        return "/(tabs)/me";
   return p;
@@ -69,24 +79,24 @@ function useTotalUnread(userId: string | undefined): number {
   return total;
 }
 
-// ── Compact floating tab bar ──────────────────────────────────────────────────
 function CompactTabBar({
   userId,
   avatarUrl,
+  isAdmin,
 }: {
   userId: string | undefined;
   avatarUrl: string | null | undefined;
+  isAdmin: boolean;
 }) {
-  const pathname        = usePathname();
-  const insets          = useSafeAreaInsets();
+  const pathname     = usePathname();
+  const insets       = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
-  const totalUnread     = useTotalUnread(userId);
-  const active          = normalizeTabPath(pathname);
-  const isAndroid       = Platform.OS === "android";
+  const totalUnread  = useTotalUnread(userId);
+  const active       = normalizeTabPath(pathname);
+  const isAndroid    = Platform.OS === "android";
 
-  const lastShortsTapRef = useRef<number>(0);
+  const TABS = isAdmin ? TABS_ADMIN : TABS_BASE;
 
-  // ── Pill position — instant, no animation ────────────────────────────────────
   const ITEM_W  = 64;
   const PILL_W  = 56;
   const PILL_H  = 32;
@@ -98,30 +108,15 @@ function CompactTabBar({
     const idx = TABS.findIndex(t => t.route === active);
     if (idx === -1) return;
     pillX.setValue(idx * ITEM_W);
-  }, [active]);
+  }, [active, TABS]);
 
-  const bottomPos = Math.max(insets.bottom, 4) + 6;
-
+  const bottomPos  = Math.max(insets.bottom, 4) + 6;
   const barBg      = isDark ? "rgba(38,38,44,0.96)" : "rgba(255,255,255,0.97)";
   const borderColor = isDark ? "rgba(58,58,64,1)"   : "rgba(221,215,201,1)";
+  const shadow     = isDark ? { elevation: 20 } : { elevation: 12 };
+  const ripple     = { color: colors.accent + "22", borderless: false } as const;
 
-  const shadow = isDark
-    ? { elevation: 20 }
-    : { elevation: 12 };
-
-  const ripple = { color: colors.accent + "22", borderless: false } as const;
-
-  function handleTabPress(route: typeof TABS[number]["route"]) {
-    if (route === "/(tabs)/shorts" && active === "/(tabs)/shorts") {
-      const now = Date.now();
-      if (now - lastShortsTapRef.current < 400) {
-        emitShortsRefresh();
-        lastShortsTapRef.current = 0;
-        return;
-      }
-      lastShortsTapRef.current = now;
-    }
-
+  function handleTabPress(route: string) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     safeRouter.navigate(route as any);
   }
@@ -129,7 +124,6 @@ function CompactTabBar({
   return (
     <View style={[bar.container, { bottom: bottomPos, pointerEvents: "box-none" }]}>
       <View style={[bar.pill, shadow, { backgroundColor: barBg, borderColor }]}>
-        {/* Accent highlight — jumps instantly to active tab */}
         <Animated.View
           style={[
             bar.highlight,
@@ -292,7 +286,7 @@ const bar = StyleSheet.create({
   },
 });
 
-function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
+function ClassicTabLayout({ isLoggedIn, isAdmin }: { isLoggedIn: boolean; isAdmin: boolean }) {
   return (
     <Tabs
       screenOptions={{
@@ -310,15 +304,15 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
         tabBarBackground: () => null,
       }}
     >
-      <Tabs.Screen name="index"         options={{ href: null }} />
-      <Tabs.Screen name="chats"         options={{ href: isLoggedIn ? undefined : null }} />
-      <Tabs.Screen name="discover"      options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
-      <Tabs.Screen name="shorts"        options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
-      <Tabs.Screen name="search"        options={{ href: null }} />
-      <Tabs.Screen name="contacts"      options={{ href: null }} />
-      <Tabs.Screen name="communities"   options={{ href: null }} />
-      <Tabs.Screen name="apps"          options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
-      <Tabs.Screen name="me"            options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
+      <Tabs.Screen name="index"       options={{ href: null }} />
+      <Tabs.Screen name="chats"       options={{ href: isLoggedIn ? undefined : null }} />
+      <Tabs.Screen name="discover"    options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
+      <Tabs.Screen name="shorts"      options={{ href: null }} />
+      <Tabs.Screen name="search"      options={{ href: null }} />
+      <Tabs.Screen name="contacts"    options={{ href: null }} />
+      <Tabs.Screen name="communities" options={{ href: null }} />
+      <Tabs.Screen name="apps"        options={{ href: isLoggedIn && isAdmin ? undefined : null, lazy: true }} />
+      <Tabs.Screen name="me"          options={{ href: isLoggedIn ? undefined : null, lazy: true }} />
     </Tabs>
   );
 }
@@ -326,7 +320,8 @@ function ClassicTabLayout({ isLoggedIn }: { isLoggedIn: boolean }) {
 export default function TabLayout() {
   const { session, profile, loading, user } = useAuth();
   const { isDesktop } = useIsDesktop();
-  const isLoggedIn     = !!session || !!user;
+  const isLoggedIn = !!session || !!user;
+  const isAdmin    = !!profile?.is_admin;
   const prevSessionRef = useRef<Session | null>(null);
 
   useEffect(() => {
@@ -338,8 +333,6 @@ export default function TabLayout() {
     prevSessionRef.current = session;
   }, [session, user, loading]);
 
-  // Guard: if a logged-in user somehow reaches the tabs without completing
-  // onboarding, push them back to the onboarding flow.
   useEffect(() => {
     if (loading) return;
     if (!session || !user) return;
@@ -352,12 +345,13 @@ export default function TabLayout() {
   return (
     <TabSwipeProvider>
       <View style={{ flex: 1 }}>
-        <ClassicTabLayout isLoggedIn={isLoggedIn} />
+        <ClassicTabLayout isLoggedIn={isLoggedIn} isAdmin={isAdmin} />
 
         {isLoggedIn && !isDesktop && (
           <CompactTabBar
             userId={user?.id}
             avatarUrl={profile?.avatar_url}
+            isAdmin={isAdmin}
           />
         )}
 

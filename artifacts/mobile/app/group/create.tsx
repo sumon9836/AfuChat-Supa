@@ -36,8 +36,15 @@ type FollowedUser = {
 
 export default function CreateGroupScreen() {
   const { colors } = useTheme();
-  const { user, subscription } = useAuth();
+  const { user, subscription, profile } = useAuth();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (profile !== undefined && !profile?.is_admin) {
+      showAlert("Permission denied", "Only admins can create groups.");
+      router.back();
+    }
+  }, [profile]);
   const [groupName, setGroupName] = useState("");
   const [followedUsers, setFollowedUsers] = useState<FollowedUser[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());

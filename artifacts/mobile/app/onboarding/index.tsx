@@ -461,6 +461,27 @@ export default function OnboardingScreen() {
       return;
     }
 
+    // ── Auto-join all admin-created groups ──────────────────────────────────
+    try {
+      const { data: allGroups } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("is_group", true);
+      if (allGroups && allGroups.length > 0) {
+        const memberships = allGroups.map((g: { id: string }) => ({
+          conversation_id: g.id,
+          user_id: userId,
+          is_admin: false,
+          joined_at: new Date().toISOString(),
+        }));
+        await supabase
+          .from("conversation_members")
+          .upsert(memberships, { onConflict: "conversation_id,user_id", ignoreDuplicates: true });
+      }
+    } catch (joinErr) {
+      console.warn("[onboarding] auto-join groups error:", joinErr);
+    }
+
     try {
       const stored = await AsyncStorage.getItem("referrer_handle");
       if (stored) await AsyncStorage.removeItem("referrer_handle");
