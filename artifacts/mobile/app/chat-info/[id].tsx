@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { Avatar } from "@/components/ui/Avatar";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import Colors from "@/constants/colors";
 
@@ -43,6 +44,8 @@ type ChatMeta = {
   other_id: string | null;
   other_name: string | null;
   other_avatar: string | null;
+  other_is_verified: boolean;
+  other_is_organization_verified: boolean;
 };
 
 export default function ChatInfoScreen() {
@@ -87,7 +90,7 @@ export default function ChatInfoScreen() {
     const [chatRes, muteRes, disappearOn, disappearTimer] = await Promise.all([
       supabase
         .from("conversations")
-        .select("is_group, is_channel, name, avatar_url, chat_members!inner(user_id, profiles(display_name, avatar_url, id))")
+        .select("is_group, is_channel, name, avatar_url, chat_members!inner(user_id, profiles(display_name, avatar_url, id, is_verified, is_organization_verified))")
         .eq("id", id).single(),
       supabase.from("chat_mutes").select("muted_until")
         .eq("user_id", user.id).eq("chat_id", id).maybeSingle(),
@@ -105,6 +108,8 @@ export default function ChatInfoScreen() {
         name: c.name ?? "Chat", avatar_url: c.avatar_url ?? null,
         other_id: op?.id ?? null, other_name: op?.display_name ?? null,
         other_avatar: op?.avatar_url ?? null,
+        other_is_verified: !!op?.is_verified,
+        other_is_organization_verified: !!op?.is_organization_verified,
       });
     }
     if (muteRes.data) setMuteUntil(muteRes.data.muted_until ?? null);
@@ -181,9 +186,18 @@ export default function ChatInfoScreen() {
       >
         {/* ── Profile banner ── */}
         <View style={[s.banner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Avatar uri={avatarUri} name={displayName} size={56} />
+          <Avatar uri={avatarUri} name={displayName} size={56} square={!!(meta?.other_is_organization_verified)} />
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[s.bannerName, { color: colors.text }]} numberOfLines={1}>{displayName}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+              <Text style={[s.bannerName, { color: colors.text }]} numberOfLines={1}>{displayName}</Text>
+              {(meta?.other_is_verified || meta?.other_is_organization_verified) && (
+                <VerifiedBadge
+                  isVerified={meta.other_is_verified}
+                  isOrganizationVerified={meta.other_is_organization_verified}
+                  size={16}
+                />
+              )}
+            </View>
             <Text style={[s.bannerSub, { color: colors.textMuted }]}>
               {isChannel ? "Channel" : isGroup ? "Group" : "Direct Message"}
             </Text>
