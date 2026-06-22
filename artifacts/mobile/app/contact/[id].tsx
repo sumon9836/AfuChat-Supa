@@ -750,7 +750,13 @@ export default function ContactScreen() {
           )}
           {!!profile.website_url && (
             <TouchableOpacity style={[s.metaChip, { backgroundColor: accent + "18" }]}
-              onPress={() => Linking.openURL(profile.website_url!).catch(() => {})} activeOpacity={0.75}>
+              onPress={() => {
+                const url = /^https?:\/\//i.test(profile.website_url!)
+                  ? profile.website_url!
+                  : `https://${profile.website_url!}`;
+                Linking.openURL(url).catch(() => {});
+              }}
+              activeOpacity={0.75}>
               <Ionicons name="link-outline" size={11} color={accent} />
               <Text style={[s.metaChipText, { color: accent }]} numberOfLines={1}>
                 {profile.website_url.replace(/^https?:\/\//, "")}
@@ -1147,8 +1153,8 @@ const s = StyleSheet.create({
   // Prestige pill + inline action icons (same row, fills full width of identityLeft)
   pillActionRow: {
     flexDirection: "row", alignItems: "center",
-    justifyContent: "space-evenly",
-    width: "100%",
+    flexWrap: "wrap",
+    gap: 7,
   },
   pillIconBtn: {
     width: 36, height: 36, borderRadius: 18,
