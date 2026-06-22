@@ -1679,8 +1679,8 @@ function ChatScreen() {
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  // Start without a loading spinner — messages are shown from local cache immediately.
-  const [loading, setLoading] = useState(false);
+  // Show skeleton immediately on open; setLoading(false) is called once messages are ready.
+  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const imgViewer = useImageViewer();
   const [realChatId, setRealChatId] = useState<string | null>(null);
