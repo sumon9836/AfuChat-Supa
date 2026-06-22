@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "CI= EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_REPL_ID=$REPL_ID REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN pnpm exec expo start --localhost --port $PORT --offline",
     "build": "node scripts/build.js",
+    "build:web": "EXPO_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-$EXPO_PUBLIC_SUPABASE_URL} EXPO_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-$EXPO_PUBLIC_SUPABASE_ANON_KEY} EXPO_PUBLIC_DOMAIN=${NEXT_PUBLIC_DOMAIN:-${VERCEL_URL:-}} EXPO_NO_DOTENV=1 expo export --platform web --output-dir dist --clear",
     "build:apk": "bash scripts/eas-build.sh",
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
