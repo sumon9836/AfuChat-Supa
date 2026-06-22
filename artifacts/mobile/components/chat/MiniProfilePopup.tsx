@@ -26,6 +26,7 @@ type MiniProfile = {
   display_name: string;
   handle: string;
   avatar_url: string | null;
+  banner_url: string | null;
   bio: string | null;
   is_verified: boolean;
   is_organization_verified: boolean;
@@ -102,7 +103,7 @@ export default function MiniProfilePopup({ userId, visible, onClose, currentChat
     Promise.all([
       supabase
         .from("profiles")
-        .select("id, display_name, handle, avatar_url, bio, is_verified, is_organization_verified, is_business_mode, last_seen, show_online_status, website_url, country, xp")
+        .select("id, display_name, handle, avatar_url, banner_url, bio, is_verified, is_organization_verified, is_business_mode, last_seen, show_online_status, website_url, country, xp")
         .eq("id", userId)
         .single(),
       supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
@@ -172,7 +173,16 @@ export default function MiniProfilePopup({ userId, visible, onClose, currentChat
         ) : !profile ? null : (
           <>
             {/* ── Cover / Avatar area ──────────────────────── */}
-            <View style={[styles.coverArea, { backgroundColor: accent + "18" }]}>
+            <View style={styles.coverArea}>
+              {profile.banner_url ? (
+                <Image
+                  source={{ uri: profile.banner_url }}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: accent + "30" }]} />
+              )}
               <View style={styles.avatarWrap}>
                 <Avatar
                   uri={profile.avatar_url}
@@ -318,10 +328,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   coverArea: {
-    height: 72,
+    height: 120,
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingBottom: 0,
+    overflow: "hidden",
   },
   avatarWrap: {
     position: "relative",
