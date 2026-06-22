@@ -95,40 +95,10 @@ export default function ChatDangerScreen() {
 
   function handleReport() {
     if (!user || !otherId) return;
-    showAlert(
-      "Report User",
-      `Why are you reporting ${name}?`,
-      [
-        {
-          text: "Spam",
-          onPress: async () => {
-            await supabase.from("user_reports").insert({
-              reporter_id: user.id, reported_id: otherId, reason: "spam",
-            });
-            showAlert("Reported", "Thank you. We'll review this report.");
-          },
-        },
-        {
-          text: "Harassment",
-          onPress: async () => {
-            await supabase.from("user_reports").insert({
-              reporter_id: user.id, reported_id: otherId, reason: "harassment",
-            });
-            showAlert("Reported", "Thank you. We'll review this report.");
-          },
-        },
-        {
-          text: "Inappropriate Content",
-          onPress: async () => {
-            await supabase.from("user_reports").insert({
-              reporter_id: user.id, reported_id: otherId, reason: "inappropriate",
-            });
-            showAlert("Reported", "Thank you. We'll review this report.");
-          },
-        },
-        { text: "Cancel", style: "cancel" },
-      ],
-    );
+    router.push({
+      pathname: "/report/[userId]",
+      params: { userId: otherId, displayName: name },
+    } as any);
   }
 
   function handleClearChat() {
