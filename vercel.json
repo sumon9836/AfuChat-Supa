@@ -1,6 +1,6 @@
 {
   "installCommand": "pnpm install",
-  "buildCommand": "bash scripts/build-web.sh",
+  "buildCommand": "cd artifacts/mobile && export EXPO_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-$EXPO_PUBLIC_SUPABASE_URL} && export EXPO_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-$EXPO_PUBLIC_SUPABASE_ANON_KEY} && export EXPO_PUBLIC_DOMAIN=${NEXT_PUBLIC_DOMAIN:-${VERCEL_URL:-}} && EXPO_NO_DOTENV=1 node_modules/.bin/expo export --platform web --output-dir dist --clear",
   "outputDirectory": "artifacts/mobile/dist",
   "framework": null,
   "rewrites": [
