@@ -26,6 +26,7 @@ import { ProfileNotFoundView } from "@/app/profile-not-found";
 import { ProfilePrivateView } from "@/app/profile-private";
 import { ContactProfileSkeleton } from "@/components/ui/Skeleton";
 import { getProfileCache, setProfileCache } from "@/lib/profileCache";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { showAlert } from "@/lib/alert";
 import { showToast } from "@/lib/toast";
 import * as Haptics from "@/lib/haptics";
@@ -143,8 +144,10 @@ export default function ContactScreen() {
   const [theyFollowMe,  setTheyFollowMe]  = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [aliases,       setAliases]       = useState<string[]>([]);
-  const [mutuals,       setMutuals]       = useState<MutualUser[]>([]);
-  const [mutualTotal,   setMutualTotal]   = useState(0);
+  const [mutuals,         setMutuals]         = useState<MutualUser[]>([]);
+  const [mutualTotal,     setMutualTotal]     = useState(0);
+  const [mutualDismissed, setMutualDismissed] = useState(false);
+  const [mutualExpanded,  setMutualExpanded]  = useState(false);
   const [allGridPosts,  setAllGridPosts]  = useState<GridPost[]>([]);
   const [gridLoading,   setGridLoading]   = useState(false);
   const [activeTab,         setActiveTab]         = useState<TabId>("posts");
@@ -182,7 +185,11 @@ export default function ContactScreen() {
   // ── Load aliases + mutuals ────────────────────────────────────────────────
   useEffect(() => {
     if (!id || loading) return;
+    setMutualExpanded(false);
     (async () => {
+      const dismissed = await AsyncStorage.getItem(`afu_mutuals_dismissed_${id}`).catch(() => null);
+      setMutualDismissed(dismissed === "1");
+
       const { data: aliasData } = await supabase.from("owned_usernames")
         .select("handle").eq("owner_id", id).limit(8);
       setAliases((aliasData ?? []).map((a: any) => a.handle).filter((h: string) => h !== profile?.handle));
@@ -191,12 +198,16 @@ export default function ContactScreen() {
         const myIds = (myFlwData ?? []).map((f: any) => f.following_id);
         if (myIds.length > 0) {
           const { data: mData } = await supabase.from("follows")
-            .select("follower_id, profiles!follows_follower_id_fkey(id,handle,avatar_url)")
-            .eq("following_id", id).in("follower_id", myIds).limit(4);
+            .select("follower_id, profiles!follows_follower_id_fkey(id,handle,avatar_url,display_name)")
+            .eq("following_id", id).in("follower_id", myIds).limit(10);
           const list: MutualUser[] = (mData ?? []).map((m: any) => ({
-            id: m.follower_id, handle: m.profiles?.handle ?? "", avatar_url: m.profiles?.avatar_url ?? null,
+            id: m.follower_id,
+            handle: m.profiles?.handle ?? "",
+            avatar_url: m.profiles?.avatar_url ?? null,
+            display_name: m.profiles?.display_name ?? null,
           })).filter((m: MutualUser) => m.handle);
-          setMutuals(list.slice(0, 3)); setMutualTotal(list.length);
+          setMutuals(list);
+          setMutualTotal(list.length);
         }
       }
     })().catch(() => {});
@@ -781,29 +792,92 @@ export default function ContactScreen() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════ */}
-        {/* MUTUAL FOLLOWERS — social proof card                          */}
+        {/* MUTUAL FOLLOWERS — advanced social-proof card                 */}
         {/* ══════════════════════════════════════════════════════════════ */}
-        {!isSelf && mutuals.length > 0 && (
-          <TouchableOpacity
-            style={[s.mutualsRow, { backgroundColor: colors.background, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]}
-            onPress={() => router.push({ pathname: "/followers", params: { userId: id, type: "followers", ownerHandle: profile.handle } } as any)}
-            activeOpacity={0.8}>
-            <View style={s.mutualsAvatars}>
-              {mutuals.map((m, i) => (
-                <View key={m.id} style={[s.mutualAvatar, { marginLeft: i > 0 ? -8 : 0, zIndex: 10 - i }]}>
-                  <Avatar uri={m.avatar_url} name={m.handle} size={24} />
-                </View>
-              ))}
+        {!isSelf && mutuals.length > 0 && !mutualDismissed && (
+          <View style={[s.mutualsCard, {
+            backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+            borderColor: isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)",
+          }]}>
+            {/* ── Header row ── */}
+            <View style={s.mutualsHeader}>
+              {/* Stacked avatars */}
+              <View style={s.mutualsAvatars}>
+                {mutuals.slice(0, 5).map((m, i) => (
+                  <View key={m.id} style={[s.mutualAvatar, { marginLeft: i > 0 ? -10 : 0, zIndex: 10 - i }]}>
+                    <Avatar uri={m.avatar_url} name={m.handle} size={28} />
+                  </View>
+                ))}
+                {mutualTotal > 5 && (
+                  <View style={[s.mutualMoreBadge, { backgroundColor: accent, marginLeft: -10, zIndex: 0 }]}>
+                    <Text style={s.mutualMoreText}>+{mutualTotal - 5}</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Label */}
+              <View style={{ flex: 1, paddingLeft: 10 }}>
+                <Text style={[s.mutualsTitle, { color: colors.text }]} numberOfLines={2}>
+                  {(() => {
+                    const names = mutuals.slice(0, 2).map(m => `@${m.handle}`);
+                    if (mutualTotal === 1) return names[0];
+                    if (mutualTotal === 2) return `${names[0]} & ${names[1]}`;
+                    return `${names.join(", ")} & ${mutualTotal - 2} more`;
+                  })()}
+                </Text>
+                <Text style={[s.mutualsSubtitle, { color: colors.textMuted }]}>
+                  {mutualTotal === 1 ? "follows this person too" : `follow this person`}
+                </Text>
+              </View>
+
+              {/* Controls */}
+              <View style={s.mutualsControls}>
+                <TouchableOpacity
+                  style={[s.mutualsExpandBtn, { backgroundColor: accent + "18" }]}
+                  onPress={() => setMutualExpanded(v => !v)}
+                  activeOpacity={0.7}>
+                  <Ionicons name={mutualExpanded ? "chevron-up" : "chevron-down"} size={13} color={accent} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.mutualsDismissBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }]}
+                  onPress={async () => {
+                    setMutualDismissed(true);
+                    await AsyncStorage.setItem(`afu_mutuals_dismissed_${id}`, "1");
+                  }}
+                  activeOpacity={0.7}>
+                  <Ionicons name="close" size={13} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[s.mutualsLabel, { color: colors.textMuted }]}>Followed by</Text>
-              <Text style={[s.mutualsText, { color: colors.text }]} numberOfLines={1}>
-                {mutuals.slice(0, 2).map(m => `@${m.handle}`).join(", ")}
-                {mutualTotal > 2 ? ` +${mutualTotal - 2} more` : ""}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
-          </TouchableOpacity>
+
+            {/* ── Expanded list ── */}
+            {mutualExpanded && (
+              <View style={[s.mutualsExpanded, { borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]}>
+                {mutuals.map((m) => (
+                  <TouchableOpacity
+                    key={m.id}
+                    style={s.mutualRow}
+                    onPress={() => router.push({ pathname: "/contact/[id]", params: { id: m.id } })}
+                    activeOpacity={0.7}>
+                    <Avatar uri={m.avatar_url} name={m.handle} size={34} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.mutualRowName, { color: colors.text }]} numberOfLines={1}>
+                        {(m as any).display_name || `@${m.handle}`}
+                      </Text>
+                      <Text style={[s.mutualRowHandle, { color: colors.textMuted }]}>@{m.handle}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={13} color={colors.textMuted} />
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={[s.mutualSeeAll, { borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]}
+                  onPress={() => router.push({ pathname: "/followers", params: { userId: id, type: "followers", ownerHandle: profile.handle } } as any)}
+                  activeOpacity={0.7}>
+                  <Text style={[s.mutualSeeAllText, { color: accent }]}>See all followers →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         )}
 
 
@@ -1139,16 +1213,51 @@ const s = StyleSheet.create({
   },
   metaBodyText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
 
-  // Mutual followers card — elevated
-  mutualsRow: {
+  // ── Mutual followers — advanced card ───────────────────────────────────────
+  mutualsCard: {
+    marginHorizontal: 16, marginBottom: 10,
+    borderRadius: 16, borderWidth: 1,
+    overflow: "hidden",
+  },
+  mutualsHeader: {
     flexDirection: "row", alignItems: "center",
-    gap: 10, marginHorizontal: 16, marginBottom: 8,
-    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,
+    paddingHorizontal: 14, paddingVertical: 12,
+    gap: 2,
   },
   mutualsAvatars: { flexDirection: "row", alignItems: "center" },
-  mutualAvatar: { borderRadius: 12, overflow: "hidden" },
-  mutualsLabel: { fontSize: 10.5, fontFamily: "Inter_400Regular", marginBottom: 1 },
-  mutualsText: { fontSize: 12.5, fontFamily: "Inter_500Medium" },
+  mutualAvatar: { borderRadius: 14, overflow: "hidden" },
+  mutualMoreBadge: {
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: "center", justifyContent: "center",
+    zIndex: 0,
+  },
+  mutualMoreText: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#fff" },
+  mutualsTitle: { fontSize: 13, fontFamily: "Inter_600SemiBold", lineHeight: 17 },
+  mutualsSubtitle: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
+  mutualsControls: { flexDirection: "row", alignItems: "center", gap: 6, marginLeft: 6 },
+  mutualsExpandBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: "center", justifyContent: "center",
+  },
+  mutualsDismissBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: "center", justifyContent: "center",
+  },
+  mutualsExpanded: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  mutualRow: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 14, paddingVertical: 10, gap: 10,
+  },
+  mutualRowName: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  mutualRowHandle: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  mutualSeeAll: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14, paddingVertical: 11,
+    alignItems: "center",
+  },
+  mutualSeeAllText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
   // Prestige pill + inline action icons (same row, fills full width of identityLeft)
   pillActionRow: {
