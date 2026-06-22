@@ -1223,17 +1223,21 @@ export default function LifeSimGame() {
             colors={[gradient[0] + "30", gradient[0] + "08"]}
             style={cs.situationCardGrad}
           >
-            <Text style={[cs.situationTag, { color: gradient[1] }]}>
-              {phaseName.toUpperCase()} · AGE {gameState.age}
-            </Text>
+            <View style={cs.situationMeta}>
+              <View style={[cs.situationAgePill, { backgroundColor: gradient[0] + "40", borderColor: gradient[1] + "50" }]}>
+                <Text style={[cs.situationAgeText, { color: gradient[1] }]}>AGE {gameState.age}</Text>
+              </View>
+              <Text style={[cs.situationPhaseText, { color: gradient[1] + "aa" }]}>{phaseName.toUpperCase()}</Text>
+            </View>
             <Text style={cs.situationTitle}>{currentScene.title}</Text>
-            <Text style={cs.situationBody} numberOfLines={3}>{currentScene.narrative}</Text>
+            <Text style={cs.situationBody}>{currentScene.narrative}</Text>
           </LinearGradient>
         </View>
       </Animated.View>
 
-      {/* ── Choice buttons ── */}
-      <View style={[cs.choicesWrap, { paddingBottom: insets.bottom + 10 }]}>
+      {/* ── Choice cards ── */}
+      <View style={[cs.choicesWrap, { paddingBottom: insets.bottom + 12 }]}>
+        <Text style={cs.choicesHeading}>WHAT DO YOU DO?</Text>
         {filteredChoices.slice(0, 4).map((c, i) => (
           <Pressable
             key={i}
@@ -1241,17 +1245,29 @@ export default function LifeSimGame() {
             style={({ pressed }) => [
               cs.choiceBtn,
               c.risky && cs.choiceBtnRisky,
-              { transform: [{ scale: pressed ? 0.975 : 1 }], opacity: pressed ? 0.85 : 1 },
+              { transform: [{ scale: pressed ? 0.975 : 1 }], opacity: pressed ? 0.82 : 1 },
             ]}
           >
-            <View style={[cs.choiceBtnIconWrap, { backgroundColor: c.risky ? "#ef444420" : gradient[0] + "25" }]}>
+            <View style={[cs.choiceBtnIconWrap, {
+              backgroundColor: c.risky ? "#ef444422" : gradient[0] + "30",
+              borderColor: c.risky ? "#ef444440" : gradient[0] + "60",
+            }]}>
               <Text style={cs.choiceBtnIcon}>{c.icon}</Text>
             </View>
-            <Text style={cs.choiceBtnLabel} numberOfLines={1}>{c.label}</Text>
-            {c.risky
-              ? <View style={cs.riskyBadge}><Text style={cs.riskyBadgeText}>RISK</Text></View>
-              : <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.25)" />
-            }
+            <View style={cs.choiceBtnText}>
+              <View style={cs.choiceBtnLabelRow}>
+                <Text style={cs.choiceBtnLabel}>{c.label}</Text>
+                {c.risky && (
+                  <View style={cs.riskyBadge}><Text style={cs.riskyBadgeText}>RISK</Text></View>
+                )}
+              </View>
+              <Text style={cs.choiceBtnSub} numberOfLines={2}>{c.sub}</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={13}
+              color={c.risky ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.2)"}
+            />
           </Pressable>
         ))}
       </View>
@@ -1353,21 +1369,28 @@ const cs = StyleSheet.create({
   ageFill: { height: 2 },
 
   // ── Situation card ──
-  cardWrap: { flex: 1, paddingHorizontal: 14, paddingTop: 10, justifyContent: "center" },
+  cardWrap: { flex: 1, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 4, justifyContent: "center" },
   situationCard: { borderRadius: 20, borderWidth: 1, overflow: "hidden" },
-  situationCardGrad: { padding: 18, gap: 8 },
-  situationTag: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 2 },
+  situationCardGrad: { padding: 16, gap: 10 },
+  situationMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
+  situationAgePill: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3 },
+  situationAgeText: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1.5 },
+  situationPhaseText: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1 },
   situationTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: S.text, lineHeight: 26 },
-  situationBody: { fontSize: 13, fontFamily: "Inter_400Regular", color: S.textMid, lineHeight: 20 },
+  situationBody: { fontSize: 13, fontFamily: "Inter_400Regular", color: S.textMid, lineHeight: 21 },
 
-  // ── Choice buttons ──
-  choicesWrap: { paddingHorizontal: 14, gap: 6 },
-  choiceBtn: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: S.surface, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 11, borderWidth: 1, borderColor: S.border },
+  // ── Choice cards ──
+  choicesWrap: { paddingHorizontal: 14, gap: 5 },
+  choicesHeading: { fontSize: 9, fontFamily: "Inter_700Bold", color: S.textLow, letterSpacing: 2, marginBottom: 2 },
+  choiceBtn: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: S.surface, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: S.border },
   choiceBtnRisky: { borderColor: "rgba(239,68,68,0.35)", backgroundColor: "rgba(239,68,68,0.06)" },
-  choiceBtnIconWrap: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  choiceBtnIcon: { fontSize: 18 },
+  choiceBtnIconWrap: { width: 40, height: 40, borderRadius: 13, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  choiceBtnIcon: { fontSize: 19 },
+  choiceBtnText: { flex: 1, gap: 2 },
+  choiceBtnLabelRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   choiceBtnLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_600SemiBold", color: S.text },
-  riskyBadge: { backgroundColor: "rgba(239,68,68,0.2)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  choiceBtnSub: { fontSize: 11, fontFamily: "Inter_400Regular", color: S.textLow, lineHeight: 15 },
+  riskyBadge: { backgroundColor: "rgba(239,68,68,0.18)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   riskyBadgeText: { fontSize: 8, fontFamily: "Inter_700Bold", color: "#f87171", letterSpacing: 0.5 },
 
   // ── Misc ──
